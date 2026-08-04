@@ -584,9 +584,16 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
 
   expect(usersTabButton).toBeDefined();
   await usersTabButton?.trigger("click");
-  await flushPromises();
+  // SettingsUsersTab 为 defineAsyncComponent：加载链依赖宏任务推进，
+  // flushPromises 只冲刷微任务；用 vi.waitFor 轮询等待异步组件完成解析。
+  await vi.waitFor(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flushPromises();
+    if (!wrapper.find('[data-testid="auth-source-email-enabled"]').exists()) {
+      throw new Error("users tab async component not resolved yet");
+    }
+  });
 }
-
 describe("admin SettingsView payment visible method controls", () => {
   beforeEach(() => {
     getSettings.mockReset();
