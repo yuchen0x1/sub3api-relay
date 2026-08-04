@@ -474,7 +474,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
@@ -502,7 +502,7 @@ const isHomeContentUrl = computed(() => {
 })
 
 // Theme
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const isDark = computed(() => appStore.isDark)
 
 // GitHub URL
 const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
@@ -522,25 +522,10 @@ const currentYear = computed(() => new Date().getFullYear())
 
 // Toggle theme
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-}
-
-// Initialize theme
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (
-    savedTheme === 'dark' ||
-    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  ) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
+  appStore.toggleTheme()
 }
 
 onMounted(() => {
-  initTheme()
 
   // Check auth state
   authStore.checkAuth()
@@ -601,7 +586,7 @@ onMounted(() => {
   background: #ef4444;
 }
 .btn-minimize {
-  background: #eab308;
+  background: #f59e0b;
 }
 .btn-maximize {
   background: #22c55e;

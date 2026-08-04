@@ -72,7 +72,7 @@
       <LoadingSpinner />
     </div>
     <div v-else-if="displayEndpointStats.length > 0 && chartData" class="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
-      <div class="h-48 w-48 shrink-0">
+      <div class="h-48 w-48 shrink-0" role="img" :aria-label="chartAriaLabel">
         <Doughnut :data="chartData" :options="doughnutOptions" />
       </div>
       <div class="max-h-48 w-full min-w-0 flex-1 overflow-auto">
@@ -133,6 +133,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColors as getChartColors } from '@/design-system/chart-theme'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
@@ -211,20 +212,7 @@ const toggleBreakdown = async (endpoint: string) => {
   }
 }
 
-const chartColors = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#ec4899',
-  '#14b8a6',
-  '#f97316',
-  '#6366f1',
-  '#84cc16',
-  '#06b6d4',
-  '#a855f7'
-]
+const chartColors = getChartColors(8)
 
 const displayEndpointStats = computed(() => {
   const sourceStats = props.source === 'upstream'
@@ -254,6 +242,13 @@ const chartData = computed(() => {
     ]
   }
 })
+
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: props.title || t('usage.endpointDistribution'),
+    count: displayEndpointStats.value.length
+  })
+)
 
 const doughnutOptions = computed(() => ({
   responsive: true,

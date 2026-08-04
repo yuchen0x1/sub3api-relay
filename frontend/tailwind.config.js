@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 主色调 - Teal/Cyan 青色系
+        // 主色调 - Teal/Cyan 青色系（保持原有类名兼容）
         primary: {
           50: '#f0fdfa',
           100: '#ccfbf1',
@@ -46,32 +46,35 @@ export default {
           800: '#1e293b',
           900: '#0f172a',
           950: '#020617'
+        },
+        // 语义 Token 色（渐进式迁移用——新增类名如 text-token-muted / bg-token-surface）
+        token: {
+          bg: 'var(--color-bg)',
+          surface: 'var(--color-surface)',
+          'surface-2': 'var(--color-surface-2)',
+          border: 'var(--color-border)',
+          text: 'var(--color-text)',
+          'text-secondary': 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
+          'text-inverse': 'var(--color-text-inverse)',
+          success: 'rgb(var(--color-success) / <alpha-value>)',
+          warning: 'rgb(var(--color-warning) / <alpha-value>)',
+          danger: 'rgb(var(--color-danger) / <alpha-value>)',
+          info: 'rgb(var(--color-info) / <alpha-value>)',
         }
       },
       fontFamily: {
-        sans: [
-          'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
-          'PingFang SC',
-          'Hiragino Sans GB',
-          'Microsoft YaHei',
-          'sans-serif'
-        ],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)']
       },
       boxShadow: {
-        glass: '0 8px 32px rgba(0, 0, 0, 0.08)',
+        glass: 'var(--shadow-glass)',
         'glass-sm': '0 4px 16px rgba(0, 0, 0, 0.06)',
-        glow: '0 0 20px rgba(20, 184, 166, 0.25)',
-        'glow-lg': '0 0 40px rgba(20, 184, 166, 0.35)',
-        card: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
-        'card-hover': '0 10px 40px rgba(0, 0, 0, 0.08)',
-        'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        glow: 'var(--shadow-glow)',
+        'glow-lg': 'var(--shadow-glow-lg)',
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
+        'inner-glow': 'var(--shadow-inner-glow)'
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -126,7 +129,7 @@ export default {
         xs: '2px'
       },
       borderRadius: {
-        '4xl': '2rem'
+        '4xl': 'var(--radius-4xl)'
       }
     }
   },

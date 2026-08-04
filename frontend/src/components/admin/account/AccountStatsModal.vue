@@ -448,6 +448,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -516,7 +517,7 @@ const trendChartData = computed(() => {
       {
         label: t('usage.accountBilled') + ' (USD)',
         data: stats.value.history.map((h) => h.actual_cost),
-        borderColor: '#3b82f6',
+        borderColor: chartColorAlpha(8, 1),
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: true,
         tension: 0.3,
@@ -525,7 +526,7 @@ const trendChartData = computed(() => {
       {
         label: t('usage.userBilled') + ' (USD)',
         data: stats.value.history.map((h) => h.user_cost),
-        borderColor: '#10b981',
+        borderColor: chartColorAlpha(7, 1),
         backgroundColor: 'rgba(16, 185, 129, 0.08)',
         fill: false,
         tension: 0.3,
@@ -535,7 +536,7 @@ const trendChartData = computed(() => {
       {
         label: t('admin.accounts.stats.requests'),
         data: stats.value.history.map((h) => h.requests),
-        borderColor: '#f97316',
+        borderColor: chartColorAlpha(5, 1),
         backgroundColor: 'rgba(249, 115, 22, 0.1)',
         fill: false,
         tension: 0.3,
@@ -601,7 +602,7 @@ const lineChartOptions = computed(() => ({
         color: chartColors.value.grid
       },
       ticks: {
-        color: '#3b82f6',
+        color: chartColorAlpha(8, 1),
         font: {
           size: 10
         },
@@ -610,7 +611,7 @@ const lineChartOptions = computed(() => ({
       title: {
         display: true,
         text: t('usage.accountBilled') + ' (USD)',
-        color: '#3b82f6',
+        color: chartColorAlpha(8, 1),
         font: {
           size: 11
         }
@@ -624,7 +625,7 @@ const lineChartOptions = computed(() => ({
         drawOnChartArea: false
       },
       ticks: {
-        color: '#f97316',
+        color: chartColorAlpha(5, 1),
         font: {
           size: 10
         },
@@ -633,7 +634,7 @@ const lineChartOptions = computed(() => ({
       title: {
         display: true,
         text: t('admin.accounts.stats.requests'),
-        color: '#f97316',
+        color: chartColorAlpha(5, 1),
         font: {
           size: 11
         }

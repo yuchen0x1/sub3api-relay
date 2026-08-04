@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js'
@@ -23,9 +24,9 @@ const { t } = useI18n()
 
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
 const colors = computed(() => ({
-  blue: '#3b82f6',
-  red: '#ef4444',
-  orange: '#f59e0b',
+  blue: chartColorAlpha(8, 1),
+  red: chartColorAlpha(10, 1),
+  orange: chartColorAlpha(5, 1),
   gray: '#9ca3af',
   text: isDarkMode.value ? '#9ca3af' : '#6b7280'
 }))
@@ -94,6 +95,13 @@ const chartData = computed(() => {
   }
 })
 
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: t('admin.ops.errorDistribution'),
+    count: totalSlaErrors.value
+  })
+)
+
 const options = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -134,7 +142,7 @@ const options = computed(() => ({
       </button>
     </div>
 
-    <div class="relative min-h-0 flex-1">
+    <div class="relative min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
       <div v-if="state === 'ready' && chartData" class="flex h-full flex-col">
         <div class="flex-1">
           <Doughnut :data="chartData" :options="{ ...options, cutout: '65%' }" />

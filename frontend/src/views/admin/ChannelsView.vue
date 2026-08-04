@@ -406,7 +406,7 @@
                     :placeholder="t('admin.channels.form.mappingTarget', 'Target model')"
                     @input="section.model_mapping[srcModel] = ($event.target as HTMLInputElement).value"
                   />
-                  <button
+                  <button :aria-label="t('common.delete')"
                     type="button"
                     @click="removeMappingEntry(sIdx, srcModel)"
                     class="rounded p-0.5 text-gray-400 hover:text-red-500"
@@ -522,7 +522,7 @@
                       class="inline-flex items-center gap-1 rounded-md border border-primary-300 bg-primary-50 px-2 py-0.5 text-xs dark:border-primary-700 dark:bg-primary-900/20"
                     >
                       <span :class="['font-medium', platformTextClass(section.platform)]">{{ getRuleAccountLabel(accountId) }}</span>
-                      <button type="button" @click="removeRuleAccount(rule, accountId)" class="text-gray-400 hover:text-red-500">
+                      <button :aria-label="t('common.delete')" type="button" @click="removeRuleAccount(rule, accountId)" class="text-gray-400 hover:text-red-500">
                         <Icon name="x" size="xs" />
                       </button>
                     </span>

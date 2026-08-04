@@ -61,7 +61,7 @@
               class="input-ring w-full h-12 pl-12 pr-12 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 transition-all dark:border-dark-700 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-500"
               @keydown.enter="queryKey"
             />
-            <button
+            <button :aria-label="t('common.togglePassword')"
               @click="keyVisible = !keyVisible"
               class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 dark:text-dark-500 dark:hover:text-white transition-colors"
             >
@@ -417,6 +417,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
@@ -438,12 +439,10 @@ const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 
 // ==================== Theme (same as HomeView) ====================
 
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const isDark = computed(() => appStore.isDark)
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  appStore.toggleTheme()
 }
 
 const currentYear = computed(() => new Date().getFullYear())
@@ -527,10 +526,10 @@ function setDailyUsageDays(days: 7 | 30 | 90) {
 
 const CIRCUMFERENCE = 2 * Math.PI * 68
 const RING_GRADIENTS = [
-  { from: '#14b8a6', to: '#5eead4' },
-  { from: '#6366F1', to: '#A5B4FC' },
-  { from: '#10B981', to: '#6EE7B7' },
-  { from: '#F59E0B', to: '#FCD34D' },
+  { from: chartColorAlpha(1, 1), to: chartColorAlpha(1, 0.6) },
+  { from: chartColorAlpha(2, 1), to: chartColorAlpha(2, 0.6) },
+  { from: chartColorAlpha(7, 1), to: chartColorAlpha(7, 0.6) },
+  { from: chartColorAlpha(5, 1), to: chartColorAlpha(5, 0.6) },
 ]
 
 const ringAnimated = ref(false)
@@ -906,14 +905,6 @@ async function queryKey() {
 
 // ==================== Lifecycle ====================
 
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
-
 function formatResetTime(resetAt: string | null | undefined): string {
   if (!resetAt) return ''
   const diff = new Date(resetAt).getTime() - now.value.getTime()
@@ -927,7 +918,6 @@ function formatResetTime(resetAt: string | null | undefined): string {
 }
 
 onMounted(() => {
-  initTheme()
   if (!appStore.publicSettingsLoaded) {
     appStore.fetchPublicSettings()
   }

@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
@@ -84,7 +85,7 @@ const modelData = computed(() => !props.models?.length ? null : {
   labels: props.models.map((m: ModelStat) => m.model),
   datasets: [{
     data: props.models.map((m: ModelStat) => m.total_tokens),
-    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+    backgroundColor: [chartColorAlpha(8, 1), chartColorAlpha(7, 1), chartColorAlpha(5, 1), chartColorAlpha(10, 1), chartColorAlpha(3, 1), chartColorAlpha(4, 1), chartColorAlpha(8, 0.7), chartColorAlpha(7, 0.7)]
   }]
 })
 

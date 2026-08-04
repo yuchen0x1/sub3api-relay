@@ -341,6 +341,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -541,18 +542,18 @@ const userTrendChartData = computed(() => {
 
   const sortedDates = Array.from(allDates).sort()
   const colors = [
-    '#3b82f6',
-    '#10b981',
-    '#f59e0b',
-    '#ef4444',
-    '#8b5cf6',
-    '#ec4899',
-    '#14b8a6',
-    '#f97316',
-    '#6366f1',
-    '#84cc16',
-    '#06b6d4',
-    '#a855f7'
+    chartColorAlpha(8, 1),
+    chartColorAlpha(7, 1),
+    chartColorAlpha(5, 1),
+    chartColorAlpha(10, 1),
+    chartColorAlpha(3, 1),
+    chartColorAlpha(4, 1),
+    chartColorAlpha(1, 1),
+    chartColorAlpha(5, 1),
+    chartColorAlpha(2, 1),
+    chartColorAlpha(7, 0.7),
+    chartColorAlpha(8, 0.7),
+    chartColorAlpha(3, 0.8)
   ]
 
   const datasets = Array.from(userGroups.values()).map((group, idx) => ({

@@ -52,7 +52,7 @@
       </div>
 
       <!-- Remove button (always visible, stop propagation) -->
-      <button
+      <button :aria-label="t('common.delete')"
         type="button"
         @click.stop="emit('remove')"
         class="flex-shrink-0 rounded p-1 text-gray-400 hover:text-red-500"

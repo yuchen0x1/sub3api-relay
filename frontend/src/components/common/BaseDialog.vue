@@ -105,9 +105,38 @@ const handleClose = () => {
   }
 }
 
-const handleEscape = (event: KeyboardEvent) => {
-  if (props.show && props.closeOnEscape && event.key === 'Escape') {
+const getFocusableElements = () => {
+  if (!dialogRef.value) return []
+  return Array.from(
+    dialogRef.value.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true')
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!props.show) return
+  // Escape 关闭
+  if (event.key === 'Escape' && props.closeOnEscape) {
     emit('close')
+    return
+  }
+  // Tab 循环（focus trap）：键盘焦点始终保持在对话框内
+  if (event.key !== 'Tab') return
+  const focusable = getFocusableElements()
+  if (focusable.length === 0) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  const active = document.activeElement
+  const inside = dialogRef.value?.contains(active) ?? false
+  if (event.shiftKey) {
+    if (!inside || active === first) {
+      event.preventDefault()
+      last.focus()
+    }
+  } else if (!inside || active === last) {
+    event.preventDefault()
+    first.focus()
   }
 }
 
@@ -142,11 +171,11 @@ watch(
 )
 
 onMounted(() => {
-  document.addEventListener('keydown', handleEscape)
+  document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleEscape)
+  document.removeEventListener('keydown', handleKeydown)
   // 确保组件卸载时移除滚动锁定
   document.body.classList.remove('modal-open')
 })

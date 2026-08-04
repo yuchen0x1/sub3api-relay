@@ -435,4 +435,11 @@ export default {
   },
 
   // Dashboard
+  chartAriaLabel: '{title}: {count} items',
+  togglePassword: 'Toggle password visibility',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  clear: 'Clear',
+  help: 'Help',
+  preview: 'Preview',
 }

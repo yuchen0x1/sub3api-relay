@@ -1,5 +1,7 @@
-import { createApp } from 'vue'
+import './design-system/themes/tokens.css'
+import './design-system/themes/dark.css'
 import { createPinia } from 'pinia'
+import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import i18n, { initI18n } from './i18n'
@@ -22,17 +24,7 @@ function initIOSViewportZoomFix() {
   viewport.setAttribute('content', `${content}, maximum-scale=1.0`)
 }
 
-function initThemeClass() {
-  const savedTheme = localStorage.getItem('theme')
-  const shouldUseDark =
-    savedTheme === 'dark' ||
-    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  document.documentElement.classList.toggle('dark', shouldUseDark)
-}
-
 async function bootstrap() {
-  // Apply theme class globally before app mount to keep all routes consistent.
-  initThemeClass()
   initIOSViewportZoomFix()
 
   const app = createApp(App)
@@ -43,6 +35,9 @@ async function bootstrap() {
   // This must happen after pinia is installed but before router and i18n
   const appStore = useAppStore()
   appStore.initFromInjectedConfig()
+
+  // Apply theme globally before mount to keep all routes consistent (single source of truth).
+  appStore.initTheme()
 
   // Set document title immediately after config is loaded
   if (appStore.siteName && appStore.siteName !== 'Sub2API') {

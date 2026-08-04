@@ -97,7 +97,7 @@
           class="input rounded-lg py-1.5 pl-9 pr-9"
           @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
         />
-        <button
+        <button :aria-label="t('common.clear')"
           v-if="search"
           type="button"
           class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:text-dark-500 dark:hover:text-gray-300"

@@ -427,6 +427,64 @@ export const useAppStore = defineStore('app', () => {
     return false
   }
 
+
+  // ==================== Theme State ====================
+
+  const themeMode = ref<'light' | 'dark' | 'system'>('system')
+  const isDark = ref(false)
+  let systemMediaQuery: MediaQueryList | null = null
+  let systemChangeHandler: EventListener | null = null
+
+  function watchSystemTheme(): void {
+    if (typeof window === 'undefined') return
+    if (systemMediaQuery && systemChangeHandler) {
+      systemMediaQuery.removeEventListener('change', systemChangeHandler)
+    }
+    systemMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    systemChangeHandler = () => {
+      if (themeMode.value === 'system') {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)')
+        isDark.value = mq.matches
+        document.documentElement.classList.toggle('dark', isDark.value)
+      }
+    }
+    systemMediaQuery.addEventListener('change', systemChangeHandler)
+  }
+
+  /**
+   * Apply a theme mode. Single source of truth for theme switching:
+   * keeps <html>.dark, localStorage and the system-preference listener in sync.
+   */
+  function setTheme(mode: 'light' | 'dark' | 'system'): void {
+    themeMode.value = mode
+    if (typeof window === 'undefined') return
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    isDark.value = mode === 'dark' || (mode === 'system' && prefersDark)
+    document.documentElement.classList.toggle('dark', isDark.value)
+    if (mode === 'system') {
+      localStorage.removeItem('theme')
+    } else {
+      localStorage.setItem('theme', mode)
+    }
+    watchSystemTheme()
+  }
+
+  /**
+   * Toggle between light and dark (used by the header theme buttons).
+   */
+  function toggleTheme(): void {
+    setTheme(isDark.value ? 'light' : 'dark')
+  }
+
+  /**
+   * Initialize theme from localStorage or system preference. Called once at bootstrap.
+   */
+  function initTheme(): void {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem('theme')
+    setTheme(saved === 'dark' || saved === 'light' ? saved : 'system')
+  }
+
   // ==================== Return Store API ====================
 
   return {
@@ -460,6 +518,10 @@ export const useAppStore = defineStore('app', () => {
     hasActiveToasts,
     backendModeEnabled,
 
+    // Theme state
+    themeMode,
+    isDark,
+
     // Actions
     toggleSidebar,
     setSidebarCollapsed,
@@ -476,6 +538,11 @@ export const useAppStore = defineStore('app', () => {
     withLoading,
     withLoadingAndError,
     reset,
+
+    // Theme actions
+    setTheme,
+    toggleTheme,
+    initTheme,
 
     // Version actions
     fetchVersion,

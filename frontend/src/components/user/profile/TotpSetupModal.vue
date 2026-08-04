@@ -95,7 +95,7 @@
                 <code class="rounded bg-gray-100 px-3 py-2 font-mono text-sm dark:bg-dark-700">
                   {{ setupData.secret }}
                 </code>
-                <button
+                <button :aria-label="t('common.copy')"
                   type="button"
                   class="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-700"
                   @click="copySecret"

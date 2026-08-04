@@ -304,6 +304,7 @@ func TestImportDataReusesProxyAndSkipsDefaultGroup(t *testing.T) {
 			},
 		},
 		"skip_default_group_bind": true,
+		"validate_accounts":       false,
 	}
 
 	body, _ := json.Marshal(dataPayload)
@@ -316,4 +317,46 @@ func TestImportDataReusesProxyAndSkipsDefaultGroup(t *testing.T) {
 	require.Len(t, adminSvc.createdProxies, 0)
 	require.Len(t, adminSvc.createdAccounts, 1)
 	require.True(t, adminSvc.createdAccounts[0].SkipDefaultGroupBind)
+}
+
+func TestImportDataSkipsAccountsWhenHealthCheckFails(t *testing.T) {
+	router, adminSvc := setupAccountDataRouter()
+
+	dataPayload := map[string]any{
+		"data": map[string]any{
+			"type":    dataType,
+			"version": dataVersion,
+			"proxies": []map[string]any{},
+			"accounts": []map[string]any{
+				{
+					"name":        "unavailable-account",
+					"platform":    service.PlatformOpenAI,
+					"type":        service.AccountTypeOAuth,
+					"credentials": map[string]any{"token": "unavailable"},
+					"concurrency": 1,
+					"priority":    0,
+				},
+			},
+		},
+	}
+
+	body, err := json.Marshal(dataPayload)
+	require.NoError(t, err)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/data", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var response struct {
+		Code int              `json:"code"`
+		Data DataImportResult `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+	require.Equal(t, 0, response.Code)
+	require.Zero(t, response.Data.AccountCreated)
+	require.Equal(t, 1, response.Data.AccountSkipped)
+	require.Len(t, response.Data.Errors, 1)
+	require.Contains(t, response.Data.Errors[0].Message, "health check")
+	require.Empty(t, adminSvc.createdAccounts)
 }

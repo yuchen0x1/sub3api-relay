@@ -75,6 +75,7 @@ type DataAccount struct {
 type DataImportRequest struct {
 	Data                 DataPayload `json:"data"`
 	SkipDefaultGroupBind *bool       `json:"skip_default_group_bind"`
+	ValidateAccounts     *bool       `json:"validate_accounts"`
 }
 
 type DataImportResult struct {
@@ -83,6 +84,7 @@ type DataImportResult struct {
 	ProxyFailed    int               `json:"proxy_failed"`
 	AccountCreated int               `json:"account_created"`
 	AccountFailed  int               `json:"account_failed"`
+	AccountSkipped int               `json:"account_skipped"`
 	Errors         []DataImportError `json:"errors,omitempty"`
 }
 
@@ -246,6 +248,11 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 	skipDefaultGroupBind := true
 	if req.SkipDefaultGroupBind != nil {
 		skipDefaultGroupBind = *req.SkipDefaultGroupBind
+	}
+
+	validateAccounts := true
+	if req.ValidateAccounts != nil {
+		validateAccounts = *req.ValidateAccounts
 	}
 
 	dataPayload := req.Data
@@ -429,6 +436,20 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 
 		enrichCredentialsFromIDToken(&item)
 
+		var probeProxy *service.Proxy
+		if validateAccounts && proxyID != nil {
+			probeProxy, err = h.adminService.GetProxy(ctx, *proxyID)
+			if err != nil {
+				result.AccountSkipped++
+				result.Errors = append(result.Errors, DataImportError{
+					Kind:    "account",
+					Name:    item.Name,
+					Message: fmt.Sprintf("health check skipped: failed to load proxy: %v", err),
+				})
+				continue
+			}
+		}
+
 		accountInput := &service.CreateAccountInput{
 			Name:                 item.Name,
 			Notes:                item.Notes,
@@ -444,6 +465,18 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 			ExpiresAt:            item.ExpiresAt,
 			AutoPauseOnExpired:   item.AutoPauseOnExpired,
 			SkipDefaultGroupBind: skipDefaultGroupBind,
+		}
+
+		if validateAccounts {
+			if err := h.validateImportedAccount(ctx, accountInput, probeProxy); err != nil {
+				result.AccountSkipped++
+				result.Errors = append(result.Errors, DataImportError{
+					Kind:    "account",
+					Name:    item.Name,
+					Message: fmt.Sprintf("health check failed, skipped: %v", err),
+				})
+				continue
+			}
 		}
 
 		created, err := h.adminService.CreateAccount(ctx, accountInput)
@@ -482,6 +515,42 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 	}
 
 	return result, nil
+}
+
+func (h *AccountHandler) validateImportedAccount(ctx context.Context, input *service.CreateAccountInput, proxy *service.Proxy) error {
+	if h.accountTestService == nil {
+		return errors.New("account health checker is unavailable")
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	candidate := &service.Account{
+		Name:           input.Name,
+		Notes:          input.Notes,
+		Platform:       input.Platform,
+		Type:           input.Type,
+		Credentials:    input.Credentials,
+		Extra:          input.Extra,
+		ProxyID:        input.ProxyID,
+		Proxy:          proxy,
+		Concurrency:    input.Concurrency,
+		Priority:       input.Priority,
+		RateMultiplier: input.RateMultiplier,
+		Status:         service.StatusActive,
+		Schedulable:    true,
+	}
+	result, err := h.accountTestService.TestAccountCandidate(probeCtx, candidate, "")
+	if err != nil {
+		return err
+	}
+	if result == nil || result.Status != "success" {
+		if result != nil && strings.TrimSpace(result.ErrorMessage) != "" {
+			return errors.New(strings.TrimSpace(result.ErrorMessage))
+		}
+		return errors.New("account health check failed")
+	}
+	return nil
 }
 
 func (h *AccountHandler) listAllProxies(ctx context.Context) ([]service.Proxy, error) {

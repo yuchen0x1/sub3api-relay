@@ -56,7 +56,7 @@
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.passwordPlaceholder')"
             />
-            <button
+            <button :aria-label="t('common.togglePassword')"
               type="button"
               @click="showPassword = !showPassword"
               :disabled="authActionDisabled"

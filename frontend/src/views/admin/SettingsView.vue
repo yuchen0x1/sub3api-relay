@@ -717,7 +717,7 @@
                           t('admin.settings.rectifier.apikeyPatternPlaceholder')
                         "
                       />
-                      <button
+                      <button :aria-label="t('common.delete')"
                         type="button"
                         @click="
                           rectifierForm.apikey_signature_patterns.splice(
@@ -929,7 +929,7 @@
                           t('admin.settings.betaPolicy.modelPatternPlaceholder')
                         "
                       />
-                      <button
+                      <button :aria-label="t('common.delete')"
                         type="button"
                         @click="rule.model_whitelist!.splice(index, 1)"
                         class="shrink-0 rounded p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
@@ -1254,7 +1254,7 @@
                         )
                       "
                     />
-                    <button
+                    <button :aria-label="t('common.delete')"
                       type="button"
                       @click="
                         removeOpenAIFastPolicyModelPattern(rule, patternIdx)
@@ -1437,7 +1437,7 @@
                       class="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs font-mono text-gray-700 dark:bg-dark-600 dark:text-gray-200"
                     >
                       <span>{{ suffix }}</span>
-                      <button
+                      <button :aria-label="t('common.delete')"
                         type="button"
                         class="rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-dark-500 dark:hover:text-white"
                         @click="
@@ -4897,7 +4897,7 @@
                             size="xs"
                           />
                         </button>
-                        <button
+                        <button :aria-label="t('common.moveUp')"
                           type="button"
                           class="btn btn-secondary btn-sm px-2"
                           :disabled="index === 0"
@@ -4905,7 +4905,7 @@
                         >
                           <Icon name="arrowUp" size="xs" />
                         </button>
-                        <button
+                        <button :aria-label="t('common.moveDown')"
                           type="button"
                           class="btn btn-secondary btn-sm px-2"
                           :disabled="
@@ -4916,7 +4916,7 @@
                           <Icon name="arrowDown" size="xs" />
                         </button>
                         <Toggle v-model="block.enabled" />
-                        <button
+                        <button :aria-label="t('common.delete')"
                           type="button"
                           class="btn btn-secondary btn-sm px-2 text-red-600 hover:text-red-700 dark:text-red-400"
                           @click="removeClaudeOAuthSystemPromptBlock(index)"
@@ -5798,7 +5798,7 @@
                           })
                         }}
                       </span>
-                      <button
+                      <button :aria-label="t('common.delete')"
                         type="button"
                         class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                         @click="removeEndpoint(index)"
@@ -6341,7 +6341,7 @@
                           </p>
                         </div>
                       </div>
-                      <button
+                      <button :aria-label="t('common.delete')"
                         type="button"
                         class="rounded-md p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-900/20"
                         :disabled="
@@ -7959,7 +7959,7 @@
                         t('admin.settings.quotaNotify.emailPlaceholder')
                       "
                     />
-                    <button
+                    <button :aria-label="t('common.delete')"
                       @click="form.account_quota_notify_emails.splice(index, 1)"
                       class="btn btn-secondary px-2"
                       type="button"
@@ -8063,7 +8063,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import { adminAPI } from "@/api";
 import {
@@ -8097,19 +8097,19 @@ import type {
 } from "@/types";
 import type { ProviderInstance } from "@/types/payment";
 import AppLayout from "@/components/layout/AppLayout.vue";
+const PaymentProviderDialog = defineAsyncComponent(() => import('@/components/payment/PaymentProviderDialog.vue'))
+const BackupSettings = defineAsyncComponent(() => import('@/views/admin/BackupView.vue'))
+const EmailTemplateEditor = defineAsyncComponent(() => import('@/views/admin/settings/EmailTemplateEditor.vue'))
+const OpenAIFastPolicyUserSelector = defineAsyncComponent(() => import('@/views/admin/settings/OpenAIFastPolicyUserSelector.vue'))
 import Icon from "@/components/icons/Icon.vue";
 import Select from "@/components/common/Select.vue";
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import PaymentProviderList from "@/components/payment/PaymentProviderList.vue";
-import PaymentProviderDialog from "@/components/payment/PaymentProviderDialog.vue";
 import GroupBadge from "@/components/common/GroupBadge.vue";
 import GroupOptionItem from "@/components/common/GroupOptionItem.vue";
 import Toggle from "@/components/common/Toggle.vue";
 import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
-import BackupSettings from "@/views/admin/BackupView.vue";
-import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
-import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import {
   useStepUp,

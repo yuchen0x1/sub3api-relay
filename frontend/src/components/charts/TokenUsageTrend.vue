@@ -6,7 +6,7 @@
     <div v-if="loading" class="flex h-48 items-center justify-center">
       <LoadingSpinner />
     </div>
-    <div v-else-if="trendData.length > 0 && chartData" class="h-48">
+    <div v-else-if="trendData.length > 0 && chartData" class="h-48" role="img" :aria-label="chartAriaLabel">
       <Line :data="chartData" :options="lineOptions" />
     </div>
     <div
@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -61,11 +62,11 @@ const isDarkMode = computed(() => {
 const chartColors = computed(() => ({
   text: isDarkMode.value ? '#e5e7eb' : '#374151',
   grid: isDarkMode.value ? '#374151' : '#e5e7eb',
-  input: '#3b82f6',
-  output: '#10b981',
-  cacheCreation: '#f59e0b',
-  cacheRead: '#06b6d4',
-  cacheHitRate: '#8b5cf6'
+  input: chartColorAlpha(8, 1),
+  output: chartColorAlpha(7, 1),
+  cacheCreation: chartColorAlpha(5, 1),
+  cacheRead: chartColorAlpha(8, 1),
+  cacheHitRate: chartColorAlpha(3, 1)
 }))
 
 const chartData = computed(() => {
@@ -122,6 +123,13 @@ const chartData = computed(() => {
     ]
   }
 })
+
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: t('admin.dashboard.tokenUsageTrend'),
+    count: props.trendData.length
+  })
+)
 
 const lineOptions = computed(() => ({
   responsive: true,

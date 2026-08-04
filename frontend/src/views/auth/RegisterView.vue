@@ -72,7 +72,7 @@
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.createPasswordPlaceholder')"
             />
-            <button
+            <button :aria-label="t('common.togglePassword')"
               type="button"
               :disabled="registrationActionDisabled"
               @click="showPassword = !showPassword"

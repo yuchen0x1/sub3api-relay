@@ -180,9 +180,28 @@ func createTestPayload(modelID string) (map[string]any, error) {
 func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string) error {
 	ctx := c.Request.Context()
 
-	// Get account
 	account, err := s.accountRepo.GetByID(ctx, accountID)
 	if err != nil {
+		return s.sendErrorAndEnd(c, "Account not found")
+	}
+	return s.testAccountConnection(c, account, modelID, prompt, mode)
+}
+
+// TestAccountCandidate validates an account before it has been persisted. The
+// candidate receives a non-persistent ID so probe-time state updates cannot
+// modify a stored account.
+func (s *AccountTestService) TestAccountCandidate(ctx context.Context, candidate *Account, modelID string) (*ScheduledTestResult, error) {
+	if candidate == nil {
+		return nil, errors.New("account candidate is required")
+	}
+
+	candidateCopy := *candidate
+	candidateCopy.ID = -1
+	return s.runAccountTest(ctx, &candidateCopy, modelID)
+}
+
+func (s *AccountTestService) testAccountConnection(c *gin.Context, account *Account, modelID string, prompt string, mode string) error {
+	if account == nil {
 		return s.sendErrorAndEnd(c, "Account not found")
 	}
 
@@ -1941,13 +1960,21 @@ func (s *AccountTestService) sendErrorAndEnd(c *gin.Context, errorMsg string) er
 // RunTestBackground executes an account test in-memory (no real HTTP client),
 // capturing SSE output via httptest.NewRecorder, then parses the result.
 func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string) (*ScheduledTestResult, error) {
+	account, err := s.accountRepo.GetByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	return s.runAccountTest(ctx, account, modelID)
+}
+
+func (s *AccountTestService) runAccountTest(ctx context.Context, account *Account, modelID string) (*ScheduledTestResult, error) {
 	startedAt := time.Now()
 
 	w := httptest.NewRecorder()
 	ginCtx, _ := gin.CreateTestContext(w)
 	ginCtx.Request = (&http.Request{}).WithContext(ctx)
 
-	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, "", AccountTestModeDefault)
+	testErr := s.testAccountConnection(ginCtx, account, modelID, "", AccountTestModeDefault)
 
 	finishedAt := time.Now()
 	body := w.Body.String()

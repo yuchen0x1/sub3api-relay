@@ -171,7 +171,7 @@
                   {{ visiblePasswordIds.has(row.id) ? row.password : '••••••' }}
                 </span>
               </div>
-              <button
+              <button :aria-label="t('common.togglePassword')"
                 v-if="row.password"
                 type="button"
                 class="ml-1 rounded p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -483,7 +483,7 @@
               class="input pr-10"
               :placeholder="t('admin.proxies.optionalAuth')"
             />
-            <button
+            <button :aria-label="t('common.togglePassword')"
               type="button"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               @click="createPasswordVisible = !createPasswordVisible"
@@ -712,7 +712,7 @@
               class="input pr-10"
               @input="editPasswordDirty = true"
             />
-            <button
+            <button :aria-label="t('common.togglePassword')"
               type="button"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               @click="editPasswordVisible = !editPasswordVisible"
