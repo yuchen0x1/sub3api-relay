@@ -684,6 +684,15 @@ describe("admin SettingsView payment visible method controls", () => {
   it("submits the compact home page toggle", async () => {
     const wrapper = mountView();
     await flushPromises();
+    // SettingsGeneralTab 为 defineAsyncComponent：加载链依赖宏任务推进，
+    // flushPromises 只冲刷微任务；用 vi.waitFor 轮询等待异步组件完成解析。
+    await vi.waitFor(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await flushPromises();
+      if (!wrapper.find('[data-testid="compact-home-toggle"]').exists()) {
+        throw new Error("general tab async component not resolved yet");
+      }
+    });
 
     const toggle = wrapper.get('[data-testid="compact-home-toggle"]');
     expect((toggle.element as HTMLInputElement).checked).toBe(false);
