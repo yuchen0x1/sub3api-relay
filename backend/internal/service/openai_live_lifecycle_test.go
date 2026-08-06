@@ -248,6 +248,23 @@ func (r *liveTestUsageRepo) Create(_ context.Context, log *UsageLog) (bool, erro
 	return true, nil
 }
 
+type liveTestAPIKeyRepo struct {
+	APIKeyRepository
+	apiKey *APIKey
+}
+
+func (r *liveTestAPIKeyRepo) GetByID(context.Context, int64) (*APIKey, error) {
+	return r.apiKey, nil
+}
+
+type liveTestUsageBillingRepo struct {
+	UsageBillingRepository
+}
+
+func (r *liveTestUsageBillingRepo) Apply(context.Context, *UsageBillingCommand) (*UsageBillingApplyResult, error) {
+	return &UsageBillingApplyResult{Applied: true}, nil
+}
+
 func TestRunLiveControllerClosesExpiredSession(t *testing.T) {
 	upstream := newLiveTestFrameConn()
 	record := &LiveCallRecord{ExpiresAt: time.Now().Add(20 * time.Millisecond)}
@@ -310,6 +327,66 @@ func TestFinalizeLiveCallIsIdempotentAndWritesZeroUsage(t *testing.T) {
 	require.Zero(t, log.ActualCost)
 }
 
+func TestFinalizeLiveCallBillsByDuration(t *testing.T) {
+	record := &LiveCallRecord{
+		CallID:          "call_billing",
+		CallHash:        hashLiveCallID("call_billing"),
+		AccountID:       11,
+		APIKeyID:        22,
+		UserID:          33,
+		GroupID:         44,
+		LeaseID:         "lease-billing",
+		Model:           "gpt-live-test",
+		CreatedAt:       time.Now().Add(-2 * time.Minute),
+		ExpiresAt:       time.Now().Add(time.Hour),
+		Controller:      LiveControllerPending,
+		InboundEndpoint: "/v1/live",
+	}
+	store := &liveTestStore{}
+	require.NoError(t, store.SaveLiveCall(context.Background(), record, time.Hour))
+	concurrencyCache := &liveTestConcurrencyCache{}
+	usageRepo := &liveTestUsageRepo{}
+	cfg := &config.Config{}
+	cfg.Gateway.Live.CostPerMinute = 0.02
+	cfg.Default.RateMultiplier = 1
+	apiKey := &APIKey{
+		ID:     record.APIKeyID,
+		UserID: record.UserID,
+		Key:    "sk-live-billing",
+		User:   &User{ID: record.UserID},
+		GroupID: &record.GroupID,
+		Group:   &Group{ID: record.GroupID, Platform: PlatformOpenAI},
+	}
+	service := &OpenAIGatewayService{
+		cache:              store,
+		concurrencyService: NewConcurrencyService(concurrencyCache),
+		usageLogRepo:       usageRepo,
+		apiKeyRepo:         &liveTestAPIKeyRepo{apiKey: apiKey},
+		accountRepo:        &liveTestAccountRepo{account: &Account{ID: record.AccountID, Type: AccountTypeOAuth}},
+		cfg:                cfg,
+		usageBillingRepo: &liveTestUsageBillingRepo{},
+		billingCacheService: &BillingCacheService{},
+		deferredService:     &DeferredService{},
+	}
+
+	service.finalizeLiveCall(record)
+	service.finalizeLiveCall(record)
+
+	concurrencyCache.mu.Lock()
+	require.Equal(t, 1, concurrencyCache.releases)
+	concurrencyCache.mu.Unlock()
+	usageRepo.mu.Lock()
+	require.Len(t, usageRepo.logs, 1)
+	log := usageRepo.logs[0]
+	usageRepo.mu.Unlock()
+	require.Equal(t, RequestTypeLive, log.RequestType)
+	require.NotNil(t, log.DurationMs)
+	require.Greater(t, log.TotalCost, float64(0))
+	require.Greater(t, log.ActualCost, float64(0))
+	require.Equal(t, log.TotalCost, log.ActualCost)
+	require.Equal(t, BillingTypeBalance, int(log.BillingType))
+	require.Nil(t, log.SubscriptionID)
+}
 func TestGetLiveCallForIdentityRejectsMismatchedCaller(t *testing.T) {
 	groupID := int64(44)
 	record := &LiveCallRecord{
@@ -374,7 +451,7 @@ func TestProxyLiveSidebandForwardsTextAndBinary(t *testing.T) {
 	dialer := &liveTestDialer{conn: upstream}
 	service := &OpenAIGatewayService{
 		accountRepo:               &liveTestAccountRepo{account: account},
-		cache:                     store,
+		cache:              store,
 		openaiWSPassthroughDialer: dialer,
 		liveAttestationCipher:     attestationCipher,
 	}

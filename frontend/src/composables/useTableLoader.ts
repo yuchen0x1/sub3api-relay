@@ -56,9 +56,9 @@ export function useTableLoader<T, P extends Record<string, any>>(options: TableL
         { signal: currentController.signal }
       )
 
-      items.value = response.items || []
-      pagination.total = response.total || 0
-      pagination.pages = response.pages || 0
+      items.value = response?.items || []
+      pagination.total = response?.total || 0
+      pagination.pages = response?.pages || 0
     } catch (error) {
       if (!isAbortError(error)) {
         console.error('Table load error:', error)

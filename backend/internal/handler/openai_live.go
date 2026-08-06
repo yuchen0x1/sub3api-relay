@@ -214,9 +214,7 @@ func (h *OpenAIGatewayHandler) LiveSideband(c *gin.Context) {
 		h.errorResponse(c, http.StatusNotFound, "not_found_error", "Live call not found")
 		return
 	}
-	downstream, err := coderws.Accept(c.Writer, c.Request, &coderws.AcceptOptions{
-		InsecureSkipVerify: true,
-	})
+	downstream, err := coderws.Accept(c.Writer, c.Request, &coderws.AcceptOptions{})
 	if err != nil {
 		return
 	}

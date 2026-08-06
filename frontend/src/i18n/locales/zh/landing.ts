@@ -14,6 +14,20 @@ export default {
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
+    gateway: {
+      title: '一套接口，直连模型',
+      description: '兼容 Anthropic Messages API 契约，一个密钥调用所有已接入模型',
+      request: '请求示例',
+      response: '响应示例',
+      chat: '对话补全',
+      chatDesc: 'POST /v1/messages，Anthropic 兼容格式，天然支持流式输出',
+      models: '模型列表',
+      modelsDesc: 'GET /v1/models，随时获取当前可用的模型目录',
+      streaming: '流式输出',
+      streamingDesc: 'SSE 流式响应，上游故障自动切换',
+      auth: '密钥鉴权',
+      authDesc: 'Bearer API Key，一行代码接入现有项目'
+    },
     // 新增：面向用户的价值主张
     heroSubtitle: '一个密钥，畅用多个 AI 模型',
     heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
@@ -54,8 +68,8 @@ export default {
       unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
       multiAccount: '稳定可靠',
       multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
-      balanceQuota: '用多少付多少',
-      balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
+      balanceQuota: '密钥与用量透明',
+      balanceQuotaDesc: '按 Key 分配配额与倍率，个人、家庭或小团队都能清楚看到每一次调用成本。'
     },
     // 优势对比
     comparison: {
@@ -191,8 +205,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API 安装向导',
-    description: '配置您的 Sub2API 实例',
+    title: 'Sub3API 安装向导',
+    description: '配置您的 Sub3API 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',

@@ -639,17 +639,76 @@ func (s *RedeemService) Delete(ctx context.Context, id int64) error {
 
 // GetStats 获取兑换码统计信息
 func (s *RedeemService) GetStats(ctx context.Context) (map[string]any, error) {
-	// TODO: 实现统计逻辑
-	// 统计未使用、已使用的兑换码数量
-	// 统计总面值等
-
-	stats := map[string]any{
-		"total_codes":  0,
-		"unused_codes": 0,
-		"used_codes":   0,
-		"total_value":  0.0,
+	if s == nil || s.redeemRepo == nil {
+		return nil, fmt.Errorf("redeem service or repository is unavailable")
 	}
 
+	stats := map[string]any{
+		"total_codes":             int64(0),
+		"active_codes":            int64(0),
+		"used_codes":              int64(0),
+		"expired_codes":           int64(0),
+		"total_value_distributed": 0.0,
+		"by_type": map[string]int64{
+			RedeemTypeBalance:      0,
+			RedeemTypeConcurrency:  0,
+			RedeemTypeSubscription: 0,
+			RedeemTypeInvitation:   0,
+		},
+	}
+
+	totalCodes := int64(0)
+	activeCodes := int64(0)
+	usedCodes := int64(0)
+	expiredCodes := int64(0)
+	var distributedValue float64
+	byType := map[string]int64{
+		RedeemTypeBalance:      0,
+		RedeemTypeConcurrency:  0,
+		RedeemTypeSubscription: 0,
+		RedeemTypeInvitation:   0,
+	}
+
+	const statsPageSize = 1000
+	page := 1
+	for {
+		codes, result, err := s.redeemRepo.ListWithFilters(ctx, pagination.PaginationParams{Page: page, PageSize: statsPageSize, SortBy: "id", SortOrder: pagination.SortOrderAsc}, "", "", "")
+		if err != nil {
+			return nil, fmt.Errorf("list redeem codes: %w", err)
+		}
+		if result != nil {
+			totalCodes = result.Total
+		}
+		for i := range codes {
+			code := &codes[i]
+			byType[code.Type]++
+			switch {
+			case code.IsUsed():
+				usedCodes++
+				if code.Value > 0 {
+					distributedValue += code.Value
+				}
+			case code.IsExpired():
+				expiredCodes++
+			case code.CanUse():
+				activeCodes++
+			}
+		}
+		if len(codes) == 0 || len(codes) < statsPageSize || (result != nil && totalCodes > 0 && int64(len(codes)) >= totalCodes) {
+			break
+		}
+		page++
+		if page > 10000 {
+			break
+		}
+	}
+
+	stats["total_codes"] = totalCodes
+	stats["active_codes"] = activeCodes
+	stats["used_codes"] = usedCodes
+	stats["expired_codes"] = expiredCodes
+	stats["total_value_distributed"] = distributedValue
+	stats["by_type"] = byType
 	return stats, nil
 }
 

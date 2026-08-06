@@ -50,6 +50,8 @@ func newKeyBillingOpenAIGatewayService(repo service.UserGroupRateRepository) *se
 	return service.NewOpenAIGatewayService(
 		nil, nil, nil, nil, nil, repo, nil, nil, nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil,
+		nil,
 	)
 }
 

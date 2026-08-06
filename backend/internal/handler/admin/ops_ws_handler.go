@@ -650,7 +650,7 @@ func loadOpsWSProxyConfigFromEnv() OpsWSProxyConfig {
 	cfg := OpsWSProxyConfig{
 		TrustProxy:     true,
 		TrustedProxies: defaultTrustedProxies(),
-		OriginPolicy:   OriginPolicyPermissive,
+		OriginPolicy:   OriginPolicyStrict,
 	}
 
 	if v := strings.TrimSpace(os.Getenv(envOpsWSTrustProxy)); v != "" {

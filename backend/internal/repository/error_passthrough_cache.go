@@ -103,6 +103,11 @@ func (c *errorPassthroughCache) NotifyUpdate(ctx context.Context) error {
 // SubscribeUpdates 订阅缓存更新通知
 func (c *errorPassthroughCache) SubscribeUpdates(ctx context.Context, handler func()) {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("error_passthrough_cache: panic in subscriber: %v", r)
+			}
+		}()
 		sub := c.rdb.Subscribe(ctx, errorPassthroughPubSubKey)
 		defer func() { _ = sub.Close() }()
 
@@ -111,8 +116,8 @@ func (c *errorPassthroughCache) SubscribeUpdates(ctx context.Context, handler fu
 			select {
 			case <-ctx.Done():
 				return
-			case msg := <-ch:
-				if msg == nil {
+			case msg, ok := <-ch:
+				if !ok || msg == nil {
 					return
 				}
 				// 清除本地缓存，下次访问时会从 Redis 或数据库重新加载

@@ -678,13 +678,56 @@ func (s *adminServiceImpl) GetUserRPMStatus(ctx context.Context, userID int64) (
 }
 
 func (s *adminServiceImpl) GetUserUsageStats(ctx context.Context, userID int64, period string) (any, error) {
-	// Return mock data for now
+	if s == nil || s.entClient == nil {
+		return nil, fmt.Errorf("usage stats unavailable: database client not configured")
+	}
+
+	now := time.Now().UTC()
+	var start time.Time
+	switch strings.ToLower(strings.TrimSpace(period)) {
+	case "today":
+		start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	case "week", "7d":
+		start = now.AddDate(0, 0, -7)
+	default:
+		start = now.AddDate(0, 0, -30)
+	}
+
+	rows, err := s.entClient.QueryContext(ctx, `
+		SELECT
+			COUNT(*),
+			COALESCE(SUM(actual_cost), 0),
+			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0),
+			COALESCE(AVG(duration_ms), 0)
+		FROM usage_logs
+		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3
+	`, userID, start, now)
+	if err != nil {
+		return nil, fmt.Errorf("get user usage stats: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var (
+		totalRequests int64
+		totalCost     float64
+		totalTokens   int64
+		avgDurationMs float64
+	)
+	if rows.Next() {
+		if err := rows.Scan(&totalRequests, &totalCost, &totalTokens, &avgDurationMs); err != nil {
+			return nil, fmt.Errorf("scan user usage stats: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read user usage stats: %w", err)
+	}
+
 	return map[string]any{
 		"period":          period,
-		"total_requests":  0,
-		"total_cost":      0.0,
-		"total_tokens":    0,
-		"avg_duration_ms": 0,
+		"total_requests":  totalRequests,
+		"total_cost":      totalCost,
+		"total_tokens":    totalTokens,
+		"avg_duration_ms": avgDurationMs,
 	}, nil
 }
 

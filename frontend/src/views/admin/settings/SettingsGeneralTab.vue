@@ -20,7 +20,8 @@ interface GeneralFormFields {
   custom_menu_items: CustomMenuItem[];
 }
 
-const { form } = defineProps<{ form: GeneralFormFields }>();
+const props = defineProps<{ form: GeneralFormFields }>();
+const { form } = props;
 
 // 草稿值由父组件持有：加载/保存成功后由父级重新格式化回填
 const tablePageSizeOptionsInput = defineModel<string>(

@@ -179,6 +179,7 @@ export default {
     darkMode: 'Dark Mode',
     collapse: 'Collapse',
     expand: 'Expand',
+    mainNavigation: 'Main navigation',
     logout: 'Logout',
     github: 'GitHub',
     mySubscriptions: 'My Subscriptions',

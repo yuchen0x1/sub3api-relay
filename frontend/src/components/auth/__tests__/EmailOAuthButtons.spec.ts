@@ -37,7 +37,7 @@ describe('EmailOAuthButtons', () => {
     window.sessionStorage.clear()
   })
 
-  it('passes the affiliate code to the email oauth start URL', async () => {
+  it('builds the email oauth start URL without affiliate parameters', async () => {
     const wrapper = mount(EmailOAuthButtons, {
       props: {
         githubEnabled: true,
@@ -54,9 +54,9 @@ describe('EmailOAuthButtons', () => {
     await wrapper.get('button').trigger('click')
 
     expect(locationState.current.href).toBe(
-      '/api/v1/auth/oauth/github/start?redirect=%2Fbilling%3Fplan%3Dpro&aff_code=AFF123'
+      '/api/v1/auth/oauth/github/start?redirect=%2Fbilling%3Fplan%3Dpro'
     )
-    expect(window.sessionStorage.getItem('oauth_aff_code')).toBe('AFF123')
+    expect(window.sessionStorage.getItem('oauth_aff_code')).toBeNull()
     expect(window.sessionStorage.getItem('email_oauth_pending_provider')).toBe('github')
   })
 

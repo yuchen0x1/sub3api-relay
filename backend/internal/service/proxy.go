@@ -73,5 +73,6 @@ type ProxyAccountSummary struct {
 	Name     string
 	Platform string
 	Type     string
+	Status   string
 	Notes    *string
 }

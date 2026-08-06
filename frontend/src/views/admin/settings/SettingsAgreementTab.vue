@@ -13,6 +13,7 @@ interface AgreementFormFields {
 }
 
 const props = defineProps<{ form: AgreementFormFields }>();
+const { form } = props;
 
 const { t, locale } = useI18n();
 const isZhLocale = computed(() => locale.value.startsWith("zh"));
@@ -40,7 +41,7 @@ function loginAgreementRoutePath(
 }
 
 function addLoginAgreementDocument() {
-  props.form.login_agreement_documents.push({
+  form.login_agreement_documents.push({
     id: `custom-${Date.now().toString(36)}`,
     title: "",
     content_md: "",
@@ -48,7 +49,7 @@ function addLoginAgreementDocument() {
 }
 
 function removeLoginAgreementDocument(index: number) {
-  props.form.login_agreement_documents.splice(index, 1);
+  form.login_agreement_documents.splice(index, 1);
 }
 </script>
 

@@ -490,14 +490,11 @@ func (s *PaymentConfigService) mergeConfig(ctx context.Context, id int64, newCon
 }
 
 // decryptConfig parses a stored provider config.
-// New records are plaintext JSON; legacy records are AES-256-GCM ciphertext
-// ("iv:authTag:ciphertext"). Values that cannot be parsed as either — including
-// legacy ciphertext with no/invalid TOTP_ENCRYPTION_KEY — are treated as empty,
-// letting the admin re-enter the config via the UI to complete the migration.
-//
-// TODO(deprecated-legacy-ciphertext): The AES fallback branch is a transitional
-// shim for pre-plaintext records. Remove it (and the encryptionKey field) after
-// a few releases once all live deployments have re-saved their provider configs.
+// New records are AES-256-GCM ciphertext ("iv:authTag:ciphertext"); pre-encryption
+// plaintext JSON and the oldest legacy ciphertext format remain readable for
+// migration. Values that cannot be parsed as any supported format — including
+// ciphertext with no/invalid TOTP_ENCRYPTION_KEY — are treated as empty, letting
+// the admin re-enter the config via the UI.
 func (s *PaymentConfigService) decryptConfig(stored string) (map[string]string, error) {
 	if stored == "" {
 		return nil, nil
@@ -533,12 +530,20 @@ func (s *PaymentConfigService) DeleteProviderInstance(ctx context.Context, id in
 }
 
 // encryptConfig serialises a provider config for storage.
-// New records are written as plaintext JSON; the historical AES-GCM wrapping
-// has been dropped but decryptConfig still accepts old ciphertext during migration.
+// New records are always AES-256-GCM encrypted; a missing/invalid encryption
+// key is a hard error so credentials are never persisted as plaintext.
 func (s *PaymentConfigService) encryptConfig(cfg map[string]string) (string, error) {
+	if len(s.encryptionKey) != payment.AES256KeySize {
+		return "", fmt.Errorf("payment provider encryption key must be %d bytes, got %d", payment.AES256KeySize, len(s.encryptionKey))
+	}
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return "", fmt.Errorf("marshal config: %w", err)
 	}
-	return string(data), nil
+	//nolint:staticcheck // SA1019: payment.Encrypt is the required write path for provider configs.
+	encrypted, err := payment.Encrypt(string(data), s.encryptionKey)
+	if err != nil {
+		return "", fmt.Errorf("encrypt config: %w", err)
+	}
+	return encrypted, nil
 }

@@ -14,6 +14,20 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
+    gateway: {
+      title: 'One Contract, Every Model',
+      description: 'Anthropic-compatible Messages API. One key for all connected models.',
+      request: 'Example Request',
+      response: 'Example Response',
+      chat: 'Chat Completions',
+      chatDesc: 'POST /v1/messages, Anthropic-compatible and streaming ready',
+      models: 'Model List',
+      modelsDesc: 'GET /v1/models for the current model catalog',
+      streaming: 'Streaming',
+      streamingDesc: 'SSE streaming with automatic upstream failover',
+      auth: 'Key Auth',
+      authDesc: 'Bearer API key, drop-in for your existing code'
+    },
     // User-focused value proposition
     heroSubtitle: 'One Key, All AI Models',
     heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
@@ -54,8 +68,8 @@ export default {
       unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
       multiAccount: 'Always Reliable',
       multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
-      balanceQuota: 'Pay What You Use',
-      balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
+      balanceQuota: 'Keys And Usage Transparency',
+      balanceQuotaDesc: 'Per-key quotas and rates make every request cost visible for personal, family, and small-team use.'
     },
     // Comparison section
     comparison: {
@@ -191,8 +205,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API Setup',
-    description: 'Configure your Sub2API instance',
+    title: 'Sub3API Setup',
+    description: 'Configure your Sub3API instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',

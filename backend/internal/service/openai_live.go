@@ -820,16 +820,23 @@ func (s *OpenAIGatewayService) finalizeLiveCall(record *LiveCallRecord) {
 	upstreamEndpoint := "/backend-api/codex/realtime/calls"
 	userAgent := record.UserAgent
 	ipAddress := record.IPAddress
-	billingType := int8(BillingTypeBalance)
-	if record.SubscriptionID > 0 {
-		billingType = BillingTypeSubscription
+
+	billing, billingErr := s.billLiveCall(record, duration)
+	if billingErr != nil {
+		logger.LegacyPrintf("service.openai_live", "ALERT: live billing failed call=%s duration_ms=%d err=%v", record.CallHash, duration, billingErr)
+		return
 	}
-	// TODO(billing): Live 会话目前不计费：TotalCost/ActualCost 恒为 0，完全绕过
-	// recordUsageCore/applyUsageBilling，余额模式下极低余额也能反复开启最长
-	// liveMaxSessionDuration 的会话。若确认按时长计费，应在此接入计费管道；
-	// 若确认有意免费，删除本注释即可（零值行为由
-	// TestFinalizeLiveCallIsIdempotentAndWritesZeroUsage 锁定）。
-	//
+	if billing == nil {
+		// 依赖未装配（测试/降级部署）时只记账不扣费，保持 finalize 幂等。
+		billing = &liveCallBilling{}
+	}
+	billingType := int8(BillingTypeBalance)
+	var subscriptionID *int64
+	if billing.Subscription != nil {
+		billingType = BillingTypeSubscription
+		subscriptionID = &billing.Subscription.ID
+	}
+
 	// 这是该会话唯一一次落库机会（MarkLiveCallClosed 已标记 first），失败即永久
 	// 丢失，因此走带日志与同步兜底的 writeUsageLogBestEffort（issue #3656）。
 	writeUsageLogBestEffort(context.Background(), s.usageLogRepo, &UsageLog{
@@ -840,8 +847,8 @@ func (s *OpenAIGatewayService) finalizeLiveCall(record *LiveCallRecord) {
 		Model:            record.Model,
 		RequestedModel:   record.Model,
 		GroupID:          liveOptionalID(record.GroupID),
-		SubscriptionID:   liveOptionalID(record.SubscriptionID),
-		RateMultiplier:   1,
+		SubscriptionID:   subscriptionID,
+		RateMultiplier:   billing.Multiplier,
 		BillingType:      billingType,
 		RequestType:      RequestTypeLive,
 		DurationMs:       &duration,
@@ -849,6 +856,120 @@ func (s *OpenAIGatewayService) finalizeLiveCall(record *LiveCallRecord) {
 		IPAddress:        &ipAddress,
 		InboundEndpoint:  &inboundEndpoint,
 		UpstreamEndpoint: &upstreamEndpoint,
+		TotalCost:        billing.Cost.TotalCost,
+		ActualCost:       billing.Cost.ActualCost,
 		CreatedAt:        record.CreatedAt,
 	}, "service.openai_live")
+}
+
+type liveCallBilling struct {
+	Cost         *CostBreakdown
+	User         *User
+	APIKey       *APIKey
+	Account      *Account
+	Subscription *UserSubscription
+	Multiplier   float64
+}
+
+func (s *OpenAIGatewayService) billLiveCall(record *LiveCallRecord, durationMs int) (*liveCallBilling, error) {
+	if s == nil || s.apiKeyRepo == nil || s.accountRepo == nil || s.cfg == nil || s.billingCacheService == nil || s.deferredService == nil {
+		return nil, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), postUsageBillingTimeout)
+	defer cancel()
+
+	apiKey, err := s.apiKeyRepo.GetByID(ctx, record.APIKeyID)
+	if err != nil {
+		return nil, fmt.Errorf("load live api key: %w", err)
+	}
+	account, err := s.accountRepo.GetByID(ctx, record.AccountID)
+	if err != nil {
+		return nil, fmt.Errorf("load live account: %w", err)
+	}
+	if apiKey == nil || apiKey.User == nil || account == nil {
+		return nil, errors.New("live billing context missing user or account")
+	}
+
+	groupDefault := 1.0
+	if s.cfg != nil {
+		groupDefault = s.cfg.Default.RateMultiplier
+	}
+	var groupID int64
+	if apiKey.GroupID != nil {
+		groupID = *apiKey.GroupID
+	} else {
+		groupID = record.GroupID
+	}
+	if groupID > 0 {
+		if apiKey.Group != nil {
+			groupDefault = apiKey.Group.RateMultiplier
+		}
+		groupDefault = s.ResolveUserGroupRateMultiplier(ctx, apiKey.User.ID, groupID, groupDefault)
+	}
+
+	var subscription *UserSubscription
+	if groupID > 0 && apiKey.Group != nil && apiKey.Group.IsSubscriptionType() && s.userSubRepo != nil {
+		subscription, err = s.userSubRepo.GetActiveByUserIDAndGroupID(ctx, apiKey.User.ID, groupID)
+		if err != nil {
+			return nil, fmt.Errorf("load live subscription: %w", err)
+		}
+	}
+
+	costPerMinute := s.liveCostPerMinute()
+	totalCost := float64(durationMs) / 60000.0 * costPerMinute
+	actualCost := totalCost * groupDefault
+	if totalCost < 0 {
+		totalCost = 0
+	}
+	if actualCost < 0 {
+		actualCost = 0
+	}
+	cost := &CostBreakdown{
+		TotalCost:  totalCost,
+		ActualCost: actualCost,
+	}
+
+	accountRateMultiplier := account.BillingRateMultiplier()
+	isSubscriptionBill := subscription != nil && apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
+	billingType := int8(BillingTypeBalance)
+	if isSubscriptionBill {
+		billingType = BillingTypeSubscription
+	}
+	if _, err := applyUsageBilling(ctx, record.CallHash, &UsageLog{
+		UserID:         record.UserID,
+		APIKeyID:       record.APIKeyID,
+		AccountID:      record.AccountID,
+		Model:          record.Model,
+		RequestType:    RequestTypeLive,
+		BillingType:    billingType,
+		GroupID:        liveOptionalID(record.GroupID),
+		RateMultiplier: groupDefault,
+	}, &postUsageBillingParams{
+		Cost:                  cost,
+		User:                  apiKey.User,
+		APIKey:                apiKey,
+		Account:               account,
+		Subscription:          subscription,
+		IsSubscriptionBill:    isSubscriptionBill,
+		AccountRateMultiplier: accountRateMultiplier,
+		APIKeyService:         s.apiKeyService,
+		Platform:              PlatformFromAPIKey(apiKey),
+	}, s.billingDeps(), s.usageBillingRepo); err != nil {
+		return nil, err
+	}
+	return &liveCallBilling{
+		Cost:         cost,
+		User:         apiKey.User,
+		APIKey:       apiKey,
+		Account:      account,
+		Subscription: subscription,
+		Multiplier:   groupDefault,
+	}, nil
+}
+
+func (s *OpenAIGatewayService) liveCostPerMinute() float64 {
+	if s != nil && s.cfg != nil && s.cfg.Gateway.Live.CostPerMinute > 0 {
+		return s.cfg.Gateway.Live.CostPerMinute
+	}
+	return 0.02
 }

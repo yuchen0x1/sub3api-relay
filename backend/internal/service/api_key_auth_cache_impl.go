@@ -117,6 +117,11 @@ func (s *APIKeyService) StartAuthCacheInvalidationSubscriber(ctx context.Context
 		s.authInvalidationWG.Add(1)
 		go func() {
 			defer s.authInvalidationWG.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("auth cache invalidation subscriber panicked", "panic", r)
+				}
+			}()
 			backoff := time.Second
 			for {
 				err := s.cache.SubscribeAuthCacheInvalidation(subscriberCtx, func(cacheKey string) {

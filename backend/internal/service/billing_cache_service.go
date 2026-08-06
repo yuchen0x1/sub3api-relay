@@ -653,6 +653,11 @@ func (s *BillingCacheService) evaluateRateLimits(ctx context.Context, apiKey *AP
 	if needsReset {
 		keyID := apiKey.ID
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.LegacyPrintf("service.billing_cache", "panic in rate limit reset goroutine: %v", r)
+				}
+			}()
 			resetCtx, cancel := context.WithTimeout(context.Background(), cacheWriteTimeout)
 			defer cancel()
 			if s.apiKeyRateLimitLoader != nil {

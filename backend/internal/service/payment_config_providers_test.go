@@ -677,6 +677,57 @@ func TestUpdateProviderInstanceClearsAirwallexAccountID(t *testing.T) {
 	require.Equal(t, "client-id-test", cfg["clientId"])
 }
 
+func TestCreateProviderInstanceStoresAESEncryptedConfig(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	key := []byte("0123456789abcdef0123456789abcdef")
+	svc := &PaymentConfigService{
+		entClient:     client,
+		encryptionKey: key,
+	}
+
+	instance, err := svc.CreateProviderInstance(ctx, CreateProviderInstanceRequest{
+		ProviderKey:    payment.TypeAirwallex,
+		Name:           "encrypted-airwallex",
+		Config:         validAirwallexProviderConfig(t),
+		SupportedTypes: []string{payment.TypeAirwallex},
+		Enabled:        true,
+	})
+	require.NoError(t, err)
+
+	saved, err := client.PaymentProviderInstance.Get(ctx, instance.ID)
+	require.NoError(t, err)
+	require.NotEqual(t, validAirwallexProviderConfig(t), saved.Config)
+	require.False(t, json.Valid([]byte(saved.Config)), "provider config must not be stored as plaintext JSON")
+	require.Contains(t, saved.Config, ":")
+
+	plain, err := payment.Decrypt(saved.Config, key)
+	require.NoError(t, err)
+	var cfg map[string]string
+	require.NoError(t, json.Unmarshal([]byte(plain), &cfg))
+	require.Equal(t, "account-id-test", cfg["accountId"])
+	require.Equal(t, "client-id-test", cfg["clientId"])
+}
+
+func TestCreateProviderInstanceRejectsMissingEncryptionKey(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	svc := &PaymentConfigService{entClient: client}
+
+	_, err := svc.CreateProviderInstance(ctx, CreateProviderInstanceRequest{
+		ProviderKey:    payment.TypeAirwallex,
+		Name:           "no-key-airwallex",
+		Config:         validAirwallexProviderConfig(t),
+		SupportedTypes: []string{payment.TypeAirwallex},
+		Enabled:        true,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "encryption key")
+}
 func createPendingProviderConfigOrder(t *testing.T, ctx context.Context, client *dbent.Client, instance *dbent.PaymentProviderInstance) {
 	t.Helper()
 

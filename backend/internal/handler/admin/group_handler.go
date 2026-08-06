@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
@@ -696,14 +697,62 @@ func (h *GroupHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	// Return mock data for now
+	ctx := c.Request.Context()
+	var totalAPIKeys, activeAPIKeys int64
+	const statsPageSize = 1000
+	page := 1
+	for {
+		keys, total, listErr := h.adminService.GetGroupAPIKeys(ctx, groupID, page, statsPageSize)
+		if listErr != nil {
+			response.ErrorFrom(c, listErr)
+			return
+		}
+		totalAPIKeys = total
+		for i := range keys {
+			if keys[i].IsActive() {
+				activeAPIKeys++
+			}
+		}
+		if len(keys) == 0 || len(keys) < statsPageSize || (total > 0 && int64(len(keys)) >= total) {
+			break
+		}
+		page++
+	}
+
+	var totalRequests int64
+	var totalCost float64
+	if h.dashboardService != nil {
+		stats, statsErr := h.dashboardService.GetGroupStatsWithFilters(
+			ctx,
+			time.Unix(0, 0).UTC(),
+			time.Now().UTC(),
+			0,
+			0,
+			0,
+			groupID,
+			nil,
+			nil,
+			nil,
+		)
+		if statsErr != nil {
+			response.ErrorFrom(c, statsErr)
+			return
+		}
+		for i := range stats {
+			if stats[i].GroupID == groupID {
+				totalRequests = stats[i].Requests
+				totalCost = stats[i].Cost
+				break
+			}
+		}
+	}
+
 	response.Success(c, gin.H{
-		"total_api_keys":  0,
-		"active_api_keys": 0,
-		"total_requests":  0,
-		"total_cost":      0.0,
+		"total_api_keys":  totalAPIKeys,
+		"active_api_keys": activeAPIKeys,
+		"total_requests":  totalRequests,
+		"total_cost":      totalCost,
 	})
-	_ = groupID // TODO: implement actual stats
 }
 
 // GetUsageSummary returns today's and cumulative cost for all groups.

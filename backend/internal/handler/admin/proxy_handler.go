@@ -293,14 +293,46 @@ func (h *ProxyHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	// Return mock data for now
-	_ = proxyID
+	ctx := c.Request.Context()
+	if _, err := h.adminService.GetProxy(ctx, proxyID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	accounts, err := h.adminService.GetProxyAccounts(ctx, proxyID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	totalAccounts := int64(len(accounts))
+	var activeAccounts int64
+	for i := range accounts {
+		if accounts[i].Status == service.StatusActive {
+			activeAccounts++
+		}
+	}
+
+	var averageLatency int64
+	proxies, _, err := h.adminService.ListProxiesWithAccountCount(ctx, 1, 10000, "", "", "", "id", "asc")
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	for i := range proxies {
+		if proxies[i].ID == proxyID && proxies[i].LatencyMs != nil {
+			averageLatency = *proxies[i].LatencyMs
+			break
+		}
+	}
+
+	// usage_logs do not currently store a proxy dimension, so request-level
+	// success rate and volume are reported as zero rather than fabricated.
 	response.Success(c, gin.H{
-		"total_accounts":  0,
-		"active_accounts": 0,
+		"total_accounts":  totalAccounts,
+		"active_accounts": activeAccounts,
 		"total_requests":  0,
-		"success_rate":    100.0,
-		"average_latency": 0,
+		"success_rate":    0.0,
+		"average_latency": averageLatency,
 	})
 }
 

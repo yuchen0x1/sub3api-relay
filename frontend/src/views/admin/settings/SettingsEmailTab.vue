@@ -31,6 +31,7 @@ interface EmailFormFields {
 }
 
 const props = defineProps<{ form: EmailFormFields; loadFailed: boolean }>();
+const { form } = props;
 
 const { t } = useI18n();
 const appStore = useAppStore();
@@ -45,7 +46,7 @@ const currentOrigin =
 
 // 父组件在加载/保存成功后会把 smtp_password 清空，同步复位手动编辑标记
 watch(
-  () => props.form.smtp_password,
+  () => form.smtp_password,
   (value) => {
     if (!value) {
       smtpPasswordManuallyEdited.value = false;
@@ -54,10 +55,10 @@ watch(
 );
 
 function addQuotaNotifyEmail() {
-  if (!props.form.account_quota_notify_emails) {
-    props.form.account_quota_notify_emails = [];
+  if (!form.account_quota_notify_emails) {
+    form.account_quota_notify_emails = [];
   }
-  props.form.account_quota_notify_emails.push({
+  form.account_quota_notify_emails.push({
     email: "",
     disabled: false,
     verified: true,
@@ -68,14 +69,14 @@ async function testSmtpConnection() {
   testingSmtp.value = true;
   try {
     const smtpPasswordForTest = smtpPasswordManuallyEdited.value
-      ? props.form.smtp_password
+      ? form.smtp_password
       : "";
     const result = await adminAPI.settings.testSmtpConnection({
-      smtp_host: props.form.smtp_host,
-      smtp_port: props.form.smtp_port,
-      smtp_username: props.form.smtp_username,
+      smtp_host: form.smtp_host,
+      smtp_port: form.smtp_port,
+      smtp_username: form.smtp_username,
       smtp_password: smtpPasswordForTest,
-      smtp_use_tls: props.form.smtp_use_tls,
+      smtp_use_tls: form.smtp_use_tls,
     });
     // API returns { message: "..." } on success, errors are thrown as exceptions
     appStore.showSuccess(
@@ -99,17 +100,17 @@ async function sendTestEmail() {
   sendingTestEmail.value = true;
   try {
     const smtpPasswordForSend = smtpPasswordManuallyEdited.value
-      ? props.form.smtp_password
+      ? form.smtp_password
       : "";
     const result = await adminAPI.settings.sendTestEmail({
       email: testEmailAddress.value,
-      smtp_host: props.form.smtp_host,
-      smtp_port: props.form.smtp_port,
-      smtp_username: props.form.smtp_username,
+      smtp_host: form.smtp_host,
+      smtp_port: form.smtp_port,
+      smtp_username: form.smtp_username,
       smtp_password: smtpPasswordForSend,
-      smtp_from_email: props.form.smtp_from_email,
-      smtp_from_name: props.form.smtp_from_name,
-      smtp_use_tls: props.form.smtp_use_tls,
+      smtp_from_email: form.smtp_from_email,
+      smtp_from_name: form.smtp_from_name,
+      smtp_use_tls: form.smtp_use_tls,
     });
     // API returns { message: "..." } on success, errors are thrown as exceptions
     appStore.showSuccess(result.message || t("admin.settings.testEmailSent"));

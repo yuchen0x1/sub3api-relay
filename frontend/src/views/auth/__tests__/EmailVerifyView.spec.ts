@@ -117,7 +117,7 @@ describe('EmailVerifyView', () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'Sub2API',
+      site_name: 'Sub3API',
       registration_email_suffix_whitelist: [],
     })
     sendVerifyCodeMock.mockResolvedValue({ countdown: 60 })
@@ -170,7 +170,7 @@ describe('EmailVerifyView', () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'Sub2API',
+      site_name: 'Sub3API',
       registration_email_suffix_whitelist: ['allowed.com'],
     })
     sessionStorage.setItem(
@@ -211,7 +211,7 @@ describe('EmailVerifyView', () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'Sub2API',
+      site_name: 'Sub3API',
       registration_email_suffix_whitelist: ['allowed.com'],
     })
     sessionStorage.setItem(
@@ -253,7 +253,7 @@ describe('EmailVerifyView', () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'Sub2API',
+      site_name: 'Sub3API',
       registration_email_suffix_whitelist: ['allowed.com'],
     })
     sendPendingOAuthVerifyCodeMock.mockResolvedValue({
@@ -304,7 +304,6 @@ describe('EmailVerifyView', () => {
       JSON.stringify({
         email: 'fresh@example.com',
         password: 'secret-123',
-        aff_code: 'AFF123',
       })
     )
     apiClientPostMock.mockResolvedValue({
@@ -336,7 +335,6 @@ describe('EmailVerifyView', () => {
       email: 'fresh@example.com',
       password: 'secret-123',
       verify_code: '123456',
-      aff_code: 'AFF123',
     })
     expect(persistOAuthTokenContextMock).toHaveBeenCalledWith({
       access_token: 'oauth-access-token',
@@ -360,7 +358,7 @@ describe('EmailVerifyView', () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'Sub2API',
+      site_name: 'Sub3API',
       registration_email_suffix_whitelist: ['allowed.com'],
     })
     sessionStorage.setItem(
@@ -420,8 +418,6 @@ describe('EmailVerifyView', () => {
       JSON.stringify({
         email: 'normal@example.com',
         password: 'secret-456',
-        promo_code: 'PROMO',
-        invitation_code: 'INVITE',
       })
     )
     registerMock.mockResolvedValue({})
@@ -447,8 +443,6 @@ describe('EmailVerifyView', () => {
       password: 'secret-456',
       verify_code: '654321',
       turnstile_token: undefined,
-      promo_code: 'PROMO',
-      invitation_code: 'INVITE',
     })
     expect(apiClientPostMock).not.toHaveBeenCalled()
     expect(pushMock).toHaveBeenCalledWith('/dashboard')

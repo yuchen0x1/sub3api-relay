@@ -33,7 +33,7 @@ func TestBothProxyUpdateServicesUseRepositoryUpdateBoundary(t *testing.T) {
 			proxyRepoStub: &proxyRepoStub{},
 			proxy:         &Proxy{ID: 9, Protocol: "http", Host: "old.example", Port: 8080, Status: StatusActive},
 		}
-		svc := NewProxyService(repo)
+		svc := NewProxyService(repo, nil)
 		host := "new.example"
 
 		_, err := svc.Update(context.Background(), 9, UpdateProxyRequest{Host: &host})

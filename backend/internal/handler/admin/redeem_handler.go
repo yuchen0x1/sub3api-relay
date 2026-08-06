@@ -373,19 +373,105 @@ func (h *RedeemHandler) Expire(c *gin.Context) {
 // GetStats handles getting redeem code statistics
 // GET /api/v1/admin/redeem-codes/stats
 func (h *RedeemHandler) GetStats(c *gin.Context) {
-	// Return mock data for now
-	response.Success(c, gin.H{
-		"total_codes":             0,
-		"active_codes":            0,
-		"used_codes":              0,
-		"expired_codes":           0,
+	ctx := c.Request.Context()
+	if h.redeemService != nil {
+		stats, err := h.redeemService.GetStats(ctx)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		response.Success(c, stats)
+		return
+	}
+
+	stats, err := h.redeemStatsFromAdmin(ctx)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+func (h *RedeemHandler) redeemStatsFromAdmin(ctx context.Context) (map[string]any, error) {
+	stats := map[string]any{
+		"total_codes":             int64(0),
+		"active_codes":            int64(0),
+		"used_codes":              int64(0),
+		"expired_codes":           int64(0),
 		"total_value_distributed": 0.0,
-		"by_type": gin.H{
-			"balance":     0,
-			"concurrency": 0,
-			"trial":       0,
+		"by_type": map[string]int64{
+			service.RedeemTypeBalance:      0,
+			service.RedeemTypeConcurrency:  0,
+			service.RedeemTypeSubscription: 0,
+			service.RedeemTypeInvitation:   0,
 		},
-	})
+	}
+
+	countCodes := func(codeType, status string) (int64, error) {
+		_, total, err := h.adminService.ListRedeemCodes(ctx, 1, 1, codeType, status, "", "id", "asc")
+		return total, err
+	}
+
+	var err error
+	stats["total_codes"], err = countCodes("", "")
+	if err != nil {
+		return nil, err
+	}
+	stats["active_codes"], err = countCodes("", service.StatusUnused)
+	if err != nil {
+		return nil, err
+	}
+	stats["used_codes"], err = countCodes("", service.StatusUsed)
+	if err != nil {
+		return nil, err
+	}
+	stats["expired_codes"], err = countCodes("", service.StatusExpired)
+	if err != nil {
+		return nil, err
+	}
+
+	usedCodes, _, err := h.listRedeemCodesAll(ctx, "", service.StatusUsed)
+	if err != nil {
+		return nil, err
+	}
+	var distributed float64
+	for i := range usedCodes {
+		if usedCodes[i].Value > 0 {
+			distributed += usedCodes[i].Value
+		}
+	}
+	stats["total_value_distributed"] = distributed
+
+	byType := stats["by_type"].(map[string]int64)
+	for _, codeType := range []string{
+		service.RedeemTypeBalance,
+		service.RedeemTypeConcurrency,
+		service.RedeemTypeSubscription,
+		service.RedeemTypeInvitation,
+	} {
+		byType[codeType], err = countCodes(codeType, "")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return stats, nil
+}
+
+func (h *RedeemHandler) listRedeemCodesAll(ctx context.Context, codeType, status string) ([]service.RedeemCode, int64, error) {
+	const pageSize = 1000
+	page := 1
+	all := make([]service.RedeemCode, 0, pageSize)
+	for {
+		codes, total, err := h.adminService.ListRedeemCodes(ctx, page, pageSize, codeType, status, "", "id", "asc")
+		if err != nil {
+			return nil, 0, err
+		}
+		all = append(all, codes...)
+		if len(codes) == 0 || len(codes) < pageSize || (total > 0 && int64(len(all)) >= total) {
+			return all, total, nil
+		}
+		page++
+	}
 }
 
 // Export handles exporting redeem codes to CSV

@@ -3,6 +3,7 @@ package admin
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -19,14 +20,16 @@ import (
 type DashboardHandler struct {
 	dashboardService   *service.DashboardService
 	aggregationService *service.DashboardAggregationService
+	opsService         *service.OpsService
 	startTime          time.Time // Server start time for uptime calculation
 }
 
 // NewDashboardHandler creates a new admin dashboard handler
-func NewDashboardHandler(dashboardService *service.DashboardService, aggregationService *service.DashboardAggregationService) *DashboardHandler {
+func NewDashboardHandler(dashboardService *service.DashboardService, aggregationService *service.DashboardAggregationService, opsService *service.OpsService) *DashboardHandler {
 	return &DashboardHandler{
 		dashboardService:   dashboardService,
 		aggregationService: aggregationService,
+		opsService:         opsService,
 		startTime:          time.Now(),
 	}
 }
@@ -178,12 +181,52 @@ func (h *DashboardHandler) BackfillAggregation(c *gin.Context) {
 // GetRealtimeMetrics handles getting real-time system metrics
 // GET /api/v1/admin/dashboard/realtime
 func (h *DashboardHandler) GetRealtimeMetrics(c *gin.Context) {
-	// Return mock data for now
+	if h.opsService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Realtime metrics service not available")
+		return
+	}
+
+	ctx := c.Request.Context()
+	end := time.Now().UTC()
+	start := end.Add(-time.Minute)
+	if err := h.opsService.RequireMonitoringEnabled(ctx); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	overview, err := h.opsService.GetDashboardOverview(ctx, &service.OpsDashboardFilter{
+		StartTime: start,
+		EndTime:   end,
+		QueryMode: service.OpsQueryModeRaw,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	platformStats, _, _, _, err := h.opsService.GetConcurrencyStats(ctx, "", nil)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	var activeRequests int64
+	for _, info := range platformStats {
+		if info != nil {
+			activeRequests += info.CurrentInUse
+		}
+	}
+
+	averageResponseTime := 0
+	if overview.Duration.Avg != nil {
+		averageResponseTime = *overview.Duration.Avg
+	}
+
 	response.Success(c, gin.H{
-		"active_requests":       0,
-		"requests_per_minute":   0,
-		"average_response_time": 0,
-		"error_rate":            0.0,
+		"active_requests":       activeRequests,
+		"requests_per_minute":   overview.RequestCountTotal,
+		"average_response_time": averageResponseTime,
+		"error_rate":            overview.ErrorRate,
+		"timestamp":             end,
 	})
 }
 
