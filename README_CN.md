@@ -92,7 +92,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub2api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -142,7 +142,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # 卸载
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub2api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -162,10 +162,10 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub2api-relay/codex/upgrad
 
 ```bash
 # 创建部署目录
-mkdir -p sub2api-deploy && cd sub2api-relay-deploy
+mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub2api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -187,8 +187,8 @@ docker compose logs -f sub2api
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/sub2api-relay.git
-cd sub2api-relay/deploy
+git clone https://github.com/yuchen0x1/sub3api-relay.git
+cd sub3api-relay/deploy
 
 # 2. 复制环境配置文件
 cp .env.example .env
@@ -301,7 +301,7 @@ scp sub2api-complete.tar.gz user@new-server:/path/
 
 # 新服务器
 tar xzf sub2api-complete.tar.gz
-cd sub2api-relay-deploy/
+cd sub3api-relay-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -329,8 +329,8 @@ rm -rf data/ postgres_data/ redis_data/
 Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 Sub3API、PostgreSQL 和 Redis：
 
 ```bash
-git clone https://github.com/yuchen0x1/sub2api-relay.git
-cd sub2api-relay/deploy
+git clone https://github.com/yuchen0x1/sub3api-relay.git
+cd sub3api-relay/deploy
 ./apple-container.sh init
 ./apple-container.sh up
 ./apple-container.sh status
@@ -355,8 +355,8 @@ cd sub2api-relay/deploy
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/sub2api-relay.git
-cd sub2api-relay
+git clone https://github.com/yuchen0x1/sub3api-relay.git
+cd sub3api-relay
 
 # 2. 编译后端
 cd backend
@@ -632,11 +632,11 @@ sub2api/
 
 ## Star History
 
-<a href="https://star-history.com/#yuchen0x1/sub2api-relay&Date">
+<a href="https://star-history.com/#yuchen0x1/sub3api-relay&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub2api-relay&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub2api-relay&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yuchen0x1/sub2api-relay&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date" />
  </picture>
 </a>
 

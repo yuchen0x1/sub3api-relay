@@ -21,7 +21,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # GitHub raw content base URL
-GITHUB_RAW_URL="https://raw.githubusercontent.com/yuchen0x1/sub2api-relay/codex/upgrade-analysis-r1-4/deploy"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy"
 
 # Print colored message
 print_info() {

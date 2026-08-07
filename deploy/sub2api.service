@@ -1,6 +1,6 @@
 [Unit]
 Description=Sub2API - AI API Gateway Platform
-Documentation=https://github.com/yuchen0x1/sub2api-relay
+Documentation=https://github.com/yuchen0x1/sub3api-relay
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
 

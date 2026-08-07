@@ -55,7 +55,7 @@ FROM ${ALPINE_IMAGE}
 # Labels
 LABEL maintainer="yuchen0x1 <github.com/yuchen0x1>"
 LABEL description="Sub2API - AI API Gateway Platform"
-LABEL org.opencontainers.image.source="https://github.com/yuchen0x1/sub2api-relay"
+LABEL org.opencontainers.image.source="https://github.com/yuchen0x1/sub3api-relay"
 
 # Install runtime dependencies
 RUN apk add --no-cache \
