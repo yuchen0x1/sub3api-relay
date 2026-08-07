@@ -165,13 +165,13 @@ func TestBackendModeAuthGuard(t *testing.T) {
 		{
 			name:       "disabled_allows_all",
 			enabled:    "false",
-			path:       "/api/v1/auth/register",
+			path:       "/api/v1/auth/send-verify-code",
 			wantStatus: http.StatusOK,
 		},
 		{
 			name:       "nil_service_allows_all",
 			nilService: true,
-			path:       "/api/v1/auth/register",
+			path:       "/api/v1/auth/send-verify-code",
 			wantStatus: http.StatusOK,
 		},
 		{
@@ -353,12 +353,6 @@ func TestBackendModeAuthGuard(t *testing.T) {
 			enabled:    "true",
 			path:       "/api/v1/auth/oauth/linuxdo/complete-registration",
 			wantStatus: http.StatusOK,
-		},
-		{
-			name:       "enabled_blocks_register",
-			enabled:    "true",
-			path:       "/api/v1/auth/register",
-			wantStatus: http.StatusForbidden,
 		},
 		{
 			name:       "enabled_blocks_forgot_password",

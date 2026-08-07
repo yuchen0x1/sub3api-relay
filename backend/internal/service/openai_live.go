@@ -828,7 +828,7 @@ func (s *OpenAIGatewayService) finalizeLiveCall(record *LiveCallRecord) {
 	}
 	if billing == nil {
 		// 依赖未装配（测试/降级部署）时只记账不扣费，保持 finalize 幂等。
-		billing = &liveCallBilling{}
+		billing = &liveCallBilling{Cost: &CostBreakdown{}}
 	}
 	billingType := int8(BillingTypeBalance)
 	var subscriptionID *int64

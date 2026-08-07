@@ -46,17 +46,6 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 	}
 }
 
-// RegisterRequest represents the registration request payload
-type RegisterRequest struct {
-	Email          string `json:"email" binding:"required,email"`
-	Password       string `json:"password" binding:"required,min=6"`
-	VerifyCode     string `json:"verify_code"`
-	TurnstileToken string `json:"turnstile_token"`
-	PromoCode      string `json:"promo_code"`      // 注册优惠码
-	InvitationCode string `json:"invitation_code"` // 邀请码
-	AffCode        string `json:"aff_code"`        // 邀请返利码
-}
-
 // SendVerifyCodeRequest 发送验证码请求
 type SendVerifyCodeRequest struct {
 	Email          string `json:"email" binding:"required,email"`
@@ -158,38 +147,6 @@ func (h *AuthHandler) isBackendModeEnabled(ctx context.Context) bool {
 		return settings.BackendModeEnabled
 	}
 	return h.settingSvc.IsBackendModeEnabled(ctx)
-}
-
-// Register handles user registration
-// POST /api/v1/auth/register
-func (h *AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request: "+err.Error())
-		return
-	}
-
-	// Turnstile 验证（邮箱验证码注册场景避免重复校验一次性 token）
-	if err := h.authService.VerifyTurnstileForRegister(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c), req.VerifyCode); err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	_, user, err := h.authService.RegisterWithVerification(
-		c.Request.Context(),
-		req.Email,
-		req.Password,
-		req.VerifyCode,
-		req.PromoCode,
-		req.InvitationCode,
-		req.AffCode,
-	)
-	if err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	h.respondWithTokenPair(c, user)
 }
 
 // SendVerifyCode 发送邮箱验证码

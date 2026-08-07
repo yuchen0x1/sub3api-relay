@@ -14,48 +14,16 @@ import (
 )
 
 // E2E 用户流程测试
-// 测试完整的用户操作链路：注册 → 登录 → 创建 API Key → 调用网关 → 查询用量
+// 测试完整的用户操作链路：登录 → 创建 API Key → 调用网关 → 查询用量
 
 var (
 	testUserEmail    = "e2e-test-" + fmt.Sprintf("%d", time.Now().UnixMilli()) + "@test.local"
 	testUserPassword = "E2eTest@12345"
-	testUserName     = "e2e-test-user"
 )
 
-// TestUserRegistrationAndLogin 测试用户注册和登录流程
-func TestUserRegistrationAndLogin(t *testing.T) {
-	// 步骤 1: 注册新用户
-	t.Run("注册新用户", func(t *testing.T) {
-		payload := map[string]string{
-			"email":    testUserEmail,
-			"password": testUserPassword,
-			"username": testUserName,
-		}
-		body, _ := json.Marshal(payload)
-
-		resp, err := doRequest(t, "POST", "/api/auth/register", body, "")
-		if err != nil {
-			t.Skipf("注册接口不可用，跳过用户流程测试: %v", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(resp.Body)
-
-		// 注册可能返回 200（成功）或 400（邮箱已存在）或 403（注册已关闭）
-		switch resp.StatusCode {
-		case 200:
-			t.Logf("✅ 用户注册成功: %s", testUserEmail)
-		case 400:
-			t.Logf("⚠️ 用户可能已存在: %s", string(respBody))
-		case 403:
-			t.Skipf("注册功能已关闭: %s", string(respBody))
-		default:
-			t.Logf("⚠️ 注册返回 HTTP %d: %s（继续尝试登录）", resp.StatusCode, string(respBody))
-		}
-	})
-
-	// 步骤 2: 登录获取 JWT
+// TestUserLoginAndAPIKeyFlow 测试用户登录和 API Key 流程
+func TestUserLoginAndAPIKeyFlow(t *testing.T) {
+	// 登录获取 JWT
 	var accessToken string
 	t.Run("用户登录获取JWT", func(t *testing.T) {
 		payload := map[string]string{

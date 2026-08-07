@@ -350,21 +350,21 @@ func TestFinalizeLiveCallBillsByDuration(t *testing.T) {
 	cfg.Gateway.Live.CostPerMinute = 0.02
 	cfg.Default.RateMultiplier = 1
 	apiKey := &APIKey{
-		ID:     record.APIKeyID,
-		UserID: record.UserID,
-		Key:    "sk-live-billing",
-		User:   &User{ID: record.UserID},
+		ID:      record.APIKeyID,
+		UserID:  record.UserID,
+		Key:     "sk-live-billing",
+		User:    &User{ID: record.UserID},
 		GroupID: &record.GroupID,
-		Group:   &Group{ID: record.GroupID, Platform: PlatformOpenAI},
+		Group:   &Group{ID: record.GroupID, Platform: PlatformOpenAI, RateMultiplier: 1},
 	}
 	service := &OpenAIGatewayService{
-		cache:              store,
-		concurrencyService: NewConcurrencyService(concurrencyCache),
-		usageLogRepo:       usageRepo,
-		apiKeyRepo:         &liveTestAPIKeyRepo{apiKey: apiKey},
-		accountRepo:        &liveTestAccountRepo{account: &Account{ID: record.AccountID, Type: AccountTypeOAuth}},
-		cfg:                cfg,
-		usageBillingRepo: &liveTestUsageBillingRepo{},
+		cache:               store,
+		concurrencyService:  NewConcurrencyService(concurrencyCache),
+		usageLogRepo:        usageRepo,
+		apiKeyRepo:          &liveTestAPIKeyRepo{apiKey: apiKey},
+		accountRepo:         &liveTestAccountRepo{account: &Account{ID: record.AccountID, Type: AccountTypeOAuth}},
+		cfg:                 cfg,
+		usageBillingRepo:    &liveTestUsageBillingRepo{},
 		billingCacheService: &BillingCacheService{},
 		deferredService:     &DeferredService{},
 	}
@@ -384,7 +384,7 @@ func TestFinalizeLiveCallBillsByDuration(t *testing.T) {
 	require.Greater(t, log.TotalCost, float64(0))
 	require.Greater(t, log.ActualCost, float64(0))
 	require.Equal(t, log.TotalCost, log.ActualCost)
-	require.Equal(t, BillingTypeBalance, int(log.BillingType))
+	require.Equal(t, int(BillingTypeBalance), int(log.BillingType))
 	require.Nil(t, log.SubscriptionID)
 }
 func TestGetLiveCallForIdentityRejectsMismatchedCaller(t *testing.T) {
@@ -451,7 +451,7 @@ func TestProxyLiveSidebandForwardsTextAndBinary(t *testing.T) {
 	dialer := &liveTestDialer{conn: upstream}
 	service := &OpenAIGatewayService{
 		accountRepo:               &liveTestAccountRepo{account: account},
-		cache:              store,
+		cache:                     store,
 		openaiWSPassthroughDialer: dialer,
 		liveAttestationCipher:     attestationCipher,
 	}

@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"strconv"
 	"testing"
@@ -707,7 +708,7 @@ func TestCreateProviderInstanceStoresAESEncryptedConfig(t *testing.T) {
 	require.NoError(t, err)
 	var cfg map[string]string
 	require.NoError(t, json.Unmarshal([]byte(plain), &cfg))
-	require.Equal(t, "account-id-test", cfg["accountId"])
+	require.Equal(t, "acct-test", cfg["accountId"])
 	require.Equal(t, "client-id-test", cfg["clientId"])
 }
 

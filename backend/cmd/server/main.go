@@ -21,7 +21,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/setup"
-	"github.com/Wei-Shaw/sub2api/internal/web"
 
 	"github.com/gin-gonic/gin"
 )
@@ -102,11 +101,6 @@ func runSetupServer() {
 
 	// Register setup routes
 	setup.RegisterRoutes(r)
-
-	// Serve embedded frontend if available
-	if web.HasEmbeddedFrontend() {
-		r.Use(web.ServeEmbeddedFrontend())
-	}
 
 	// Get server address from config.yaml or environment variables (SERVER_HOST, SERVER_PORT)
 	// This allows users to run setup on a different address if needed
