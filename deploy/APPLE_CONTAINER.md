@@ -25,8 +25,8 @@ container --version
 ## Quick Start
 
 ```bash
-git clone https://github.com/Wei-Shaw/sub2api.git
-cd sub2api/deploy
+git clone https://github.com/yuchen0x1/sub2api-relay.git
+cd sub2api-relay/deploy
 
 # Creates .env with random PostgreSQL, JWT, and TOTP secrets.
 ./apple-container.sh init
