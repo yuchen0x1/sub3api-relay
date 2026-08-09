@@ -66,6 +66,14 @@ type LoginRequest struct {
 }
 
 // AuthResponse 认证响应格式（匹配前端期望）
+func captchaProof(turnstileToken, tencentTicket, tencentRandstr string) service.CaptchaProof {
+	return service.CaptchaProof{
+		TurnstileToken: turnstileToken,
+		TencentTicket:  tencentTicket,
+		TencentRandstr: tencentRandstr,
+	}
+}
+
 type AuthResponse struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token,omitempty"` // 新增：Refresh Token
