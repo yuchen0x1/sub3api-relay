@@ -132,3 +132,12 @@ docs/*
 .codex/
 aicodex
 output/
+
+# ===================
+# Frontend local dependencies and generated metadata
+# ===================
+frontend/node_modules/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend-dist-*.tar.gz
