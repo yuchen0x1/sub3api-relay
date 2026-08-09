@@ -53,9 +53,18 @@ func RegisterAuthRoutes(
 		// 忘记密码接口添加速率限制：每分钟最多 5 次（Redis 故障时 fail-close）
 		// 重置密码接口添加速率限制：每分钟最多 10 次（Redis 故障时 fail-close）
 		auth.GET("/oauth/linuxdo/start", h.Auth.LinuxDoOAuthStart)
+		auth.POST("/oauth/linuxdo/start", rateLimiter.LimitWithOptions("oauth-linuxdo-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.LinuxDoOAuthStart)
 		auth.GET("/oauth/github/start", h.Auth.GitHubOAuthStart)
+		auth.POST("/oauth/github/start", rateLimiter.LimitWithOptions("oauth-github-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.GitHubOAuthStart)
 		auth.GET("/oauth/github/callback", h.Auth.GitHubOAuthCallback)
 		auth.GET("/oauth/google/start", h.Auth.GoogleOAuthStart)
+		auth.POST("/oauth/google/start", rateLimiter.LimitWithOptions("oauth-google-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.GoogleOAuthStart)
 		auth.GET("/oauth/google/callback", h.Auth.GoogleOAuthCallback)
 		auth.GET("/oauth/linuxdo/bind/start", func(c *gin.Context) {
 			query := c.Request.URL.Query()
@@ -65,6 +74,9 @@ func RegisterAuthRoutes(
 		})
 		auth.GET("/oauth/linuxdo/callback", h.Auth.LinuxDoOAuthCallback)
 		auth.GET("/oauth/wechat/start", h.Auth.WeChatOAuthStart)
+		auth.POST("/oauth/wechat/start", rateLimiter.LimitWithOptions("oauth-wechat-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.WeChatOAuthStart)
 		auth.GET("/oauth/wechat/bind/start", func(c *gin.Context) {
 			query := c.Request.URL.Query()
 			query.Set("intent", "bind_current_user")
@@ -97,6 +109,9 @@ func RegisterAuthRoutes(
 			h.Auth.BindWeChatOAuthLogin,
 		)
 		auth.GET("/oauth/oidc/start", h.Auth.OIDCOAuthStart)
+		auth.POST("/oauth/oidc/start", rateLimiter.LimitWithOptions("oauth-oidc-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.OIDCOAuthStart)
 		auth.GET("/oauth/oidc/bind/start", func(c *gin.Context) {
 			query := c.Request.URL.Query()
 			query.Set("intent", "bind_current_user")
@@ -111,6 +126,9 @@ func RegisterAuthRoutes(
 			h.Auth.BindOIDCOAuthLogin,
 		)
 		auth.GET("/oauth/dingtalk/start", h.Auth.DingTalkOAuthStart)
+		auth.POST("/oauth/dingtalk/start", rateLimiter.LimitWithOptions("oauth-dingtalk-start", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.DingTalkOAuthStart)
 		auth.GET("/oauth/dingtalk/bind/start", func(c *gin.Context) {
 			query := c.Request.URL.Query()
 			query.Set("intent", "bind_current_user")
