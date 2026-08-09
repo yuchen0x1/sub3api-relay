@@ -461,7 +461,7 @@
                 >
                   {{ t('admin.accounts.oauth.keysCount', { count: parsedKeyCount }) }}
                 </span>
-                <button
+                <button :aria-label="t('common.help')"
                   v-if="showHelp"
                   type="button"
                   class="text-blue-500 hover:text-blue-600"

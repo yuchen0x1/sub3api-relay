@@ -16,6 +16,18 @@
         {{ t('admin.accounts.dataImportWarning') }}
       </div>
 
+      <div class="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-3 dark:border-dark-700">
+        <div>
+          <div class="text-sm font-medium text-gray-900 dark:text-white">
+            {{ t('admin.accounts.dataImportValidateAccounts') }}
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">
+            {{ t('admin.accounts.dataImportValidateAccountsHint') }}
+          </p>
+        </div>
+        <Toggle v-model="validateAccounts" />
+      </div>
+
       <div>
         <label class="input-label">{{ t('admin.accounts.dataImportFile') }}</label>
         <div
@@ -99,6 +111,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import Toggle from '@/components/common/Toggle.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
 import type { AdminDataImportResult, AdminDataPayload } from '@/types'
@@ -122,6 +135,7 @@ const importing = ref(false)
 const files = ref<File[]>([])
 const dragDepth = ref(0)
 const dragActive = computed(() => dragDepth.value > 0)
+const validateAccounts = ref(true)
 const hasCreatedData = ref(false)
 const result = ref<AdminDataImportResult | null>(null)
 
@@ -142,6 +156,7 @@ watch(
       files.value = []
       dragDepth.value = 0
       hasCreatedData.value = false
+      validateAccounts.value = true
       result.value = null
       if (fileInput.value) {
         fileInput.value.value = ''
@@ -295,7 +310,8 @@ const handleImport = async () => {
 
     const res = await adminAPI.accounts.importData({
       data: dataPayload,
-      skip_default_group_bind: true
+      skip_default_group_bind: true,
+      validate_accounts: validateAccounts.value
     })
 
     result.value = res
@@ -303,16 +319,21 @@ const handleImport = async () => {
     const msgParams: Record<string, unknown> = {
       account_created: res.account_created,
       account_failed: res.account_failed,
+      account_skipped: res.account_skipped,
       proxy_created: res.proxy_created,
       proxy_reused: res.proxy_reused,
       proxy_failed: res.proxy_failed,
     }
-    if (res.account_failed > 0 || res.proxy_failed > 0) {
+    if (res.account_failed > 0 || res.proxy_failed > 0 || res.account_skipped > 0) {
       // 部分成功也创建了数据;弹窗关闭时通过 imported 通知父组件刷新列表
       if (res.account_created > 0 || res.proxy_created > 0) {
         hasCreatedData.value = true
       }
-      appStore.showError(t('admin.accounts.dataImportCompletedWithErrors', msgParams))
+      if (res.account_failed === 0 && res.proxy_failed === 0 && res.account_skipped > 0) {
+        appStore.showWarning(t('admin.accounts.dataImportCompletedWithSkipped', msgParams))
+      } else {
+        appStore.showError(t('admin.accounts.dataImportCompletedWithErrors', msgParams))
+      }
     } else {
       appStore.showSuccess(t('admin.accounts.dataImportSuccess', msgParams))
       emit('imported')

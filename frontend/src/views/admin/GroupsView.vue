@@ -840,7 +840,7 @@
                 <span class="min-w-0 flex-1 break-all text-sm text-gray-700 dark:text-gray-300">
                   {{ item.id }}
                 </span>
-                <button
+                <button :aria-label="t('common.moveUp')"
                   type="button"
                   :disabled="index === 0"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -848,7 +848,7 @@
                 >
                   <Icon name="arrowUp" size="sm" />
                 </button>
-                <button
+                <button :aria-label="t('common.moveDown')"
                   type="button"
                   :disabled="index === createModelsListState.items.length - 1"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -1921,7 +1921,7 @@
                         class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                       >
                         {{ account.name }}
-                        <button
+                        <button :aria-label="t('common.delete')"
                           type="button"
                           @click="removeSelectedAccount(rule, account.id)"
                           class="ml-0.5 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
@@ -2445,7 +2445,7 @@
                 <span class="min-w-0 flex-1 break-all text-sm text-gray-700 dark:text-gray-300">
                   {{ item.id }}
                 </span>
-                <button
+                <button :aria-label="t('common.moveUp')"
                   type="button"
                   :disabled="index === 0"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -2453,7 +2453,7 @@
                 >
                   <Icon name="arrowUp" size="sm" />
                 </button>
-                <button
+                <button :aria-label="t('common.moveDown')"
                   type="button"
                   :disabled="index === editModelsListState.items.length - 1"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -3521,7 +3521,7 @@
                         class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                       >
                         {{ account.name }}
-                        <button
+                        <button :aria-label="t('common.delete')"
                           type="button"
                           @click="removeSelectedAccount(rule, account.id, true)"
                           class="ml-0.5 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
@@ -3784,7 +3784,7 @@
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
               {{ t("admin.groups.compositeRoutes.routes") }}
             </h3>
-            <button
+            <button :aria-label="t('common.refresh')"
               type="button"
               class="btn btn-secondary btn-sm"
               :disabled="compositeRoutesLoading"
@@ -4045,7 +4045,7 @@
                   :options="compositeRouteEndpointOptions"
                   class="min-w-0 flex-1"
                 />
-                <button
+                <button :aria-label="t('common.preview')"
                   type="button"
                   class="btn btn-secondary"
                   :disabled="compositePreviewLoading || !compositePreviewModel"

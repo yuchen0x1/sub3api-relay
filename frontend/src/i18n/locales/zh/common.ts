@@ -179,6 +179,7 @@ export default {
     darkMode: '深色模式',
     collapse: '收起',
     expand: '展开',
+    mainNavigation: '主导航',
     logout: '退出登录',
     github: 'GitHub',
     mySubscriptions: '我的订阅',
@@ -434,4 +435,11 @@ export default {
   },
 
   // Dashboard
+  chartAriaLabel: '{title}，共 {count} 项',
+  togglePassword: '切换密码可见性',
+  moveUp: '上移',
+  moveDown: '下移',
+  clear: '清除',
+  help: '帮助',
+  preview: '预览',
 }

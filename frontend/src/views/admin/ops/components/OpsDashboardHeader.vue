@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Select from '@/components/common/Select.vue'
@@ -438,12 +439,12 @@ const healthScoreValue = computed<number | null>(() => {
 })
 
 const healthScoreColor = computed(() => {
-  if (isSystemIdle.value) return '#9ca3af' // gray-400
+  if (isSystemIdle.value) return chartColorAlpha(6, 0.5) // gray-400
   const score = healthScoreValue.value
-  if (score == null) return '#9ca3af'
-  if (score >= 90) return '#10b981' // green
-  if (score >= 60) return '#f59e0b' // yellow
-  return '#ef4444' // red
+  if (score == null) return chartColorAlpha(6, 0.5)
+  if (score >= 90) return chartColorAlpha(7, 1) // green
+  if (score >= 60) return chartColorAlpha(5, 1) // yellow
+  return chartColorAlpha(10, 1) // red
 })
 
 const healthScoreClass = computed(() => {

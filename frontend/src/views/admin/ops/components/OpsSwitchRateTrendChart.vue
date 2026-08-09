@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -33,8 +34,8 @@ const { t } = useI18n()
 
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
 const colors = computed(() => ({
-  teal: '#14b8a6',
-  tealAlpha: '#14b8a620',
+  teal: chartColorAlpha(1, 1),
+  tealAlpha: chartColorAlpha(1, 0.125),
   grid: isDarkMode.value ? '#374151' : '#f3f4f6',
   text: isDarkMode.value ? '#9ca3af' : '#6b7280'
 }))
@@ -64,6 +65,13 @@ const chartData = computed(() => {
     ]
   }
 })
+
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: t('admin.ops.switchRateTrend'),
+    count: props.points.length
+  })
+)
 
 const state = computed<ChartState>(() => {
   if (chartData.value) return 'ready'
@@ -139,7 +147,7 @@ const options = computed(() => {
       </h3>
     </div>
 
-    <div class="min-h-0 flex-1">
+    <div class="min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
       <Line v-if="state === 'ready' && chartData" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>

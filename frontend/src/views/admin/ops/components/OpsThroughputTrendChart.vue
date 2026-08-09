@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, CategoryScale, Filler, Legend, LineElement, LinearScale, PointElement, Title, Tooltip } from 'chart.js'
@@ -45,10 +46,10 @@ watch(
 
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
 const colors = computed(() => ({
-  blue: '#3b82f6',
-  blueAlpha: '#3b82f620',
-  green: '#10b981',
-  greenAlpha: '#10b98120',
+  blue: chartColorAlpha(8, 1),
+  blueAlpha: chartColorAlpha(8, 0.125),
+  green: chartColorAlpha(7, 1),
+  greenAlpha: chartColorAlpha(7, 0.125),
   grid: isDarkMode.value ? '#374151' : '#f3f4f6',
   text: isDarkMode.value ? '#9ca3af' : '#6b7280'
 }))
@@ -84,6 +85,13 @@ const chartData = computed(() => {
     ]
   }
 })
+
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: t('admin.ops.throughputTrend'),
+    count: props.points.length
+  })
+)
 
 const state = computed<ChartState>(() => {
   if (chartData.value) return 'ready'
@@ -250,7 +258,7 @@ function downloadChart() {
       </button>
     </div>
 
-    <div class="min-h-0 min-w-0 flex-1">
+    <div class="min-h-0 min-w-0 flex-1" role="img" :aria-label="chartAriaLabel">
       <Line v-if="state === 'ready' && chartData" ref="throughputChartRef" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>

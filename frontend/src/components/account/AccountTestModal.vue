@@ -161,7 +161,7 @@
             class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
             @click.self="previewImageUrl = ''"
           >
-            <button
+            <button :aria-label="t('common.close')"
               class="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
               @click="previewImageUrl = ''"
             >

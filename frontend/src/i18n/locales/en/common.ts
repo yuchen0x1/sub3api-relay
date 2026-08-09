@@ -179,6 +179,7 @@ export default {
     darkMode: 'Dark Mode',
     collapse: 'Collapse',
     expand: 'Expand',
+    mainNavigation: 'Main navigation',
     logout: 'Logout',
     github: 'GitHub',
     mySubscriptions: 'My Subscriptions',
@@ -435,4 +436,11 @@ export default {
   },
 
   // Dashboard
+  chartAriaLabel: '{title}: {count} items',
+  togglePassword: 'Toggle password visibility',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  clear: 'Clear',
+  help: 'Help',
+  preview: 'Preview',
 }

@@ -17,7 +17,7 @@
         class="input flex-1"
         :placeholder="t('admin.accounts.headerOverride.valuePlaceholder')"
       />
-      <button
+      <button :aria-label="t('common.delete')"
         type="button"
         class="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
         @click="removeRow(index)"

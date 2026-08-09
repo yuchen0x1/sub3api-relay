@@ -158,7 +158,7 @@
             :placeholder="t('admin.users.attributes.optionLabel')"
             required
           />
-          <button
+          <button :aria-label="t('common.delete')"
             type="button"
             @click="removeOption(index)"
             class="rounded-lg p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600"

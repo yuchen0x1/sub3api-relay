@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chartColorAlpha } from '@/design-system/chart-theme'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, BarElement, CategoryScale, Legend, LinearScale, Tooltip } from 'chart.js'
@@ -20,7 +21,7 @@ const { t } = useI18n()
 
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
 const colors = computed(() => ({
-  blue: '#3b82f6',
+  blue: chartColorAlpha(8, 1),
   grid: isDarkMode.value ? '#374151' : '#f3f4f6',
   text: isDarkMode.value ? '#9ca3af' : '#6b7280'
 }))
@@ -49,6 +50,13 @@ const chartData = computed(() => {
     ]
   }
 })
+
+const chartAriaLabel = computed(() =>
+  t('common.chartAriaLabel', {
+    title: t('admin.ops.latencyHistogram'),
+    count: props.latencyData?.buckets.length ?? 0
+  })
+)
 
 const options = computed(() => {
   const c = colors.value
@@ -90,7 +98,7 @@ const options = computed(() => {
       </h3>
     </div>
 
-    <div class="min-h-0 flex-1">
+    <div class="min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
       <Bar v-if="state === 'ready' && chartData" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>
