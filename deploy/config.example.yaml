@@ -1273,6 +1273,15 @@ update:
   # 留空表示直连（适用于海外服务器）
   proxy_url: ""
 
+  # Auto update: periodically check GitHub Releases and auto-apply new versions.
+  # Only works with release builds (binaries built by CI). Source builds skip this.
+  # 自动更新：定期检测 GitHub Release，发现新版本后自动下载替换并重启服务。
+  # 仅对 release 构建（CI 出品的二进制）生效，源码构建会自动跳过。
+  auto_enabled: true
+  # Check interval in hours (default 12). 0 or negative falls back to default.
+  # 自动检查更新的间隔（小时），默认 12；填 0 或负数使用默认值。
+  auto_interval_hours: 12
+
 # =============================================================================
 # Image Storage (异步图片任务结果对象存储)
 # =============================================================================

@@ -34,7 +34,8 @@ This directory contains the Vue Router configuration for the Sub2API frontend ap
 | Path               | Component          | Description                     |
 | ------------------ | ------------------ | ------------------------------- |
 | `/admin`           | -                  | Redirects to `/admin/dashboard` |
-| `/admin/dashboard` | AdminDashboardView | Admin dashboard                 |
+| `/admin/dashboard` | OpsDashboard       | Admin dashboard (ops overview)  |
+| `/admin/ops`       | -                  | Redirects to `/admin/dashboard` |
 | `/admin/users`     | AdminUsersView     | User management                 |
 | `/admin/groups`    | AdminGroupsView    | Group management                |
 | `/admin/accounts`  | AdminAccountsView  | Account management              |

@@ -103,6 +103,17 @@ deploy/config.yaml
 backend/.installed
 
 # ===================
+# 本地运维产物（备份/导出/日志），严禁提交
+# ===================
+artifacts/
+*.pem
+*.key
+*.crt
+*.dump
+*.sql.gz
+*.backup
+
+# ===================
 # 其他
 # ===================
 tests

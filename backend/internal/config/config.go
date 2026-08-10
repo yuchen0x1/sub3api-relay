@@ -160,6 +160,12 @@ type UpdateConfig struct {
 	// 支持 http/https/socks5/socks5h 协议
 	// 例如: "http://127.0.0.1:7890", "socks5://127.0.0.1:1080"
 	ProxyURL string `mapstructure:"proxy_url"`
+
+	// AutoEnabled 启用自动更新：定期检测 GitHub Release，发现新版本后
+	// 自动下载替换二进制并重启服务（仅 release 构建生效，source 构建跳过）
+	AutoEnabled bool `mapstructure:"auto_enabled"`
+	// AutoIntervalHours 自动检查更新的间隔（小时），默认 12；填 0 或负数使用默认值
+	AutoIntervalHours int `mapstructure:"auto_interval_hours"`
 }
 
 type IdempotencyConfig struct {
@@ -1912,7 +1918,7 @@ func setDefaults() {
 	// WebAuthn / Passkeys are opt-in because every deployment must explicitly
 	// declare its relying-party domain and trusted browser origins.
 	viper.SetDefault("webauthn.enabled", false)
-	viper.SetDefault("webauthn.rp_display_name", "Sub2API")
+	viper.SetDefault("webauthn.rp_display_name", "Sub3API")
 	viper.SetDefault("webauthn.rp_id", "")
 	viper.SetDefault("webauthn.rp_origins", []string{})
 
@@ -2440,6 +2446,8 @@ func setEnvReachableDefaults() {
 	viper.SetDefault("gateway.session_idle_timeout_minutes", 0)
 	viper.SetDefault("gateway.user_message_queue.mode", "")
 	viper.SetDefault("update.proxy_url", "")
+	viper.SetDefault("update.auto_enabled", true)
+	viper.SetDefault("update.auto_interval_hours", 12)
 
 	// sticky_escape_enabled is the one exception to the zero-value rule: its
 	// effective default is true, applied post-unmarshal via a viper.IsSet guard.

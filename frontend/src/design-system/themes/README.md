@@ -1,6 +1,6 @@
 # Design System Themes
 
-Phase 1 主题层（对应 `upgrade-report/02-UI升级方案.md` 2.2.2）。
+Phase 1 主题层（对应 UI 升级方案 2.2.2）。
 
 | 文件 | 职责 |
 |------|------|

@@ -2825,10 +2825,6 @@
           />
         </KeepAlive>
 
-        <!-- Tab: Login Agreement -->
-        <KeepAlive>
-          <SettingsAgreementTab v-if="activeTab === 'agreement'" :form="form" />
-        </KeepAlive>
 
         <!-- Tab: Features (功能开关) -->
         <KeepAlive>
@@ -2927,7 +2923,6 @@ import type {
 import AppLayout from "@/components/layout/AppLayout.vue";
 const BackupSettings = defineAsyncComponent(() => import('@/views/admin/BackupView.vue'))
 const OpenAIFastPolicyUserSelector = defineAsyncComponent(() => import('@/views/admin/settings/OpenAIFastPolicyUserSelector.vue'))
-const SettingsAgreementTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsAgreementTab.vue'))
 const SettingsEmailTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsEmailTab.vue'))
 
 const SettingsGeneralTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsGeneralTab.vue'))
@@ -2973,7 +2968,6 @@ function localText(zh: string, en: string): string {
 
 type SettingsTab =
   | "general"
-  | "agreement"
   | "features"
   | "security"
   | "users"
@@ -2983,7 +2977,6 @@ type SettingsTab =
 const activeTab = ref<SettingsTab>("general");
 const allSettingsTabs = [
   { key: "general" as SettingsTab, icon: "home" as const },
-  { key: "agreement" as SettingsTab, icon: "document" as const },
   { key: "features" as SettingsTab, icon: "bolt" as const },
   { key: "security" as SettingsTab, icon: "shield" as const },
   { key: "users" as SettingsTab, icon: "user" as const },
@@ -2992,7 +2985,7 @@ const allSettingsTabs = [
   { key: "backup" as SettingsTab, icon: "database" as const },
 ];
 const settingsTabs = computed(() => authStore.isSimpleMode
-  ? allSettingsTabs.filter(({ key }) => !['agreement', 'users', 'email'].includes(key))
+  ? allSettingsTabs.filter(({ key }) => !['users', 'email'].includes(key))
   : allSettingsTabs);
 
 const settingsTabKeyboardActions = {

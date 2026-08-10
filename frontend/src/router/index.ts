@@ -273,7 +273,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/dashboard',
     name: 'AdminDashboard',
-    component: () => import('@/views/admin/DashboardView.vue'),
+    component: () => import('@/views/admin/ops/OpsDashboard.vue'),
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
@@ -285,14 +285,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/ops',
     name: 'AdminOps',
-    component: () => import('@/views/admin/ops/OpsDashboard.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
-      title: 'Ops Monitoring',
-      titleKey: 'admin.ops.title',
-      descriptionKey: 'admin.ops.description'
-    }
+    redirect: '/admin/dashboard'
   },
   {
     path: '/admin/audit-logs',

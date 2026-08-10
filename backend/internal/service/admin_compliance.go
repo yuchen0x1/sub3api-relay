@@ -19,8 +19,8 @@ const (
 	AdminComplianceDocumentPathEN = "docs/legal/admin-compliance.en.md"
 	AdminComplianceDocumentURLZH  = "https://github.com/yuchen0x1/sub3api-relay/blob/codex/upgrade-analysis-r1-4/docs/legal/admin-compliance.zh.md"
 	AdminComplianceDocumentURLEN  = "https://github.com/yuchen0x1/sub3api-relay/blob/codex/upgrade-analysis-r1-4/docs/legal/admin-compliance.en.md"
-	AdminComplianceAckPhraseZH    = "我已阅读、理解并同意 Sub2API 部署与运营合规承诺"
-	AdminComplianceAckPhraseEN    = "I have read, understood, and agree to the Sub2API Deployment and Operation Compliance Commitment"
+	AdminComplianceAckPhraseZH    = "我已阅读、理解并同意 Sub3API 部署与运营合规承诺"
+	AdminComplianceAckPhraseEN    = "I have read, understood, and agree to the Sub3API Deployment and Operation Compliance Commitment"
 
 	settingKeyAdminComplianceAcknowledgement = "admin_compliance_acknowledgement"
 )
