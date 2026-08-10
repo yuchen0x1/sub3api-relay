@@ -41,7 +41,7 @@ export default {
 
     // Channel Management
     channels: {
-      title: '渠道管理',
+      title: '渠道配置',
       description: '管理渠道和自定义模型定价',
       searchChannels: '搜索渠道...',
       createChannel: '创建渠道',
