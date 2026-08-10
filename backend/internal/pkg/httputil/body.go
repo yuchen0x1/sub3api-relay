@@ -4,14 +4,76 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
 )
+
+// RequestBodyReadError preserves transfer progress when the client connection
+// fails before the complete request body reaches the server.
+type RequestBodyReadError struct {
+	BytesRead     int64
+	ContentLength int64
+	Err           error
+}
+
+func (e *RequestBodyReadError) Error() string {
+	if e == nil {
+		return "read request body"
+	}
+	return fmt.Sprintf("read request body after %d bytes: %v", e.BytesRead, e.Err)
+}
+
+func (e *RequestBodyReadError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+// RequestBodyReadProgress extracts transfer progress from a body read failure.
+func RequestBodyReadProgress(err error) (bytesRead, contentLength int64, ok bool) {
+	var readErr *RequestBodyReadError
+	if !errors.As(err, &readErr) || readErr == nil {
+		return 0, 0, false
+	}
+	return readErr.BytesRead, readErr.ContentLength, true
+}
+
+// IsRequestBodyClientDisconnect reports whether a raw request body transfer
+// ended because the downstream client or its connection disappeared.
+func IsRequestBodyClientDisconnect(err error) bool {
+	var readErr *RequestBodyReadError
+	if !errors.As(err, &readErr) || readErr == nil {
+		return false
+	}
+	if errors.Is(readErr, context.Canceled) || errors.Is(readErr, io.ErrUnexpectedEOF) || errors.Is(readErr, net.ErrClosed) {
+		return true
+	}
+
+	message := strings.ToLower(readErr.Error())
+	for _, fragment := range []string{
+		"client disconnected",
+		"client connection lost",
+		"connection reset by peer",
+		"broken pipe",
+		"use of closed network connection",
+		"stream closed",
+		"stream error",
+		"request canceled",
+	} {
+		if strings.Contains(message, fragment) {
+			return true
+		}
+	}
+	return false
+}
 
 const (
 	requestBodyReadInitCap    = 512
@@ -43,8 +105,20 @@ func ReadRequestBodyWithPrealloc(req *http.Request) ([]byte, error) {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, capHint))
-	if _, err := io.Copy(buf, req.Body); err != nil {
-		return nil, err
+	bytesRead, err := io.Copy(buf, req.Body)
+	if err != nil {
+		return nil, &RequestBodyReadError{
+			BytesRead:     bytesRead,
+			ContentLength: req.ContentLength,
+			Err:           err,
+		}
+	}
+	if req.ContentLength > 0 && bytesRead < req.ContentLength {
+		return nil, &RequestBodyReadError{
+			BytesRead:     bytesRead,
+			ContentLength: req.ContentLength,
+			Err:           io.ErrUnexpectedEOF,
+		}
 	}
 	raw := buf.Bytes()
 

@@ -4,12 +4,31 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
+	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
 )
+
+type failingRequestBody struct {
+	data []byte
+	err  error
+}
+
+func (b *failingRequestBody) Read(p []byte) (int, error) {
+	if len(b.data) > 0 {
+		n := copy(p, b.data)
+		b.data = b.data[n:]
+		return n, nil
+	}
+	return 0, b.err
+}
+
+func (b *failingRequestBody) Close() error { return nil }
 
 const samplePayload = `{"model":"gpt-5.5","input":"hi","stream":false}`
 
@@ -139,5 +158,55 @@ func TestReadRequestBodyWithPrealloc_RespectsIdentityEncoding(t *testing.T) {
 	}
 	if string(got) != samplePayload {
 		t.Fatalf("body mismatch: got %q", got)
+	}
+}
+
+func TestReadRequestBodyWithPrealloc_PreservesPartialTransferProgress(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPost, "/v1/responses", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	req.ContentLength = 128
+	req.Body = &failingRequestBody{data: []byte(`{"model":"gpt-5.5"}`), err: io.ErrUnexpectedEOF}
+
+	_, err = ReadRequestBodyWithPrealloc(req)
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("expected unexpected EOF, got %v", err)
+	}
+	bytesRead, contentLength, ok := RequestBodyReadProgress(err)
+	if !ok {
+		t.Fatal("expected request body read progress")
+	}
+	if bytesRead != int64(len(`{"model":"gpt-5.5"}`)) || contentLength != 128 {
+		t.Fatalf("unexpected progress: read=%d content_length=%d", bytesRead, contentLength)
+	}
+	if !IsRequestBodyClientDisconnect(err) {
+		t.Fatal("unexpected EOF should be classified as a client disconnect")
+	}
+}
+
+func TestIsRequestBodyClientDisconnect_ClassifiesTransportFailuresOnly(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "context canceled", err: context.Canceled, want: true},
+		{name: "connection reset", err: errors.New("read tcp: connection reset by peer"), want: true},
+		{name: "http2 cancel", err: errors.New("stream error: stream ID 7; CANCEL"), want: true},
+		{name: "decoder failure", err: errors.New("invalid gzip header"), want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := &RequestBodyReadError{BytesRead: 10, ContentLength: 100, Err: tt.err}
+			if got := IsRequestBodyClientDisconnect(err); got != tt.want {
+				t.Fatalf("IsRequestBodyClientDisconnect() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	if IsRequestBodyClientDisconnect(errors.New("connection reset by peer")) {
+		t.Fatal("non-body errors must not be classified by this helper")
 	}
 }

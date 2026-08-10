@@ -1526,6 +1526,9 @@ func classifyOpsPhase(errType, message, code string) string {
 }
 
 func classifyOpsSeverity(errType string, status int) string {
+	if status == statusClientClosedRequest {
+		return "P3"
+	}
 	switch errType {
 	case "invalid_request_error", "authentication_error", "billing_error", "subscription_error":
 		return "P3"
@@ -1543,6 +1546,9 @@ func classifyOpsSeverity(errType string, status int) string {
 }
 
 func classifyOpsErrorLog(c *gin.Context, errType, message, code string, status int) (phase string, isBusinessLimited bool, errorOwner string, errorSource string) {
+	if status == statusClientClosedRequest {
+		return "request", false, "client", "client_request"
+	}
 	phase = classifyOpsPhase(errType, message, code)
 	routingCapacityLimited := isOpsRoutingCapacityLimited(c)
 	clientBusinessLimited := service.HasOpsClientBusinessLimited(c)

@@ -7,6 +7,15 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
+func TestOpsErrorSLAFilter_ExcludesClientClosedRequests(t *testing.T) {
+	for _, column := range []string{"status_code", "client_status_code"} {
+		want := service.OpsErrorSLAClientClosedPredicate(column)
+		if !strings.Contains(want, "error_owner = 'client'") || !strings.Contains(want, "COALESCE("+column+", 0) = 499") {
+			t.Fatalf("unexpected SLA predicate: %s", want)
+		}
+	}
+}
+
 func TestBuildOpsErrorLogsWhere_QueryUsesQualifiedColumns(t *testing.T) {
 	filter := &service.OpsErrorLogFilter{
 		Query: "ACCESS_DENIED",

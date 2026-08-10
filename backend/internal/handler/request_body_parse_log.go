@@ -2,8 +2,12 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -11,6 +15,42 @@ import (
 // failure. 256 bytes is enough to see the structural context (model field,
 // first content block / trailing brace) without dumping user payloads.
 const parseFailureSnippetLen = 256
+
+// logRequestBodyReadFailure records transfer metadata without logging payload
+// bytes, allowing operators to distinguish client disconnects from decoder and
+// server-side read failures.
+func logRequestBodyReadFailure(c *gin.Context, reqLog *zap.Logger, err error) {
+	if reqLog == nil || err == nil {
+		return
+	}
+
+	fields := []zap.Field{
+		zap.Error(err),
+		zap.Bool("client_disconnected", pkghttputil.IsRequestBodyClientDisconnect(err)),
+	}
+	if bytesRead, contentLength, ok := pkghttputil.RequestBodyReadProgress(err); ok {
+		fields = append(fields,
+			zap.Int64("bytes_read", bytesRead),
+			zap.Int64("content_length", contentLength),
+		)
+	}
+	if c != nil && c.Request != nil {
+		if encoding := strings.TrimSpace(c.Request.Header.Get("Content-Encoding")); encoding != "" {
+			fields = append(fields, zap.String("content_encoding", encoding))
+		}
+		if len(c.Request.TransferEncoding) > 0 {
+			fields = append(fields, zap.Strings("transfer_encoding", c.Request.TransferEncoding))
+		}
+		if ctxErr := c.Request.Context().Err(); ctxErr != nil {
+			fields = append(fields, zap.String("request_context_error", ctxErr.Error()))
+		}
+		if clientRequestID, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string); clientRequestID != "" {
+			fields = append(fields, zap.String("client_request_id", clientRequestID))
+		}
+	}
+
+	reqLog.Warn("read request body failed", fields...)
+}
 
 // logRequestBodyParseFailure records the real reason a request body failed
 // JSON parsing/validation. The client keeps receiving the generic

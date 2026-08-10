@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ip"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -48,6 +49,11 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 	if err != nil {
 		if maxErr, ok := extractMaxBytesError(err); ok {
 			h.responsesErrorResponse(c, http.StatusRequestEntityTooLarge, "invalid_request_error", buildBodyTooLargeMessage(maxErr.Limit))
+			return
+		}
+		logRequestBodyReadFailure(c, reqLog, err)
+		if pkghttputil.IsRequestBodyClientDisconnect(err) {
+			h.responsesErrorResponse(c, statusClientClosedRequest, "client_closed_request", "Client disconnected before request body was fully received")
 			return
 		}
 		h.responsesErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to read request body")

@@ -207,6 +207,36 @@ describe('user UsageView', () => {
     expect(getAvailable).toHaveBeenCalled()
   })
 
+  it('auto refreshes the current usage view and persists its cadence', async () => {
+    vi.useFakeTimers()
+    localStorage.clear()
+
+    try {
+      const wrapper = mountUsageView()
+      await flushPromises()
+      const initialQueryCount = query.mock.calls.length
+
+      ;(wrapper.vm as any).setAutoRefreshInterval(15)
+      ;(wrapper.vm as any).setAutoRefreshEnabled(true)
+
+      expect(JSON.parse(localStorage.getItem('user-usage-auto-refresh') as string)).toEqual({
+        enabled: true,
+        interval_seconds: 15,
+      })
+
+      await vi.advanceTimersByTimeAsync(16_000)
+      await flushPromises()
+
+      expect(query.mock.calls.length).toBeGreaterThan(initialQueryCount)
+
+      ;(wrapper.vm as any).setAutoRefreshEnabled(false)
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      localStorage.clear()
+    }
+  })
+
   it('exports csv with current filters and without admin-only fields', async () => {
     const wrapper = mountUsageView()
     await flushPromises()

@@ -69,6 +69,13 @@ type OpsDashboardOverview struct {
 	TTFT     OpsPercentiles `json:"ttft"`
 }
 
+// OpsErrorSLAClientClosedPredicate returns the SQL predicate that excludes
+// HTTP 499 client-closed request-body reads from SLA/request-error-rate
+// denominators. statusColumn is an internal literal, not user input.
+func OpsErrorSLAClientClosedPredicate(statusColumn string) string {
+	return "error_owner = 'client' AND COALESCE(" + statusColumn + ", 0) = 499"
+}
+
 type OpsLatencyHistogramBucket struct {
 	Range string `json:"range"`
 	Count int64  `json:"count"`

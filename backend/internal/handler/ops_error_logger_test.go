@@ -350,6 +350,16 @@ func TestLogOpsStreamError_UpstreamFailureCountsTowardsSLA(t *testing.T) {
 	require.Contains(t, job.entry.ErrorBody, service.OpenAIUpstreamHTTP2StreamErrorCode)
 }
 
+func TestClassifyOpsErrorLog_ClientClosedRequest(t *testing.T) {
+	phase, businessLimited, owner, source := classifyOpsErrorLog(nil, "api_error", "", "client_closed_request", statusClientClosedRequest)
+
+	require.Equal(t, "request", phase)
+	require.False(t, businessLimited)
+	require.Equal(t, "client", owner)
+	require.Equal(t, "client_request", source)
+	require.Equal(t, "P3", classifyOpsSeverity("api_error", statusClientClosedRequest))
+}
+
 // 未标记流内错误时 logOpsStreamError 必须是 no-op（不误记正常的 200 流）。
 func TestLogOpsStreamError_NoopWhenNotMarked(t *testing.T) {
 	setupOpsErrorLogTestQueue(t, 4)

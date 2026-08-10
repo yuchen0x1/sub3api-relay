@@ -122,9 +122,49 @@
           </div>
 
           <div class="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-            <button type="button" @click="refreshData" :disabled="activeTab === 'errors' ? errorLoading : loading" class="btn btn-secondary">
+            <button type="button" @click="() => { void refreshData() }" :disabled="activeTab === 'errors' ? errorLoading : loading" class="btn btn-secondary">
               {{ t('common.refresh') }}
             </button>
+            <div class="relative" ref="autoRefreshDropdownRef">
+              <button
+                type="button"
+                @click="showAutoRefreshDropdown = !showAutoRefreshDropdown"
+                class="btn btn-secondary px-2 md:px-3"
+                :title="t('common.autoRefresh.title')"
+                :aria-expanded="showAutoRefreshDropdown"
+              >
+                <Icon name="refresh" size="sm" :class="autoRefreshEnabled ? 'animate-spin' : ''" />
+                <span class="hidden md:inline">
+                  {{ autoRefreshEnabled ? t('common.autoRefresh.countdown', { seconds: autoRefreshCountdown }) : t('common.autoRefresh.title') }}
+                </span>
+              </button>
+              <div
+                v-if="showAutoRefreshDropdown"
+                class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800"
+              >
+                <div class="p-2">
+                  <button
+                    type="button"
+                    @click="setAutoRefreshEnabled(!autoRefreshEnabled)"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ t('common.autoRefresh.enable') }}</span>
+                    <Icon v-if="autoRefreshEnabled" name="check" size="sm" class="text-primary-500" />
+                  </button>
+                  <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
+                  <button
+                    v-for="seconds in autoRefreshIntervals"
+                    :key="seconds"
+                    type="button"
+                    @click="setAutoRefreshInterval(seconds)"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ t('common.autoRefresh.seconds', { n: seconds }) }}</span>
+                    <Icon v-if="autoRefreshIntervalSeconds === seconds" name="check" size="sm" class="text-primary-500" />
+                  </button>
+                </div>
+              </div>
+            </div>
             <button type="button" @click="resetFilters" class="btn btn-secondary">
               {{ t('common.reset') }}
             </button>
@@ -214,6 +254,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { keysAPI, usageAPI, userGroupsAPI } from '@/api'
@@ -324,6 +365,15 @@ let chartReqSeq = 0
 let statsReqSeq = 0
 let modelStatsReqSeq = 0
 
+const AUTO_REFRESH_STORAGE_KEY = 'user-usage-auto-refresh'
+const autoRefreshIntervals = [15, 30, 60] as const
+const autoRefreshEnabled = ref(false)
+const autoRefreshIntervalSeconds = ref<(typeof autoRefreshIntervals)[number]>(30)
+const autoRefreshCountdown = ref(0)
+const autoRefreshFetching = ref(false)
+const showAutoRefreshDropdown = ref(false)
+const autoRefreshDropdownRef = ref<HTMLElement | null>(null)
+
 const formatLocalDate = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
@@ -429,7 +479,7 @@ const buildUsageListParams = (page: number, pageSize: number): UsageQueryParams 
   sort_order: sortState.sort_order,
 })
 
-const loadLogs = async () => {
+const loadLogs = async (notifyError = true) => {
   abortController?.abort()
   const controller = new AbortController()
   abortController = controller
@@ -444,7 +494,7 @@ const loadLogs = async () => {
     }
   } catch (error: any) {
     if (error?.name !== 'AbortError' && error?.code !== 'ERR_CANCELED') {
-      appStore.showError(t('usage.failedToLoad'))
+      if (notifyError) appStore.showError(t('usage.failedToLoad'))
     }
   } finally {
     if (abortController === controller) loading.value = false
@@ -535,12 +585,10 @@ const applyFilters = () => {
   resetErrorRows()
 }
 
-const refreshData = () => {
-  void loadLogs()
-  void loadStats()
-  void loadModelStats()
-  void loadChartData()
-  if (activeTab.value === 'errors') void loadErrors()
+const refreshData = async (notifyErrors = true) => {
+  const requests = [loadLogs(notifyErrors), loadStats(), loadModelStats(), loadChartData()]
+  if (activeTab.value === 'errors') requests.push(loadErrors(notifyErrors))
+  await Promise.allSettled(requests)
 }
 
 const resetFilters = () => {
@@ -800,6 +848,9 @@ const handleColumnClickOutside = (event: MouseEvent) => {
   if (columnDropdownRef.value && !columnDropdownRef.value.contains(event.target as HTMLElement)) {
     showColumnDropdown.value = false
   }
+  if (autoRefreshDropdownRef.value && !autoRefreshDropdownRef.value.contains(event.target as HTMLElement)) {
+    showAutoRefreshDropdown.value = false
+  }
 }
 
 const loadFilterOptions = async () => {
@@ -825,7 +876,7 @@ const resetErrorRows = () => {
   }
 }
 
-const loadErrors = async () => {
+const loadErrors = async (notifyError = true) => {
   errorLoading.value = true
   try {
     const resp = await usageAPI.listMyErrorRequests({
@@ -844,7 +895,7 @@ const loadErrors = async () => {
     errorTotal.value = resp.total
   } catch (error) {
     console.error('[UsageView] loadErrors failed:', error)
-    appStore.showError(t('usage.errors.failedToLoad'))
+    if (notifyError) appStore.showError(t('usage.errors.failedToLoad'))
   } finally {
     errorLoading.value = false
   }
@@ -873,15 +924,83 @@ const switchToErrors = () => {
   if (errorRows.value.length === 0) void loadErrors()
 }
 
+const loadSavedAutoRefresh = () => {
+  try {
+    const saved = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY)
+    if (!saved) return
+    const parsed = JSON.parse(saved) as { enabled?: boolean; interval_seconds?: number }
+    autoRefreshEnabled.value = parsed.enabled === true
+    const interval = Number(parsed.interval_seconds)
+    if (autoRefreshIntervals.includes(interval as (typeof autoRefreshIntervals)[number])) {
+      autoRefreshIntervalSeconds.value = interval as (typeof autoRefreshIntervals)[number]
+    }
+  } catch {
+    // Ignore malformed local preferences and keep the defaults.
+  }
+}
+
+const saveAutoRefresh = () => {
+  try {
+    localStorage.setItem(
+      AUTO_REFRESH_STORAGE_KEY,
+      JSON.stringify({
+        enabled: autoRefreshEnabled.value,
+        interval_seconds: autoRefreshIntervalSeconds.value,
+      })
+    )
+  } catch {
+    // Storage can be unavailable in private browsing; refreshing still works.
+  }
+}
+
+const setAutoRefreshEnabled = (enabled: boolean) => {
+  autoRefreshEnabled.value = enabled
+  autoRefreshCountdown.value = enabled ? autoRefreshIntervalSeconds.value : 0
+  saveAutoRefresh()
+  if (enabled) resumeAutoRefresh()
+  else pauseAutoRefresh()
+}
+
+const setAutoRefreshInterval = (seconds: (typeof autoRefreshIntervals)[number]) => {
+  autoRefreshIntervalSeconds.value = seconds
+  autoRefreshCountdown.value = autoRefreshEnabled.value ? seconds : 0
+  saveAutoRefresh()
+}
+
+const { pause: pauseAutoRefresh, resume: resumeAutoRefresh } = useIntervalFn(
+  async () => {
+    if (!autoRefreshEnabled.value || document.hidden || autoRefreshFetching.value) return
+    if (loading.value || chartsLoading.value || modelStatsLoading.value || endpointStatsLoading.value || errorLoading.value) return
+
+    if (autoRefreshCountdown.value > 0) {
+      autoRefreshCountdown.value -= 1
+      return
+    }
+
+    autoRefreshFetching.value = true
+    autoRefreshCountdown.value = autoRefreshIntervalSeconds.value
+    try {
+      await refreshData(false)
+    } finally {
+      autoRefreshFetching.value = false
+    }
+  },
+  1000,
+  { immediate: false }
+)
+
 onMounted(() => {
   loadSavedColumns()
   loadSavedErrColumns()
+  loadSavedAutoRefresh()
   document.addEventListener('click', handleColumnClickOutside)
   void loadFilterOptions()
-  refreshData()
+  void refreshData()
+  if (autoRefreshEnabled.value) resumeAutoRefresh()
 })
 
 onUnmounted(() => {
+  pauseAutoRefresh()
   abortController?.abort()
   document.removeEventListener('click', handleColumnClickOutside)
 })

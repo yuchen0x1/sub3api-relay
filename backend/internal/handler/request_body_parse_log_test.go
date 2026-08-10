@@ -3,11 +3,17 @@
 package handler
 
 import (
+	"context"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
 
@@ -28,8 +34,14 @@ func loggedFields(t *testing.T, logs *observer.ObservedLogs) map[string]any {
 			fields[f.Key] = int(f.Integer)
 		case "error":
 			fields[f.Key] = f.Interface.(error).Error()
+		case "bytes_read", "content_length":
+			fields[f.Key] = f.Integer
 		default:
-			fields[f.Key] = f.String
+			if f.Type == zapcore.BoolType {
+				fields[f.Key] = f.Integer != 0
+			} else {
+				fields[f.Key] = f.String
+			}
 		}
 	}
 	return fields
@@ -97,4 +109,32 @@ func TestLogRequestBodyParseFailure_NilLoggerNoPanic(t *testing.T) {
 	require.NotPanics(t, func() {
 		logRequestBodyParseFailure(nil, []byte(`{`), nil)
 	})
+}
+
+func TestLogRequestBodyReadFailure_IncludesTransferDiagnostics(t *testing.T) {
+	log, logs := newObservedLogger(t)
+
+	req := httptest.NewRequest("POST", "/v1/responses", nil)
+	req.ContentLength = 1024
+	req.Header.Set("Content-Encoding", "gzip")
+	ctx := context.WithValue(req.Context(), ctxkey.ClientRequestID, "client-request-1")
+	req = req.WithContext(ctx)
+
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = req
+	err := &pkghttputil.RequestBodyReadError{
+		BytesRead:     64,
+		ContentLength: 1024,
+		Err:           context.Canceled,
+	}
+
+	logRequestBodyReadFailure(c, log, err)
+
+	fields := loggedFields(t, logs)
+	require.Equal(t, int64(64), fields["bytes_read"])
+	require.Equal(t, int64(1024), fields["content_length"])
+	require.True(t, fields["client_disconnected"].(bool))
+	require.Equal(t, "gzip", fields["content_encoding"])
+	require.Equal(t, "client-request-1", fields["client_request_id"])
+	require.Contains(t, fields["error"].(string), "read request body after 64 bytes")
 }
