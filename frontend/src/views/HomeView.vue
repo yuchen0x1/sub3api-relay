@@ -435,7 +435,7 @@ const isHomeContentUrl = computed(() => {
 const isDark = computed(() => appStore.isDark)
 
 // GitHub URL
-const githubUrl = 'https://github.com/nhzhongguo/sub3api-relay'
+const githubUrl = 'https://github.com/yuchen0x1/sub3api-relay'
 
 // Auth state
 const isAuthenticated = computed(() => authStore.isAuthenticated)

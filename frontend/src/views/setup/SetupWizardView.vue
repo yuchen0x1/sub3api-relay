@@ -315,9 +315,9 @@
             <label class="input-label">{{ t('setup.admin.email') }}</label>
             <input
               v-model="formData.admin.email"
-              type="email"
+              type="text"
               class="input"
-              placeholder="admin@example.com"
+              placeholder="admin"
             />
           </div>
 
@@ -526,7 +526,7 @@ const testingRedis = ref(false)
 const dbConnected = ref(false)
 const redisConnected = ref(false)
 const installing = ref(false)
-const confirmPassword = ref('')
+const confirmPassword = ref('admin')
 const serviceReady = ref(false)
 
 // Default server port
@@ -557,8 +557,8 @@ const formData = reactive<InstallRequest>({
     enable_tls: false
   },
   admin: {
-    email: '',
-    password: ''
+    email: 'admin',
+    password: 'admin'
   },
   server: {
     host: '0.0.0.0',
@@ -576,7 +576,8 @@ const canProceed = computed(() => {
     case 2:
       return (
         formData.admin.email &&
-        formData.admin.password.length >= 8 &&
+        ((formData.admin.email.trim() === 'admin' && formData.admin.password === 'admin') ||
+          formData.admin.password.length >= 8) &&
         formData.admin.password === confirmPassword.value
       )
     default:

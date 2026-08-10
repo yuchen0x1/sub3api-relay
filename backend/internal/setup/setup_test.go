@@ -72,6 +72,21 @@ func TestSetupDefaultAdminConcurrency(t *testing.T) {
 	})
 }
 
+func TestApplyAdminDefaults(t *testing.T) {
+	admin := AdminConfig{}
+	applyAdminDefaults(&admin)
+
+	if admin.Email != defaultAdminLogin {
+		t.Fatalf("Email=%q, want %q", admin.Email, defaultAdminLogin)
+	}
+	if admin.Password != defaultAdminPassword {
+		t.Fatalf("Password=%q, want %q", admin.Password, defaultAdminPassword)
+	}
+	if !isDefaultAdminCredentials(admin) {
+		t.Fatal("expected default administrator credentials")
+	}
+}
+
 func TestNeedsSetupSkipsWhenSkipSetupIsEnabled(t *testing.T) {
 	tests := []struct {
 		name  string

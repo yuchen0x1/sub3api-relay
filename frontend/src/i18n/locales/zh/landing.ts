@@ -239,11 +239,11 @@ export default {
     },
     admin: {
       title: '管理员账户',
-      description: '创建您的管理员账户',
-      email: '邮箱',
+      description: '默认账号和密码均为 admin，登录后请立即修改密码',
+      email: '管理员账号',
       password: '密码',
       confirmPassword: '确认密码',
-      passwordPlaceholder: '至少 8 个字符',
+      passwordPlaceholder: '默认 admin',
       confirmPasswordPlaceholder: '确认密码',
       passwordMismatch: '密码不匹配'
     },

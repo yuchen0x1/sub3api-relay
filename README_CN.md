@@ -92,7 +92,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -142,7 +142,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # 卸载
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -165,7 +165,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrad
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -177,6 +177,7 @@ docker compose logs -f sub2api
 **脚本功能：**
 - 下载 `docker-compose.local.yml`（本地保存为 `docker-compose.yml`）和 `.env.example`
 - 自动生成安全凭证（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）
+- 将初始管理员账号和密码设置为 `admin` / `admin`
 - 创建 `.env` 文件并填充自动生成的密钥
 - 创建数据目录（使用本地目录，便于备份和迁移）
 - 显示生成的凭证供你记录
@@ -210,9 +211,9 @@ JWT_SECRET=your_jwt_secret_here
 # TOTP 加密密钥（推荐 - 重启后保留双因素认证）
 TOTP_ENCRYPTION_KEY=your_totp_key_here
 
-# 可选：管理员账号
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=your_admin_password
+# 初始管理员账号
+ADMIN_EMAIL=admin
+ADMIN_PASSWORD=admin
 
 # 可选：自定义端口
 SERVER_PORT=8080
@@ -273,10 +274,7 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 在浏览器中打开 `http://你的服务器IP:8080`
 
-如果管理员密码是自动生成的，在日志中查找：
-```bash
-docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
-```
+使用 `admin` / `admin` 登录，随后立即在账户设置中修改管理员密码。
 
 #### 升级
 
@@ -501,13 +499,13 @@ Invalid base URL: invalid url scheme: http
 
 #### ⚠️ 重要：创建管理员账号
 
-初始管理员账号**只能通过 setup 向导创建**（首次启动时访问 `http://<host>:8080`）。`config.yaml` 中的 `default.admin_email` / `default.admin_password` 字段**不会被用来创建管理员**——它们只是出于历史原因保留在模板里。
+初始管理员账号会在首次初始化时创建。Docker 使用 `AUTO_SETUP=true` 时读取 `ADMIN_EMAIL` / `ADMIN_PASSWORD`，默认均为 `admin`；源码部署的 setup 向导也会预填 `admin` / `admin`。登录后请立即修改密码。`config.yaml` 中的 `default.admin_email` / `default.admin_password` 字段不会用于创建管理员。
 
 由于上面第 5 步预先创建了 `config.yaml`，**setup 向导在首次启动时会被跳过**：服务检测到 config 已存在，会直接进入正常模式，此时 `users` 表为空，首次登录会返回 `invalid email or password`。
 
 **创建管理员的两种方式：**
 
-1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub2api`，访问 `http://localhost:8080`，向导会引导你完成数据库、Redis 和管理员账号配置，并自动写出 `config.yaml`。
+1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub2api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并创建默认 `admin` / `admin` 管理员账号，然后自动写出 `config.yaml`。
 
 2. **如果你已经创建了 `config.yaml`：** 首次启动前先把它临时移走以触发向导，完成后再恢复：
    ```bash

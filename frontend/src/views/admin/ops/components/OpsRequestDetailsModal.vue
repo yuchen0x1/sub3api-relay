@@ -204,6 +204,7 @@ const kindBadgeClass = (kind: string) => {
                   </div>
                   <div class="break-all text-xs text-gray-600 dark:text-gray-300">{{ row.model || '-' }}</div>
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-300">
+                    <span>{{ typeof row.first_token_ms === 'number' ? `TTFT ${row.first_token_ms} ms` : 'TTFT -' }}</span>
                     <span>{{ typeof row.duration_ms === 'number' ? `${row.duration_ms} ms` : '-' }}</span>
                     <span>{{ row.status_code ?? '-' }}</span>
                   </div>
@@ -243,6 +244,9 @@ const kindBadgeClass = (kind: string) => {
                     {{ t('admin.ops.requestDetails.table.model') }}
                   </th>
                   <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {{ t('admin.ops.requestDetails.table.firstToken') }}
+                  </th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     {{ t('admin.ops.requestDetails.table.duration') }}
                   </th>
                   <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -271,6 +275,9 @@ const kindBadgeClass = (kind: string) => {
                   </td>
                   <td class="max-w-[240px] truncate px-4 py-3 text-xs text-gray-600 dark:text-gray-300" :title="row.model || ''">
                     {{ row.model || '-' }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                    {{ typeof row.first_token_ms === 'number' ? `${row.first_token_ms} ms` : '-' }}
                   </td>
                   <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
                     {{ typeof row.duration_ms === 'number' ? `${row.duration_ms} ms` : '-' }}

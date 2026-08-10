@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-token-bg text-token-text">
+  <div class="app-shell min-h-screen bg-token-bg text-token-text">
 
     <!-- Sidebar -->
     <AppSidebar />
@@ -13,7 +13,7 @@
       <AppHeader />
 
       <!-- Main Content -->
-      <main class="p-4 md:p-6 lg:p-8">
+      <main class="app-main p-4 md:p-6 lg:p-8">
         <slot />
       </main>
     </div>

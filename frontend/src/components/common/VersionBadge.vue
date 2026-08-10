@@ -234,8 +234,8 @@
               <!-- Priority 3: Update available for source build - show git pull hint -->
               <div v-else-if="hasUpdate && !isReleaseBuild" class="space-y-2">
                 <a
-                  v-if="releaseInfo?.html_url && releaseInfo.html_url !== '#'"
-                  :href="releaseInfo.html_url"
+                  v-if="releaseInfo"
+                  :href="releasePageUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="group flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-800/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30"
@@ -344,8 +344,8 @@
 
                 <!-- View release link -->
                 <a
-                  v-if="releaseInfo?.html_url && releaseInfo.html_url !== '#'"
-                  :href="releaseInfo.html_url"
+                  v-if="releaseInfo"
+                  :href="releasePageUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center justify-center gap-1 text-xs text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-dark-200"
@@ -358,8 +358,8 @@
               <!-- Priority 5: Up to date - GitHub link + version rollback -->
               <div v-else class="space-y-2">
                 <a
-                  v-if="releaseInfo?.html_url && releaseInfo.html_url !== '#'"
-                  :href="releaseInfo.html_url"
+                  v-if="releaseInfo"
+                  :href="releasePageUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center justify-center gap-2 py-2 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-dark-200"
@@ -651,9 +651,10 @@ import {
 import { useClipboard } from '@/composables/useClipboard'
 import Icon from '@/components/icons/Icon.vue'
 
-const GITHUB_REPO = 'nhzhongguo/sub2api-relay'
-// Docker Hub image published by CI (tags carry no "v" prefix, e.g. weishaw/sub2api:0.1.146)
-const DOCKER_IMAGE = 'nhzhongguo/sub2api-relay'
+const GITHUB_REPO = 'yuchen0x1/sub3api-relay'
+const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`
+// Docker image published by the project's CI (tags carry no "v" prefix).
+const DOCKER_IMAGE = 'ghcr.io/yuchen0x1/sub3api-relay'
 
 const { t } = useI18n()
 
@@ -676,6 +677,13 @@ const latestVersion = computed(() => appStore.latestVersion)
 const hasUpdate = computed(() => appStore.hasUpdate)
 const releaseInfo = computed(() => appStore.releaseInfo)
 const buildType = computed(() => appStore.buildType)
+const releasePageUrl = computed(() => {
+  const version = latestVersion.value.trim()
+  if (!version) return GITHUB_RELEASES_URL
+
+  const tag = version.startsWith('v') ? version : `v${version}`
+  return `${GITHUB_RELEASES_URL}/tag/${encodeURIComponent(tag)}`
+})
 
 // Update process states (local to this component)
 const updating = ref(false)

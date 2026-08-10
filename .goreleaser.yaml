@@ -58,7 +58,7 @@ dockers:
     goarch: amd64
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-amd64"
     dockerfile: Dockerfile.goreleaser
     use: buildx
     extra_files:
@@ -74,7 +74,7 @@ dockers:
     goarch: arm64
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-arm64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-arm64"
     dockerfile: Dockerfile.goreleaser
     use: buildx
     extra_files:
@@ -90,7 +90,7 @@ dockers:
     goos: linux
     goarch: amd64
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-amd64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-amd64"
     dockerfile: Dockerfile.goreleaser
     use: buildx
     extra_files:
@@ -106,7 +106,7 @@ dockers:
     goos: linux
     goarch: arm64
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-arm64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-arm64"
     dockerfile: Dockerfile.goreleaser
     use: buildx
     extra_files:
@@ -121,50 +121,50 @@ dockers:
 # Docker manifests for multi-arch support
 docker_manifests:
   # DockerHub manifests (skipped if DOCKERHUB_USERNAME is 'skip')
-  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}"
+  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}"
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-amd64"
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-arm64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:latest"
+  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:latest"
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-amd64"
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-arm64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Major }}.{{ .Minor }}"
+  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Major }}.{{ .Minor }}"
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-amd64"
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-arm64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Major }}"
+  - name_template: "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Major }}"
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-amd64"
-      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}-arm64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}-arm64"
 
   # GHCR manifests (owner must be lowercase)
-  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}"
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-amd64"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-arm64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-amd64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:latest"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:latest"
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-amd64"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-arm64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-amd64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Major }}.{{ .Minor }}"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Major }}.{{ .Minor }}"
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-amd64"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-arm64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-amd64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-arm64"
 
-  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Major }}"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Major }}"
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-amd64"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}-arm64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-amd64"
+      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}-arm64"
 
 release:
   github:
@@ -189,11 +189,11 @@ release:
     ```bash
     {{ if ne .Env.DOCKERHUB_USERNAME "skip" -}}
     # Docker Hub
-    docker pull {{ .Env.DOCKERHUB_USERNAME }}/sub2api:{{ .Version }}
+    docker pull {{ .Env.DOCKERHUB_USERNAME }}/sub3api-relay:{{ .Version }}
 
     {{ end -}}
     # GitHub Container Registry
-    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}
+    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub3api-relay:{{ .Version }}
     ```
 
     **One-line install (Linux):**

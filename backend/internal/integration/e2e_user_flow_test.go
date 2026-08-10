@@ -232,8 +232,8 @@ func loginTestUser(t *testing.T) string {
 	t.Helper()
 
 	// 先尝试用管理员账户登录
-	adminEmail := getEnv("ADMIN_EMAIL", "admin@sub2api.local")
-	adminPassword := getEnv("ADMIN_PASSWORD", "")
+	adminEmail := getEnv("ADMIN_EMAIL", "admin")
+	adminPassword := getEnv("ADMIN_PASSWORD", "admin")
 
 	if adminPassword == "" {
 		// 尝试用测试用户

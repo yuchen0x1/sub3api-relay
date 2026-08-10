@@ -91,7 +91,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -141,7 +141,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # アンインストール
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -164,7 +164,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -176,6 +176,7 @@ docker compose logs -f sub2api
 **スクリプトの動作内容:**
 - `docker-compose.local.yml`（`docker-compose.yml` として保存）と `.env.example` をダウンロード
 - セキュアな認証情報（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）を自動生成
+- 初期管理者のログインとパスワードを `admin` / `admin` に設定
 - 自動生成されたシークレットで `.env` ファイルを作成
 - データディレクトリを作成（バックアップ・移行が容易なローカルディレクトリを使用）
 - 生成された認証情報を参照用に表示
@@ -209,9 +210,9 @@ JWT_SECRET=your_jwt_secret_here
 # TOTP 暗号化キー（推奨 - 再起動後も二要素認証を維持）
 TOTP_ENCRYPTION_KEY=your_totp_key_here
 
-# オプション: 管理者アカウント
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=your_admin_password
+# 初期管理者アカウント
+ADMIN_EMAIL=admin
+ADMIN_PASSWORD=admin
 
 # オプション: カスタムポート
 SERVER_PORT=8080
@@ -260,10 +261,7 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 ブラウザで `http://YOUR_SERVER_IP:8080` を開いてください。
 
-管理者パスワードが自動生成された場合は、ログで確認できます:
-```bash
-docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
-```
+`admin` / `admin` でログインし、アカウント設定からすぐに管理者パスワードを変更してください。
 
 #### アップグレード
 
@@ -459,13 +457,13 @@ URL バリデーションまたはレスポンスヘッダーフィルタリン�
 
 #### ⚠️ 重要：管理者アカウントの作成
 
-初期管理者アカウントは**セットアップウィザード経由でのみ作成**されます（初回起動時に `http://<host>:8080` にアクセス）。`config.yaml` の `default.admin_email` / `default.admin_password` フィールドは**管理者作成には使われません**。テンプレートに残っているのは歴史的経緯によるものです。
+初期管理者アカウントは初回セットアップ時に作成されます。`AUTO_SETUP=true` の Docker デプロイでは `ADMIN_EMAIL` / `ADMIN_PASSWORD` を使用し、既定値は `admin` / `admin` です。ソースデプロイのセットアップウィザードにも `admin` / `admin` が入力されています。ログイン後すぐにパスワードを変更してください。`config.yaml` の `default.admin_email` / `default.admin_password` は管理者作成には使用されません。
 
 上記ステップ 5 で事前に `config.yaml` を作成しているため、**初回起動時にセットアップウィザードはスキップされます**。サーバーは既存の config を検出して通常モードで直接起動し、この時点では `users` テーブルが空のため、初回ログインは `invalid email or password` を返します。
 
 **管理者アカウントを作成する 2 つの方法:**
 
-1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub2api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベース・Redis・管理者アカウントの設定を案内し、`config.yaml` を自動生成します。
+1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub2api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベースと Redis を設定し、既定の `admin` / `admin` 管理者アカウントを作成して `config.yaml` を自動生成します。
 
 2. **すでに `config.yaml` を作成してしまった場合:** 初回起動前に一時的に退避してウィザードを発生させ、完了後に戻します:
    ```bash

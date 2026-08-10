@@ -60,7 +60,7 @@ type SendVerifyCodeResponse struct {
 
 // LoginRequest represents the login request payload
 type LoginRequest struct {
-	Email          string `json:"email" binding:"required,email"`
+	Email          string `json:"email" binding:"required"`
 	Password       string `json:"password" binding:"required"`
 	TurnstileToken string `json:"turnstile_token"`
 }
@@ -165,6 +165,7 @@ func (h *AuthHandler) SendVerifyCode(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	req.Email = strings.TrimSpace(req.Email)
 
 	// Turnstile 验证
 	if err := h.authService.VerifyTurnstile(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c)); err != nil {

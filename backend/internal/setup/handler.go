@@ -85,6 +85,9 @@ func validateUsername(name string) bool {
 
 // validateEmail checks if email format is valid
 func validateEmail(email string) bool {
+	if strings.TrimSpace(email) == defaultAdminLogin {
+		return true
+	}
 	_, err := mail.ParseAddress(email)
 	return err == nil && len(email) <= 254
 }
@@ -303,9 +306,11 @@ func install(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, "Invalid admin email format")
 		return
 	}
-	if err := validatePassword(req.Admin.Password); err != nil {
-		response.Error(c, http.StatusBadRequest, err.Error())
-		return
+	if !isDefaultAdminCredentials(req.Admin) {
+		if err := validatePassword(req.Admin.Password); err != nil {
+			response.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	// Server validation

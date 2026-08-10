@@ -32,6 +32,18 @@ check_application_security_opt() {
   fi
 }
 
+check_default_admin_credentials() {
+  file=$1
+  grep -Fq '      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin}' "$file" || {
+    printf '%s must default ADMIN_EMAIL to admin\n' "$file" >&2
+    exit 1
+  }
+  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}' "$file" || {
+    printf '%s must default ADMIN_PASSWORD to admin\n' "$file" >&2
+    exit 1
+  }
+}
+
 for compose_file in \
   deploy/docker-compose.yml \
   deploy/docker-compose.local.yml \
@@ -39,6 +51,10 @@ for compose_file in \
   deploy/docker-compose.dev.yml
 do
   check_application_security_opt "$compose_file"
+  check_default_admin_credentials "$compose_file"
 done
+
+grep -Fxq 'ADMIN_EMAIL=admin' deploy/.env.example
+grep -Fxq 'ADMIN_PASSWORD=admin' deploy/.env.example
 
 printf 'docker compose security test passed\n'

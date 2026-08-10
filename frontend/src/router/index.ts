@@ -332,10 +332,6 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/admin/channels',
-    redirect: '/admin/channels/pricing'
-  },
-  {
-    path: '/admin/channels/pricing',
     name: 'AdminChannels',
     component: () => import('@/views/admin/ChannelsView.vue'),
     meta: {
@@ -657,7 +653,15 @@ router.beforeEach(async (to, _from, next) => {
   // 简易模式下限制访问某些页面
   if (authStore.isSimpleMode) {
     const restrictedPaths = [
+      '/admin/ops',
+      '/admin/users',
       '/admin/groups',
+      '/admin/announcements',
+      '/admin/security-audit',
+      '/admin/risk-control',
+      '/admin/prompt-audit',
+      '/admin/usage',
+      '/admin/audit-logs',
     ]
 
     if (restrictedPaths.some((path) => to.path.startsWith(path))) {

@@ -30,6 +30,8 @@ const (
 	defaultUserConcurrency     = 5
 	simpleModeAdminConcurrency = 30
 	defaultMigrationTimeout    = 60 * time.Second
+	defaultAdminLogin          = "admin"
+	defaultAdminPassword       = "admin"
 )
 
 func setupDefaultAdminConcurrency() int {
@@ -382,6 +384,8 @@ func (cfg *SetupConfig) migrationTimeout() time.Duration {
 }
 
 func createAdminUser(cfg *SetupConfig) (bool, string, error) {
+	applyAdminDefaults(&cfg.Admin)
+
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.User,
@@ -416,16 +420,6 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 		return false, decision.reason, nil
 	}
 
-	if strings.TrimSpace(cfg.Admin.Password) == "" {
-		password, genErr := generateSecret(16)
-		if genErr != nil {
-			return false, "", fmt.Errorf("failed to generate admin password: %w", genErr)
-		}
-		cfg.Admin.Password = password
-		fmt.Printf("Generated admin password (one-time): %s\n", cfg.Admin.Password)
-		fmt.Println("IMPORTANT: Save this password! It will not be shown again.")
-	}
-
 	admin := &service.User{
 		Email:       cfg.Admin.Email,
 		Role:        service.RoleAdmin,
@@ -456,7 +450,27 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 	if err != nil {
 		return false, "", err
 	}
+	if isDefaultAdminCredentials(cfg.Admin) {
+		logger.LegacyPrintf("setup", "%s", "Default administrator created with login admin and password admin. Change the password immediately after login.")
+	}
 	return true, decision.reason, nil
+}
+
+func applyAdminDefaults(admin *AdminConfig) {
+	if admin == nil {
+		return
+	}
+	admin.Email = strings.TrimSpace(admin.Email)
+	if admin.Email == "" {
+		admin.Email = defaultAdminLogin
+	}
+	if admin.Password == "" {
+		admin.Password = defaultAdminPassword
+	}
+}
+
+func isDefaultAdminCredentials(admin AdminConfig) bool {
+	return strings.TrimSpace(admin.Email) == defaultAdminLogin && admin.Password == defaultAdminPassword
 }
 
 func writeConfigFile(cfg *SetupConfig) error {
@@ -593,8 +607,8 @@ func AutoSetupFromEnv() error {
 			EnableTLS: getEnvOrDefault("REDIS_ENABLE_TLS", "false") == "true",
 		},
 		Admin: AdminConfig{
-			Email:    getEnvOrDefault("ADMIN_EMAIL", "admin@sub2api.local"),
-			Password: getEnvOrDefault("ADMIN_PASSWORD", ""),
+			Email:    getEnvOrDefault("ADMIN_EMAIL", defaultAdminLogin),
+			Password: getEnvOrDefault("ADMIN_PASSWORD", defaultAdminPassword),
 		},
 		Server: ServerConfig{
 			Host: getEnvOrDefault("SERVER_HOST", "0.0.0.0"),

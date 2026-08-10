@@ -92,7 +92,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -142,7 +142,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -165,7 +165,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -177,9 +177,10 @@ docker compose logs -f sub2api
 **What the script does:**
 - Downloads `docker-compose.local.yml` (saved as `docker-compose.yml`) and `.env.example`
 - Generates secure credentials (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
+- Configures the initial administrator as `admin` / `admin`
 - Creates `.env` file with auto-generated secrets
 - Creates data directories (uses local directories for easy backup/migration)
-- Displays generated credentials for your reference
+- Stores the default administrator credentials in `.env`
 
 #### Manual Deployment
 
@@ -210,9 +211,9 @@ JWT_SECRET=your_jwt_secret_here
 # TOTP Encryption Key (RECOMMENDED - preserves 2FA after restart)
 TOTP_ENCRYPTION_KEY=your_totp_key_here
 
-# Optional: Admin account
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=your_admin_password
+# Initial administrator account
+ADMIN_EMAIL=admin
+ADMIN_PASSWORD=admin
 
 # Optional: Custom port
 SERVER_PORT=8080
@@ -261,10 +262,7 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 Open `http://YOUR_SERVER_IP:8080` in your browser.
 
-If admin password was auto-generated, find it in logs:
-```bash
-docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
-```
+Log in with `admin` / `admin`, then change the administrator password immediately from the account settings page. These defaults are used only when the first administrator is created.
 
 #### Upgrade
 
@@ -501,13 +499,13 @@ or mitigating upstream WebSocket issues.
 
 #### ⚠️ Important: Creating the Admin Account
 
-The initial admin account is **only created via the setup wizard** (served at `http://<host>:8080` on first run). The `default.admin_email` / `default.admin_password` fields in `config.yaml` are **not used** to create it — they exist in the template for historical reasons.
+The initial administrator is created during first-run setup. Docker deployments with `AUTO_SETUP=true` use `ADMIN_EMAIL` / `ADMIN_PASSWORD`, which default to `admin` / `admin`. Source deployments use the setup wizard, which is also prefilled with `admin` / `admin`. Change the password immediately after login. The `default.admin_email` / `default.admin_password` fields in `config.yaml` are not used to create the account.
 
 Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipped on first run**: the server detects an existing config and boots straight into normal mode with an empty `users` table, so the first login attempt fails with `invalid email or password`.
 
 **Two ways to create the admin account:**
 
-1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub2api` directly; the setup wizard at `http://localhost:8080` walks you through database, Redis, and admin account setup, then writes `config.yaml` for you.
+1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub2api` directly; the setup wizard at `http://localhost:8080` walks you through database and Redis setup, creates the initial `admin` / `admin` account unless changed, then writes `config.yaml` for you.
 
 2. **If you already created `config.yaml`:** Temporarily move it aside so the wizard can trigger on first run, then restore it afterwards:
    ```bash

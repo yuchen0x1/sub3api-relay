@@ -27,7 +27,7 @@ describe('admin system rollback API', () => {
       {
         version: '0.1.146',
         published_at: '2026-07-07T00:00:00Z',
-        html_url: 'https://github.com/Wei-Shaw/sub2api/releases/tag/v0.1.146'
+        html_url: 'https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.1.146'
       }
     ]
     get.mockResolvedValue({ data: { versions } })

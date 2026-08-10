@@ -56,10 +56,10 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/docker-deploy.sh -o docker-deploy.sh
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh -o docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
@@ -67,9 +67,10 @@ chmod +x docker-deploy.sh
 **What the script does:**
 - Downloads `docker-compose.local.yml` and `.env.example`
 - Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
+- Configures the initial administrator as `admin` / `admin`
 - Creates `.env` file with generated secrets
 - Creates necessary data directories (data/, postgres_data/, redis_data/)
-- **Displays generated credentials** (POSTGRES_PASSWORD, JWT_SECRET, etc.)
+- Stores the default administrator credentials in the owner-readable `.env` file
 
 **After running the script:**
 ```bash
@@ -79,8 +80,9 @@ docker compose -f docker-compose.local.yml up -d
 # View logs
 docker compose -f docker-compose.local.yml logs -f sub2api
 
-# If admin password was auto-generated, find it in logs:
-docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
+# Initial login: admin
+# Initial password: admin
+# Change the password immediately after login.
 
 # Access Web UI
 # http://localhost:8080
@@ -112,7 +114,7 @@ mkdir -p data postgres_data redis_data
 # Start all services using local directory version
 docker compose -f docker-compose.local.yml up -d
 
-# View logs (check for auto-generated admin password)
+# View logs
 docker compose -f docker-compose.local.yml logs -f sub2api
 
 # Access Web UI
@@ -136,15 +138,12 @@ When using Docker Compose with `AUTO_SETUP=true`:
    - Connects to PostgreSQL and Redis
    - Applies database migrations (SQL files in `backend/migrations/*.sql`) and records them in `schema_migrations`
    - Generates JWT secret (if not provided)
-   - Creates admin account (password auto-generated if not provided)
+   - Creates the initial administrator with `admin` / `admin` unless overridden in `.env`
    - Writes config.yaml
 
 2. No manual Setup Wizard needed - just configure `.env` and start
 
-3. If `ADMIN_PASSWORD` is not set, check logs for the generated password:
-   ```bash
-   docker compose logs sub2api | grep "admin password"
-   ```
+3. Log in with `admin` / `admin`, then change the administrator password immediately.
 
 ### Database Migration Notes (PostgreSQL)
 
@@ -235,8 +234,8 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin@sub2api.local` | Admin email |
-| `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
+| `ADMIN_EMAIL` | No | `admin` | Initial administrator login |
+| `ADMIN_PASSWORD` | No | `admin` | Initial administrator password; change after first login |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -246,7 +245,9 @@ docker compose down -v
 
 See `.env.example` for all available options.
 
-> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD` for you.
+> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. The initial administrator is `admin` / `admin`.
+
+> **Existing data:** `ADMIN_PASSWORD` is used only when the admin account is created during the first setup. Changing it in `.env` does not change an existing admin password; use the account password-change or reset flow instead.
 
 ### Easy Migration (Local Directory Version)
 
@@ -376,7 +377,7 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation

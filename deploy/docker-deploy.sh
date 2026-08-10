@@ -1,10 +1,11 @@
 #!/bin/bash
 # =============================================================================
-# Sub2API Docker Deployment Preparation Script
+# Sub3API Docker Deployment Preparation Script
 # =============================================================================
-# This script prepares deployment files for Sub2API:
+# This script prepares deployment files for Sub3API:
 #   - Downloads docker-compose.local.yml and .env.example
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
+#   - Configures the initial administrator as admin / admin
 #   - Creates necessary data directories
 #
 # After running this script, you can start services with:
@@ -21,7 +22,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # GitHub raw content base URL
-GITHUB_RAW_URL="https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/codex/upgrade-analysis-r1-4/deploy"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy"
 
 # Print colored message
 print_info() {
@@ -43,6 +44,20 @@ print_error() {
 # Generate random secret
 generate_secret() {
     openssl rand -hex 32
+}
+
+set_env_value() {
+    local key="$1"
+    local value="$2"
+    local tmp_file
+    tmp_file=$(mktemp .env.XXXXXX)
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            "${key}="*) printf '%s=%s\n' "$key" "$value" >> "$tmp_file" ;;
+            *) printf '%s\n' "$line" >> "$tmp_file" ;;
+        esac
+    done < .env
+    mv "$tmp_file" .env
 }
 
 # Check if command exists
@@ -104,22 +119,13 @@ main() {
     JWT_SECRET=$(generate_secret)
     TOTP_ENCRYPTION_KEY=$(generate_secret)
     POSTGRES_PASSWORD=$(generate_secret)
-
     # Create .env from .env.example
     cp .env.example .env
 
-    # Update .env with generated secrets (cross-platform compatible)
-    if sed --version >/dev/null 2>&1; then
-        # GNU sed (Linux)
-        sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET}/" .env
-        sed -i "s/^TOTP_ENCRYPTION_KEY=.*/TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}/" .env
-        sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${POSTGRES_PASSWORD}/" .env
-    else
-        # BSD sed (macOS)
-        sed -i '' "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET}/" .env
-        sed -i '' "s/^TOTP_ENCRYPTION_KEY=.*/TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}/" .env
-        sed -i '' "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${POSTGRES_PASSWORD}/" .env
-    fi
+    # Update .env with generated secrets.
+    set_env_value JWT_SECRET "$JWT_SECRET"
+    set_env_value TOTP_ENCRYPTION_KEY "$TOTP_ENCRYPTION_KEY"
+    set_env_value POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
 
     # Create data directories
     print_info "Creating data directories..."
@@ -162,8 +168,9 @@ main() {
     echo "  4. Access Web UI:"
     echo "     http://localhost:8080"
     echo ""
-    print_info "If admin password is not set in .env, it will be auto-generated."
-    print_info "Check logs for the generated admin password on first startup."
+    print_warning "Initial administrator login: admin"
+    print_warning "Initial administrator password: admin"
+    print_warning "Change the administrator password immediately after the first login."
     echo ""
 }
 

@@ -58,17 +58,19 @@ func (r *opsRepository) getDashboardOverviewRaw(ctx context.Context, filter *ser
 	}
 
 	latencyCtx, cancelLatency := context.WithTimeout(ctx, opsRawLatencyQueryTimeout)
-	duration, ttft, _, err := r.queryUsageLatency(latencyCtx, filter, start, end)
+	duration, ttft, ttftSampleCount, err := r.queryUsageLatency(latencyCtx, filter, start, end)
 	cancelLatency()
 	if err != nil {
 		if isQueryTimeoutErr(err) {
 			degraded = true
 			duration = service.OpsPercentiles{}
 			ttft = service.OpsPercentiles{}
+			ttftSampleCount = 0
 		} else {
 			return nil, err
 		}
 	}
+	ttft.SampleCount = ttftSampleCount
 
 	errorTotal, businessLimited, errorCountSLA, upstreamExcl, upstream429, upstream529, err := r.queryErrorCounts(ctx, filter, start, end)
 	if err != nil {
@@ -255,6 +257,7 @@ func (r *opsRepository) getDashboardOverviewPreaggregated(ctx context.Context, f
 		{weight: head.ttftSampleCount, p: head.ttft},
 		{weight: tail.ttftSampleCount, p: tail.ttft},
 	})
+	ttft.SampleCount = preagg.ttftSampleCount + head.ttftSampleCount + tail.ttftSampleCount
 
 	windowSeconds := end.Sub(start).Seconds()
 	if windowSeconds <= 0 {
@@ -633,6 +636,7 @@ func aggregateHourlyRows(rows []opsHourlyMetricsRow) opsDashboardPartial {
 		out.ttft.Avg = &v
 	}
 	out.ttft.Max = ttftMaxMax
+	out.ttft.SampleCount = out.ttftSampleCount
 
 	return out
 }
@@ -655,6 +659,7 @@ func (r *opsRepository) queryRawPartial(ctx context.Context, filter *service.Ops
 			return nil, err
 		}
 	}
+	ttft.SampleCount = ttftSampleCount
 
 	errorTotal, businessLimited, errorCountSLA, upstreamExcl, upstream429, upstream529, err := r.queryErrorCounts(ctx, filter, start, end)
 	if err != nil {

@@ -239,11 +239,11 @@ export default {
     },
     admin: {
       title: 'Admin Account',
-      description: 'Create your administrator account',
-      email: 'Email',
+      description: 'The default login and password are both admin; change the password after login',
+      email: 'Administrator Login',
       password: 'Password',
       confirmPassword: 'Confirm Password',
-      passwordPlaceholder: 'Min 8 characters',
+      passwordPlaceholder: 'Default: admin',
       confirmPasswordPlaceholder: 'Confirm password',
       passwordMismatch: 'Passwords do not match'
     },

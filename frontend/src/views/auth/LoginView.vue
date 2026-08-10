@@ -15,7 +15,7 @@
         <!-- Email Input -->
         <div>
           <label for="email" class="input-label">
-            {{ t('auth.emailLabel') }}
+            {{ t('auth.loginIdentifierLabel') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -24,14 +24,14 @@
             <input
               id="email"
               v-model="formData.email"
-              type="email"
+              type="text"
               required
               autofocus
-              autocomplete="email"
+              autocomplete="username"
               :disabled="authActionDisabled"
               class="input pl-11"
               :class="{ 'input-error': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
+              :placeholder="t('auth.loginIdentifierPlaceholder')"
             />
           </div>
         </div>
@@ -531,19 +531,19 @@ function validateForm(): boolean {
 
   // Email validation
   if (!formData.email.trim()) {
-    errors.email = t('auth.emailRequired')
+    errors.email = t('auth.loginIdentifierRequired')
     isValid = false
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    errors.email = t('auth.invalidEmail')
+  } else if (
+    formData.email.trim() !== 'admin' &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+  ) {
+    errors.email = t('auth.invalidLoginIdentifier')
     isValid = false
   }
 
   // Password validation
   if (!formData.password) {
     errors.password = t('auth.passwordRequired')
-    isValid = false
-  } else if (formData.password.length < 6) {
-    errors.password = t('auth.passwordMinLength')
     isValid = false
   }
 
@@ -576,7 +576,7 @@ async function handleLogin(): Promise<void> {
   try {
     // Call auth store login（阿里云 captchaVerifyParam 复用 turnstile_token 字段）
     const response = await authStore.login({
-      email: formData.email,
+      email: formData.email.trim(),
       password: formData.password,
       turnstile_token:
         turnstileEnabled.value || aliyunCaptchaEnabled.value ? turnstileToken.value : undefined,

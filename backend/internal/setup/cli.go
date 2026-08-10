@@ -159,36 +159,13 @@ func RunCLI() error {
 	}
 	fmt.Println("OK")
 
-	// Admin configuration with validation
+	// The initial administrator uses public defaults and must be changed after login.
 	fmt.Println()
 	fmt.Println("── Admin Account ──")
-
-	for {
-		cfg.Admin.Email = promptString(reader, "Admin Email", "admin@example.com")
-		if cliValidateEmail(cfg.Admin.Email) {
-			break
-		}
-		fmt.Println("  Invalid email format.")
-	}
-
-	for {
-		cfg.Admin.Password = promptPassword("Admin Password")
-		// SECURITY: Match Web API requirement of 8 characters minimum
-		if len(cfg.Admin.Password) < 8 {
-			fmt.Println("  Password must be at least 8 characters")
-			continue
-		}
-		if len(cfg.Admin.Password) > 128 {
-			fmt.Println("  Password must be at most 128 characters")
-			continue
-		}
-		confirm := promptPassword("Confirm Password")
-		if cfg.Admin.Password != confirm {
-			fmt.Println("  Passwords do not match")
-			continue
-		}
-		break
-	}
+	cfg.Admin.Email = defaultAdminLogin
+	cfg.Admin.Password = defaultAdminPassword
+	fmt.Printf("  Login: %s\n", cfg.Admin.Email)
+	fmt.Printf("  Password: %s (change immediately after login)\n", cfg.Admin.Password)
 
 	// Server configuration with validation
 	fmt.Println()

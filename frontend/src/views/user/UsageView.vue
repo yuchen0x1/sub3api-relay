@@ -66,7 +66,10 @@
         </div>
       </div>
 
-      <div class="card p-6">
+      <div
+        class="card p-6"
+        :class="{ 'relative z-50': showAutoRefreshDropdown || showColumnDropdown }"
+      >
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div v-if="activeTab === 'errors'" class="flex flex-1 flex-wrap items-end gap-4">
             <div class="w-full sm:w-auto sm:min-w-[220px]">
@@ -965,6 +968,7 @@ const setAutoRefreshInterval = (seconds: (typeof autoRefreshIntervals)[number]) 
   autoRefreshIntervalSeconds.value = seconds
   autoRefreshCountdown.value = autoRefreshEnabled.value ? seconds : 0
   saveAutoRefresh()
+  showAutoRefreshDropdown.value = false
 }
 
 const { pause: pauseAutoRefresh, resume: resumeAutoRefresh } = useIntervalFn(
@@ -972,7 +976,7 @@ const { pause: pauseAutoRefresh, resume: resumeAutoRefresh } = useIntervalFn(
     if (!autoRefreshEnabled.value || document.hidden || autoRefreshFetching.value) return
     if (loading.value || chartsLoading.value || modelStatsLoading.value || endpointStatsLoading.value || errorLoading.value) return
 
-    if (autoRefreshCountdown.value > 0) {
+    if (autoRefreshCountdown.value > 1) {
       autoRefreshCountdown.value -= 1
       return
     }

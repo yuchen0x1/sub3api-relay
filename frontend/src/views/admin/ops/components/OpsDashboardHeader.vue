@@ -11,6 +11,7 @@ import { opsAPI, type OpsDashboardOverview, type OpsMetricThresholds, type OpsRe
 import type { OpsRequestDetailsPreset } from './OpsRequestDetailsModal.vue'
 import { useAdminSettingsStore } from '@/stores'
 import { formatNumber } from '@/utils/format'
+import { shouldReportHighTTFT } from '../utils/ttftDiagnostics'
 
 type RealtimeWindow = '1min' | '5min' | '30min' | '1h'
 
@@ -422,6 +423,7 @@ const ttftP90Ms = computed(() => overview.value?.ttft?.p90_ms ?? null)
 const ttftP50Ms = computed(() => overview.value?.ttft?.p50_ms ?? null)
 const ttftAvgMs = computed(() => overview.value?.ttft?.avg_ms ?? null)
 const ttftMaxMs = computed(() => overview.value?.ttft?.max_ms ?? null)
+const ttftSampleCount = computed(() => overview.value?.ttft?.sample_count ?? 0)
 
 // --- Health Score & Diagnosis (primary) ---
 
@@ -544,11 +546,13 @@ const diagnosisReport = computed<DiagnosisItem[]>(() => {
     }
   }
 
-  const ttftP99 = ov.ttft?.p99_ms ?? 0
-  if (ttftP99 > 500) {
+  const ttftP99 = ov.ttft?.p99_ms
+  const ttftThreshold = props.thresholds?.ttft_p99_ms_max
+  const ttftSamples = ov.ttft?.sample_count ?? 0
+  if (ttftP99 != null && shouldReportHighTTFT(ttftP99, ttftThreshold, ttftSamples)) {
     report.push({
       type: 'warning',
-      message: t('admin.ops.diagnosis.ttftHigh', { ttft: ttftP99.toFixed(0) }),
+      message: t('admin.ops.diagnosis.ttftHigh', { ttft: ttftP99.toFixed(0), samples: ttftSamples }),
       impact: t('admin.ops.diagnosis.ttftHighImpact'),
       action: t('admin.ops.diagnosis.ttftHighAction')
     })
@@ -1414,7 +1418,7 @@ function handleToolbarRefresh() {
               v-if="!props.fullscreen"
               class="text-[10px] font-bold text-blue-500 hover:underline"
               type="button"
-              @click="openDetails({ title: t('admin.ops.ttftLabel'), sort: 'duration_desc' })"
+              @click="openDetails({ title: t('admin.ops.ttftLabel'), sort: 'first_token_desc' })"
             >
               {{ t('admin.ops.requestDetails.details') }}
             </button>
@@ -1450,6 +1454,10 @@ function handleToolbarRefresh() {
               <span class="text-gray-500">Max:</span>
               <span class="font-bold" :class="getThresholdColorClass(getTTFTThresholdLevel(ttftMaxMs))">{{ ttftMaxMs ?? '-' }}</span>
               <span class="text-gray-400">ms</span>
+            </div>
+            <div class="flex items-baseline gap-1 whitespace-nowrap">
+              <span class="text-gray-500">Samples:</span>
+              <span class="font-bold text-gray-900 dark:text-white">{{ formatNumber(ttftSampleCount) }}</span>
             </div>
           </div>
         </div>
