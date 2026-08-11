@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	_ "github.com/yuchen0x1/sub3api-relay/ent/runtime"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/repository"
-	"github.com/lib/pq"
 )
 
 const classifierVersion = "ingress-reject-v1"
