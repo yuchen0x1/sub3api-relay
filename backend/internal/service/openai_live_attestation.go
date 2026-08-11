@@ -12,7 +12,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 const liveAttestationHeader = "x-oai-attestation"
@@ -26,7 +26,7 @@ func newLiveAttestationCipher(cfg *config.Config) SecretEncryptor {
 		return nil
 	}
 	return &liveAttestationAES{
-		key: sha256.Sum256([]byte("sub2api/live-attestation/v1\x00" + cfg.JWT.Secret)),
+		key: sha256.Sum256([]byte("sub3api/live-attestation/v1\x00" + cfg.JWT.Secret)),
 	}
 }
 

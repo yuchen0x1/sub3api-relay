@@ -5,11 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/handler"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/server/routes"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/handler"
+	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/server/routes"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

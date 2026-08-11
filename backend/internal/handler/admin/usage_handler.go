@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
-	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/handler/dto"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
+	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

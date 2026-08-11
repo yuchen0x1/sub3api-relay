@@ -23,8 +23,8 @@ This directory contains the official Sub3API deployment files for Linux servers 
 | `DOCKER.md` | Container image and Docker documentation |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
-| `sub2api.service` | Systemd service unit file |
-| `sub2api-datamanagementd.service` | datamanagementd systemd service unit file |
+| `sub3api.service` | Systemd service unit file |
+| `sub3api-datamanagementd.service` | datamanagementd systemd service unit file |
 | `DATAMANAGEMENTD_CN.md` | datamanagementd 部署与联动说明（中文） |
 | `config.example.yaml` | Example configuration file |
 | `EDGE_SECURITY.md` | Reverse proxy, CDN/WAF, trusted proxy, and ingress hardening guide |
@@ -78,7 +78,7 @@ chmod +x docker-deploy.sh
 docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 
 # The first startup uses ADMIN_EMAIL and ADMIN_PASSWORD from .env.
 # There is no public default password.
@@ -114,7 +114,7 @@ mkdir -p data postgres_data redis_data
 docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 
 # Access Web UI
 # http://localhost:8080
@@ -172,7 +172,7 @@ SELECT
 
 如需启用管理后台“数据管理”功能，请额外部署宿主机 `datamanagementd`：
 
-- 主进程固定探测 `/tmp/sub2api-datamanagement.sock`
+- 主进程固定探测 `/tmp/sub3api-datamanagement.sock`
 - Docker 场景下需把宿主机 Socket 挂载到容器内同路径
 - 详细步骤见：`deploy/DATAMANAGEMENTD_CN.md`
 
@@ -188,10 +188,10 @@ docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml down
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 
-# Restart Sub2API only
-docker compose -f docker-compose.local.yml restart sub2api
+# Restart Sub3API only
+docker compose -f docker-compose.local.yml restart sub3api
 
 # Update to latest version
 docker compose -f docker-compose.local.yml pull
@@ -212,10 +212,10 @@ docker compose up -d
 docker compose down
 
 # View logs
-docker compose logs -f sub2api
+docker compose logs -f sub3api
 
-# Restart Sub2API only
-docker compose restart sub2api
+# Restart Sub3API only
+docker compose restart sub3api
 
 # Update to latest version
 docker compose pull
@@ -259,13 +259,13 @@ When using `docker-compose.local.yml`, all data is stored in local directories, 
 cd /path/to/deployment
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf sub2api-complete.tar.gz deployment/
+tar czf sub3api-complete.tar.gz deployment/
 
 # Transfer to new server
-scp sub2api-complete.tar.gz user@new-server:/path/to/destination/
+scp sub3api-complete.tar.gz user@new-server:/path/to/destination/
 
 # On new server: Extract and start
-tar xzf sub2api-complete.tar.gz
+tar xzf sub3api-complete.tar.gz
 cd deployment/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -276,7 +276,7 @@ Your entire deployment (configuration + data) is migrated!
 
 ## Gemini OAuth Configuration
 
-Sub2API supports three methods to connect to Gemini:
+Sub3API supports three methods to connect to Gemini:
 
 ### Method 1: Code Assist OAuth (Recommended for GCP Users)
 
@@ -321,7 +321,7 @@ Requires your own OAuth client credentials.
    - Go to "APIs & Services" → "Credentials"
    - Click "Create Credentials" → "OAuth client ID"
    - Application type: **Web application** (or **Desktop app**)
-   - Name: e.g., "Sub2API Gemini"
+   - Name: e.g., "Sub3API Gemini"
    - Authorized redirect URIs: Add `http://localhost:1455/auth/callback`
 6. Copy the **Client ID** and **Client Secret**
 7. **⚠️ Publish to Production (IMPORTANT):**
@@ -384,13 +384,13 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 ### Manual Installation
 
 1. Download the latest release from [GitHub Releases](https://github.com/yuchen0x1/sub3api-relay/releases)
-2. Extract and copy the binary to `/opt/sub2api/`
-3. Copy `sub2api.service` to `/etc/systemd/system/`
+2. Extract and copy the binary to `/opt/sub3api/`
+3. Copy `sub3api.service` to `/etc/systemd/system/`
 4. Run:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable sub2api
-   sudo systemctl start sub2api
+   sudo systemctl enable sub3api
+   sudo systemctl start sub3api
    ```
 5. Open the Setup Wizard in your browser to complete configuration
 
@@ -411,22 +411,22 @@ sudo ./install.sh uninstall
 
 ```bash
 # Start the service
-sudo systemctl start sub2api
+sudo systemctl start sub3api
 
 # Stop the service
-sudo systemctl stop sub2api
+sudo systemctl stop sub3api
 
 # Restart the service
-sudo systemctl restart sub2api
+sudo systemctl restart sub3api
 
 # Check status
-sudo systemctl status sub2api
+sudo systemctl status sub3api
 
 # View logs
-sudo journalctl -u sub2api -f
+sudo journalctl -u sub3api -f
 
 # Enable auto-start on boot
-sudo systemctl enable sub2api
+sudo systemctl enable sub3api
 ```
 
 ### Configuration
@@ -439,7 +439,7 @@ To change after installation:
 
 1. Edit the systemd service:
    ```bash
-   sudo systemctl edit sub2api
+   sudo systemctl edit sub3api
    ```
 
 2. Add or modify:
@@ -452,7 +452,7 @@ To change after installation:
 3. Reload and restart:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl restart sub2api
+   sudo systemctl restart sub3api
    ```
 
 #### Gemini OAuth Configuration
@@ -461,7 +461,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 
 1. Edit the service file:
    ```bash
-   sudo nano /etc/systemd/system/sub2api.service
+   sudo nano /etc/systemd/system/sub3api.service
    ```
 
 2. Add your OAuth credentials in the `[Service]` section (after the existing `Environment=` lines):
@@ -478,7 +478,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 3. Reload and restart:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl restart sub2api
+   sudo systemctl restart sub3api
    ```
 
 > **Note:** Code Assist OAuth does not require any configuration - it uses the built-in Gemini CLI client.
@@ -486,7 +486,7 @@ If you need to use AI Studio OAuth for Gemini accounts, add the OAuth client cre
 
 #### Application Configuration
 
-The main config file is at `/etc/sub2api/config.yaml` (created by Setup Wizard).
+The main config file is at `/etc/sub3api/config.yaml` (created by Setup Wizard).
 
 ### Prerequisites
 
@@ -498,12 +498,12 @@ The main config file is at `/etc/sub2api/config.yaml` (created by Setup Wizard).
 ### Directory Structure
 
 ```
-/opt/sub2api/
-├── sub2api              # Main binary
-├── sub2api.backup       # Backup (after upgrade)
+/opt/sub3api/
+├── sub3api              # Main binary
+├── sub3api.backup       # Backup (after upgrade)
 └── data/                # Runtime data
 
-/etc/sub2api/
+/etc/sub3api/
 └── config.yaml          # Configuration file
 ```
 
@@ -520,7 +520,7 @@ For **local directory version**:
 docker compose -f docker-compose.local.yml ps
 
 # View detailed logs
-docker compose -f docker-compose.local.yml logs --tail=100 sub2api
+docker compose -f docker-compose.local.yml logs --tail=100 sub3api
 
 # Check database connection
 docker compose -f docker-compose.local.yml exec postgres pg_isready
@@ -542,7 +542,7 @@ For **named volumes version**:
 docker compose ps
 
 # View detailed logs
-docker compose logs --tail=100 sub2api
+docker compose logs --tail=100 sub3api
 
 # Check database connection
 docker compose exec postgres pg_isready
@@ -558,13 +558,13 @@ docker compose restart
 
 ```bash
 # Check service status
-sudo systemctl status sub2api
+sudo systemctl status sub3api
 
 # View recent logs
-sudo journalctl -u sub2api -n 50
+sudo journalctl -u sub3api -n 50
 
 # Check config file
-sudo cat /etc/sub2api/config.yaml
+sudo cat /etc/sub3api/config.yaml
 
 # Check PostgreSQL
 sudo systemctl status postgresql
@@ -584,9 +584,9 @@ sudo systemctl status redis
 
 ## TLS Fingerprint Configuration
 
-Sub2API supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
+Sub3API supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
 
-> **💡 Tip:** Visit **[tls.sub2api.org](https://tls.sub2api.org/)** to get TLS fingerprint information for different devices and browsers.
+> **💡 Tip:** Visit **[tls.sub3api.org](https://tls.sub3api.org/)** to get TLS fingerprint information for different devices and browsers.
 
 ### Default Behavior
 

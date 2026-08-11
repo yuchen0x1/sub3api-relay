@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/ent/paymentauditlog"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +47,7 @@ func TestValidateRefundRequestRejectsLegacyGuessedProviderInstance(t *testing.T)
 		SetPayAmount(88).
 		SetFeeRate(0).
 		SetRechargeCode("REFUND-LEGACY-ORDER").
-		SetOutTradeNo("sub2_refund_legacy_order").
+		SetOutTradeNo("sub3_refund_legacy_order").
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-legacy-refund").
 		SetOrderType(payment.OrderTypeBalance).
@@ -98,7 +98,7 @@ func TestPrepareRefundRejectsLegacyGuessedProviderInstance(t *testing.T) {
 		SetPayAmount(188).
 		SetFeeRate(0).
 		SetRechargeCode("REFUND-LEGACY-ADMIN-ORDER").
-		SetOutTradeNo("sub2_refund_legacy_admin_order").
+		SetOutTradeNo("sub3_refund_legacy_admin_order").
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-legacy-admin-refund").
 		SetOrderType(payment.OrderTypeBalance).
@@ -241,7 +241,7 @@ func TestGwRefundRejectsAlipayMerchantIdentitySnapshotMismatch(t *testing.T) {
 		SetPayAmount(88).
 		SetFeeRate(0).
 		SetRechargeCode("REFUND-SNAPSHOT-MISMATCH-ORDER").
-		SetOutTradeNo("sub2_refund_snapshot_mismatch_order").
+		SetOutTradeNo("sub3_refund_snapshot_mismatch_order").
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-refund-snapshot-mismatch").
 		SetOrderType(payment.OrderTypeBalance).
@@ -318,7 +318,7 @@ func TestFinishRefundPendingMarksOrderPendingAndRollsBackDeduction(t *testing.T)
 		SetPayAmount(100).
 		SetFeeRate(0).
 		SetRechargeCode("REFUND-PENDING-ORDER").
-		SetOutTradeNo("sub2_refund_pending_order").
+		SetOutTradeNo("sub3_refund_pending_order").
 		SetPaymentType(payment.TypeStripe).
 		SetPaymentTradeNo("pi_refund_pending").
 		SetOrderType(payment.OrderTypeBalance).
@@ -401,7 +401,7 @@ func TestFinishRefundSuccessStatusesFinalize(t *testing.T) {
 				SetPayAmount(100).
 				SetFeeRate(0).
 				SetRechargeCode("REFUND-SUCCESS-" + status).
-				SetOutTradeNo("sub2_refund_success_" + status).
+				SetOutTradeNo("sub3_refund_success_" + status).
 				SetPaymentType(payment.TypeStripe).
 				SetPaymentTradeNo("pi_refund_success_" + status).
 				SetOrderType(payment.OrderTypeBalance).
@@ -612,7 +612,7 @@ func createPendingRefundOrderForTest(t *testing.T, ctx context.Context, client *
 		SetPayAmount(100).
 		SetFeeRate(0).
 		SetRechargeCode("REFUND-" + suffix).
-		SetOutTradeNo("sub2_" + suffix).
+		SetOutTradeNo("sub3_" + suffix).
 		SetPaymentType(payment.TypeStripe).
 		SetPaymentTradeNo("pi_" + suffix).
 		SetOrderType(payment.OrderTypeBalance).

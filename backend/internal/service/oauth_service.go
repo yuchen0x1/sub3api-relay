@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/oauth"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/oauth"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 )
 
 // OpenAIOAuthClient interface for OpenAI OAuth operations

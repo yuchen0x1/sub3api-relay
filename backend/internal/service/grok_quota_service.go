@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"golang.org/x/sync/singleflight"
 )
 

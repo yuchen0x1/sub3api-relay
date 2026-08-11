@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func TestSanitizeAdminPaymentOrderForResponseAddsCurrency(t *testing.T) {
@@ -18,7 +18,7 @@ func TestSanitizeAdminPaymentOrderForResponseAddsCurrency(t *testing.T) {
 		Amount:      100,
 		PayAmount:   108,
 		FeeRate:     8,
-		OutTradeNo:  "sub2_202606250001",
+		OutTradeNo:  "sub3_202606250001",
 		PaymentType: "stripe",
 		OrderType:   "subscription",
 		Status:      "COMPLETED",
@@ -62,7 +62,7 @@ func TestAdminSubscriptionPlansForResponseIncludesCompositeGroupInfo(t *testing.
 			ValidityDays: 30,
 			ValidityUnit: "days",
 			Features:     "OpenAI\nClaude\nGemini\nGrok",
-			ProductName:  "Sub2API",
+			ProductName:  "Sub3API",
 			ForSale:      true,
 			SortOrder:    1,
 			CreatedAt:    now,

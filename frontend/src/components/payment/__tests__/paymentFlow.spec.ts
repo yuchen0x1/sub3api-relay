@@ -125,7 +125,7 @@ describe('decidePaymentLaunch', () => {
       currency: 'CNY',
       country_code: 'CN',
       payment_env: 'demo',
-      out_trade_no: 'sub2_awx',
+      out_trade_no: 'sub3_awx',
     }), {
       visibleMethod: 'airwallex',
       orderType: 'balance',
@@ -146,7 +146,7 @@ describe('decidePaymentLaunch', () => {
       pay_url: 'https://pay.example.com/session/abc',
       payment_mode: 'popup',
       resume_token: 'resume-2',
-      out_trade_no: 'sub2_abc',
+      out_trade_no: 'sub3_abc',
     }), {
       visibleMethod: 'wxpay',
       orderType: 'balance',
@@ -156,7 +156,7 @@ describe('decidePaymentLaunch', () => {
     expect(decision.kind).toBe('redirect_waiting')
     expect(decision.paymentState.payUrl).toBe('https://pay.example.com/session/abc')
     expect(decision.recovery.paymentMode).toBe('popup')
-    expect(decision.recovery.outTradeNo).toBe('sub2_abc')
+    expect(decision.recovery.outTradeNo).toBe('sub3_abc')
     expect(decision.recovery.resumeToken).toBe('resume-2')
   })
 
@@ -384,7 +384,7 @@ describe('readPaymentRecoverySnapshot', () => {
       expiresAt: '2099-01-01T00:10:00.000Z',
       paymentType: 'alipay',
       payUrl: 'https://pay.example.com/session/33',
-      outTradeNo: 'sub2_33',
+      outTradeNo: 'sub3_33',
       clientSecret: '',
       intentId: '',
       currency: '',
@@ -413,7 +413,7 @@ describe('readPaymentRecoverySnapshot', () => {
       expiresAt: '2024-01-01T00:10:00.000Z',
       paymentType: 'wxpay',
       payUrl: 'https://pay.example.com/session/55',
-      outTradeNo: 'sub2_55',
+      outTradeNo: 'sub3_55',
       clientSecret: '',
       intentId: '',
       currency: '',
@@ -433,7 +433,7 @@ describe('readPaymentRecoverySnapshot', () => {
 
     expect(readPaymentRecoverySnapshot(JSON.stringify({
       ...expiredSnapshot,
-      outTradeNo: 'sub2_55',
+      outTradeNo: 'sub3_55',
       expiresAt: '2099-01-01T00:10:00.000Z',
     }), {
       now: Date.UTC(2099, 0, 1, 0, 1, 0),
@@ -472,7 +472,7 @@ describe('readPaymentRecoverySnapshot', () => {
       expiresAt: '2099-01-01T00:10:00.000Z',
       paymentType: 'airwallex',
       payUrl: '/payment/airwallex?order_id=45',
-      outTradeNo: 'sub2_45',
+      outTradeNo: 'sub3_45',
       clientSecret: 'awx_cs',
       payAmount: 28,
       orderType: 'balance',

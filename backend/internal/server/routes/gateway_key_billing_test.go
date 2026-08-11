@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/handler"
-	servermiddleware "github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/handler"
+	servermiddleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -108,12 +108,12 @@ func TestGatewayRoutesKeyBillingInfoPathIsRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 
 	for _, route := range router.Routes() {
-		if route.Method == http.MethodGet && route.Path == "/v1/sub2api/billing" {
+		if route.Method == http.MethodGet && route.Path == "/v1/sub3api/billing" {
 			return
 		}
 	}
 
-	t.Fatal("GET /v1/sub2api/billing should be registered")
+	t.Fatal("GET /v1/sub3api/billing should be registered")
 }
 
 func TestGatewayRoutesKeyBillingInfoEndToEnd(t *testing.T) {
@@ -121,7 +121,7 @@ func TestGatewayRoutesKeyBillingInfoEndToEnd(t *testing.T) {
 		router, rateRepo, _ := newKeyBillingRouteTestRouter(config.RunModeStandard)
 		w := httptest.NewRecorder()
 
-		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/v1/sub2api/billing", nil))
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/v1/sub3api/billing", nil))
 
 		require.Equal(t, http.StatusUnauthorized, w.Code)
 		require.Contains(t, w.Header().Get("Content-Type"), "application/json")
@@ -131,7 +131,7 @@ func TestGatewayRoutesKeyBillingInfoEndToEnd(t *testing.T) {
 
 	t.Run("standard mode", func(t *testing.T) {
 		router, rateRepo, key := newKeyBillingRouteTestRouter(config.RunModeStandard)
-		req := httptest.NewRequest(http.MethodGet, "/v1/sub2api/billing", nil)
+		req := httptest.NewRequest(http.MethodGet, "/v1/sub3api/billing", nil)
 		req.Header.Set("Authorization", "Bearer "+key)
 		w := httptest.NewRecorder()
 
@@ -143,14 +143,14 @@ func TestGatewayRoutesKeyBillingInfoEndToEnd(t *testing.T) {
 		require.NotContains(t, strings.ToLower(w.Body.String()), "<!doctype html>")
 		var body map[string]any
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		require.Equal(t, "sub2api.key_billing", body["object"])
+		require.Equal(t, "sub3api.key_billing", body["object"])
 		require.Equal(t, 0.75, body["effective_rate_multiplier"])
 		require.Equal(t, 1, rateRepo.lookupCalls)
 	})
 
 	t.Run("simple mode", func(t *testing.T) {
 		router, rateRepo, key := newKeyBillingRouteTestRouter(config.RunModeSimple)
-		req := httptest.NewRequest(http.MethodGet, "/v1/sub2api/billing", nil)
+		req := httptest.NewRequest(http.MethodGet, "/v1/sub3api/billing", nil)
 		req.Header.Set("x-api-key", key)
 		w := httptest.NewRecorder()
 

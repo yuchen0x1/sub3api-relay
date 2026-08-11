@@ -67,8 +67,8 @@ Community projects that extend or integrate with Sub3API:
 
 | Project | Description | Features |
 |---------|-------------|----------|
-| ~~[Sub2ApiPay](https://github.com/touwaeriol/sub2apipay)~~ | ~~Self-service payment system~~ | **Now Built-in** — Payment is now integrated into Sub3API, no separate deployment needed. See [Payment Configuration Guide](docs/PAYMENT.md) |
-| [sub2api-mobile](https://github.com/ckken/sub2api-mobile) | Mobile admin console | Cross-platform app (iOS/Android/Web) for user management, account management, monitoring dashboard, and multi-backend switching; built with Expo + React Native |
+| ~~[Sub3ApiPay](https://github.com/touwaeriol/sub3apipay)~~ | ~~Self-service payment system~~ | **Now Built-in** — Payment is now integrated into Sub3API, no separate deployment needed. See [Payment Configuration Guide](docs/PAYMENT.md) |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | Mobile admin console | Cross-platform app (iOS/Android/Web) for user management, account management, monitoring dashboard, and multi-backend switching; built with Expo + React Native |
 
 ## Tech Stack
 
@@ -114,7 +114,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 The script will:
 1. Detect your system architecture
 2. Download the latest release
-3. Install binary to `/opt/sub2api`
+3. Install binary to `/opt/sub3api`
 4. Create systemd service
 5. Configure system user and permissions
 
@@ -122,10 +122,10 @@ The script will:
 
 ```bash
 # 1. Start the service
-sudo systemctl start sub2api
+sudo systemctl start sub3api
 
 # 2. Enable auto-start on boot
-sudo systemctl enable sub2api
+sudo systemctl enable sub3api
 
 # 3. Open Setup Wizard in browser
 # http://YOUR_SERVER_IP:8080
@@ -149,13 +149,13 @@ The web interface will:
 
 ```bash
 # Check status
-sudo systemctl status sub2api
+sudo systemctl status sub3api
 
 # View logs
-sudo journalctl -u sub2api -f
+sudo journalctl -u sub3api -f
 
 # Restart service
-sudo systemctl restart sub2api
+sudo systemctl restart sub3api
 
 # Uninstall
 curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
@@ -187,7 +187,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 docker compose up -d
 
 # View logs
-docker compose logs -f sub2api
+docker compose logs -f sub3api
 ```
 
 **What the script does:**
@@ -262,7 +262,7 @@ docker compose up -d
 docker compose -f docker-compose.local.yml ps
 
 # 7. View logs
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 ```
 
 #### Deployment Versions
@@ -296,13 +296,13 @@ When using `docker-compose.local.yml`, migrate to a new server easily:
 # On source server
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf sub2api-complete.tar.gz sub2api-deploy/
+tar czf sub3api-complete.tar.gz sub3api-deploy/
 
 # Transfer to new server
-scp sub2api-complete.tar.gz user@new-server:/path/
+scp sub3api-complete.tar.gz user@new-server:/path/
 
 # On new server
-tar xzf sub2api-complete.tar.gz
+tar xzf sub3api-complete.tar.gz
 cd sub3api-relay-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -386,7 +386,7 @@ database:
   port: 5432
   user: "postgres"
   password: "your_password"
-  dbname: "sub2api"
+  dbname: "sub3api"
 
 redis:
   host: "localhost"
@@ -521,20 +521,20 @@ Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipp
 
 **Two ways to create the admin account:**
 
-1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub2api` directly; the setup wizard at `http://localhost:8080` walks you through database and Redis setup, creates the initial `admin` / `admin` account unless changed, then writes `config.yaml` for you.
+1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub3api` directly; the setup wizard at `http://localhost:8080` walks you through database and Redis setup, creates the initial `admin` / `admin` account unless changed, then writes `config.yaml` for you.
 
 2. **If you already created `config.yaml`:** Temporarily move it aside so the wizard can trigger on first run, then restore it afterwards:
    ```bash
    mv config.yaml config.yaml.bak
-   ./sub2api        # wizard runs at http://localhost:8080 and writes a fresh config.yaml
+   ./sub3api        # wizard runs at http://localhost:8080 and writes a fresh config.yaml
    # stop the server (Ctrl+C) once the wizard completes, then restore your config:
    mv config.yaml.bak config.yaml
-   ./sub2api        # restart in normal mode and log in with the admin you just created
+   ./sub3api        # restart in normal mode and log in with the admin you just created
    ```
 
 ```bash
 # 6. Run the application
-./sub2api
+./sub3api
 ```
 
 #### Development Mode
@@ -633,9 +633,9 @@ web_search = "grok"
 
 [model."grok"]
 model = "grok-4.5"
-base_url = "https://your-sub2api.example.com/v1"
+base_url = "https://your-sub3api.example.com/v1"
 name = "Grok 4.5"
-api_key = "sk-your-sub2api-key"
+api_key = "sk-your-sub3api-key"
 api_backend = "responses"
 context_window = 1000000
 supports_backend_search = true
@@ -645,7 +645,7 @@ Back up an existing `config.toml` before merging the entry. The file contains a 
 
 ```bash
 grok inspect
-grok -p "Reply with sub2api-ok" -m grok
+grok -p "Reply with sub3api-ok" -m grok
 ```
 
 The `base_url` above is the public Sub3API URL ending in `/v1`, not `api.x.ai` or the internal xAI OAuth proxy URL.
@@ -691,7 +691,7 @@ Antigravity accounts support optional **hybrid scheduling**. When enabled, the g
 ## Project Structure
 
 ```
-sub2api/
+sub3api/
 ├── backend/                  # Go backend service
 │   ├── cmd/server/           # Application entry
 │   ├── internal/             # Internal modules

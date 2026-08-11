@@ -177,8 +177,8 @@ export default {
         note: 'Save the file as ~/.grok/config.toml, then run grok inspect and select grok from /model.',
         noteWindows: 'Save the file as %USERPROFILE%\\.grok\\config.toml, then run grok inspect and select grok from /model.',
         claudeNote: 'Choose one method: run the terminal commands for the current session, or save settings.json for user-level persistent configuration.',
-        codexNote: 'Save config.toml under ~/.codex and set SUB2API_API_KEY before starting Codex.',
-        codexNoteWindows: 'Save config.toml under %USERPROFILE%\\.codex and set SUB2API_API_KEY in PowerShell before starting Codex.',
+        codexNote: 'Save config.toml under ~/.codex and set SUB3API_API_KEY before starting Codex.',
+        codexNoteWindows: 'Save config.toml under %USERPROFILE%\\.codex and set SUB3API_API_KEY in PowerShell before starting Codex.',
       },
       opencode: {
         title: 'OpenCode Example',

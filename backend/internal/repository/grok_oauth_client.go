@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	sharedhttp "github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
-	"github.com/Wei-Shaw/sub2api/internal/service"
-	"github.com/Wei-Shaw/sub2api/internal/util/logredact"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	sharedhttp "github.com/yuchen0x1/sub3api-relay/internal/pkg/httpclient"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"github.com/imroc/req/v3"
 )
 
@@ -45,7 +45,7 @@ func (c *grokOAuthClient) ExchangeCode(ctx context.Context, code, codeVerifier, 
 	var tokenResp xai.TokenResponse
 	resp, err := client.R().
 		SetContext(ctx).
-		SetHeader("User-Agent", "sub2api-grok-oauth/1.0").
+		SetHeader("User-Agent", "sub3api-grok-oauth/1.0").
 		SetFormDataFromValues(formData).
 		SetSuccessResult(&tokenResp).
 		Post(c.tokenURL)
@@ -77,7 +77,7 @@ func (c *grokOAuthClient) RefreshToken(ctx context.Context, refreshToken, proxyU
 	var tokenResp xai.TokenResponse
 	resp, err := client.R().
 		SetContext(ctx).
-		SetHeader("User-Agent", "sub2api-grok-oauth/1.0").
+		SetHeader("User-Agent", "sub3api-grok-oauth/1.0").
 		SetFormDataFromValues(formData).
 		SetSuccessResult(&tokenResp).
 		Post(c.tokenURL)

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/payment"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/smartwalle/alipay/v3"
 )
 
@@ -155,8 +155,8 @@ func TestCreateTradeUsesPagePayForDesktop(t *testing.T) {
 	}
 	alipayTradePagePay = func(client *alipay.Client, param alipay.TradePagePay) (*url.URL, error) {
 		pagePayCalls++
-		if param.OutTradeNo != "sub2_100" {
-			t.Fatalf("out_trade_no = %q, want %q", param.OutTradeNo, "sub2_100")
+		if param.OutTradeNo != "sub3_100" {
+			t.Fatalf("out_trade_no = %q, want %q", param.OutTradeNo, "sub3_100")
 		}
 		if param.NotifyURL != "https://merchant.example.com/api/v1/payment/webhook/alipay" {
 			t.Fatalf("notify_url = %q", param.NotifyURL)
@@ -170,7 +170,7 @@ func TestCreateTradeUsesPagePayForDesktop(t *testing.T) {
 
 	provider := &Alipay{}
 	resp, err := provider.createDesktopTrade(context.Background(), &alipay.Client{}, payment.CreatePaymentRequest{
-		OrderID: "sub2_100",
+		OrderID: "sub3_100",
 		Amount:  "88.00",
 		Subject: "Balance recharge",
 	}, "https://merchant.example.com/api/v1/payment/webhook/alipay", "https://merchant.example.com/payment/result")
@@ -228,7 +228,7 @@ func TestCreateTradeRedirectModeSkipsPrecreate(t *testing.T) {
 		config: map[string]string{"paymentMode": "redirect"},
 	}
 	resp, err := provider.createDesktopTrade(context.Background(), &alipay.Client{}, payment.CreatePaymentRequest{
-		OrderID: "sub2_103",
+		OrderID: "sub3_103",
 		Amount:  "12.00",
 		Subject: "Balance recharge",
 	}, "https://merchant.example.com/api/v1/payment/webhook/alipay", "https://merchant.example.com/payment/result")
@@ -266,7 +266,7 @@ func TestCreateTradeUsesWapPayForMobile(t *testing.T) {
 
 	provider := &Alipay{}
 	resp, err := provider.createWapTrade(&alipay.Client{}, payment.CreatePaymentRequest{
-		OrderID:  "sub2_101",
+		OrderID:  "sub3_101",
 		Amount:   "18.00",
 		Subject:  "Balance recharge",
 		IsMobile: true,
@@ -294,7 +294,7 @@ func TestCreatePaymentUsesPrecreateForMobileWhenEnabled(t *testing.T) {
 	wapPayCalls := 0
 	alipayTradePreCreate = func(_ context.Context, _ *alipay.Client, param alipay.TradePreCreate) (*alipay.TradePreCreateRsp, error) {
 		precreateCalls++
-		if param.OutTradeNo != "sub2_mobile_precreate" {
+		if param.OutTradeNo != "sub3_mobile_precreate" {
 			t.Fatalf("out_trade_no = %q", param.OutTradeNo)
 		}
 		if param.ProductCode != alipayProductCodePreCreate {
@@ -312,7 +312,7 @@ func TestCreatePaymentUsesPrecreateForMobileWhenEnabled(t *testing.T) {
 
 	provider := &Alipay{client: &alipay.Client{}, config: map[string]string{}}
 	resp, err := provider.CreatePayment(context.Background(), payment.CreatePaymentRequest{
-		OrderID:               "sub2_mobile_precreate",
+		OrderID:               "sub3_mobile_precreate",
 		Amount:                "28.00",
 		Subject:               "Balance recharge",
 		IsMobile:              true,
@@ -350,7 +350,7 @@ func TestCreatePaymentKeepsWapPayForMobileWhenPrecreateDisabled(t *testing.T) {
 
 	provider := &Alipay{client: &alipay.Client{}, config: map[string]string{}}
 	resp, err := provider.CreatePayment(context.Background(), payment.CreatePaymentRequest{
-		OrderID:  "sub2_mobile_wap",
+		OrderID:  "sub3_mobile_wap",
 		Amount:   "18.00",
 		Subject:  "Balance recharge",
 		IsMobile: true,
@@ -393,7 +393,7 @@ func TestCreateTradeUsesPrecreateForDesktopWhenAvailable(t *testing.T) {
 
 	provider := &Alipay{}
 	resp, err := provider.createDesktopTrade(context.Background(), &alipay.Client{}, payment.CreatePaymentRequest{
-		OrderID: "sub2_102",
+		OrderID: "sub3_102",
 		Amount:  "66.00",
 		Subject: "Balance recharge",
 	}, "https://merchant.example.com/api/v1/payment/webhook/alipay", "https://merchant.example.com/payment/result")

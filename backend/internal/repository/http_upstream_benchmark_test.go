@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 // httpClientSink 用于防止编译器优化掉基准测试中的赋值操作

@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Check deployment scripts
+        env:
+          ADMIN_PASSWORD: ReleaseTest-Only-2026!
         run: |
           /bin/bash -n deploy/apple-container.sh
           /bin/bash deploy/tests/apple-container-test.sh

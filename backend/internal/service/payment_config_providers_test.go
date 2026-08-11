@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -748,7 +748,7 @@ func createPendingProviderConfigOrder(t *testing.T, ctx context.Context, client 
 		SetPayAmount(88).
 		SetFeeRate(0).
 		SetRechargeCode("PENDING-PROVIDER-CONFIG-" + instanceID).
-		SetOutTradeNo("sub2_pending_provider_config_" + instanceID).
+		SetOutTradeNo("sub3_pending_provider_config_" + instanceID).
 		SetPaymentType(providerPendingOrderPaymentType(instance.ProviderKey)).
 		SetPaymentTradeNo("").
 		SetOrderType(payment.OrderTypeBalance).

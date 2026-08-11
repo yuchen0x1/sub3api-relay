@@ -9,7 +9,7 @@
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="yuchen0x1%2Fsub3api-relay | Trendshift" width="250" height="55"/></a>
 
 **个人使用的纯后端 AI API 网关**
 
@@ -69,8 +69,8 @@ Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和�
 
 | 项目 | 说明 | 功能 |
 |------|------|------|
-| ~~[Sub2ApiPay](https://github.com/touwaeriol/sub2apipay)~~ | ~~自助支付系统~~ | **已内置** — 支付功能已集成到 Sub3API 中，无需独立部署。详见 [支付配置指南](docs/PAYMENT_CN.md) |
-| [sub2api-mobile](https://github.com/ckken/sub2api-mobile) | 移动端管理控制台 | 跨平台应用（iOS/Android/Web），支持用户管理、账号管理、监控看板、多后端切换；基于 Expo + React Native 构建 |
+| ~~[Sub3ApiPay](https://github.com/touwaeriol/sub3apipay)~~ | ~~自助支付系统~~ | **已内置** — 支付功能已集成到 Sub3API 中，无需独立部署。详见 [支付配置指南](docs/PAYMENT_CN.md) |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | 移动端管理控制台 | 跨平台应用（iOS/Android/Web），支持用户管理、账号管理、监控看板、多后端切换；基于 Expo + React Native 构建 |
 
 ## 技术栈
 
@@ -116,7 +116,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 脚本会自动：
 1. 检测系统架构
 2. 下载最新版本
-3. 安装二进制文件到 `/opt/sub2api`
+3. 安装二进制文件到 `/opt/sub3api`
 4. 创建 systemd 服务
 5. 配置系统用户和权限
 
@@ -124,10 +124,10 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 
 ```bash
 # 1. 启动服务
-sudo systemctl start sub2api
+sudo systemctl start sub3api
 
 # 2. 设置开机自启
-sudo systemctl enable sub2api
+sudo systemctl enable sub3api
 
 # 3. 在浏览器中打开设置向导
 # http://你的服务器IP:8080
@@ -151,13 +151,13 @@ sudo systemctl enable sub2api
 
 ```bash
 # 查看状态
-sudo systemctl status sub2api
+sudo systemctl status sub3api
 
 # 查看日志
-sudo journalctl -u sub2api -f
+sudo journalctl -u sub3api -f
 
 # 重启服务
-sudo systemctl restart sub2api
+sudo systemctl restart sub3api
 
 # 卸载
 curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
@@ -189,7 +189,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 docker compose up -d
 
 # 查看日志
-docker compose logs -f sub2api
+docker compose logs -f sub3api
 ```
 
 **脚本功能：**
@@ -264,7 +264,7 @@ docker compose up -d
 docker compose -f docker-compose.local.yml ps
 
 # 7. 查看日志
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 ```
 
 #### 部署版本对比
@@ -282,7 +282,7 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 关键点：
 
-- 主进程固定探测：`/tmp/sub2api-datamanagement.sock`
+- 主进程固定探测：`/tmp/sub3api-datamanagement.sock`
 - 只有该 Socket 可连通时，数据管理功能才会开启
 - Docker 场景需将宿主机 Socket 挂载到容器同路径
 
@@ -310,13 +310,13 @@ docker compose -f docker-compose.local.yml up -d
 # 源服务器
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf sub2api-complete.tar.gz sub2api-deploy/
+tar czf sub3api-complete.tar.gz sub3api-deploy/
 
 # 传输到新服务器
-scp sub2api-complete.tar.gz user@new-server:/path/
+scp sub3api-complete.tar.gz user@new-server:/path/
 
 # 新服务器
-tar xzf sub2api-complete.tar.gz
+tar xzf sub3api-complete.tar.gz
 cd sub3api-relay-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -400,7 +400,7 @@ database:
   port: 5432
   user: "postgres"
   password: "your_password"
-  dbname: "sub2api"
+  dbname: "sub3api"
 
 redis:
   host: "localhost"
@@ -523,20 +523,20 @@ Invalid base URL: invalid url scheme: http
 
 **创建管理员的两种方式：**
 
-1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub2api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并创建默认 `admin` / `admin` 管理员账号，然后自动写出 `config.yaml`。
+1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub3api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并创建默认 `admin` / `admin` 管理员账号，然后自动写出 `config.yaml`。
 
 2. **如果你已经创建了 `config.yaml`：** 首次启动前先把它临时移走以触发向导，完成后再恢复：
    ```bash
    mv config.yaml config.yaml.bak
-   ./sub2api        # 向导在 http://localhost:8080 启动，并生成新的 config.yaml
+   ./sub3api        # 向导在 http://localhost:8080 启动，并生成新的 config.yaml
    # 向导完成后 Ctrl+C 停服，再恢复你的配置：
    mv config.yaml.bak config.yaml
-   ./sub2api        # 重启进入正常模式，用刚创建的管理员登录
+   ./sub3api        # 重启进入正常模式，用刚创建的管理员登录
    ```
 
 ```bash
 # 6. 运行应用
-./sub2api
+./sub3api
 ```
 
 #### HTTP/2 (h2c) 与 HTTP/1.1 回退
@@ -559,7 +559,7 @@ curl --http2-prior-knowledge -I http://localhost:8080/health
 # HTTP/1.1 回退
 curl --http1.1 -I http://localhost:8080/health
 # WebSocket 回退验证（需管理员 token）
-websocat -H="Sec-WebSocket-Protocol: sub2api-admin, jwt.<ADMIN_TOKEN>" ws://localhost:8080/api/v1/admin/ops/ws/qps
+websocat -H="Sec-WebSocket-Protocol: sub3api-admin, jwt.<ADMIN_TOKEN>" ws://localhost:8080/api/v1/admin/ops/ws/qps
 ```
 
 #### 开发模式
@@ -622,7 +622,7 @@ Antigravity 账户支持可选的**混合调度**功能。开启后，通用端�
 ## 项目结构
 
 ```
-sub2api/
+sub3api/
 ├── backend/                  # Go 后端服务
 │   ├── cmd/server/           # 应用入口
 │   ├── internal/             # 内部模块

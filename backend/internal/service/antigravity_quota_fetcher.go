@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 )
 
 const (

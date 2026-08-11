@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/predicate"
-	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
+	"github.com/yuchen0x1/sub3api-relay/ent/predicate"
+	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 )
 
 // SubscriptionPlanUpdate is the builder for updating SubscriptionPlan entities.

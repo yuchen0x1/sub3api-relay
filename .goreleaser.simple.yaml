@@ -1,17 +1,17 @@
 # 简化版 GoReleaser 配置 - 仅发布 x86_64 GHCR 镜像
 version: 2
 
-project_name: sub2api
+project_name: sub3api
 
 before:
   hooks:
     - go mod tidy -C backend
 
 builds:
-  - id: sub2api
+  - id: sub3api
     dir: backend
     main: ./cmd/server
-    binary: sub2api
+    binary: sub3api
     env:
       - CGO_ENABLED=0
     goos:

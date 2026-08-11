@@ -2,9 +2,9 @@
 package routes
 
 import (
-	"github.com/Wei-Shaw/sub2api/internal/handler"
-	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/handler"
+	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -133,6 +133,7 @@ func registerAuditLogRoutes(admin *gin.RouterGroup, h *handler.Handlers, _ middl
 	}
 }
 
+//nolint:unused // Retained for compatibility with deployments that still expose compliance routes.
 func registerAdminComplianceRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	compliance := admin.Group("/compliance")
 	{
@@ -482,6 +483,7 @@ func registerProxyRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAuth
 	}
 }
 
+//nolint:unused // Retained for compatibility with deployments that still expose redeem-code routes.
 func registerRedeemCodeRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	codes := admin.Group("/redeem-codes")
 	{
@@ -498,6 +500,7 @@ func registerRedeemCodeRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	}
 }
 
+//nolint:unused // Retained for compatibility with deployments that still expose promo-code routes.
 func registerPromoCodeRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	promoCodes := admin.Group("/promo-codes")
 	{
@@ -620,6 +623,7 @@ func registerSystemRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	}
 }
 
+//nolint:unused // Retained for compatibility with deployments that still expose subscription routes.
 func registerSubscriptionRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	subscriptions := admin.Group("/subscriptions")
 	{
@@ -740,6 +744,8 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 }
 
 // registerAffiliateRoutes 注册邀请返利的管理端路由（专属用户配置）
+//
+//nolint:unused // Retained for compatibility with deployments that still expose affiliate routes.
 func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	affiliates := admin.Group("/affiliates")
 	{

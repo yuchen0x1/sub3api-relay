@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
 )
 

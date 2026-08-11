@@ -551,9 +551,9 @@ const formData = reactive<InstallRequest>({
   database: {
     host: isLocalDevelopment ? '127.0.0.1' : 'localhost',
     port: isLocalDevelopment ? 15432 : 5432,
-    user: isLocalDevelopment ? 'sub2api' : 'postgres',
+    user: isLocalDevelopment ? 'sub3api' : 'postgres',
     password: '',
-    dbname: isLocalDevelopment ? 'sub2api' : 'sub3api',
+    dbname: isLocalDevelopment ? 'sub3api' : 'sub3api',
     sslmode: 'disable'
   },
   redis: {

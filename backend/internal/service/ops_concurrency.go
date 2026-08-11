@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 const (

@@ -76,7 +76,7 @@ const maxChannelMonitorNameRunes = 100
 // extra_headers JSON column to avoid a schema migration. The colon makes it an
 // invalid HTTP header name, and repository adapters remove it before exposing
 // ExtraHeaders to the service layer.
-const ChannelMonitorDuplicateOperationIDMetadataKey = "sub2api:duplicate_operation_id"
+const ChannelMonitorDuplicateOperationIDMetadataKey = "sub3api:duplicate_operation_id"
 
 // NewChannelMonitorService 创建渠道监控服务实例。
 func NewChannelMonitorService(repo ChannelMonitorRepository, encryptor SecretEncryptor) *ChannelMonitorService {

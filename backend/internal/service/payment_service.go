@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
-	"github.com/Wei-Shaw/sub2api/internal/payment/provider"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/ent/paymentproviderinstance"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment/provider"
 )
 
 // --- Order Status Constants ---
@@ -46,7 +46,7 @@ const (
 	topUsersLimit      = 10
 	amountToleranceCNY = 0.01
 
-	orderIDPrefix = "sub2_"
+	orderIDPrefix = "sub3_"
 )
 
 const paymentResumeSigningKeyEnv = "PAYMENT_RESUME_SIGNING_KEY"
@@ -54,7 +54,7 @@ const paymentResumeSigningKeyEnv = "PAYMENT_RESUME_SIGNING_KEY"
 // --- Types ---
 
 // generateOutTradeNo creates a unique external order ID for payment providers.
-// Format: sub2_20250409aB3kX9mQ (prefix + date + 8-char random)
+// Format: sub3_20250409aB3kX9mQ (prefix + date + 8-char random)
 func generateOutTradeNo() string {
 	date := time.Now().Format("20060102")
 	rnd := generateRandomString(8)

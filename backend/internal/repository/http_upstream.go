@@ -25,14 +25,14 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"golang.org/x/net/http2"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyurl"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyutil"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/servertiming"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
-	"github.com/Wei-Shaw/sub2api/internal/service"
-	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyurl"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 	"golang.org/x/mod/semver"
 )
 
@@ -86,7 +86,7 @@ const (
 
 	// The Grok CLI proxy rejects requests that do not identify a supported
 	// client version. Keep a known-good stable version in the binary while
-	// allowing operators to bump it without waiting for a Sub2API release.
+	// allowing operators to bump it without waiting for a Sub3API release.
 	grokCLIProxyHost       = "cli-chat-proxy.grok.com"
 	grokOfficialAPIHost    = "api.x.ai"
 	grokCLIStableVersion   = xai.CLIClientVersion

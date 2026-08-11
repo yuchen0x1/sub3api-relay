@@ -1,0 +1,7 @@
+interface:
+  display_name: "Sub3API Admin"
+  short_description: "Manage Sub3API admin accounts and settings"
+  default_prompt: "Use $sub3api-admin to inspect and manage Sub3API backend accounts safely."
+
+policy:
+  allow_implicit_invocation: true

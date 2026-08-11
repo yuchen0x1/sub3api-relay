@@ -163,7 +163,7 @@ function duplicateOperationScope(id: number): DuplicateOperationScope | null {
 
   return {
     adminID,
-    key: `sub2api:admin:group-duplicate:${adminID}:${id}`
+    key: `sub3api:admin:group-duplicate:${adminID}:${id}`
   }
 }
 

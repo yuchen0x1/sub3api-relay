@@ -11,9 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
-	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
-	"github.com/Wei-Shaw/sub2api/ent/user"
+	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
+	"github.com/yuchen0x1/sub3api-relay/ent/pendingauthsession"
+	"github.com/yuchen0x1/sub3api-relay/ent/user"
 )
 
 // PendingAuthSessionCreate is the builder for creating a PendingAuthSession entity.

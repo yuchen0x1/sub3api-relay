@@ -3,7 +3,7 @@ package securityaudit
 import (
 	"context"
 
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 type LegacyModerationAdapter struct {

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
 )
 

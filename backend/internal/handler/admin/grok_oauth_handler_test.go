@@ -15,9 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 type grokQuotaHandlerAccountRepo struct {

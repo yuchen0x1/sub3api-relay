@@ -51,7 +51,7 @@ const paidOrder = {
   currency: 'CNY',
   fee_rate: 8,
   payment_type: 'alipay',
-  out_trade_no: 'sub2_202606250001',
+  out_trade_no: 'sub3_202606250001',
   status: 'COMPLETED',
   order_type: 'subscription',
   created_at: '2026-06-25T10:00:00Z',

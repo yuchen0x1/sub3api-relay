@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/handler/dto"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -177,7 +177,7 @@ func (h *RedeemHandler) CreateAndRedeem(c *gin.Context) {
 		return
 	}
 	req.Code = strings.TrimSpace(req.Code)
-	// 向后兼容：旧版调用方（如 Sub2ApiPay）不传 type 字段，默认当作 balance 充值处理。
+	// 向后兼容：旧版调用方（如 Sub3ApiPay）不传 type 字段，默认当作 balance 充值处理。
 	// 请勿删除此默认值逻辑，否则会导致旧版调用方 400 报错。
 	if req.Type == "" {
 		req.Type = "balance"
@@ -442,7 +442,10 @@ func (h *RedeemHandler) redeemStatsFromAdmin(ctx context.Context) (map[string]an
 	}
 	stats["total_value_distributed"] = distributed
 
-	byType := stats["by_type"].(map[string]int64)
+	byType, ok := stats["by_type"].(map[string]int64)
+	if !ok {
+		return nil, fmt.Errorf("invalid redeem statistics by_type value")
+	}
 	for _, codeType := range []string{
 		service.RedeemTypeBalance,
 		service.RedeemTypeConcurrency,

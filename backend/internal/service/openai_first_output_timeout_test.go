@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -266,7 +266,7 @@ func TestOpenAIFirstOutputStageUnlinkFailurePermanentlyFallsBackToMemoryAndRetri
 	createCalls := 0
 	stage.createTemp = func() (*os.File, error) {
 		createCalls++
-		return os.CreateTemp("", "sub2api-openai-first-output-fallback-*")
+		return os.CreateTemp("", "sub3api-openai-first-output-fallback-*")
 	}
 	removeCalls := 0
 	stage.removeFile = func(path string) error {

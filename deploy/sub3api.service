@@ -1,27 +1,27 @@
 [Unit]
-Description=Sub2API - AI API Gateway Platform
+Description=Sub3API - AI API Gateway Platform
 Documentation=https://github.com/yuchen0x1/sub3api-relay
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
 
 [Service]
 Type=simple
-User=sub2api
-Group=sub2api
-WorkingDirectory=/opt/sub2api
-ExecStart=/opt/sub2api/sub2api
+User=sub3api
+Group=sub3api
+WorkingDirectory=/opt/sub3api
+ExecStart=/opt/sub3api/sub3api
 Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=sub2api
+SyslogIdentifier=sub3api
 
 # Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/sub2api
+ReadWritePaths=/opt/sub3api
 
 # Environment - Server configuration
 # Modify these values to change listen address and port

@@ -12,10 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/predicate"
-	"github.com/Wei-Shaw/sub2api/ent/user"
-	"github.com/Wei-Shaw/sub2api/ent/userattributedefinition"
-	"github.com/Wei-Shaw/sub2api/ent/userattributevalue"
+	"github.com/yuchen0x1/sub3api-relay/ent/predicate"
+	"github.com/yuchen0x1/sub3api-relay/ent/user"
+	"github.com/yuchen0x1/sub3api-relay/ent/userattributedefinition"
+	"github.com/yuchen0x1/sub3api-relay/ent/userattributevalue"
 )
 
 // UserAttributeValueQuery is the builder for querying UserAttributeValue entities.

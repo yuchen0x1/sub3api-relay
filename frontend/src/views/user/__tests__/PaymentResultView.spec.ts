@@ -55,7 +55,7 @@ const orderFactory = (status: string) => ({
   pay_amount: 88,
   fee_rate: 0,
   payment_type: 'alipay',
-  out_trade_no: 'sub2_20260420abcd1234',
+  out_trade_no: 'sub3_20260420abcd1234',
   status,
   order_type: 'balance',
   created_at: '2026-04-20T12:00:00Z',
@@ -70,7 +70,7 @@ const recoverySnapshotFactory = (resumeToken: string) => ({
   expiresAt: '2099-01-01T00:10:00.000Z',
   paymentType: 'alipay',
   payUrl: 'https://pay.example.com/session/42',
-  outTradeNo: 'sub2_20260420abcd1234',
+  outTradeNo: 'sub3_20260420abcd1234',
   clientSecret: '',
   intentId: '',
   currency: '',
@@ -111,7 +111,7 @@ describe('PaymentResultView', () => {
       expiresAt: '2099-01-01T00:10:00.000Z',
       paymentType: 'alipay',
       payUrl: 'https://pay.example.com/session/42',
-      outTradeNo: 'sub2_20260420abcd1234',
+      outTradeNo: 'sub3_20260420abcd1234',
       clientSecret: '',
       intentId: '',
       currency: '',
@@ -157,7 +157,7 @@ describe('PaymentResultView', () => {
       expiresAt: '2099-01-01T00:10:00.000Z',
       paymentType: 'alipay',
       payUrl: 'https://pay.example.com/session/42',
-      outTradeNo: 'sub2_20260420abcd1234',
+      outTradeNo: 'sub3_20260420abcd1234',
       clientSecret: '',
       intentId: '',
       currency: '',
@@ -324,7 +324,7 @@ describe('PaymentResultView', () => {
     expect(verifyOrderPublic).not.toHaveBeenCalled()
     expect(pollOrderStatus).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('payment.result.failed')
-    expect(wrapper.text()).not.toContain('sub2_20260420abcd1234')
+    expect(wrapper.text()).not.toContain('sub3_20260420abcd1234')
   })
 
   it('uses public out_trade_no verification when no signed resume context is available', async () => {

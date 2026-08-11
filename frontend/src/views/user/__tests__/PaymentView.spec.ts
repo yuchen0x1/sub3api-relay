@@ -168,7 +168,7 @@ function jsapiOrderFixture(resumeToken: string) {
     fee_rate: 0,
     expires_at: '2099-01-01T00:10:00.000Z',
     payment_type: 'wxpay',
-    out_trade_no: 'sub2_jsapi_123',
+    out_trade_no: 'sub3_jsapi_123',
     result_type: 'jsapi_ready' as const,
     resume_token: resumeToken,
     jsapi: {
@@ -424,7 +424,7 @@ describe('PaymentView payment recovery', () => {
       expiresAt: '2099-01-01T00:10:00.000Z',
       paymentType: 'ldc',
       payUrl: 'https://pay.example.com/ldc',
-      outTradeNo: 'sub2_ldc_888',
+      outTradeNo: 'sub3_ldc_888',
       clientSecret: '',
       intentId: '',
       currency: '',
@@ -510,7 +510,7 @@ describe('PaymentView WeChat JSAPI flow', () => {
       path: '/payment/result',
       query: {
         order_id: '123',
-        out_trade_no: 'sub2_jsapi_123',
+        out_trade_no: 'sub3_jsapi_123',
         resume_token: 'resume-token-123',
       },
     })
@@ -671,7 +671,7 @@ describe('PaymentView WeChat JSAPI flow', () => {
         expires_at: '2099-01-01T00:10:00.000Z',
         payment_type: 'wxpay',
         qr_code: 'weixin://wxpay/bizpayurl?pr=fallback-native',
-        out_trade_no: 'sub2_qr_778',
+        out_trade_no: 'sub3_qr_778',
       })
 
     shallowMount(PaymentView, {

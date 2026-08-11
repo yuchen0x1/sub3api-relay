@@ -4,7 +4,6 @@ package setup
 import (
 	"bufio"
 	"fmt"
-	"net/mail"
 	"os"
 	"regexp"
 	"strconv"
@@ -27,11 +26,6 @@ func cliValidateDBName(name string) bool {
 func cliValidateUsername(name string) bool {
 	validName := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 	return validName.MatchString(name) && len(name) <= 63
-}
-
-func cliValidateEmail(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil && len(email) <= 254
 }
 
 func cliValidatePort(port int) bool {
@@ -96,7 +90,7 @@ func RunCLI() error {
 	cfg.Database.Password = promptPassword("PostgreSQL Password")
 
 	for {
-		cfg.Database.DBName = promptString(reader, "Database Name", "sub2api")
+		cfg.Database.DBName = promptString(reader, "Database Name", "sub3api")
 		if cliValidateDBName(cfg.Database.DBName) {
 			break
 		}
@@ -223,7 +217,7 @@ func RunCLI() error {
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 	fmt.Println("Start the server with:")
-	fmt.Println("  ./sub2api")
+	fmt.Println("  ./sub3api")
 	fmt.Println()
 	fmt.Printf("Admin panel: http://localhost:%d\n", cfg.Server.Port)
 	fmt.Println()

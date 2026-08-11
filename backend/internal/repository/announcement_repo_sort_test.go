@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 func TestAnnouncementListOrder(t *testing.T) {

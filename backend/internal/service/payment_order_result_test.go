@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 func TestShouldUseAlipayMobilePrecreate(t *testing.T) {
@@ -74,13 +74,13 @@ func TestBuildCreateOrderResponseDefaultsToOrderCreated(t *testing.T) {
 			Amount:     12.34,
 			FeeRate:    0.03,
 			ExpiresAt:  expiresAt,
-			OutTradeNo: "sub2_42",
+			OutTradeNo: "sub3_42",
 		},
 		CreateOrderRequest{PaymentType: payment.TypeWxpay},
 		12.71,
 		&payment.InstanceSelection{PaymentMode: "qrcode"},
 		&payment.CreatePaymentResponse{
-			TradeNo: "sub2_42",
+			TradeNo: "sub3_42",
 			QRCode:  "weixin://wxpay/bizpayurl?pr=test",
 		},
 		payment.CreatePaymentResultOrderCreated,
@@ -89,8 +89,8 @@ func TestBuildCreateOrderResponseDefaultsToOrderCreated(t *testing.T) {
 	if resp.ResultType != payment.CreatePaymentResultOrderCreated {
 		t.Fatalf("result type = %q, want %q", resp.ResultType, payment.CreatePaymentResultOrderCreated)
 	}
-	if resp.OutTradeNo != "sub2_42" {
-		t.Fatalf("out_trade_no = %q, want %q", resp.OutTradeNo, "sub2_42")
+	if resp.OutTradeNo != "sub3_42" {
+		t.Fatalf("out_trade_no = %q, want %q", resp.OutTradeNo, "sub3_42")
 	}
 	if resp.QRCode != "weixin://wxpay/bizpayurl?pr=test" {
 		t.Fatalf("qr_code = %q, want %q", resp.QRCode, "weixin://wxpay/bizpayurl?pr=test")
@@ -120,13 +120,13 @@ func TestBuildCreateOrderResponseCopiesJSAPIPayload(t *testing.T) {
 			Amount:     66.88,
 			FeeRate:    0.01,
 			ExpiresAt:  time.Date(2026, 4, 16, 13, 0, 0, 0, time.UTC),
-			OutTradeNo: "sub2_88",
+			OutTradeNo: "sub3_88",
 		},
 		CreateOrderRequest{PaymentType: payment.TypeWxpay},
 		67.55,
 		&payment.InstanceSelection{PaymentMode: "popup"},
 		&payment.CreatePaymentResponse{
-			TradeNo:    "sub2_88",
+			TradeNo:    "sub3_88",
 			ResultType: payment.CreatePaymentResultJSAPIReady,
 			JSAPI:      jsapiPayload,
 		},

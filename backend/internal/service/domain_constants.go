@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	"github.com/Wei-Shaw/sub2api/internal/domain"
+	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 )
 
 // Status constants
@@ -417,7 +417,7 @@ const (
 	SettingKeyModelPlazaDescription = "model_plaza_description"
 
 	// SettingKeyUpstreamBillingProbeSettings stores the global enable switch and interval
-	// for probing remote Sub2API API-key billing metadata.
+	// for probing remote Sub3API API-key billing metadata.
 	SettingKeyUpstreamBillingProbeSettings = "upstream_billing_probe_settings"
 
 	// SettingKeyOllamaCloudUsageSettings stores the opt-in global runner switch and interval.

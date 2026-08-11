@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/httpclient"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 type pricingRemoteClient struct {

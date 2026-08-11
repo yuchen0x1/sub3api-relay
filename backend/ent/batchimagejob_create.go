@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
+	"github.com/yuchen0x1/sub3api-relay/ent/batchimagejob"
 )
 
 // BatchImageJobCreate is the builder for creating a BatchImageJob entity.

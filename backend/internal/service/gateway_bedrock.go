@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )

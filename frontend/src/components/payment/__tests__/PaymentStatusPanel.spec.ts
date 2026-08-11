@@ -51,7 +51,7 @@ const orderFactory = (status: string) => ({
   pay_amount: 88,
   fee_rate: 0,
   payment_type: 'alipay',
-  out_trade_no: 'sub2_20260420abcd1234',
+  out_trade_no: 'sub3_20260420abcd1234',
   status,
   order_type: 'balance',
   created_at: '2026-04-20T12:00:00Z',
@@ -180,7 +180,7 @@ describe('PaymentStatusPanel', () => {
     await flushPromises()
 
     expect(pollOrderStatus).toHaveBeenCalledWith(42)
-    expect(verifyOrder).toHaveBeenCalledWith('sub2_20260420abcd1234')
+    expect(verifyOrder).toHaveBeenCalledWith('sub3_20260420abcd1234')
     expect(wrapper.text()).toContain('payment.result.success')
     expect(wrapper.emitted('success')).toHaveLength(1)
   })
@@ -208,7 +208,7 @@ describe('PaymentStatusPanel', () => {
         expiresAt: '2099-01-01T12:30:00Z',
         paymentType: 'alipay',
         orderType: 'balance',
-        outTradeNo: 'sub2_20260420abcd1234',
+        outTradeNo: 'sub3_20260420abcd1234',
         mobileAlipayDeepLink: true,
       },
       global: { stubs: { Icon: true } },
@@ -218,7 +218,7 @@ describe('PaymentStatusPanel', () => {
     await vi.advanceTimersByTimeAsync(3000)
     await flushPromises()
 
-    expect(verifyOrder).toHaveBeenCalledWith('sub2_20260420abcd1234')
+    expect(verifyOrder).toHaveBeenCalledWith('sub3_20260420abcd1234')
     expect(wrapper.emitted('success')).toHaveLength(1)
 
     wrapper.unmount()
@@ -248,7 +248,7 @@ describe('PaymentStatusPanel', () => {
         expiresAt: '2099-01-01T12:30:00Z',
         paymentType: 'alipay',
         orderType: 'balance',
-        outTradeNo: 'sub2_20260420abcd1234',
+        outTradeNo: 'sub3_20260420abcd1234',
         mobileAlipayDeepLink: true,
       },
       global: { stubs: { Icon: true } },
@@ -263,7 +263,7 @@ describe('PaymentStatusPanel', () => {
 
     expect(wrapper.find('[data-test="alipay-qr-fallback"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('payment.qr.saveQRCode')
-    expect(wrapper.text()).toContain('sub2_20260420abcd1234')
+    expect(wrapper.text()).toContain('sub3_20260420abcd1234')
     expect(toCanvas).toHaveBeenCalledWith(expect.any(HTMLCanvasElement), 'https://qr.alipay.com/dynamic-order-42', expect.any(Object))
 
     wrapper.unmount()
@@ -293,7 +293,7 @@ describe('PaymentStatusPanel', () => {
         expiresAt: '2099-01-01T12:30:00Z',
         paymentType: 'alipay',
         orderType: 'balance',
-        outTradeNo: 'sub2_20260420abcd1234',
+        outTradeNo: 'sub3_20260420abcd1234',
         mobileAlipayDeepLink: true,
       },
       global: { stubs: { Icon: true } },

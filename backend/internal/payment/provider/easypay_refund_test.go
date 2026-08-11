@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/Wei-Shaw/sub2api/internal/payment"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 )
 
 func TestNormalizeEasyPayAPIBase(t *testing.T) {
@@ -209,7 +209,7 @@ func TestEasyPayCustomMethodsUseConfiguredUpstreamType(t *testing.T) {
 	}
 
 	resp, err := provider.CreatePayment(context.Background(), payment.CreatePaymentRequest{
-		OrderID:     "sub2-custom-1",
+		OrderID:     "sub3-custom-1",
 		Amount:      "1.00",
 		PaymentType: "usdt_trc20",
 		Subject:     "Custom EasyPay",
@@ -245,7 +245,7 @@ func TestEasyPayCustomMethodsResolveCIDFromConfiguredUpstreamType(t *testing.T) 
 	}
 
 	resp, err := provider.CreatePayment(context.Background(), payment.CreatePaymentRequest{
-		OrderID:     "sub2-custom-cid",
+		OrderID:     "sub3-custom-cid",
 		Amount:      "1.00",
 		PaymentType: "ldc",
 		Subject:     "Custom EasyPay CID",

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,7 +45,7 @@ func initMiddlewareTestLoggerWithLevel(t *testing.T, level string) *testLogSink 
 	if err := logger.Init(logger.InitOptions{
 		Level:       level,
 		Format:      "json",
-		ServiceName: "sub2api",
+		ServiceName: "sub3api",
 		Environment: "test",
 		Output: logger.OutputOptions{
 			ToStdout: false,

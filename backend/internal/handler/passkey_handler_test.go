@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -117,9 +117,9 @@ func newTencentProtectedPasskeyHandler(t *testing.T) (*PasskeyHandler, *passkeyC
 	t.Helper()
 	cfg := &config.Config{WebAuthn: config.WebAuthnConfig{
 		Enabled:       true,
-		RPDisplayName: "Sub2API",
-		RPID:          "sub2api.example.com",
-		RPOrigins:     []string{"https://sub2api.example.com"},
+		RPDisplayName: "Sub3API",
+		RPID:          "sub3api.example.com",
+		RPOrigins:     []string{"https://sub3api.example.com"},
 	}}
 	repo := &passkeySwitchSettingRepo{
 		value: "true",

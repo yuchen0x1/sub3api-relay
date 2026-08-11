@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
+	"github.com/yuchen0x1/sub3api-relay/ent/batchimageevent"
 )
 
 // BatchImageEventCreate is the builder for creating a BatchImageEvent entity.

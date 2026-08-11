@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/servertiming"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
 	"github.com/tidwall/gjson"
 )
 

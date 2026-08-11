@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // getPerformanceStats 获取 RPM 和 TPM（近5分钟平均值，可选按用户过滤）

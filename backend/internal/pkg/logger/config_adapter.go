@@ -1,6 +1,6 @@
 package logger
 
-import "github.com/Wei-Shaw/sub2api/internal/config"
+import "github.com/yuchen0x1/sub3api-relay/internal/config"
 
 func OptionsFromConfig(cfg config.LogConfig) InitOptions {
 	return InitOptions{

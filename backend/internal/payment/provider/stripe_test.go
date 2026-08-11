@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/payment"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/stretchr/testify/require"
 	stripe "github.com/stripe/stripe-go/v85"
 )
@@ -50,7 +50,7 @@ func TestStripeRefundUsesStableAmountSpecificIdempotencyKey(t *testing.T) {
 	refund := func(amount string) {
 		_, err := provider.Refund(context.Background(), payment.RefundRequest{
 			TradeNo: "pi_123",
-			OrderID: "sub2_order_456",
+			OrderID: "sub3_order_456",
 			Amount:  amount,
 		})
 		require.NoError(t, err)
@@ -62,9 +62,9 @@ func TestStripeRefundUsesStableAmountSpecificIdempotencyKey(t *testing.T) {
 
 	require.Len(t, backend.params, 3)
 	require.Equal(t, int64(1234), *backend.params[0].Amount)
-	require.Equal(t, "re-sub2_order_456-1234", *backend.params[0].IdempotencyKey)
+	require.Equal(t, "re-sub3_order_456-1234", *backend.params[0].IdempotencyKey)
 	require.Equal(t, backend.params[0].IdempotencyKey, backend.params[1].IdempotencyKey)
 	require.Equal(t, int64(1235), *backend.params[2].Amount)
-	require.Equal(t, "re-sub2_order_456-1235", *backend.params[2].IdempotencyKey)
+	require.Equal(t, "re-sub3_order_456-1235", *backend.params[2].IdempotencyKey)
 	require.NotEqual(t, *backend.params[0].IdempotencyKey, *backend.params[2].IdempotencyKey)
 }

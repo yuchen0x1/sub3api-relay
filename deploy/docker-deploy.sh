@@ -200,7 +200,7 @@ main() {
     echo "     docker-compose up -d"
     echo ""
     echo "  3. View logs:"
-    echo "     docker-compose logs -f sub2api"
+    echo "     docker-compose logs -f sub3api"
     echo ""
     echo "  4. Access Web UI:"
     echo "     http://localhost:8080"

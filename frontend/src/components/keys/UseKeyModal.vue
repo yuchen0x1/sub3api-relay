@@ -791,15 +791,15 @@ model_context_window = 1000000
 [model_providers.sub3api_grok]
 name = "Sub3API Grok"
 base_url = "${baseUrl}"
-env_key = "SUB2API_API_KEY"
+env_key = "SUB3API_API_KEY"
 wire_api = "responses"
 supports_websockets = true
 
 [features]
 responses_websockets_v2 = true`
   const environmentContent = isWindows
-    ? `$env:SUB2API_API_KEY="${apiKey}"`
-    : `export SUB2API_API_KEY="${apiKey}"`
+    ? `$env:SUB3API_API_KEY="${apiKey}"`
+    : `export SUB3API_API_KEY="${apiKey}"`
 
   return [
     {

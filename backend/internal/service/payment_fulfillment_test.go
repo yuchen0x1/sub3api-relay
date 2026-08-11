@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
-	"github.com/Wei-Shaw/sub2api/internal/payment"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/ent/paymentauditlog"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -480,14 +480,14 @@ func TestValidateProviderNotificationMetadataAllowsLegacyOrdersWithoutSnapshotFi
 func TestParseLegacyPaymentOrderID(t *testing.T) {
 	t.Parallel()
 
-	oid, ok := parseLegacyPaymentOrderID("sub2_42", &dbent.NotFoundError{})
+	oid, ok := parseLegacyPaymentOrderID("sub3_42", &dbent.NotFoundError{})
 	assert.True(t, ok)
 	assert.EqualValues(t, 42, oid)
 
 	_, ok = parseLegacyPaymentOrderID("42", &dbent.NotFoundError{})
 	assert.False(t, ok)
 
-	_, ok = parseLegacyPaymentOrderID("sub2_42", errors.New("db down"))
+	_, ok = parseLegacyPaymentOrderID("sub3_42", errors.New("db down"))
 	assert.False(t, ok)
 }
 
@@ -860,7 +860,7 @@ func createPaymentFulfillmentSubscriptionOrder(
 		SetPayAmount(80).
 		SetFeeRate(0).
 		SetRechargeCode("PAY-SUB-" + strconv.FormatInt(time.Now().UnixNano(), 10)).
-		SetOutTradeNo("sub2_fulfillment_" + strconv.FormatInt(time.Now().UnixNano(), 10)).
+		SetOutTradeNo("sub3_fulfillment_" + strconv.FormatInt(time.Now().UnixNano(), 10)).
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-fulfillment").
 		SetOrderType(payment.OrderTypeSubscription).
@@ -905,7 +905,7 @@ func TestExecuteSubscriptionFulfillmentAppliesAffiliateRebate(t *testing.T) {
 		SetPayAmount(71.36).
 		SetFeeRate(0).
 		SetRechargeCode("PAY-SUB-AFFILIATE").
-		SetOutTradeNo("sub2_subscription_affiliate").
+		SetOutTradeNo("sub3_subscription_affiliate").
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-sub-affiliate").
 		SetOrderType(payment.OrderTypeSubscription).
@@ -991,7 +991,7 @@ func TestExecuteSubscriptionFulfillmentDoesNotDuplicateWorkAfterLegacySuccessAud
 		SetPayAmount(80).
 		SetFeeRate(0).
 		SetRechargeCode("PAY-SUB-AFFILIATE-IDEMPOTENT").
-		SetOutTradeNo("sub2_subscription_affiliate_idempotent").
+		SetOutTradeNo("sub3_subscription_affiliate_idempotent").
 		SetPaymentType(payment.TypeAlipay).
 		SetPaymentTradeNo("trade-sub-affiliate-idempotent").
 		SetOrderType(payment.OrderTypeSubscription).

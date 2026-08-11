@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 )
 
 func TestInstanceSupportsType(t *testing.T) {

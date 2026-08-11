@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 
 	entsql "entgo.io/ent/dialect/sql"
 )

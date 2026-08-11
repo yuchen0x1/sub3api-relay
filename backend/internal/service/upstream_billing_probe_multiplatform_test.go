@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 探测资格：/v1/sub2api/billing 是 key 级端点，五个
+// 探测资格：/v1/sub3api/billing 是 key 级端点，五个
 // 受支持平台的 API-key 账号都可开启探测；OAuth/Bedrock 无静态 Key 仍不合格。
 func TestUpstreamBillingProbeIdentityCoversAllAPIKeyPlatforms(t *testing.T) {
 	for _, platform := range []string{
@@ -30,7 +30,7 @@ func TestUpstreamBillingProbeIdentityCoversAllAPIKeyPlatforms(t *testing.T) {
 
 func upstreamBillingProbeValidBody() io.ReadCloser {
 	return io.NopCloser(strings.NewReader(`{
-		"object":"sub2api.key_billing",
+		"object":"sub3api.key_billing",
 		"schema_version":1,
 		"billing_scope":"token",
 		"group_rate_multiplier":0.02,
@@ -67,7 +67,7 @@ func TestUpstreamBillingProbeGrokAccountPersistsSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, UpstreamBillingProbeStatusOK, snapshot.Status)
 	require.Equal(t, 0.02, snapshot.Data["resolved_rate_multiplier"])
-	require.Equal(t, "https://relay.example/v1/sub2api/billing", upstream.lastReq.URL.String())
+	require.Equal(t, "https://relay.example/v1/sub3api/billing", upstream.lastReq.URL.String())
 	require.Equal(t, "Bearer sk-grok-relay", upstream.lastReq.Header.Get("Authorization"))
 	// 非 OpenAI 平台探测使用默认传输画像。
 	require.Equal(t, HTTPUpstreamProfileDefault, HTTPUpstreamProfileFromContext(upstream.lastReq.Context()))
@@ -78,7 +78,7 @@ func TestUpstreamBillingProbeGrokAccountPersistsSnapshot(t *testing.T) {
 }
 
 // 非 OpenAI 平台没有自定义 base_url 时，上游是各自官方 API，必无
-// /v1/sub2api/billing：不发请求，直接落 unsupported。
+// /v1/sub3api/billing：不发请求，直接落 unsupported。
 func TestUpstreamBillingProbeNonOpenAIWithoutBaseURLIsUnsupportedWithoutRequest(t *testing.T) {
 	account := &Account{
 		ID:          152,
@@ -98,7 +98,7 @@ func TestUpstreamBillingProbeNonOpenAIWithoutBaseURLIsUnsupportedWithoutRequest(
 }
 
 // 前端创建 API-key 账号时会把空 base_url 填成平台官方默认域；官方 API 同样
-// 必无 /v1/sub2api/billing，不发请求直接 unsupported。
+// 必无 /v1/sub3api/billing，不发请求直接 unsupported。
 // 显式端口、DNS 尾点、官方区域子域（前端 Grok 预设含 us-east-1.api.x.ai 等）
 // 与跨平台官方域都不能绕过。
 func TestUpstreamBillingProbeOfficialAPIBaseURLIsUnsupportedWithoutRequest(t *testing.T) {
@@ -189,7 +189,7 @@ func TestUpstreamBillingProbeOpenAIDefaultBaseURLPreserved(t *testing.T) {
 
 	_, err := svc.ProbeAccount(context.Background(), account.ID)
 	require.NoError(t, err)
-	require.Equal(t, "https://api.openai.com/v1/sub2api/billing", upstream.lastReq.URL.String())
+	require.Equal(t, "https://api.openai.com/v1/sub3api/billing", upstream.lastReq.URL.String())
 	require.Equal(t, HTTPUpstreamProfileOpenAI, HTTPUpstreamProfileFromContext(upstream.lastReq.Context()))
 }
 

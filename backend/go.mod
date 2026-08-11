@@ -1,4 +1,4 @@
-module github.com/Wei-Shaw/sub2api
+module github.com/yuchen0x1/sub3api-relay
 
 go 1.26.5
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 var (
@@ -252,12 +252,12 @@ func (s *GroupService) GetStats(ctx context.Context, id int64) (map[string]any, 
 	}
 
 	stats := map[string]any{
-		"id":                  group.ID,
-		"name":                group.Name,
-		"rate_multiplier":     group.RateMultiplier,
-		"is_exclusive":        group.IsExclusive,
-		"status":              group.Status,
-		"account_count":       accountCount,
+		"id":                   group.ID,
+		"name":                 group.Name,
+		"rate_multiplier":      group.RateMultiplier,
+		"is_exclusive":         group.IsExclusive,
+		"status":               group.Status,
+		"account_count":        accountCount,
 		"active_account_count": activeAccountCount,
 	}
 

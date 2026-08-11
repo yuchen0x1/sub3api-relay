@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
+	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +59,7 @@ func newKeyBillingContext(apiKey *service.APIKey) (*gin.Context, *httptest.Respo
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodGet, "/v1/sub2api/billing", nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/sub3api/billing", nil)
 	if apiKey != nil {
 		c.Set(string(middleware2.ContextKeyAPIKey), apiKey)
 	}
@@ -86,7 +86,7 @@ func TestGatewayHandlerKeyBillingInfoUsesGroupRate(t *testing.T) {
 	require.Equal(t, "no-store", w.Header().Get("Cache-Control"))
 	var got keyBillingInfoResponse
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
-	require.Equal(t, "sub2api.key_billing", got.Object)
+	require.Equal(t, "sub3api.key_billing", got.Object)
 	require.Equal(t, 1, got.SchemaVersion)
 	require.Equal(t, "token", got.BillingScope)
 	require.Equal(t, 0.75, got.GroupRateMultiplier)

@@ -9,7 +9,7 @@
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="yuchen0x1%2Fsub3api-relay | Trendshift" width="250" height="55"/></a>
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
@@ -68,8 +68,8 @@ Sub3API を拡張・統合するコミュニティプロジェクト:
 
 | プロジェクト | 説明 | 機能 |
 |---------|-------------|----------|
-| ~~[Sub2ApiPay](https://github.com/touwaeriol/sub2apipay)~~ | ~~セルフサービス決済システム~~ | **内蔵済み** — 決済機能は Sub3API に統合されました。別途デプロイは不要です。[決済設定ガイド](docs/PAYMENT.md)をご参照ください |
-| [sub2api-mobile](https://github.com/ckken/sub2api-mobile) | モバイル管理コンソール | ユーザー管理、アカウント管理、監視ダッシュボード、マルチバックエンド切り替えが可能なクロスプラットフォームアプリ（iOS/Android/Web）。Expo + React Native で構築 |
+| ~~[Sub3ApiPay](https://github.com/touwaeriol/sub3apipay)~~ | ~~セルフサービス決済システム~~ | **内蔵済み** — 決済機能は Sub3API に統合されました。別途デプロイは不要です。[決済設定ガイド](docs/PAYMENT.md)をご参照ください |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | モバイル管理コンソール | ユーザー管理、アカウント管理、監視ダッシュボード、マルチバックエンド切り替えが可能なクロスプラットフォームアプリ（iOS/Android/Web）。Expo + React Native で構築 |
 
 ## 技術スタック
 
@@ -115,7 +115,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 スクリプトは以下を実行します:
 1. システムアーキテクチャの検出
 2. 最新リリースのダウンロード
-3. バイナリを `/opt/sub2api` にインストール
+3. バイナリを `/opt/sub3api` にインストール
 4. systemd サービスの作成
 5. システムユーザーと権限の設定
 
@@ -123,10 +123,10 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 
 ```bash
 # 1. サービスを起動
-sudo systemctl start sub2api
+sudo systemctl start sub3api
 
 # 2. 起動時の自動起動を有効化
-sudo systemctl enable sub2api
+sudo systemctl enable sub3api
 
 # 3. ブラウザでセットアップウィザードを開く
 # http://YOUR_SERVER_IP:8080
@@ -150,13 +150,13 @@ Web インターフェースでは以下が可能です:
 
 ```bash
 # ステータスを確認
-sudo systemctl status sub2api
+sudo systemctl status sub3api
 
 # ログを表示
-sudo journalctl -u sub2api -f
+sudo journalctl -u sub3api -f
 
 # サービスを再起動
-sudo systemctl restart sub2api
+sudo systemctl restart sub3api
 
 # アンインストール
 curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
@@ -188,7 +188,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 docker compose up -d
 
 # ログを表示
-docker compose logs -f sub2api
+docker compose logs -f sub3api
 ```
 
 **スクリプトの動作内容:**
@@ -263,7 +263,7 @@ docker compose up -d
 docker compose -f docker-compose.local.yml ps
 
 # 7. ログを表示
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f sub3api
 ```
 
 #### デプロイバージョン
@@ -297,13 +297,13 @@ docker compose -f docker-compose.local.yml up -d
 # 移行元サーバーにて
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf sub2api-complete.tar.gz sub2api-deploy/
+tar czf sub3api-complete.tar.gz sub3api-deploy/
 
 # 新しいサーバーに転送
-scp sub2api-complete.tar.gz user@new-server:/path/
+scp sub3api-complete.tar.gz user@new-server:/path/
 
 # 移行先サーバーにて
-tar xzf sub2api-complete.tar.gz
+tar xzf sub3api-complete.tar.gz
 cd sub3api-relay-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -387,7 +387,7 @@ database:
   port: 5432
   user: "postgres"
   password: "your_password"
-  dbname: "sub2api"
+  dbname: "sub3api"
 
 redis:
   host: "localhost"
@@ -481,20 +481,20 @@ URL バリデーションまたはレスポンスヘッダーフィルタリン�
 
 **管理者アカウントを作成する 2 つの方法:**
 
-1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub2api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベースと Redis を設定し、既定の `admin` / `admin` 管理者アカウントを作成して `config.yaml` を自動生成します。
+1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub3api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベースと Redis を設定し、既定の `admin` / `admin` 管理者アカウントを作成して `config.yaml` を自動生成します。
 
 2. **すでに `config.yaml` を作成してしまった場合:** 初回起動前に一時的に退避してウィザードを発生させ、完了後に戻します:
    ```bash
    mv config.yaml config.yaml.bak
-   ./sub2api        # ウィザードが http://localhost:8080 で起動し、新しい config.yaml を生成します
+   ./sub3api        # ウィザードが http://localhost:8080 で起動し、新しい config.yaml を生成します
    # ウィザード完了後、Ctrl+C でサーバーを停止し、設定を復元します:
    mv config.yaml.bak config.yaml
-   ./sub2api        # 通常モードで再起動し、作成した管理者でログインします
+   ./sub3api        # 通常モードで再起動し、作成した管理者でログインします
    ```
 
 ```bash
 # 6. アプリケーションを実行
-./sub2api
+./sub3api
 ```
 
 #### 開発モード
@@ -557,7 +557,7 @@ Antigravity アカウントはオプションの**ハイブリッドスケジュ
 ## プロジェクト構成
 
 ```
-sub2api/
+sub3api/
 ├── backend/                  # Go バックエンドサービス
 │   ├── cmd/server/           # アプリケーションエントリ
 │   ├── internal/             # 内部モジュール

@@ -3,8 +3,8 @@
 package schema
 
 import (
-	"github.com/Wei-Shaw/sub2api/ent/schema/mixins"
-	"github.com/Wei-Shaw/sub2api/internal/domain"
+	"github.com/yuchen0x1/sub3api-relay/ent/schema/mixins"
+	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"

@@ -67,8 +67,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
 )
 
 const (

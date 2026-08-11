@@ -10,9 +10,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
-	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
-	"github.com/Wei-Shaw/sub2api/ent/user"
+	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
+	"github.com/yuchen0x1/sub3api-relay/ent/pendingauthsession"
+	"github.com/yuchen0x1/sub3api-relay/ent/user"
 )
 
 // PendingAuthSession is the model entity for the PendingAuthSession schema.
