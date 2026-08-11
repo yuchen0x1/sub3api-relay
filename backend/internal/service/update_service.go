@@ -2,6 +2,7 @@ package service
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bufio"
 	"compress/gzip"
 	"context"
@@ -506,6 +507,10 @@ func (s *UpdateService) verifyChecksum(ctx context.Context, filePath, checksumUR
 }
 
 func (s *UpdateService) extractBinary(archivePath, destPath string) error {
+	if strings.HasSuffix(strings.ToLower(archivePath), ".zip") {
+		return s.extractBinaryFromZip(archivePath, destPath)
+	}
+
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return err
@@ -591,6 +596,58 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func (s *UpdateService) extractBinaryFromZip(archivePath, destPath string) error {
+	zr, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = zr.Close() }()
+
+	const maxBinarySize = 500 * 1024 * 1024
+	for _, entry := range zr.File {
+		if strings.Contains(entry.Name, "..") {
+			return fmt.Errorf("path traversal attempt detected: %s", entry.Name)
+		}
+		if !entry.Mode().IsRegular() {
+			continue
+		}
+
+		baseName := filepath.Base(entry.Name)
+		if baseName != "sub3api" && baseName != "sub3api.exe" {
+			continue
+		}
+		if entry.UncompressedSize64 > maxBinarySize {
+			return fmt.Errorf("binary too large: %d bytes (max %d)", entry.UncompressedSize64, maxBinarySize)
+		}
+
+		in, err := entry.Open()
+		if err != nil {
+			return err
+		}
+		out, err := os.Create(destPath)
+		if err != nil {
+			_ = in.Close()
+			return err
+		}
+
+		_, copyErr := io.Copy(out, io.LimitReader(in, maxBinarySize+1))
+		closeInErr := in.Close()
+		closeOutErr := out.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		if closeInErr != nil {
+			return closeInErr
+		}
+		if closeOutErr != nil {
+			return closeOutErr
+		}
+		return nil
+	}
+
+	return fmt.Errorf("binary not found in archive")
 }
 
 func (s *UpdateService) getFromCache(ctx context.Context) (*UpdateInfo, error) {
