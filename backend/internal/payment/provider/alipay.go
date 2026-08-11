@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/smartwalle/alipay/v3"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 )
 
 // Alipay product codes.

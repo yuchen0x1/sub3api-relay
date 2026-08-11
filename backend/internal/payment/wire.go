@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/google/wire"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
-	"github.com/google/wire"
 )
 
 // EncryptionKey is a named type for the payment encryption key (AES-256, 32 bytes).

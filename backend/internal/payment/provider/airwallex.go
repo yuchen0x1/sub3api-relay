@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 )
 
 const (
