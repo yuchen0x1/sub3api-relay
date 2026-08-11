@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func TestAccountAdminBoundariesRejectMalformedOpenAILongContextBillingValue(t *testing.T) {

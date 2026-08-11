@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/domain"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/domain"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 )
 
 const defaultBedrockRegion = "us-east-1"

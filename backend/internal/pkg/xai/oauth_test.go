@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 )
 
 func TestParseAuthorizationInput(t *testing.T) {

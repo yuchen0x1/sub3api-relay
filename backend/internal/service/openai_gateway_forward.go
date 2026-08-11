@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai_compat"
-	"github.com/gin-gonic/gin"
-	"github.com/tidwall/gjson"
 )
 
 // Forward forwards request to OpenAI API

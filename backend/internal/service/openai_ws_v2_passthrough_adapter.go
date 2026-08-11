@@ -11,12 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
-	openaiwsv2 "github.com/yuchen0x1/sub3api-relay/internal/service/openai_ws_v2"
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
+	openaiwsv2 "github.com/yuchen0x1/sub3api-relay/internal/service/openai_ws_v2"
 )
 
 type openAIWSClientFrameConn struct {

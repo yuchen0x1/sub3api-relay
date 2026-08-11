@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func newSchedulerCacheUnit(t *testing.T) *schedulerCache {

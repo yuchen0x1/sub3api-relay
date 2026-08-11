@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 func TestOpenAI429FastPath_MarksOAuthAccountCoolingDown(t *testing.T) {

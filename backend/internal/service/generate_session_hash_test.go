@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 )
 
 func mustParseSessionHashRequest(t *testing.T, body string, ctx *SessionContext) *ParsedRequest {

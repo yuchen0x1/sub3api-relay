@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/enttest"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

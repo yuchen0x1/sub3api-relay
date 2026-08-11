@@ -3,8 +3,8 @@ package service
 import (
 	"math"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/shopspring/decimal"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 )
 
 const defaultBalanceRechargeMultiplier = 1.0

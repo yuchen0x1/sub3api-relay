@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/tidwall/gjson"
 )
 
 // RateLimitService 处理限流和过载状态管理

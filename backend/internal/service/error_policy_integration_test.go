@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
-	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------

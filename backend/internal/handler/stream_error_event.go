@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 )
 
 // responsesFailedError 对齐 OpenAI Responses 协议 error 子对象。

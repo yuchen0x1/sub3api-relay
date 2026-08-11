@@ -3,8 +3,8 @@ package admin
 import (
 	"net/http"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/gin-gonic/gin"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 )
 
 // GetAuthCacheInvalidationHealth exposes durable outbox lag and subscriber health.

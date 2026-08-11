@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/anthropicfp"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/google/uuid"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 
 	"github.com/gin-gonic/gin"
 )

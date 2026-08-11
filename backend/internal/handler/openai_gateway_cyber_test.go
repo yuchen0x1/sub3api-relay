@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // newTestGinContext builds a bare gin.Context backed by an httptest recorder.

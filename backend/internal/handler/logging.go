@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

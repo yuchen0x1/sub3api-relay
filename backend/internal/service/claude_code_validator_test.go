@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 )
 
 const claudeCodeMetadataUserIDJSON = `{"device_id":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","account_uuid":"","session_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}`

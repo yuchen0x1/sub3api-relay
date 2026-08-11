@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 

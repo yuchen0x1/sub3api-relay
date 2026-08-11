@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 // cyberOrderingTestRepo records the sequence of repo calls to verify F7 ordering.

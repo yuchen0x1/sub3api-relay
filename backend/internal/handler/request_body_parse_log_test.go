@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
-	pkghttputil "github.com/yuchen0x1/sub3api-relay/internal/pkg/httputil"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
+	pkghttputil "github.com/yuchen0x1/sub3api-relay/internal/pkg/httputil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"

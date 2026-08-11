@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/stretchr/testify/require"
 )
 
 type settingUpdateRepoStub struct {

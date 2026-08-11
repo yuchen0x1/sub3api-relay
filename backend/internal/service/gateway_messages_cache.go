@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 )
 
 // stripMessageCacheControl 移除 $.messages[*].content[*].cache_control。

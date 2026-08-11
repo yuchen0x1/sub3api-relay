@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/imroc/req/v3"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/imroc/req/v3"
 )
 
 // NewOpenAIOAuthClient creates a new OpenAI OAuth client

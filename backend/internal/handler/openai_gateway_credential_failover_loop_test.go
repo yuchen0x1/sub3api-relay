@@ -15,14 +15,14 @@ import (
 	"testing"
 	"time"
 
+	coderws "github.com/coder/websocket"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	coderws "github.com/coder/websocket"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 )
 
 type grokCredentialHandlerRepo struct {

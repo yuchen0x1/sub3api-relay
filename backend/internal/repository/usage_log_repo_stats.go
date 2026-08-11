@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/lib/pq"
 	"golang.org/x/sync/errgroup"
 )
 

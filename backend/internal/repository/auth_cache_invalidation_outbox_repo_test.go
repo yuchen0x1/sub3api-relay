@@ -9,8 +9,8 @@ import (
 	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"github.com/yuchen0x1/sub3api-relay/migrations"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/migrations"
 )
 
 func TestAuthCacheInvalidationOutboxRepository_ClaimUsesLeaseAndSkipLocked(t *testing.T) {

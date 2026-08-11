@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 const (

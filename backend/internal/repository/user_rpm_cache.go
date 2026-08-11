@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/redis/go-redis/v9"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // 用户/分组级 RPM 计数器 Redis 实现。

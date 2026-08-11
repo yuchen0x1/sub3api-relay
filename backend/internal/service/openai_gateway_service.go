@@ -15,14 +15,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ip"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/yuchen0x1/sub3api-relay/internal/platform/liveattestation"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/responseheaders"
-	"github.com/cespare/xxhash/v2"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 

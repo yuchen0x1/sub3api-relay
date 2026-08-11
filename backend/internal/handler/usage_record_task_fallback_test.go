@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 // 本文件覆盖：worker 池已停止（进程关停窗口）时，计费任务不得静默丢失，

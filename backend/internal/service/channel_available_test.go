@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 // stubGroupRepoForAvailable 是 ListAvailable 测试用的 GroupRepository stub，

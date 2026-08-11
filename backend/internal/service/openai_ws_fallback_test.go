@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 func TestClassifyOpenAIWSAcquireError(t *testing.T) {

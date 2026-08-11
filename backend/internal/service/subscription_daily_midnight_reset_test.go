@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
 )
 
 // dailyMidnightResetRepo 记录 ResetDailyUsage 收到的新窗口起点。

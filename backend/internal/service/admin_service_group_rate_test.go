@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 // userGroupRateRepoStubForGroupRate implements UserGroupRateRepository for group rate tests.

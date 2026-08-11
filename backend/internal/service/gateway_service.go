@@ -18,12 +18,12 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/yuchen0x1/sub3api-relay/internal/util/responseheaders"
 	"github.com/cespare/xxhash/v2"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/responseheaders"
 	"golang.org/x/sync/singleflight"
 )
 

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 type ingressRejectSettingRepo struct {

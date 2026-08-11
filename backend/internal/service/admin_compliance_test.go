@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 type adminComplianceRepoStub struct {

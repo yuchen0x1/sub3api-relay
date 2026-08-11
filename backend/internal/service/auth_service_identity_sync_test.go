@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentity"
 	"github.com/yuchen0x1/sub3api-relay/ent/enttest"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/repository"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

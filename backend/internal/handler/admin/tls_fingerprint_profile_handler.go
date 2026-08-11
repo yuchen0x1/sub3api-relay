@@ -3,10 +3,10 @@ package admin
 import (
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/model"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 // TLSFingerprintProfileHandler 处理 TLS 指纹模板的 HTTP 请求

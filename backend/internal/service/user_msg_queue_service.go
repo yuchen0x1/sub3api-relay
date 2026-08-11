@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/tidwall/gjson"
 )
 
 // UserMsgQueueCache 用户消息串行队列 Redis 缓存接口

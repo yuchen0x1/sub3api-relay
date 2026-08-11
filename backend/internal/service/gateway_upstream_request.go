@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
-	"github.com/google/uuid"
-	"github.com/tidwall/gjson"
 
 	"github.com/gin-gonic/gin"
 )

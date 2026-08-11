@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 type fakeQuotaRepoForAdmin struct {

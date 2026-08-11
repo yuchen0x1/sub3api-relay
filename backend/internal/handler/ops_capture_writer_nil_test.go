@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func TestOpsCaptureWriter_NilInnerWriter_NoPanic(t *testing.T) {

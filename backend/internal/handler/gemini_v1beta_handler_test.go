@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // TestGeminiV1BetaHandler_PlatformRoutingInvariant 文档化并验证 Handler 层的平台路由逻辑不变量

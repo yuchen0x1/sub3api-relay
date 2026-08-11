@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 )
 
 // Regression for the production incident on 2026-05-24 around 9:13 CST:

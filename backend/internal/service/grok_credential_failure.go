@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/gin-gonic/gin"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 const (

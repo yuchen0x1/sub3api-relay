@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/stretchr/testify/suite"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 type SettingRepoSuite struct {

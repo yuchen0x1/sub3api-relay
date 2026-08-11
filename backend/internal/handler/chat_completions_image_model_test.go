@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	middleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	middleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func TestChatCompletionsRejectsGPTImageModelsBeforeScheduling(t *testing.T) {

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ip"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 type oauthStartCaptchaRequest struct {

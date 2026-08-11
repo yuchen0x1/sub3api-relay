@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/imroc/req/v3"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/imroc/req/v3"
 )
 
 // CoerceDingTalkCorpPolicyForWrite 是 coerceDeprecatedDingTalkCorpPolicy 的导出版本，

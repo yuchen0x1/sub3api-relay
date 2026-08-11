@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUnionFloat(t *testing.T) {

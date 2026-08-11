@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 )
 
 func TestUsageStatsCacheKey_StableAndDistinct(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"errors"
 
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	"github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/google/wire"
-	"github.com/redis/go-redis/v9"
 )
 
 // ProvideConcurrencyCache 创建并发控制缓存，从配置读取 TTL 参数

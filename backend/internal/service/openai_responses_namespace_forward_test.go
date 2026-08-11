@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
 )
 
 // codexNamespaceRequestBody 模拟 Codex 多智能体请求：collaboration 命名空间声明 +

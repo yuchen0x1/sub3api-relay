@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 func TestBatchImageProviderRegistry_ReturnsGeminiAPI(t *testing.T) {

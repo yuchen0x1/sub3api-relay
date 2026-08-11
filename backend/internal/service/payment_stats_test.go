@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/stretchr/testify/require"
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 )
 
 func TestComputeBasicStatsGroupsAmountsByCurrency(t *testing.T) {

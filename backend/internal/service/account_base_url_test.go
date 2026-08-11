@@ -5,8 +5,8 @@ package service
 import (
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 )
 
 func TestGetBaseURL(t *testing.T) {

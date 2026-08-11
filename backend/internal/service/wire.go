@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/google/wire"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 

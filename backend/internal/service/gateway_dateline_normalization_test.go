@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/anthropicfp"
-	"github.com/stretchr/testify/require"
 )
 
 // TestGatewayClientDatelineNormalization_Scope covers the account/switch matrix

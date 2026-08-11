@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/gemini"
@@ -21,7 +22,6 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

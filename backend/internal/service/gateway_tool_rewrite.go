@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 )
 
 // toolNameRewriteKey 是 gin.Context 上存 ToolNameRewrite 映射的 key。

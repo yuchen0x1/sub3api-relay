@@ -8,10 +8,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 func TestIsOpenAIWSClientDisconnectError(t *testing.T) {

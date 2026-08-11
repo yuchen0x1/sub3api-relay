@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // 测试用 TTL 配置（15 分钟，与默认值一致）

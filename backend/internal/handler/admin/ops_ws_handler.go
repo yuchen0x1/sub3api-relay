@@ -15,11 +15,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	servermiddleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
 type OpsWSProxyConfig struct {

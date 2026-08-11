@@ -3,8 +3,8 @@ package handler
 import (
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // ──────────────────────────────────────────────────────────

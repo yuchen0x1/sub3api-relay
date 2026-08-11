@@ -7,12 +7,12 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentity"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentitychannel"
 	"github.com/yuchen0x1/sub3api-relay/ent/enttest"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

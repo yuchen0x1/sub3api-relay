@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
-	"github.com/stretchr/testify/require"
 )
 
 type redeemRejectRepo struct {

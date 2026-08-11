@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/gin-gonic/gin"
 )
 
 // ForwardUpstream 使用 base_url + /v1/messages + 双 header 认证透传上游 Claude 请求

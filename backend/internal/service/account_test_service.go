@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/geminicli"
@@ -25,8 +27,6 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai_compat"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // sseDataPrefix matches SSE data lines with optional whitespace after colon.

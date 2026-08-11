@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentity"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentitychannel"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUserRepositoryBindAuthIdentityToUserCanonicalizesLegacyWeChatAlias(t *testing.T) {

@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/authidentity"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
@@ -18,8 +20,6 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	servermiddleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSanitizeFrontendRedirectPath(t *testing.T) {

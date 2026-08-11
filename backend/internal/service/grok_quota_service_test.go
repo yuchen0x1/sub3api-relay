@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
-	"github.com/stretchr/testify/require"
-	"github.com/tidwall/gjson"
 )
 
 type grokQuotaAccountRepo struct {

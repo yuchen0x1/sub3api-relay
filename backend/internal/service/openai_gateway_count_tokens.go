@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tiktoken-go/tokenizer"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"go.uber.org/zap"
 )
 

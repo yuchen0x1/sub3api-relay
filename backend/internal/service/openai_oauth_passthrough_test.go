@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai_compat"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
-	"github.com/tidwall/gjson"
 )
 
 func f64p(v float64) *float64 { return &v }

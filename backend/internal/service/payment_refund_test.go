@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/paymentauditlog"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/stretchr/testify/require"
 )
 
 func TestValidateRefundRequestRejectsLegacyGuessedProviderInstance(t *testing.T) {

@@ -19,10 +19,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
-	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )

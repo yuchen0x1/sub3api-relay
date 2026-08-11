@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/imroc/req/v3"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	sharedhttp "github.com/yuchen0x1/sub3api-relay/internal/pkg/httpclient"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
-	"github.com/imroc/req/v3"
 )
 
 type grokOAuthClient struct {

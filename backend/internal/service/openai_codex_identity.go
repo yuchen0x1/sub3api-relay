@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/google/uuid"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 )
 
 // codexUpstreamMinVersion 上游 /backend-api/codex 接受的最低 version 头：

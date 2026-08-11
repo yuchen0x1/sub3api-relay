@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 )
 
 type authRepoStub struct {

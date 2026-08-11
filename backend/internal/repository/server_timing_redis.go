@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
 	"github.com/redis/go-redis/v9"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
 )
 
 type serverTimingRedisHook struct{}

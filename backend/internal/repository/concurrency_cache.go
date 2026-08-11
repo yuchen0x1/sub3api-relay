@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/redis/go-redis/v9"
 )
 
 // 并发控制缓存常量定义

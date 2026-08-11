@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 )
 
 type alphaSearchAccountStateRepo struct {

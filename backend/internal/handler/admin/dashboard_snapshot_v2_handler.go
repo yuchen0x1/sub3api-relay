@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 var dashboardSnapshotV2Cache = newSnapshotCache(30 * time.Second)

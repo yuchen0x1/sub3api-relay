@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
-	"github.com/gin-gonic/gin"
 )
 
 type PromptAdminService interface {

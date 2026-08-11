@@ -13,12 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ip"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
-	"github.com/dgraph-io/ristretto"
 	"golang.org/x/sync/singleflight"
 )
 

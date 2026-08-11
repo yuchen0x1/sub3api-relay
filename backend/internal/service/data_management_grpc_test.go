@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 func TestDataManagementService_DeprecatedRPCMethods(t *testing.T) {

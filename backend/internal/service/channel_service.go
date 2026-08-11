@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"golang.org/x/sync/singleflight"
 )
 

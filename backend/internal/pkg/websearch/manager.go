@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 	"github.com/redis/go-redis/v9"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 )
 
 // ProviderConfig holds the configuration for a single search provider.

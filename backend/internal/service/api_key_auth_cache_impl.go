@@ -10,8 +10,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/dgraph-io/ristretto"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 const apiKeyAuthSnapshotVersion = 18 // v18: include group profit control fields (force refresh of pre-fix snapshots)

@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/tidwall/gjson"
 
 	"github.com/gin-gonic/gin"
 )

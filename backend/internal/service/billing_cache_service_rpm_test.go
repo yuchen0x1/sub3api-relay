@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 // userRPMCacheStub 记录每种计数器被调用的次数，并可注入返回值与错误。

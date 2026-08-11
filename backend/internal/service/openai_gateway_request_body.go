@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
-	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 )
 
 func (s *OpenAIGatewayService) validateUpstreamBaseURL(raw string) (string, error) {

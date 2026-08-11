@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/timezone"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/lib/pq"
 )
 
 type dashboardAggregationRepository struct {

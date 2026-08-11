@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 )
 
 type openaiOAuthClientRefreshStub struct {

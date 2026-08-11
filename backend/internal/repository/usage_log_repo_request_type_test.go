@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUsageLogRepositoryCreateSyncRequestTypeAndLegacyFields(t *testing.T) {

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
 // 本文件覆盖 issue #5148：流式转发中途出错（缺失 terminal 事件、读错误等）时，

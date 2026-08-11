@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/googleapi"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 // ContextKey 定义上下文键类型

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 type grokImportProbeStub struct {

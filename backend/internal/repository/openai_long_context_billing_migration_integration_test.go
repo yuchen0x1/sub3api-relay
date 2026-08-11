@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	dbmigrations "github.com/yuchen0x1/sub3api-relay/migrations"
 	"github.com/stretchr/testify/require"
+	dbmigrations "github.com/yuchen0x1/sub3api-relay/migrations"
 )
 
 func TestMigration175EnforcesOpenAILongContextBillingWriteInvariant(t *testing.T) {

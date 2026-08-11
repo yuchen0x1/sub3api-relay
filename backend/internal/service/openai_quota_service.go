@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/imroc/req/v3"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 // ErrSparkShadowResetNotSupported is returned when ResetCredit is called on a

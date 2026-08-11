@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ctxkey"
 )
 
 // ---------------------------------------------------------------------------

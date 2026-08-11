@@ -3,9 +3,9 @@ package admin
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler/dto"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEnrichShadowParentInfo(t *testing.T) {

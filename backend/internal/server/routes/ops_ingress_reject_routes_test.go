@@ -5,11 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler"
 	adminhandler "github.com/yuchen0x1/sub3api-relay/internal/handler/admin"
 	servermiddleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIngressRejectAdminRoutesRequireAdminAuthentication(t *testing.T) {

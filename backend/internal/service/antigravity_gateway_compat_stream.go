@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
-	"github.com/gin-gonic/gin"
 )
 
 type antigravityCompatStreamAdapter interface {

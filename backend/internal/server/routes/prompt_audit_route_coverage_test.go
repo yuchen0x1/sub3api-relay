@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler"
 	"github.com/yuchen0x1/sub3api-relay/internal/securityaudit"
 	servermiddleware "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEveryGatewayPOSTRouteIsClassifiedForPromptAuditCoverage(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 )
 
 func TestBuildPaymentOrderProviderSnapshot_ExcludesSensitiveConfig(t *testing.T) {

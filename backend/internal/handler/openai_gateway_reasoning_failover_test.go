@@ -3,9 +3,9 @@ package handler
 import (
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 // kiroReasoningCanonicalBody mirrors a native OpenAI Responses request whose input

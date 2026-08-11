@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBatchImageCleanupService_DeleteOutputsForOwner(t *testing.T) {

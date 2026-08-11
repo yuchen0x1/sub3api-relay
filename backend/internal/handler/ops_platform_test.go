@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/yuchen0x1/sub3api-relay/internal/service"
 	"github.com/stretchr/testify/require"
+	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
 func TestResolveOpsPlatformPrefersResolvedCompositeTarget(t *testing.T) {

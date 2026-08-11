@@ -5,9 +5,9 @@ package repository
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/stretchr/testify/require"
 )
 
 func TestChannelMonitorDuplicateOperationMetadataStaysOutOfRuntimeHeaders(t *testing.T) {
