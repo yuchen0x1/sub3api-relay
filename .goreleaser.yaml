@@ -29,6 +29,31 @@ builds:
       - -X main.Date={{.Date}}
       - -X main.BuildType=release
 
+  # One-release migration bridge for installations running v0.1.174 and
+  # earlier. Their updater only recognizes the historical executable name.
+  # The binary contents are identical to the Sub3API build above.
+  - id: legacy-updater-bridge
+    dir: backend
+    main: ./cmd/server
+    binary: sub2api
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+      - -X main.BuildType=release
+
 archives:
   - id: default
     format: tar.gz
@@ -54,6 +79,8 @@ changelog:
 dockers:
   # DockerHub images (skipped if DOCKERHUB_USERNAME is 'skip')
   - id: amd64
+    ids:
+      - sub3api
     goos: linux
     goarch: amd64
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
@@ -70,6 +97,8 @@ dockers:
       - "--label=org.opencontainers.image.revision={{ .Commit }}"
 
   - id: arm64
+    ids:
+      - sub3api
     goos: linux
     goarch: arm64
     skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
@@ -87,6 +116,8 @@ dockers:
 
   # GHCR images (owner must be lowercase)
   - id: ghcr-amd64
+    ids:
+      - sub3api
     goos: linux
     goarch: amd64
     image_templates:
@@ -103,6 +134,8 @@ dockers:
       - "--label=org.opencontainers.image.source=https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}"
 
   - id: ghcr-arm64
+    ids:
+      - sub3api
     goos: linux
     goarch: arm64
     image_templates:
