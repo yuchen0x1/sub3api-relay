@@ -107,6 +107,8 @@
           <iframe
             :src="embeddedUrl"
             class="custom-embed-frame"
+            sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+            referrerpolicy="no-referrer"
             allowfullscreen
           ></iframe>
         </div>
@@ -177,8 +179,6 @@ const embeddedUrl = computed(() => {
   if (!menuItem.value || isMarkdownMode.value) return ''
   return buildEmbeddedUrl(
     menuItem.value.url,
-    authStore.user?.id,
-    authStore.token,
     pageTheme.value,
     locale.value,
   )
@@ -187,7 +187,7 @@ const embeddedUrl = computed(() => {
 const isValidUrl = computed(() => {
   if (isMarkdownMode.value) return false
   const url = embeddedUrl.value
-  return url.startsWith('http://') || url.startsWith('https://')
+  return url.startsWith('https://')
 })
 
 function generateHeadingId(text: string, index: number): string {
@@ -241,10 +241,7 @@ async function fetchAndRenderMarkdown(slug: string) {
     )
 
     const html = marked.parse(raw) as string
-    const sanitized = DOMPurify.sanitize(html, {
-      ADD_TAGS: ['iframe'],
-      ADD_ATTR: ['allowfullscreen', 'frameborder', 'src'],
-    })
+    const sanitized = DOMPurify.sanitize(html)
 
     // Inject IDs into headings and build TOC
     const toc: TocItem[] = []

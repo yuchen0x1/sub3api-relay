@@ -326,6 +326,9 @@
             <input
               v-model="formData.admin.password"
               type="password"
+              minlength="8"
+              maxlength="128"
+              autocomplete="new-password"
               class="input"
               :placeholder="t('setup.admin.passwordPlaceholder')"
             />
@@ -336,6 +339,9 @@
             <input
               v-model="confirmPassword"
               type="password"
+              minlength="8"
+              maxlength="128"
+              autocomplete="new-password"
               class="input"
               :placeholder="t('setup.admin.confirmPasswordPlaceholder')"
             />
@@ -526,7 +532,7 @@ const testingRedis = ref(false)
 const dbConnected = ref(false)
 const redisConnected = ref(false)
 const installing = ref(false)
-const confirmPassword = ref('admin')
+const confirmPassword = ref('')
 const serviceReady = ref(false)
 
 // Default server port
@@ -539,18 +545,20 @@ const getCurrentPort = (): number => {
   return window.location.protocol === 'https:' ? 443 : 80
 }
 
+const isLocalDevelopment = import.meta.env.DEV
+
 const formData = reactive<InstallRequest>({
   database: {
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres',
+    host: isLocalDevelopment ? '127.0.0.1' : 'localhost',
+    port: isLocalDevelopment ? 15432 : 5432,
+    user: isLocalDevelopment ? 'sub2api' : 'postgres',
     password: '',
-    dbname: 'sub3api',
+    dbname: isLocalDevelopment ? 'sub2api' : 'sub3api',
     sslmode: 'disable'
   },
   redis: {
-    host: 'localhost',
-    port: 6379,
+    host: isLocalDevelopment ? '127.0.0.1' : 'localhost',
+    port: isLocalDevelopment ? 16379 : 6379,
     username: '',
     password: '',
     db: 0,
@@ -558,10 +566,10 @@ const formData = reactive<InstallRequest>({
   },
   admin: {
     email: 'admin',
-    password: 'admin'
+    password: ''
   },
   server: {
-    host: '0.0.0.0',
+    host: isLocalDevelopment ? '127.0.0.1' : '0.0.0.0',
     port: getCurrentPort(), // Use current port from browser
     mode: 'release'
   }
@@ -576,8 +584,8 @@ const canProceed = computed(() => {
     case 2:
       return (
         formData.admin.email &&
-        ((formData.admin.email.trim() === 'admin' && formData.admin.password === 'admin') ||
-          formData.admin.password.length >= 8) &&
+        formData.admin.password.length >= 8 &&
+        formData.admin.password.length <= 128 &&
         formData.admin.password === confirmPassword.value
       )
     default:

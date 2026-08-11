@@ -97,6 +97,32 @@ func TestGrokSSOBatchImportKeepsCreatedAccountsWhenOneAutomaticProbeFails(t *tes
 	require.Equal(t, map[int64]int{501: 1, 502: 1, 503: 1}, calls)
 }
 
+func TestGrokSSOBatchImportKeepsGlobalIndexesAcrossFrontendChunks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	adminService := newGrokImportAdminService()
+	oauthService := service.NewGrokOAuthService(nil, grokImportOAuthClientStub{})
+	defer oauthService.Stop()
+	prober := newGrokImportProbeStub(1)
+	handler := NewGrokOAuthHandler(oauthService, adminService, nil, nil)
+	handler.importProber = prober
+
+	router := gin.New()
+	router.POST("/api/v1/admin/grok/sso-to-oauth", handler.CreateAccountsFromSSO)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/admin/grok/sso-to-oauth",
+		strings.NewReader(`{"sso_tokens":["sso-eight"],"index_offset":7,"total_count":1004}`),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"index":8`)
+	require.Contains(t, recorder.Body.String(), `"name":"Grok OAuth Account #8"`)
+	awaitGrokProbeSignal(t, prober.done)
+}
+
 func TestAccountCreateWithoutAutomaticGrokProbeServiceStillSucceeds(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	handler := NewAccountHandler(

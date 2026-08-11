@@ -27,11 +27,10 @@ import (
 const (
 	ConfigFileName             = "config.yaml"
 	InstallLockFile            = ".installed"
-	defaultUserConcurrency     = 5
-	simpleModeAdminConcurrency = 30
+	defaultUserConcurrency     = 0
+	simpleModeAdminConcurrency = 0
 	defaultMigrationTimeout    = 60 * time.Second
 	defaultAdminLogin          = "admin"
-	defaultAdminPassword       = "admin"
 )
 
 func setupDefaultAdminConcurrency() int {
@@ -419,6 +418,9 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 	if !decision.shouldCreate {
 		return false, decision.reason, nil
 	}
+	if err := validateInitialAdmin(cfg.Admin); err != nil {
+		return false, "", err
+	}
 
 	admin := &service.User{
 		Email:       cfg.Admin.Email,
@@ -450,9 +452,6 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 	if err != nil {
 		return false, "", err
 	}
-	if isDefaultAdminCredentials(cfg.Admin) {
-		logger.LegacyPrintf("setup", "%s", "Default administrator created with login admin and password admin. Change the password immediately after login.")
-	}
 	return true, decision.reason, nil
 }
 
@@ -464,13 +463,16 @@ func applyAdminDefaults(admin *AdminConfig) {
 	if admin.Email == "" {
 		admin.Email = defaultAdminLogin
 	}
-	if admin.Password == "" {
-		admin.Password = defaultAdminPassword
-	}
 }
 
-func isDefaultAdminCredentials(admin AdminConfig) bool {
-	return strings.TrimSpace(admin.Email) == defaultAdminLogin && admin.Password == defaultAdminPassword
+func validateInitialAdmin(admin AdminConfig) error {
+	if !validateEmail(admin.Email) {
+		return fmt.Errorf("invalid admin email format")
+	}
+	if err := validatePassword(admin.Password); err != nil {
+		return fmt.Errorf("invalid initial admin password: %w", err)
+	}
+	return nil
 }
 
 func writeConfigFile(cfg *SetupConfig) error {
@@ -608,7 +610,7 @@ func AutoSetupFromEnv() error {
 		},
 		Admin: AdminConfig{
 			Email:    getEnvOrDefault("ADMIN_EMAIL", defaultAdminLogin),
-			Password: getEnvOrDefault("ADMIN_PASSWORD", defaultAdminPassword),
+			Password: os.Getenv("ADMIN_PASSWORD"),
 		},
 		Server: ServerConfig{
 			Host: getEnvOrDefault("SERVER_HOST", "0.0.0.0"),

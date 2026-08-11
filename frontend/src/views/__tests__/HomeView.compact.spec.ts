@@ -29,7 +29,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
   return {
     ...actual,
-    useI18n: () => ({ t: (key: string) => key }),
+    useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
   }
 })
 
@@ -74,6 +74,22 @@ describe('HomeView compact mode', () => {
 
     expect(wrapper.get('#custom-home').text()).toBe('Custom home')
     expect(wrapper.find('[data-testid="compact-home"]').exists()).toBe(false)
+  })
+
+  it('sanitizes executable markup from custom HTML', () => {
+    const wrapper = mountHome({
+      home_content: '<section id="safe" onclick="alert(1)">Safe</section><script>alert(1)</script>',
+    })
+
+    expect(wrapper.get('#safe').attributes('onclick')).toBeUndefined()
+    expect(wrapper.find('script').exists()).toBe(false)
+  })
+
+  it('does not render non-http custom content as an iframe', () => {
+    const wrapper = mountHome({ home_content: 'javascript:alert(1)' })
+
+    expect(wrapper.find('iframe').exists()).toBe(false)
+    expect(wrapper.text()).toContain('javascript:alert(1)')
   })
 
   it('renders custom URL content ahead of compact mode', () => {

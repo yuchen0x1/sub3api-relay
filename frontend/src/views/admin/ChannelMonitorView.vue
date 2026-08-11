@@ -118,7 +118,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { extractApiErrorMessage } from '@/utils/apiError'
+import { extractI18nErrorMessage } from '@/utils/apiError'
 import { adminAPI } from '@/api/admin'
 import type {
   ChannelMonitor,
@@ -211,7 +211,14 @@ async function reload() {
   } catch (err: unknown) {
     const e = err as { name?: string; code?: string }
     if (e?.name === 'AbortError' || e?.code === 'ERR_CANCELED') return
-    appStore.showError(extractApiErrorMessage(err, t('admin.channelMonitor.loadError')))
+    appStore.showError(
+      extractI18nErrorMessage(
+        err,
+        t,
+        'admin.channelMonitor.errors',
+        t('admin.channelMonitor.loadError'),
+      ),
+    )
   } finally {
     if (abortController === ctrl) {
       loading.value = false
@@ -260,7 +267,9 @@ async function toggleEnabled(row: ChannelMonitor) {
     await adminAPI.channelMonitor.update(row.id, { enabled: next })
     row.enabled = next
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   }
 }
 
@@ -275,7 +284,14 @@ async function handleRunNow(row: ChannelMonitor) {
     // Refresh row to get latest status from backend
     void reload()
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('admin.channelMonitor.runFailed')))
+    appStore.showError(
+      extractI18nErrorMessage(
+        err,
+        t,
+        'admin.channelMonitor.errors',
+        t('admin.channelMonitor.runFailed'),
+      ),
+    )
   } finally {
     runningId.value = null
   }
@@ -294,7 +310,14 @@ async function handleDuplicate(row: ChannelMonitor) {
     appStore.showSuccess(t('admin.channelMonitor.duplicateSuccess', { name: duplicate.name }))
     await reload()
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('admin.channelMonitor.duplicateFailed')))
+    appStore.showError(
+      extractI18nErrorMessage(
+        err,
+        t,
+        'admin.channelMonitor.errors',
+        t('admin.channelMonitor.duplicateFailed'),
+      ),
+    )
   } finally {
     duplicatingIds.delete(row.id)
   }
@@ -314,7 +337,9 @@ async function confirmDelete() {
     deleting.value = null
     reload()
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   }
 }
 

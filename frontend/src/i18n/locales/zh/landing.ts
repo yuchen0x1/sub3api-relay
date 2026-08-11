@@ -238,9 +238,9 @@ export default {
       enableTlsHint: '连接 Redis 时使用 TLS（公共 CA 证书）'
     },
     admin: {
-      title: '管理员账户',
+      title: '站长账户',
       description: '默认账号和密码均为 admin，登录后请立即修改密码',
-      email: '管理员账号',
+      email: '站长账号',
       password: '密码',
       confirmPassword: '确认密码',
       passwordPlaceholder: '默认 admin',
@@ -252,7 +252,7 @@ export default {
       description: '检查您的配置并完成安装',
       database: '数据库',
       redis: 'Redis',
-      adminEmail: '管理员邮箱'
+      adminEmail: '站长邮箱'
     },
     status: {
       testing: '测试中...',

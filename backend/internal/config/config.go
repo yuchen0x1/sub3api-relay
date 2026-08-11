@@ -2157,7 +2157,7 @@ func setDefaults() {
 	// Do not ship fixed defaults here to avoid insecure "known credentials" in production.
 	viper.SetDefault("default.admin_email", "")
 	viper.SetDefault("default.admin_password", "")
-	viper.SetDefault("default.user_concurrency", 5)
+	viper.SetDefault("default.user_concurrency", 0)
 	viper.SetDefault("default.user_balance", 0)
 	viper.SetDefault("default.api_key_prefix", "sk-")
 	viper.SetDefault("default.rate_multiplier", 1.0)
@@ -3596,7 +3596,10 @@ func GetServerAddress() string {
 	// Support SERVER_HOST and SERVER_PORT environment variables
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.SetDefault("server.host", "0.0.0.0")
+	// The unauthenticated first-run wizard must not be exposed publicly by default.
+	// Operators who intentionally need a remote setup flow can opt in explicitly
+	// with SERVER_HOST and should use an SSH tunnel or a protected network path.
+	v.SetDefault("server.host", "127.0.0.1")
 	v.SetDefault("server.port", 8080)
 
 	// Try to read config file (ignore errors if not found)

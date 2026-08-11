@@ -222,18 +222,33 @@
             </p>
 
             <div class="mb-4">
-              <label
-                class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300"
-              >
-                <Icon name="key" size="sm" class="text-blue-500" />
-                {{ t(getOAuthKey('ssoCookieLabel')) }}
-                <span
-                  v-if="parsedSSOCount > 1"
-                  class="rounded-full bg-blue-500 px-2 py-0.5 text-xs text-white"
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <Icon name="key" size="sm" class="text-blue-500" />
+                  {{ t(getOAuthKey('ssoCookieLabel')) }}
+                  <span
+                    v-if="parsedSSOCount > 1"
+                    class="rounded-full bg-blue-500 px-2 py-0.5 text-xs text-white"
+                  >
+                    {{ t('admin.accounts.oauth.keysCount', { count: parsedSSOCount }) }}
+                  </span>
+                </label>
+                <input
+                  ref="ssoFileInput"
+                  type="file"
+                  accept=".txt,text/plain"
+                  class="hidden"
+                  @change="handleSSOFile"
+                />
+                <button
+                  type="button"
+                  class="btn btn-secondary px-3 py-1.5 text-xs"
+                  @click="ssoFileInput?.click()"
                 >
-                  {{ t('admin.accounts.oauth.keysCount', { count: parsedSSOCount }) }}
-                </span>
-              </label>
+                  <Icon name="upload" size="sm" class="mr-1.5" />
+                  {{ t(getOAuthKey('selectSSOFile')) }}
+                </button>
+              </div>
               <textarea
                 v-model="ssoCookieInput"
                 rows="5"
@@ -244,6 +259,50 @@
               <p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
                 {{ t(getOAuthKey('ssoCookieHint')) }}
               </p>
+              <p v-if="ssoFileName" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t(getOAuthKey('ssoFileLoaded'), { name: ssoFileName }) }}
+              </p>
+            </div>
+
+            <div
+              v-if="ssoImportProgress"
+              data-testid="grok-sso-import-progress"
+              class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-dark-600 dark:bg-dark-700/60"
+            >
+              <div class="mb-2 flex items-center justify-between gap-3 text-xs text-gray-600 dark:text-gray-300">
+                <span>{{ t(getOAuthKey('ssoCheckedProgress'), { completed: ssoImportProgress.completed, total: ssoImportProgress.total }) }}</span>
+                <span>{{ ssoProgressPercent }}%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-600">
+                <div
+                  class="h-full bg-blue-500 transition-all duration-300"
+                  :style="{ width: `${ssoProgressPercent}%` }"
+                ></div>
+              </div>
+              <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="text-green-600 dark:text-green-400">
+                  {{ t(getOAuthKey('ssoValidCount'), { count: ssoImportProgress.valid }) }}
+                </div>
+                <div class="text-red-600 dark:text-red-400">
+                  {{ t(getOAuthKey('ssoInvalidCount'), { count: ssoImportProgress.invalid }) }}
+                </div>
+                <div class="text-gray-500 dark:text-gray-400">
+                  {{ t(getOAuthKey('ssoPendingCount'), { count: ssoPendingCount }) }}
+                </div>
+              </div>
+              <div v-if="ssoImportProgress.failures.length" class="mt-3 border-t border-gray-200 pt-3 dark:border-dark-600">
+                <p class="mb-1 text-xs font-medium text-red-600 dark:text-red-400">
+                  {{ t(getOAuthKey('ssoFailureDetails')) }}
+                </p>
+                <div class="max-h-32 space-y-1 overflow-y-auto font-mono text-xs text-red-600 dark:text-red-400">
+                  <p v-for="item in ssoImportProgress.failures.slice(0, 20)" :key="item.index">
+                    #{{ item.index }}: {{ item.error }}
+                  </p>
+                </div>
+                <p v-if="ssoImportProgress.failures.length > 20" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t(getOAuthKey('ssoMoreFailures'), { count: ssoImportProgress.failures.length - 20 }) }}
+                </p>
+              </div>
             </div>
 
             <div
@@ -282,7 +341,7 @@
                 ></path>
               </svg>
               <Icon v-else name="sparkles" size="sm" class="mr-2" />
-              {{ loading ? t(getOAuthKey('convertingSSO')) : t(getOAuthKey('convertSSOAndCreate')) }}
+              {{ ssoSubmitLabel }}
             </button>
           </div>
         </div>
@@ -838,6 +897,13 @@ interface Props {
   showSsoOption?: boolean
   showManualOption?: boolean
   initialInputMethod?: AuthInputMethod
+  ssoImportProgress?: {
+    total: number
+    completed: number
+    valid: number
+    invalid: number
+    failures: Array<{ index: number; error: string }>
+  } | null
   platform?: AccountPlatform // Platform type for different UI/text
   showProjectId?: boolean // New prop to control project ID visibility
 }
@@ -862,6 +928,7 @@ const props = withDefaults(defineProps<Props>(), {
   showSsoOption: false,
   showManualOption: true,
   initialInputMethod: 'manual',
+  ssoImportProgress: null,
   platform: 'anthropic',
   showProjectId: true
 })
@@ -922,6 +989,8 @@ const sessionTokenInput = ref('')
 const codexSessionInput = ref('')
 const codexPATInput = ref('')
 const ssoCookieInput = ref('')
+const ssoFileInput = ref<HTMLInputElement | null>(null)
+const ssoFileName = ref('')
 const showHelpDialog = ref(false)
 const oauthState = ref('')
 const projectId = ref('')
@@ -976,6 +1045,42 @@ const parsedSSOCount = computed(() => {
     .map((item) => item.trim())
     .filter((item) => item).length
 })
+
+const ssoPendingCount = computed(() => {
+  if (!props.ssoImportProgress) return 0
+  return Math.max(0, props.ssoImportProgress.total - props.ssoImportProgress.completed)
+})
+
+const ssoProgressPercent = computed(() => {
+  if (!props.ssoImportProgress?.total) return 0
+  return Math.min(100, Math.round((props.ssoImportProgress.completed / props.ssoImportProgress.total) * 100))
+})
+
+const ssoSubmitLabel = computed(() => {
+  if (!props.loading) return t(getOAuthKey('convertSSOAndCreate'))
+  if (!props.ssoImportProgress) return t(getOAuthKey('convertingSSO'))
+  return t(getOAuthKey('ssoCheckingProgress'), {
+    completed: props.ssoImportProgress.completed,
+    total: props.ssoImportProgress.total
+  })
+})
+
+const handleSSOFile = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  try {
+    const tokens = (await file.text())
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter((item) => item)
+    ssoCookieInput.value = [...new Set(tokens)].join('\n')
+    ssoFileName.value = file.name
+  } finally {
+    input.value = ''
+  }
+}
 
 // Watchers
 watch(() => props.initialInputMethod, (newVal) => {
@@ -1092,6 +1197,7 @@ defineExpose({
     codexSessionInput.value = ''
     codexPATInput.value = ''
     ssoCookieInput.value = ''
+    ssoFileName.value = ''
     inputMethod.value = props.initialInputMethod
     showHelpDialog.value = false
   }

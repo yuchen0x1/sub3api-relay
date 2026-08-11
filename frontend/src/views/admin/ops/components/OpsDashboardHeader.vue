@@ -883,7 +883,7 @@ function handleToolbarRefresh() {
 </script>
 
 <template>
-  <div :class="['glass-card flex flex-col gap-4 rounded-3xl', props.fullscreen ? 'p-8' : 'p-6']">
+  <div :class="['ops-panel ops-panel-hero glass-card flex flex-col gap-4 rounded-3xl', props.fullscreen ? 'p-8' : 'p-6']">
     <!-- Top Toolbar -->
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
       <div>

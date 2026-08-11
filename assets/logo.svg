@@ -1,32 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Sub2API</title>
-  <desc id="desc">An interlocking S symbol representing subscription routing into APIs.</desc>
+  <title id="title">Sub3API</title>
+  <desc id="desc">A luminous Sub3API gateway mark with three connected routes.</desc>
   <defs>
-    <linearGradient id="s2a-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#142B56"/>
-      <stop offset=".52" stop-color="#0A1A39"/>
-      <stop offset="1" stop-color="#061127"/>
+    <linearGradient id="sub3-bg" x1="48" y1="32" x2="464" y2="486" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101d4c"/>
+      <stop offset=".48" stop-color="#161044"/>
+      <stop offset="1" stop-color="#08152f"/>
     </linearGradient>
-    <radialGradient id="s2a-ambient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(168 92) rotate(51) scale(342 382)">
-      <stop stop-color="#3E68B0" stop-opacity=".28"/>
-      <stop offset="1" stop-color="#3E68B0" stop-opacity="0"/>
+    <radialGradient id="sub3-ambient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(156 80) rotate(48) scale(390 420)">
+      <stop stop-color="#22d3ee" stop-opacity=".32"/>
+      <stop offset=".55" stop-color="#8b5cf6" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="s2a-brand" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#79F4BD"/>
-      <stop offset=".48" stop-color="#39D9E7"/>
-      <stop offset="1" stop-color="#3875F6"/>
+    <linearGradient id="sub3-brand" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a7f3d0"/>
+      <stop offset=".36" stop-color="#67e8f9"/>
+      <stop offset=".7" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f9a8d4"/>
     </linearGradient>
-    <filter id="s2a-shadow" x="-25%" y="-25%" width="150%" height="165%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy=".55" stdDeviation=".65" flood-color="#020817" flood-opacity=".34"/>
+    <filter id="sub3-shadow" x="-25%" y="-25%" width="150%" height="165%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#020817" flood-opacity=".48"/>
     </filter>
   </defs>
-
-  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#s2a-bg)"/>
-  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#s2a-ambient)"/>
-  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#A5BFFF" stroke-opacity=".16" stroke-width="1.5"/>
-
-  <g transform="translate(52 52) scale(17)" fill="none" stroke="url(#s2a-brand)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.7" filter="url(#s2a-shadow)">
-    <path d="m19.25 7.65-2.55-3.2a1.33 1.33 0 0 0-1.03-.5H8.58c-.34 0-.67.13-.91.37L4.15 7.65c-.93.88-.6 1.52.65 2.3l9.55 5.97"/>
-    <path d="m4.75 16.35 2.55 3.2c.25.31.63.5 1.03.5h7.09c.34 0 .67-.13.91-.37l3.52-3.33c.93-.88.6-1.52-.65-2.3L9.65 8.08"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#sub3-bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#sub3-ambient)"/>
+  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#b8e7ff" stroke-opacity=".24" stroke-width="2"/>
+  <g transform="translate(52 52) scale(17)" fill="none" stroke="url(#sub3-brand)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.55" filter="url(#sub3-shadow)">
+    <path d="M5 8.5 9 4h6l4 4.5-4 3.5-6-3.5-4 3.5 4 4.5h6l4-4.5"/>
+    <path d="M9 8.5v7M15 11.5v4" opacity=".62"/>
+    <circle cx="5" cy="8.5" r="1.1" fill="#67e8f9" stroke="none"/>
+    <circle cx="19" cy="8.5" r="1.1" fill="#f9a8d4" stroke="none"/>
+    <circle cx="12" cy="4" r="1.1" fill="#a7f3d0" stroke="none"/>
   </g>
 </svg>

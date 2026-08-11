@@ -173,9 +173,9 @@ export default {
         note: '这些环境变量将在当前终端会话中生效。如需永久配置，请将其添加到 ~/.bashrc、~/.zshrc 或相应的配置文件中。'
       },
       grok: {
-        description: '配置 Grok Build、Claude Code、Codex 或 OpenCode，让请求通过当前 Sub2API Grok 分组发送。',
-        claudeDescription: '配置 Claude Code，让 Messages API 请求通过当前 Sub2API Grok 分组发送。',
-        codexDescription: '配置 Codex，让 Responses API 请求通过当前 Sub2API Grok 分组发送。',
+        description: '配置 Grok Build、Claude Code、Codex 或 OpenCode，让请求通过当前 Sub3API Grok 分组发送。',
+        claudeDescription: '配置 Claude Code，让 Messages API 请求通过当前 Sub3API Grok 分组发送。',
+        codexDescription: '配置 Codex，让 Responses API 请求通过当前 Sub3API Grok 分组发送。',
         configTomlHint: '如已有 config.toml，请先备份再合并此模型配置。保存后运行 grok inspect 验证生效配置。',
         codexConfigTomlHint: '如已有 config.toml，请先备份再合并此服务商配置。',
         note: '保存为 ~/.grok/config.toml，然后运行 grok inspect，并在 /model 中选择 grok。',
@@ -488,7 +488,7 @@ export default {
     },
     empty: {
       title: '暂无可显示的渠道',
-      description: '管理员尚未配置可监控的渠道。'
+      description: '站长尚未配置可监控的渠道。'
     }
   },
 
@@ -502,7 +502,7 @@ export default {
     noPricing: '未配置定价',
     exclusive: '专属',
     public: '公开',
-    exclusiveTooltip: '管理员授权给你的专属分组',
+    exclusiveTooltip: '站长授权给你的专属分组',
     publicTooltip: '对所有用户公开的分组',
     columns: {
       name: '渠道名',
@@ -652,12 +652,12 @@ export default {
     historyWillAppear: '您的兑换历史将显示在这里',
     balanceAddedRedeem: '余额充值（兑换）',
     balanceAddedAffiliate: '余额充值（返利转入）',
-    balanceAddedAdmin: '余额充值（管理员）',
-    balanceDeductedAdmin: '余额扣除（管理员）',
+    balanceAddedAdmin: '余额充值（站长）',
+    balanceDeductedAdmin: '余额扣除（站长）',
     concurrencyAddedRedeem: '并发增加（兑换）',
-    concurrencyAddedAdmin: '并发增加（管理员）',
-    concurrencyReducedAdmin: '并发减少（管理员）',
-    adminAdjustment: '管理员调整',
+    concurrencyAddedAdmin: '并发增加（站长）',
+    concurrencyReducedAdmin: '并发减少（站长）',
+    adminAdjustment: '站长调整',
     subscriptionAssigned: '订阅已分配',
     subscriptionAssignedDesc: '您已获得 {groupName} 的访问权限',
     subscriptionDays: '{days} 天',
@@ -685,7 +685,7 @@ export default {
     linkedProfileSourcesDescription: '部分头像和昵称可能同步自第三方登录方式。',
     securityTitle: '安全设置',
     securityDescription: '密码、双因素认证和通知提醒集中放在右侧。',
-    administrator: '管理员',
+    administrator: '站长',
     user: '用户',
     username: '用户名',
     email: '邮箱',
@@ -720,7 +720,7 @@ export default {
       enable: '启用',
       disable: '禁用',
       featureDisabled: '功能未开放',
-      featureDisabledHint: '管理员尚未开放双因素认证功能',
+      featureDisabledHint: '站长尚未开放双因素认证功能',
       setupTitle: '设置双因素认证',
       setupStep1: '使用认证器应用扫描下方二维码',
       setupStep2: '输入应用显示的 6 位验证码',
@@ -760,7 +760,7 @@ export default {
       synced: '已同步',
       createdAt: '创建于 {date}',
       lastUsed: '上次使用 {date}',
-      featureDisabled: '管理员尚未配置 Passkey 功能。',
+      featureDisabled: '站长尚未配置 Passkey 功能。',
       unsupported: '当前浏览器或设备不支持 Passkey。',
       loadFailed: '加载 Passkey 失败。',
       added: 'Passkey 已添加。',

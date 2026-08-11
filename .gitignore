@@ -144,6 +144,9 @@ docs/*
 aicodex
 output/
 
+# Deprecated synthetic homepage horse overlays; the homepage now uses the real herd photo layer.
+frontend/public/home/stampede-reference-*.webp
+
 # ===================
 # Frontend local dependencies and generated metadata
 # ===================

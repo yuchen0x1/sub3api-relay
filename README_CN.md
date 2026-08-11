@@ -17,6 +17,24 @@
 
 </div>
 
+## v0.1.175 新版预览
+
+`v0.1.175` 更新了玻璃透光风格主页和个人站长控制台，保留使用记录与操作日志，并将版本更新入口放到侧边栏版本号下方。
+
+| 主页 | 使用记录 |
+| --- | --- |
+| ![Sub3API 主页](assets/screenshots/v0.1.175/home.webp) | ![使用记录](assets/screenshots/v0.1.175/usage.webp) |
+
+| 系统设置 | 运维监控 |
+| --- | --- |
+| ![系统设置](assets/screenshots/v0.1.175/settings.webp) | ![运维监控](assets/screenshots/v0.1.175/ops-dashboard.webp) |
+
+| 渠道监控 |
+| --- |
+| ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
+
+查看 [v0.1.175 更新说明](RELEASE_NOTES_v0.1.175.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+
 
 ## ⚠️ 重要提醒
 
@@ -213,7 +231,7 @@ TOTP_ENCRYPTION_KEY=your_totp_key_here
 
 # 初始管理员账号
 ADMIN_EMAIL=admin
-ADMIN_PASSWORD=admin
+ADMIN_PASSWORD=请替换为强密码
 
 # 可选：自定义端口
 SERVER_PORT=8080
@@ -499,7 +517,7 @@ Invalid base URL: invalid url scheme: http
 
 #### ⚠️ 重要：创建管理员账号
 
-初始管理员账号会在首次初始化时创建。Docker 使用 `AUTO_SETUP=true` 时读取 `ADMIN_EMAIL` / `ADMIN_PASSWORD`，默认均为 `admin`；源码部署的 setup 向导也会预填 `admin` / `admin`。登录后请立即修改密码。`config.yaml` 中的 `default.admin_email` / `default.admin_password` 字段不会用于创建管理员。
+初始管理员账号会在首次初始化时创建。Docker 使用 `AUTO_SETUP=true` 且数据库为空时，必须显式设置 8-128 位的 `ADMIN_PASSWORD`；源码部署会在 setup 向导中要求设置密码。已有管理员不会被覆盖。`config.yaml` 中的 `default.admin_email` / `default.admin_password` 字段不会用于创建管理员。
 
 由于上面第 5 步预先创建了 `config.yaml`，**setup 向导在首次启动时会被跳过**：服务检测到 config 已存在，会直接进入正常模式，此时 `users` 表为空，首次登录会返回 `invalid email or password`。
 

@@ -73,19 +73,6 @@
         <div class="mt-2 flex flex-wrap rounded-lg bg-gray-100 p-1 dark:bg-dark-700" data-tour="account-form-platform">
           <button
             type="button"
-            @click="form.platform = 'anthropic'"
-            :class="[
-              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
-              form.platform === 'anthropic'
-                ? 'bg-white text-orange-600 shadow-sm dark:bg-dark-600 dark:text-orange-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            ]"
-          >
-            <Icon name="sparkles" size="sm" />
-            Anthropic
-          </button>
-          <button
-            type="button"
             @click="form.platform = 'openai'"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
@@ -355,13 +342,14 @@
       <!-- Account Type Selection (Grok) -->
       <div v-if="form.platform === 'grok'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2" data-tour="account-form-type">
+        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3" data-tour="account-form-type">
           <button
             type="button"
-            @click="accountCategory = 'oauth-based'"
+            data-testid="grok-account-type-build-oauth"
+            @click="accountCategory = 'oauth-based'; grokPreferredInputMethod = 'manual'"
             :class="[
               'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-              accountCategory === 'oauth-based'
+              accountCategory === 'oauth-based' && grokPreferredInputMethod !== 'sso_cookie'
                 ? 'border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30'
                 : 'border-gray-200 hover:border-zinc-400 dark:border-dark-600 dark:hover:border-zinc-600'
             ]"
@@ -369,7 +357,7 @@
             <div
               :class="[
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                accountCategory === 'oauth-based'
+                accountCategory === 'oauth-based' && grokPreferredInputMethod !== 'sso_cookie'
                   ? 'bg-zinc-900 text-white'
                   : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
               ]"
@@ -377,8 +365,35 @@
               <PlatformIcon platform="grok" size="sm" />
             </div>
             <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">OAuth</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.grokOauth') }}</span>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.grokBuildOauth') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.grokBuildOauthDesc') }}</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            data-testid="grok-account-type-web-sso"
+            @click="accountCategory = 'oauth-based'; grokPreferredInputMethod = 'sso_cookie'"
+            :class="[
+              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+              accountCategory === 'oauth-based' && grokPreferredInputMethod === 'sso_cookie'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-200 hover:border-blue-300 dark:border-dark-600 dark:hover:border-blue-700'
+            ]"
+          >
+            <div
+              :class="[
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                accountCategory === 'oauth-based' && grokPreferredInputMethod === 'sso_cookie'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
+              ]"
+            >
+              <Icon name="globe" size="sm" />
+            </div>
+            <div>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.grokWebSso') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.grokWebSsoDesc') }}</span>
             </div>
           </button>
 
@@ -404,11 +419,14 @@
               <Icon name="key" size="sm" />
             </div>
             <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">API Key</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.responsesApi') }}</span>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.xaiConsoleApiKey') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.xaiConsoleApiKeyDesc') }}</span>
             </div>
           </button>
         </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          {{ t('admin.accounts.grokProviderHint') }}
+        </p>
       </div>
 
       <!-- Account Type Selection (Gemini) -->
@@ -3212,7 +3230,8 @@
         :show-codex-pat-option="form.platform === 'openai'"
         :show-sso-option="form.platform === 'grok'"
         :show-manual-option="true"
-        :initial-input-method="'manual'"
+        :initial-input-method="form.platform === 'grok' ? grokPreferredInputMethod : 'manual'"
+        :sso-import-progress="grokSSOImportProgress"
         :platform="form.platform"
         :show-project-id="geminiOAuthType === 'code_assist'"
         @generate-url="handleGenerateUrl"
@@ -3626,6 +3645,19 @@ interface OAuthFlowExposed {
   reset: () => void
 }
 
+interface GrokSSOImportFailure {
+  index: number
+  error: string
+}
+
+interface GrokSSOImportProgress {
+  total: number
+  completed: number
+  valid: number
+  invalid: number
+  failures: GrokSSOImportFailure[]
+}
+
 const { t } = useI18n()
 const authStore = useAuthStore()
 
@@ -3726,6 +3758,8 @@ interface TempUnschedRuleForm {
 const step = ref(1)
 const submitting = ref(false)
 const accountCategory = ref<'oauth-based' | 'apikey' | 'bedrock' | 'service_account'>('oauth-based') // UI selection for account category
+const grokPreferredInputMethod = ref<AuthInputMethod>('manual')
+const grokSSOImportProgress = ref<GrokSSOImportProgress | null>(null)
 const addMethod = ref<AddMethod>('oauth') // For oauth-based: 'oauth' or 'setup-token'
 const apiKeyBaseUrl = ref('https://api.anthropic.com')
 const apiKeyValue = ref('')
@@ -4104,7 +4138,7 @@ const tempUnschedPresets = computed(() => [
 const form = reactive({
   name: '',
   notes: '',
-  platform: 'anthropic' as AccountPlatform,
+  platform: 'openai' as AccountPlatform,
   type: 'oauth' as AccountType, // Will be 'oauth', 'setup-token', or 'apikey'
   credentials: {} as Record<string, unknown>,
   proxy_id: null as number | null,
@@ -4247,6 +4281,7 @@ watch(
     }
     if (newPlatform === 'grok') {
       accountCategory.value = 'oauth-based'
+      grokPreferredInputMethod.value = 'manual'
       addMethod.value = 'oauth'
       modelRestrictionMode.value = 'mapping'
       form.concurrency = 1
@@ -4665,6 +4700,7 @@ const resetForm = () => {
   form.group_ids = []
   form.expires_at = null
   accountCategory.value = 'oauth-based'
+  grokPreferredInputMethod.value = 'manual'
   addMethod.value = 'oauth'
   apiKeyBaseUrl.value = 'https://api.anthropic.com'
   apiKeyValue.value = ''
@@ -4698,6 +4734,7 @@ const resetForm = () => {
   headerOverrideRows.value = []
   grokOAuthCustomBaseUrlEnabled.value = false
   grokOAuthBaseUrl.value = ''
+  grokSSOImportProgress.value = null
   interceptWarmupRequests.value = false
   autoPauseOnExpired.value = true
   openaiPassthroughEnabled.value = false
@@ -5403,16 +5440,24 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
 }
 
 const handleGrokImportSSO = async (ssoInput: string) => {
-  // Align with OpenAI/Grok RT batch import: one token per line, no client-side dedupe.
-  const ssoTokens = ssoInput
-    .split('\n')
-    .map((token) => token.trim())
-    .filter((token) => token)
+  const ssoTokens = [...new Set(
+    ssoInput
+      .split('\n')
+      .map((token) => token.trim())
+      .filter((token) => token)
+  )]
   if (ssoTokens.length === 0) return
   if (!validateGrokOAuthUpstreamConfig()) return
 
   grokOAuth.loading.value = true
   grokOAuth.error.value = ''
+  grokSSOImportProgress.value = {
+    total: ssoTokens.length,
+    completed: 0,
+    valid: 0,
+    invalid: 0,
+    failures: []
+  }
 
   const credentials: Record<string, unknown> = {}
   applyGrokOAuthUpstreamConfig(credentials)
@@ -5426,23 +5471,43 @@ const handleGrokImportSSO = async (ssoInput: string) => {
   }
 
   try {
-    const result = await adminAPI.grok.createFromSSO({
-      sso_tokens: ssoTokens,
-      name: form.name || undefined,
-      notes: form.notes || undefined,
-      proxy_id: form.proxy_id,
-      group_ids: form.group_ids,
-      credentials,
-      concurrency: form.concurrency,
-      load_factor: form.load_factor ?? undefined,
-      priority: form.priority,
-      rate_multiplier: form.rate_multiplier,
-      expires_at: form.expires_at,
-      auto_pause_on_expired: autoPauseOnExpired.value
-    })
+    const chunkSize = 3
+    for (let offset = 0; offset < ssoTokens.length; offset += chunkSize) {
+      const batch = ssoTokens.slice(offset, offset + chunkSize)
+      const result = await adminAPI.grok.createFromSSO({
+        sso_tokens: batch,
+        index_offset: offset,
+        total_count: ssoTokens.length,
+        name: form.name || undefined,
+        notes: form.notes || undefined,
+        proxy_id: form.proxy_id,
+        group_ids: form.group_ids,
+        credentials,
+        concurrency: form.concurrency,
+        load_factor: form.load_factor ?? undefined,
+        priority: form.priority,
+        rate_multiplier: form.rate_multiplier,
+        expires_at: form.expires_at,
+        auto_pause_on_expired: autoPauseOnExpired.value
+      })
 
-    const successCount = result.created?.length || 0
-    const failedCount = result.failed?.length || 0
+      const createdCount = result.created?.length || 0
+      const failedItems = result.failed || []
+      if (grokSSOImportProgress.value) {
+        grokSSOImportProgress.value.valid += createdCount
+        grokSSOImportProgress.value.invalid += failedItems.length
+        grokSSOImportProgress.value.completed += createdCount + failedItems.length
+        grokSSOImportProgress.value.failures.push(...failedItems.map((item) => ({
+          index: item.index,
+          error: item.error || 'Unknown error'
+        })))
+      }
+    }
+
+    const progress = grokSSOImportProgress.value
+    const successCount = progress?.valid || 0
+    const failedCount = progress?.invalid || 0
+    const errors = progress?.failures.map((item) => `#${item.index}: ${item.error}`) || []
     if (successCount > 0 && failedCount === 0) {
       appStore.showSuccess(
         ssoTokens.length > 1
@@ -5450,20 +5515,17 @@ const handleGrokImportSSO = async (ssoInput: string) => {
           : t('admin.accounts.accountCreated')
       )
       emit('created')
-      handleClose()
+      if (ssoTokens.length === 1) {
+        handleClose()
+      }
     } else if (successCount > 0 && failedCount > 0) {
-      // Same as OpenAI/Grok RT: keep input, show failures, refresh list.
       appStore.showWarning(
         t('admin.accounts.oauth.batchPartialSuccess', { success: successCount, failed: failedCount })
       )
-      grokOAuth.error.value = (result.failed || [])
-        .map((item) => `#${item.index}: ${item.error || 'Unknown error'}`)
-        .join('\n')
+      grokOAuth.error.value = errors.join('\n')
       emit('created')
     } else {
-      grokOAuth.error.value = (result.failed || [])
-        .map((item) => `#${item.index}: ${item.error || 'Unknown error'}`)
-        .join('\n') || t('admin.accounts.oauth.grok.failedToConvertSSO')
+      grokOAuth.error.value = errors.join('\n') || t('admin.accounts.oauth.grok.failedToConvertSSO')
       appStore.showError(t('admin.accounts.oauth.batchFailed'))
     }
   } catch (error: any) {

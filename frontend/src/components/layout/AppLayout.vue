@@ -1,19 +1,23 @@
 <template>
-  <div class="app-shell min-h-screen bg-token-bg text-token-text">
+  <div class="app-shell relative min-h-screen overflow-x-hidden bg-token-bg text-token-text">
+    <div class="app-shell-aurora" aria-hidden="true" />
+    <div class="app-shell-grid" aria-hidden="true" />
+    <div class="app-shell-glow app-shell-glow-one" aria-hidden="true" />
+    <div class="app-shell-glow app-shell-glow-two" aria-hidden="true" />
 
     <!-- Sidebar -->
     <AppSidebar />
 
     <!-- Main Content Area -->
     <div
-      class="relative min-h-screen transition-all duration-300"
-      :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64']"
+      class="relative z-10 min-h-screen transition-all duration-300"
+      :class="[sidebarCollapsed ? 'lg:ml-[92px]' : 'lg:ml-[276px]']"
     >
       <!-- Header -->
       <AppHeader />
 
       <!-- Main Content -->
-      <main class="app-main p-4 md:p-6 lg:p-8">
+      <main class="app-main px-3 pb-6 pt-5 sm:px-4 md:px-6 lg:px-8 lg:pb-8">
         <slot />
       </main>
     </div>
@@ -37,7 +41,7 @@ const isAdmin = computed(() => authStore.user?.role === 'admin')
 
 const { replayTour } = useOnboardingTour({
   storageKey: isAdmin.value ? 'admin_guide' : 'user_guide',
-  autoStart: true
+  autoStart: false
 })
 
 const onboardingStore = useOnboardingStore()

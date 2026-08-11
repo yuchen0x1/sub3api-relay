@@ -34,4 +34,18 @@ describe('admin Grok SSO import API', () => {
       { timeout: expectedTimeout },
     )
   })
+
+  it('passes global index metadata for chunked imports', async () => {
+    await createFromSSO({
+      sso_tokens: ['sso-8'],
+      index_offset: 7,
+      total_count: 1004,
+    })
+
+    expect(post).toHaveBeenCalledWith(
+      '/admin/grok/sso-to-oauth',
+      expect.objectContaining({ index_offset: 7, total_count: 1004 }),
+      expect.any(Object),
+    )
+  })
 })

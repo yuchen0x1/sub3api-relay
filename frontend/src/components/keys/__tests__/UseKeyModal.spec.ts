@@ -200,9 +200,9 @@ describe('UseKeyModal', () => {
     await nextTick()
 
     let codeBlocks = wrapper.findAll('pre code').map((code) => code.text())
-    const configToml = codeBlocks.find((content) => content.includes('[model_providers.sub2api_grok]'))
+    const configToml = codeBlocks.find((content) => content.includes('[model_providers.sub3api_grok]'))
     expect(configToml).toBeDefined()
-    expect(configToml).toContain('model_provider = "sub2api_grok"')
+    expect(configToml).toContain('model_provider = "sub3api_grok"')
     expect(configToml).toContain('model = "grok-4.5"')
     expect(configToml).toContain('model_context_window = 1000000')
     expect(configToml).toContain('base_url = "https://example.com/v1"')

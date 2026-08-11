@@ -1232,6 +1232,17 @@ func TestGetServerAddressFromEnv(t *testing.T) {
 	}
 }
 
+func TestGetServerAddressDefaultsToLoopback(t *testing.T) {
+	t.Setenv("CONFIG_FILE", filepath.Join(t.TempDir(), "missing.yaml"))
+	t.Setenv("DATA_DIR", "")
+	t.Setenv("SERVER_HOST", "")
+	t.Setenv("SERVER_PORT", "")
+
+	if got := GetServerAddress(); got != "127.0.0.1:8080" {
+		t.Fatalf("GetServerAddress() = %q, want loopback setup address", got)
+	}
+}
+
 func TestGetServerAddressFromConfigFile(t *testing.T) {
 	configFile := filepath.Join(t.TempDir(), "setup.yaml")
 	require.NoError(t, os.WriteFile(configFile, []byte("server:\n  host: 192.0.2.40\n  port: 9191\n"), 0o600))

@@ -90,7 +90,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { extractApiErrorMessage } from '@/utils/apiError'
+import { extractI18nErrorMessage } from '@/utils/apiError'
 import { adminAPI } from '@/api/admin'
 import type { AssociatedMonitorBrief } from '@/api/admin/channelMonitorTemplate'
 import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -135,7 +135,9 @@ async function fetchMonitors(id: number) {
     // 默认全选
     selectedIds.value = items.map((m) => m.id)
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   } finally {
     loading.value = false
   }
@@ -167,7 +169,9 @@ async function handleApply() {
     emit('applied', affected)
     emit('close')
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   } finally {
     submitting.value = false
   }

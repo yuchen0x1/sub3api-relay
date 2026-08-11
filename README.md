@@ -9,13 +9,29 @@
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
-
 **Personal-use backend AI API gateway**
 
 English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
+
+## v0.1.175 preview
+
+The `v0.1.175` release refreshes the public page and private operator console with a glass-style UI, clearer personal-operator navigation, channel monitoring, preserved usage and operation logs, and a sidebar release update entry.
+
+| Public page | Usage records |
+| --- | --- |
+| ![Sub3API public page](assets/screenshots/v0.1.175/home.webp) | ![Usage records](assets/screenshots/v0.1.175/usage.webp) |
+
+| System settings | Operations dashboard |
+| --- | --- |
+| ![System settings](assets/screenshots/v0.1.175/settings.webp) | ![Operations dashboard](assets/screenshots/v0.1.175/ops-dashboard.webp) |
+
+| Channel monitoring |
+| --- |
+| ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
+
+See the [release notes](RELEASE_NOTES_v0.1.175.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
@@ -213,7 +229,7 @@ TOTP_ENCRYPTION_KEY=your_totp_key_here
 
 # Initial administrator account
 ADMIN_EMAIL=admin
-ADMIN_PASSWORD=admin
+ADMIN_PASSWORD=replace_with_a_strong_password
 
 # Optional: Custom port
 SERVER_PORT=8080
@@ -499,7 +515,7 @@ or mitigating upstream WebSocket issues.
 
 #### ⚠️ Important: Creating the Admin Account
 
-The initial administrator is created during first-run setup. Docker deployments with `AUTO_SETUP=true` use `ADMIN_EMAIL` / `ADMIN_PASSWORD`, which default to `admin` / `admin`. Source deployments use the setup wizard, which is also prefilled with `admin` / `admin`. Change the password immediately after login. The `default.admin_email` / `default.admin_password` fields in `config.yaml` are not used to create the account.
+The initial administrator is created during first-run setup. Docker deployments with `AUTO_SETUP=true` require an explicit `ADMIN_PASSWORD` of 8-128 characters when the database is empty. Source deployments prompt for the password in the setup wizard. Existing databases with an administrator are not overwritten. The `default.admin_email` / `default.admin_password` fields in `config.yaml` are not used to create the account.
 
 Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipped on first run**: the server detects an existing config and boots straight into normal mode with an empty `users` table, so the first login attempt fails with `invalid email or password`.
 

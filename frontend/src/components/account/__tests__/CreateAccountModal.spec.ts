@@ -112,14 +112,16 @@ async function selectButtonByText(wrapper: ReturnType<typeof mountModal>, text: 
 }
 
 async function submitApiKeyAccount(
-  platform: 'openai' | 'anthropic',
+  platform: 'openai' | 'grok',
   enableLongContextBilling = false,
   disableUpstreamBillingProbe = false
 ) {
   const wrapper = mountModal()
-  await selectButtonByText(wrapper, platform === 'openai' ? 'OpenAI' : 'admin.accounts.claudeConsole')
+  await selectButtonByText(wrapper, platform === 'openai' ? 'OpenAI' : 'Grok')
   if (platform === 'openai') {
     await selectButtonByText(wrapper, 'API Key')
+  } else {
+    await selectButtonByText(wrapper, 'admin.accounts.types.xaiConsoleApiKey')
   }
   await wrapper.get('form#create-account-form input[type="text"]').setValue(`${platform} account`)
   await wrapper.get('form#create-account-form input[type="password"]').setValue('test-api-key')
@@ -250,7 +252,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
   })
 
   it('omits the OpenAI setting for non-OpenAI account creation', async () => {
-    await submitApiKeyAccount('anthropic')
+    await submitApiKeyAccount('grok')
 
     expect(createAccountMock).toHaveBeenCalledTimes(1)
     expect(createAccountMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBeUndefined()
@@ -259,7 +261,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
   })
 
   it('sends an explicit disabled state when the non-OpenAI create toggle is turned off', async () => {
-    await submitApiKeyAccount('anthropic', false, true)
+    await submitApiKeyAccount('grok', false, true)
 
     expect(createAccountMock.mock.calls[0]?.[0]?.upstream_billing_probe_enabled).toBe(false)
   })

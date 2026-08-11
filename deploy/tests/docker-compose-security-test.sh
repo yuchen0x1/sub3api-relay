@@ -38,8 +38,16 @@ check_default_admin_credentials() {
     printf '%s must default ADMIN_EMAIL to admin\n' "$file" >&2
     exit 1
   }
-  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}' "$file" || {
-    printf '%s must default ADMIN_PASSWORD to admin\n' "$file" >&2
+  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}' "$file" || {
+    printf '%s must not provide a default administrator password\n' "$file" >&2
+    exit 1
+  }
+}
+
+check_loopback_binding() {
+  file=$1
+  grep -Fq '${BIND_HOST:-127.0.0.1}:${SERVER_PORT:-8080}:8080' "$file" || {
+    printf '%s must bind the published application port to loopback by default\n' "$file" >&2
     exit 1
   }
 }
@@ -52,9 +60,11 @@ for compose_file in \
 do
   check_application_security_opt "$compose_file"
   check_default_admin_credentials "$compose_file"
+  check_loopback_binding "$compose_file"
 done
 
 grep -Fxq 'ADMIN_EMAIL=admin' deploy/.env.example
-grep -Fxq 'ADMIN_PASSWORD=admin' deploy/.env.example
+grep -Fxq 'ADMIN_PASSWORD=' deploy/.env.example
+grep -Fxq 'BIND_HOST=127.0.0.1' deploy/.env.example
 
 printf 'docker compose security test passed\n'

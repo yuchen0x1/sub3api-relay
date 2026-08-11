@@ -17,6 +17,24 @@
 
 </div>
 
+## v0.1.175 プレビュー
+
+`v0.1.175` では、ガラス調のホームと個人運用者向けコンソールを更新し、利用履歴と操作ログを保持したまま、サイドバーのバージョン番号から更新できるようにしました。
+
+| ホーム | 利用履歴 |
+| --- | --- |
+| ![Sub3API ホーム](assets/screenshots/v0.1.175/home.webp) | ![利用履歴](assets/screenshots/v0.1.175/usage.webp) |
+
+| システム設定 | 運用監視 |
+| --- | --- |
+| ![システム設定](assets/screenshots/v0.1.175/settings.webp) | ![運用監視](assets/screenshots/v0.1.175/ops-dashboard.webp) |
+
+| チャネル監視 |
+| --- |
+| ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
+
+[v0.1.175 更新内容](RELEASE_NOTES_v0.1.175.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+
 ## ⚠️ 重要なお知らせ
 
 本プロジェクトをご利用になる前に、以下の内容を必ずよくお読みください：
@@ -212,7 +230,7 @@ TOTP_ENCRYPTION_KEY=your_totp_key_here
 
 # 初期管理者アカウント
 ADMIN_EMAIL=admin
-ADMIN_PASSWORD=admin
+ADMIN_PASSWORD=強力なパスワードに置き換えてください
 
 # オプション: カスタムポート
 SERVER_PORT=8080
@@ -457,7 +475,7 @@ URL バリデーションまたはレスポンスヘッダーフィルタリン�
 
 #### ⚠️ 重要：管理者アカウントの作成
 
-初期管理者アカウントは初回セットアップ時に作成されます。`AUTO_SETUP=true` の Docker デプロイでは `ADMIN_EMAIL` / `ADMIN_PASSWORD` を使用し、既定値は `admin` / `admin` です。ソースデプロイのセットアップウィザードにも `admin` / `admin` が入力されています。ログイン後すぐにパスワードを変更してください。`config.yaml` の `default.admin_email` / `default.admin_password` は管理者作成には使用されません。
+初期管理者アカウントは初回セットアップ時に作成されます。空のデータベースで `AUTO_SETUP=true` を使用する Docker デプロイでは、8-128 文字の `ADMIN_PASSWORD` を明示的に設定する必要があります。ソースデプロイではセットアップウィザードがパスワード入力を求めます。既存の管理者は上書きされません。`config.yaml` の `default.admin_email` / `default.admin_password` は管理者作成には使用されません。
 
 上記ステップ 5 で事前に `config.yaml` を作成しているため、**初回起動時にセットアップウィザードはスキップされます**。サーバーは既存の config を検出して通常モードで直接起動し、この時点では `users` テーブルが空のため、初回ログインは `invalid email or password` を返します。
 

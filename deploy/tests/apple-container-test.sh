@@ -34,7 +34,12 @@ export SUB2API_ENV_FILE="${ENV_FILE}"
 mkdir -p "${STATE_DIR}"
 
 "${SCRIPT}" init
-[[ "$(stat -f '%Lp' "${ENV_FILE}")" == "600" ]] || fail "init did not create a mode-600 env file"
+if stat -f '%Lp' "${ENV_FILE}" >/dev/null 2>&1; then
+    env_mode="$(stat -f '%Lp' "${ENV_FILE}")"
+else
+    env_mode="$(stat -c '%a' "${ENV_FILE}")"
+fi
+[[ "${env_mode}" == "600" ]] || fail "init did not create a mode-600 env file"
 grep -q '^POSTGRES_PASSWORD=change_this_secure_password$' "${ENV_FILE}" && fail "init retained the placeholder password"
 
 chmod 644 "${ENV_FILE}"

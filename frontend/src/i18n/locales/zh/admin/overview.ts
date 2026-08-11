@@ -170,7 +170,7 @@ export default {
         download: '下载',
         restore: '恢复',
         restoreConfirm: '确定要从此备份恢复吗？这将覆盖当前数据库！',
-        restorePasswordPrompt: '请输入管理员密码以确认恢复操作',
+        restorePasswordPrompt: '请输入站长密码以确认恢复操作',
         restoreSuccess: '数据库恢复成功',
         deleteConfirm: '确定要删除此备份吗？',
         deleted: '备份已删除'
@@ -181,7 +181,7 @@ export default {
         step1: {
           title: '创建 R2 存储桶',
           line1: '登录 Cloudflare Dashboard (dash.cloudflare.com)，左侧菜单选择「R2 对象存储」',
-          line2: '点击「创建存储桶」，输入名称（如 sub2api-backups），选择区域',
+          line2: '点击「创建存储桶」，输入名称（如 sub3api-backups），选择区域',
           line3: '点击创建完成'
         },
         step2: {
@@ -473,7 +473,7 @@ export default {
       searchApiKeyGroups: '搜索 API Key 分组...',
       statusFilter: '状态筛选',
       allStatuses: '全部状态',
-      admin: '管理员',
+      admin: '站长',
       user: '用户',
       disabled: '禁用',
       email: '邮箱',
@@ -483,8 +483,8 @@ export default {
       enterEmail: '请输入邮箱',
       enterPassword: '请输入密码',
       enterUsername: '请输入用户名（选填）',
-      enterNotes: '请输入备注（仅管理员可见）',
-      notesHint: '此备注仅对管理员可见',
+      enterNotes: '请输入备注（仅站长可见）',
+      notesHint: '此备注仅对站长可见',
       enterNewPassword: '请输入新密码（选填）',
       leaveEmptyToKeep: '留空则保持原密码不变',
       generatePassword: '生成随机密码',
@@ -553,7 +553,7 @@ export default {
       failedToLoadApiKeys: '加载用户 API 密钥失败',
       deleteConfirm: "确定要删除用户 '{email}' 吗？此操作无法撤销。",
       roles: {
-        admin: '管理员',
+        admin: '站长',
         user: '用户'
       },
       form: {
@@ -562,8 +562,8 @@ export default {
         usernameLabel: '用户名',
         usernamePlaceholder: '请输入用户名（选填）',
         notesLabel: '备注',
-        notesPlaceholder: '请输入备注（仅管理员可见）',
-        notesHint: '此备注仅对管理员可见',
+        notesPlaceholder: '请输入备注（仅站长可见）',
+        notesHint: '此备注仅对站长可见',
         passwordLabel: '密码',
         passwordPlaceholder: '请输入密码（留空则不修改）',
         roleLabel: '角色',
@@ -657,9 +657,9 @@ export default {
       allTypes: '全部类型',
       typeBalance: '余额（兑换码）',
       typeAffiliateBalance: '余额（返利转入）',
-      typeAdminBalance: '余额（管理员调整）',
+      typeAdminBalance: '余额（站长调整）',
       typeConcurrency: '并发（兑换码）',
-      typeAdminConcurrency: '并发（管理员调整）',
+      typeAdminConcurrency: '并发（站长调整）',
       typeSubscription: '订阅',
       failedToLoadBalanceHistory: '加载余额记录失败',
       createdAt: '创建时间',
@@ -864,7 +864,7 @@ export default {
       exclusiveTooltip: {
         title: '什么是专属分组？',
         description:
-          '开启后，用户在创建 API Key 时将无法看到此分组。只有管理员手动将用户分配到此分组后，用户才能使用。',
+          '开启后，用户在创建 API Key 时将无法看到此分组。只有站长手动将用户分配到此分组后，用户才能使用。',
         example: '使用场景：',
         exampleContent:
           '公开分组费率 0.8，您可以创建一个费率 0.7 的专属分组，手动分配给 VIP 用户，让他们享受更优惠的价格。'
@@ -1109,9 +1109,9 @@ export default {
       openaiLive: {
         title: 'OpenAI Live',
         allow: '允许访问 Live',
-        hint: '启用后，此 OpenAI 分组的 API Key 可以创建并控制 Live 语音会话。默认关闭。运行 Sub2API 的服务端必须是 Apple Silicon Mac，并安装官方 ChatGPT App；客户端平台不受限制。',
+        hint: '启用后，此 OpenAI 分组的 API Key 可以创建并控制 Live 语音会话。默认关闭。运行 Sub3API 的服务端必须是 Apple Silicon Mac，并安装官方 ChatGPT App；客户端平台不受限制。',
         unsupportedTitle: '当前服务端不支持 Live',
-        unsupportedMessage: '当前 Sub2API 服务端无法生成 Live 所需的设备证明，即使开启也不能使用。是否仍然开启？',
+        unsupportedMessage: '当前 Sub3API 服务端无法生成 Live 所需的设备证明，即使开启也不能使用。是否仍然开启？',
         enableAnyway: '仍然开启'
       },
       invalidRequestFallback: {

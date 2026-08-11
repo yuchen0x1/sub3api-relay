@@ -13,7 +13,7 @@
 
       <div>
         <label class="input-label">{{ t('admin.channelMonitor.form.provider') }} <span class="text-red-500">*</span></label>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button
             v-for="opt in providerOptions"
             :key="opt.value"
@@ -188,7 +188,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { extractApiErrorMessage } from '@/utils/apiError'
+import { extractApiErrorMessage, extractI18nErrorMessage } from '@/utils/apiError'
 import { adminAPI } from '@/api/admin'
 import { keysAPI } from '@/api/keys'
 import { userGroupsAPI } from '@/api/groups'
@@ -213,7 +213,6 @@ import ProviderIcon from '@/components/user/monitor/ProviderIcon.vue'
 import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
 import {
   PROVIDER_OPENAI,
-  PROVIDER_ANTHROPIC,
   PROVIDER_GEMINI,
   PROVIDER_GROK,
   API_MODE_CHAT_COMPLETIONS,
@@ -276,7 +275,7 @@ interface MonitorForm {
 
 const form = reactive<MonitorForm>({
   name: '',
-  provider: PROVIDER_ANTHROPIC,
+  provider: PROVIDER_OPENAI,
   api_mode: API_MODE_CHAT_COMPLETIONS,
   endpoint: '',
   api_key: '',
@@ -398,7 +397,6 @@ interface ProviderOption {
 }
 
 const providerOptions = computed<ProviderOption[]>(() => [
-  { value: PROVIDER_ANTHROPIC, label: t('monitorCommon.providers.anthropic') },
   { value: PROVIDER_OPENAI, label: t('monitorCommon.providers.openai') },
   { value: PROVIDER_GEMINI, label: t('monitorCommon.providers.gemini') },
   { value: PROVIDER_GROK, label: t('monitorCommon.providers.grok') },
@@ -445,7 +443,7 @@ watch(() => form.api_mode, () => {
 function resetForm() {
   suppressFormWatchers = true
   form.name = ''
-  form.provider = PROVIDER_ANTHROPIC
+  form.provider = PROVIDER_OPENAI
   form.api_mode = API_MODE_CHAT_COMPLETIONS
   form.endpoint = ''
   form.api_key = ''
@@ -581,7 +579,14 @@ async function handleSubmit() {
     emit('saved')
     emit('close')
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(
+        err,
+        t,
+        'admin.channelMonitor.errors',
+        t('common.error'),
+      ),
+    )
   } finally {
     submitting.value = false
   }

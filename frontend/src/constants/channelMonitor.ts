@@ -10,6 +10,7 @@
 import type { APIMode, Provider, MonitorStatus } from '@/api/admin/channelMonitor'
 
 export const PROVIDER_OPENAI: Provider = 'openai'
+// Kept for rendering legacy monitor records; Anthropic is no longer selectable.
 export const PROVIDER_ANTHROPIC: Provider = 'anthropic'
 export const PROVIDER_GEMINI: Provider = 'gemini'
 export const PROVIDER_GROK: Provider = 'grok'
@@ -20,9 +21,9 @@ export const DEFAULT_GROK_MODEL = 'grok-4.5'
 export const API_MODE_CHAT_COMPLETIONS: APIMode = 'chat_completions'
 export const API_MODE_RESPONSES: APIMode = 'responses'
 
+/** Providers available when creating monitors and templates. */
 export const PROVIDERS: readonly Provider[] = [
   PROVIDER_OPENAI,
-  PROVIDER_ANTHROPIC,
   PROVIDER_GEMINI,
   PROVIDER_GROK,
 ]

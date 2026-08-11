@@ -2943,7 +2943,7 @@ import {
 import TotpStepUpDialog from "@/components/auth/TotpStepUpDialog.vue";
 import type { SettingsForm } from "./settings/settingsForm";
 import { extractApiErrorMessage } from "@/utils/apiError";
-import { useAppStore, useAuthStore } from "@/stores";
+import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
 import { normalizeRegistrationEmailSuffixDomains } from "@/utils/registrationEmailPolicy";
 import {
@@ -2955,7 +2955,6 @@ import {
 
 const { t, locale } = useI18n();
 const appStore = useAppStore();
-const authStore = useAuthStore();
 // 关闭 step-up 开关是敏感操作：后端返回 STEP_UP_REQUIRED 时弹 TOTP 码重试
 const settingsStepUp = useStepUp();
 const adminSettingsStore = useAdminSettingsStore();
@@ -2984,9 +2983,7 @@ const allSettingsTabs = [
   { key: "email" as SettingsTab, icon: "mail" as const },
   { key: "backup" as SettingsTab, icon: "database" as const },
 ];
-const settingsTabs = computed(() => authStore.isSimpleMode
-  ? allSettingsTabs.filter(({ key }) => !['users', 'email'].includes(key))
-  : allSettingsTabs);
+const settingsTabs = computed(() => allSettingsTabs.filter(({ key }) => ['general', 'gateway', 'backup'].includes(key)));
 
 const settingsTabKeyboardActions = {
   ArrowLeft: -1,

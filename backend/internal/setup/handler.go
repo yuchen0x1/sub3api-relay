@@ -302,15 +302,9 @@ func install(c *gin.Context) {
 	}
 
 	// Admin validation
-	if !validateEmail(req.Admin.Email) {
-		response.Error(c, http.StatusBadRequest, "Invalid admin email format")
+	if err := validateInitialAdmin(req.Admin); err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
 		return
-	}
-	if !isDefaultAdminCredentials(req.Admin) {
-		if err := validatePassword(req.Admin.Password); err != nil {
-			response.Error(c, http.StatusBadRequest, err.Error())
-			return
-		}
 	}
 
 	// Server validation

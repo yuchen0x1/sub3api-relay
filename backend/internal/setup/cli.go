@@ -159,13 +159,28 @@ func RunCLI() error {
 	}
 	fmt.Println("OK")
 
-	// The initial administrator uses public defaults and must be changed after login.
+	// Require the operator to choose the initial administrator credentials.
 	fmt.Println()
 	fmt.Println("── Admin Account ──")
-	cfg.Admin.Email = defaultAdminLogin
-	cfg.Admin.Password = defaultAdminPassword
-	fmt.Printf("  Login: %s\n", cfg.Admin.Email)
-	fmt.Printf("  Password: %s (change immediately after login)\n", cfg.Admin.Password)
+	for {
+		cfg.Admin.Email = promptString(reader, "Admin Login", defaultAdminLogin)
+		if validateEmail(cfg.Admin.Email) {
+			break
+		}
+		fmt.Println("  Invalid admin login. Use 'admin' or a valid email address.")
+	}
+	for {
+		cfg.Admin.Password = promptPassword("Admin Password (minimum 8 characters)")
+		if err := validatePassword(cfg.Admin.Password); err != nil {
+			fmt.Printf("  Invalid password: %v.\n", err)
+			continue
+		}
+		if confirmation := promptPassword("Confirm Admin Password"); confirmation != cfg.Admin.Password {
+			fmt.Println("  Passwords do not match.")
+			continue
+		}
+		break
+	}
 
 	// Server configuration with validation
 	fmt.Println()

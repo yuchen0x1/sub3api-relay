@@ -7,6 +7,7 @@ import {
   DEFAULT_GROK_ENDPOINT,
   DEFAULT_GROK_MODEL,
   PROVIDERS,
+  PROVIDER_ANTHROPIC,
   PROVIDER_GROK,
 } from '@/constants/channelMonitor'
 
@@ -81,10 +82,12 @@ describe('channel monitor Grok provider', () => {
     await flushPromises()
 
     expect(PROVIDERS).toContain(PROVIDER_GROK)
+    expect(PROVIDERS).not.toContain(PROVIDER_ANTHROPIC)
     const providerButtons = wrapper.findAll('[data-testid^="monitor-provider-"]')
-    expect(providerButtons).toHaveLength(4)
-    expect(providerButtons[0].element.parentElement?.className).toContain('grid-cols-2')
-    expect(providerButtons[0].element.parentElement?.className).toContain('sm:grid-cols-4')
+    expect(providerButtons).toHaveLength(3)
+    expect(providerButtons[0].element.parentElement?.className).toContain('grid-cols-1')
+    expect(providerButtons[0].element.parentElement?.className).toContain('sm:grid-cols-3')
+    expect(wrapper.find('[data-testid="monitor-provider-anthropic"]').exists()).toBe(false)
 
     const grokButton = wrapper.get('[data-testid="monitor-provider-grok"]')
     expect(grokButton.find('svg').exists()).toBe(true)
@@ -97,7 +100,7 @@ describe('channel monitor Grok provider', () => {
     expect((endpoint.element as HTMLInputElement).value).toBe(DEFAULT_GROK_ENDPOINT)
     expect((model.element as HTMLInputElement).value).toBe(DEFAULT_GROK_MODEL)
 
-    await wrapper.get('[data-testid="monitor-provider-anthropic"]').trigger('click')
+    await wrapper.get('[data-testid="monitor-provider-gemini"]').trigger('click')
     expect((endpoint.element as HTMLInputElement).value).toBe('')
     expect((model.element as HTMLInputElement).value).toBe('')
 
@@ -116,14 +119,14 @@ describe('channel monitor Grok provider', () => {
     const endpoint = wrapper.get('[data-testid="monitor-endpoint"]')
     const model = wrapper.get('[data-testid="monitor-primary-model"]')
     const grokButton = wrapper.get('[data-testid="monitor-provider-grok"]')
-    const anthropicButton = wrapper.get('[data-testid="monitor-provider-anthropic"]')
+    const geminiButton = wrapper.get('[data-testid="monitor-provider-gemini"]')
 
     await endpoint.setValue('https://gateway.example.com')
     await grokButton.trigger('click')
     expect((endpoint.element as HTMLInputElement).value).toBe('https://gateway.example.com')
     expect((model.element as HTMLInputElement).value).toBe(DEFAULT_GROK_MODEL)
 
-    await anthropicButton.trigger('click')
+    await geminiButton.trigger('click')
     expect((endpoint.element as HTMLInputElement).value).toBe('https://gateway.example.com')
     expect((model.element as HTMLInputElement).value).toBe('')
 

@@ -332,8 +332,36 @@ generate_secret() {
     openssl rand -hex 32
 }
 
+read_admin_password() {
+    local password=${ADMIN_PASSWORD:-}
+    local confirmation
+
+    if [[ -z "${password}" ]]; then
+        [[ -t 0 ]] || die "ADMIN_PASSWORD is required for non-interactive first-time initialization."
+        while true; do
+            read -r -s -p "Initial administrator password (8-128 characters): " password
+            printf '\n'
+            read -r -s -p "Confirm administrator password: " confirmation
+            printf '\n'
+            if (( ${#password} < 8 || ${#password} > 128 )); then
+                warn "Administrator password must be 8-128 characters." >&2
+                continue
+            fi
+            if [[ "${password}" != "${confirmation}" ]]; then
+                warn "Administrator passwords do not match." >&2
+                continue
+            fi
+            break
+        done
+    fi
+
+    (( ${#password} >= 8 && ${#password} <= 128 )) || \
+        die "ADMIN_PASSWORD must be 8-128 characters."
+    printf '%s' "${password}"
+}
+
 cmd_init() {
-    local env_dir temp_file postgres_secret jwt_secret totp_secret
+    local env_dir temp_file postgres_secret jwt_secret totp_secret admin_password
 
     require_command openssl
 
@@ -344,6 +372,7 @@ cmd_init() {
     postgres_secret="$(generate_secret)" || die "Failed to generate PostgreSQL password."
     jwt_secret="$(generate_secret)" || die "Failed to generate JWT secret."
     totp_secret="$(generate_secret)" || die "Failed to generate TOTP encryption key."
+    admin_password="$(read_admin_password)" || die "Failed to read initial administrator password."
     [[ -n "${postgres_secret}" && -n "${jwt_secret}" && -n "${totp_secret}" ]] || \
         die "Secret generation returned an empty value."
 
@@ -355,6 +384,7 @@ cmd_init() {
     replace_env_value POSTGRES_PASSWORD "${postgres_secret}" "${temp_file}"
     replace_env_value JWT_SECRET "${jwt_secret}" "${temp_file}"
     replace_env_value TOTP_ENCRYPTION_KEY "${totp_secret}" "${temp_file}"
+    replace_env_value ADMIN_PASSWORD "${admin_password}" "${temp_file}"
     mv "${temp_file}" "${ENV_FILE}"
 
     info "Created ${ENV_FILE} with generated secrets."
@@ -388,8 +418,13 @@ validate_env_file_security() {
     local owner mode permissions
 
     [[ -f "${ENV_FILE}" ]] || die "Environment file not found: ${ENV_FILE}. Run '$0 init' first."
-    owner="$(stat -f '%u' "${ENV_FILE}")" || die "Unable to read owner for ${ENV_FILE}."
-    mode="$(stat -f '%Lp' "${ENV_FILE}")" || die "Unable to read permissions for ${ENV_FILE}."
+    if stat -f '%u' "${ENV_FILE}" >/dev/null 2>&1; then
+        owner="$(stat -f '%u' "${ENV_FILE}")" || die "Unable to read owner for ${ENV_FILE}."
+        mode="$(stat -f '%Lp' "${ENV_FILE}")" || die "Unable to read permissions for ${ENV_FILE}."
+    else
+        owner="$(stat -c '%u' "${ENV_FILE}")" || die "Unable to read owner for ${ENV_FILE}."
+        mode="$(stat -c '%a' "${ENV_FILE}")" || die "Unable to read permissions for ${ENV_FILE}."
+    fi
     [[ "${owner}" == "${EUID}" ]] || die "Environment file must be owned by the current user: ${ENV_FILE}"
     [[ "${mode}" =~ ^[0-7]+$ ]] || die "Unable to parse permissions for ${ENV_FILE}: ${mode}"
     permissions=$((8#${mode}))
@@ -400,10 +435,10 @@ validate_env_file_security() {
 prepare_environment() {
     validate_env_file_security
 
-    APP_IMAGE="$(read_env_value APPLE_CONTAINER_SUB2API_IMAGE weishaw/sub2api:latest)"
+    APP_IMAGE="$(read_env_value APPLE_CONTAINER_SUB2API_IMAGE ghcr.io/yuchen0x1/sub3api-relay:latest)"
     POSTGRES_IMAGE="$(read_env_value APPLE_CONTAINER_POSTGRES_IMAGE postgres:18-alpine)"
     REDIS_IMAGE="$(read_env_value APPLE_CONTAINER_REDIS_IMAGE redis:8-alpine)"
-    BIND_HOST="$(read_env_value BIND_HOST 0.0.0.0)"
+    BIND_HOST="$(read_env_value BIND_HOST 127.0.0.1)"
     HOST_PORT="$(read_env_value SERVER_PORT 8080)"
     POSTGRES_USER="$(read_env_value POSTGRES_USER sub2api)"
     POSTGRES_PASSWORD="$(read_env_value POSTGRES_PASSWORD)"

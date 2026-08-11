@@ -53,3 +53,19 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
   })
 })
+
+describe('AppSidebar simple mode navigation', () => {
+  it('keeps group management available to administrators', () => {
+    expect(componentSource).toContain("{ path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon }")
+    expect(componentSource).not.toContain(
+      "{ path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon, hideInSimpleMode: true }"
+    )
+  })
+
+  it('shows only the admin usage route for administrators', () => {
+    expect(componentSource).toContain("{ path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon }")
+    expect(componentSource).toContain(
+      "items.filter((item) => item.path !== '/keys' && item.path !== '/usage')"
+    )
+  })
+})

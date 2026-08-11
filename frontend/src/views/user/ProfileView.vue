@@ -1,115 +1,36 @@
 <template>
   <AppLayout>
-    <div
-      data-testid="profile-shell"
-      class="mx-auto max-w-[950px] space-y-6"
-    >
-      <ProfileInfoCard
-        :user="user"
-        :linuxdo-enabled="linuxdoOAuthEnabled"
-        :dingtalk-enabled="dingtalkOAuthEnabled"
-        :oidc-enabled="oidcOAuthEnabled"
-        :oidc-provider-name="oidcOAuthProviderName"
-        :wechat-enabled="wechatOAuthEnabled"
-        :wechat-open-enabled="wechatOAuthOpenEnabled"
-        :wechat-mp-enabled="wechatOAuthMPEnabled"
-      />
-
-      <div
-        v-if="contactInfo"
-        class="card border-primary-200 bg-primary-50 p-6 dark:bg-primary-900/20"
-      >
-        <div class="flex items-center gap-4">
-          <div class="rounded-xl bg-primary-100 p-3 text-primary-600">
-            <Icon name="chat" size="lg" />
-          </div>
-          <div>
-            <h3 class="font-semibold text-primary-800 dark:text-primary-200">
-              {{ t('common.contactSupport') }}
-            </h3>
-            <p class="text-sm font-medium">{{ contactInfo }}</p>
-          </div>
-        </div>
+    <div data-testid="profile-shell" class="mx-auto max-w-[950px] space-y-6">
+      <div class="sub3-glass-panel p-1">
+        <ProfileInfoCard :user="user" :show-bindings="false" />
       </div>
-
-      <ProfilePasswordForm />
-
-      <ProfileBalanceNotifyCard
-        v-if="user && balanceLowNotifyEnabled"
-        :enabled="user.balance_notify_enabled ?? true"
-        :threshold="user.balance_notify_threshold"
-        :extra-emails="user.balance_notify_extra_emails ?? []"
-        :system-default-threshold="systemDefaultThreshold"
-        :user-email="user.email"
-      />
-
-      <ProfileTotpCard />
-      <ProfilePasskeyCard :enabled="passkeyEnabled" />
+      <div class="sub3-glass-panel p-6">
+        <div class="mb-5">
+          <p class="sub3-eyebrow">operator security</p>
+          <h2 class="mt-3 text-xl font-semibold">{{ securityTitle }}</h2>
+          <p class="mt-1 text-sm text-token-muted">{{ securityDescription }}</p>
+        </div>
+        <ProfilePasswordForm />
+      </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Icon } from '@/components/icons'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import ProfileBalanceNotifyCard from '@/components/user/profile/ProfileBalanceNotifyCard.vue'
 import ProfileInfoCard from '@/components/user/profile/ProfileInfoCard.vue'
 import ProfilePasswordForm from '@/components/user/profile/ProfilePasswordForm.vue'
-import ProfileTotpCard from '@/components/user/profile/ProfileTotpCard.vue'
-import ProfilePasskeyCard from '@/components/user/profile/ProfilePasskeyCard.vue'
-import { isWeChatWebOAuthEnabled } from '@/api/auth'
-import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 
-const { t } = useI18n()
-const appStore = useAppStore()
+const { locale } = useI18n()
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
+const securityTitle = computed(() => locale.value.startsWith('zh') ? '\u7ad9\u957f\u5bc6\u7801' : 'Operator password')
+const securityDescription = computed(() => locale.value.startsWith('zh') ? '\u4e2a\u4eba\u7248\u53ea\u4fdd\u7559\u552f\u4e00\u7ad9\u957f\u8d26\u53f7\u7684\u57fa\u672c\u8d44\u6599\u4e0e\u5bc6\u7801\u7ba1\u7406\u3002' : 'The personal edition keeps only the operator profile and password controls.')
 
-const contactInfo = ref('')
-const balanceLowNotifyEnabled = ref(false)
-const systemDefaultThreshold = ref(0)
-const linuxdoOAuthEnabled = ref(false)
-const dingtalkOAuthEnabled = ref(false)
-const wechatOAuthEnabled = ref(false)
-const wechatOAuthOpenEnabled = ref<boolean | undefined>(undefined)
-const wechatOAuthMPEnabled = ref<boolean | undefined>(undefined)
-const oidcOAuthEnabled = ref(false)
-const oidcOAuthProviderName = ref('OIDC')
-const passkeyEnabled = ref(false)
-
-onMounted(async () => {
-  const profileRefresh = authStore.refreshUser().catch((error) => {
-    console.error('Failed to refresh profile:', error)
-  })
-
-  const settingsLoad = appStore.fetchPublicSettings()
-    .then((settings) => {
-      if (!settings) {
-        return
-      }
-      contactInfo.value = settings.contact_info || ''
-      balanceLowNotifyEnabled.value = settings.balance_low_notify_enabled ?? false
-      systemDefaultThreshold.value = settings.balance_low_notify_threshold ?? 0
-      linuxdoOAuthEnabled.value = settings.linuxdo_oauth_enabled ?? false
-      dingtalkOAuthEnabled.value = settings.dingtalk_oauth_enabled ?? false
-      wechatOAuthEnabled.value = isWeChatWebOAuthEnabled(settings)
-      wechatOAuthOpenEnabled.value = typeof settings.wechat_oauth_open_enabled === 'boolean'
-        ? settings.wechat_oauth_open_enabled
-        : undefined
-      wechatOAuthMPEnabled.value = typeof settings.wechat_oauth_mp_enabled === 'boolean'
-        ? settings.wechat_oauth_mp_enabled
-        : undefined
-      oidcOAuthEnabled.value = settings.oidc_oauth_enabled ?? false
-      oidcOAuthProviderName.value = settings.oidc_oauth_provider_name || 'OIDC'
-      passkeyEnabled.value = settings.passkey_enabled === true
-    })
-    .catch((error) => {
-      console.error('Failed to load settings:', error)
-    })
-
-  await Promise.all([profileRefresh, settingsLoad])
+onMounted(() => {
+  void authStore.refreshUser()
 })
 </script>

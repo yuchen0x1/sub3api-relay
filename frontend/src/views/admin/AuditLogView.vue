@@ -355,7 +355,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI, type AuditLog } from '@/api/admin'
-import { totpAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -603,12 +602,13 @@ function prettyBody(body: string): string {
   }
 }
 
-// Clear-all flow: confirm → TOTP → clear
+// Clear-all flow: confirm → clear. TOTP is only requested when enabled in settings.
 const clearConfirmVisible = ref(false)
 const clearTotpVisible = ref(false)
 const clearTotpCode = ref('')
 const clearing = ref(false)
 const checkingTotpStatus = ref(false)
+const stepUpEnabled = ref(false)
 
 // 与其他敏感操作一致：未启用 2FA 时直接提示去个人资料启用 TOTP，
 // 而不是弹出一个无法完成的验证码输入框（后端会以 TOTP_NOT_SETUP 拒绝）。
@@ -616,11 +616,8 @@ async function openClearDialog() {
   if (checkingTotpStatus.value) return
   checkingTotpStatus.value = true
   try {
-    const status = await totpAPI.getStatus()
-    if (!status.enabled) {
-      appStore.showError(t('stepUp.notEnabled'))
-      return
-    }
+    const settings = await adminAPI.settings.getSettings()
+    stepUpEnabled.value = settings.step_up_enabled === true
   } catch (err: any) {
     appStore.showError(err?.message || t('admin.audit.loadFailed'))
     return
@@ -633,7 +630,11 @@ async function openClearDialog() {
 function onClearConfirmed() {
   clearConfirmVisible.value = false
   clearTotpCode.value = ''
-  clearTotpVisible.value = true
+  if (stepUpEnabled.value) {
+    clearTotpVisible.value = true
+  } else {
+    void submitClear()
+  }
 }
 
 function cancelClearTotp() {
@@ -642,7 +643,7 @@ function cancelClearTotp() {
 }
 
 async function submitClear() {
-  if (clearTotpCode.value.length !== 6) return
+  if (stepUpEnabled.value && clearTotpCode.value.length !== 6) return
   clearing.value = true
   try {
     const res = await adminAPI.audit.clear(clearTotpCode.value)

@@ -170,60 +170,37 @@ describe('Tencent captcha action gate', () => {
     expect(loginMock).not.toHaveBeenCalled()
   })
 
-  it('starts OAuth through the Tencent gate before navigating', async () => {
+  it('hides OAuth login entry points in the personal login page', async () => {
     const wrapper = mountLogin()
     await flushPromises()
 
-    await wrapper.get('[data-testid="oauth-start"]').trigger('click')
-    await flushPromises()
-
-    expect(verifyActionMock).toHaveBeenCalledOnce()
-    expect(startOAuthLoginMock).toHaveBeenCalledWith(
-      { provider: 'github', params: { redirect: '/dashboard' } },
-      {
-        tencent_captcha_ticket: 'ticket-1',
-        tencent_captcha_randstr: '@rand-1'
-      }
-    )
-    expect(locationState.href).toBe('https://github.example/authorize')
-    expect(captchaResetMock).toHaveBeenCalledOnce()
-  })
-
-  it('does not start OAuth when Tencent captcha is closed', async () => {
-    verifyActionMock.mockResolvedValue(null)
-    const wrapper = mountLogin()
-    await flushPromises()
-
-    await wrapper.get('[data-testid="oauth-start"]').trigger('click')
-    await flushPromises()
-
+    expect(wrapper.find('[data-testid="oauth-start"]').exists()).toBe(false)
     expect(startOAuthLoginMock).not.toHaveBeenCalled()
-    expect(locationState.href).toBe('http://localhost/login')
   })
 
-  it('passes a fresh Tencent proof to Passkey login', async () => {
-    const wrapper = mountLogin()
-    await flushPromises()
-
-    await wrapper.get('button.btn-secondary.w-full').trigger('click')
-    await flushPromises()
-
-    expect(verifyActionMock).toHaveBeenCalledOnce()
-    expect(loginWithPasskeyMock).toHaveBeenCalledWith({
-      tencent_captcha_ticket: 'ticket-1',
-      tencent_captcha_randstr: '@rand-1'
-    })
-    expect(captchaResetMock).toHaveBeenCalledOnce()
-  })
-
-  it('does not invoke Passkey when Tencent captcha is closed', async () => {
+  it('keeps OAuth entry points hidden when Tencent captcha is closed', async () => {
     verifyActionMock.mockResolvedValue(null)
     const wrapper = mountLogin()
     await flushPromises()
 
-    await wrapper.get('button.btn-secondary.w-full').trigger('click')
+    expect(wrapper.find('[data-testid="oauth-start"]').exists()).toBe(false)
+    expect(startOAuthLoginMock).not.toHaveBeenCalled()
+  })
+
+  it('hides Passkey login in the personal login page', async () => {
+    const wrapper = mountLogin()
     await flushPromises()
 
+    expect(wrapper.find('button.btn-secondary.w-full').exists()).toBe(false)
+    expect(loginWithPasskeyMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps Passkey login hidden when Tencent captcha is closed', async () => {
+    verifyActionMock.mockResolvedValue(null)
+    const wrapper = mountLogin()
+    await flushPromises()
+
+    expect(wrapper.find('button.btn-secondary.w-full').exists()).toBe(false)
     expect(loginWithPasskeyMock).not.toHaveBeenCalled()
   })
 })

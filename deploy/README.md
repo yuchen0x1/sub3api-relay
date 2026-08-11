@@ -1,6 +1,6 @@
-# Sub2API Deployment Files
+# Sub3API Deployment Files
 
-This directory contains files for deploying Sub2API on Linux servers and Apple-silicon Macs.
+This directory contains the official Sub3API deployment files for Linux servers and Apple-silicon Macs.
 
 ## Deployment Methods
 
@@ -20,7 +20,7 @@ This directory contains files for deploying Sub2API on Linux servers and Apple-s
 | `apple-container.sh` | Native Apple `container` lifecycle script |
 | `APPLE_CONTAINER.md` | Apple `container` deployment and operations guide |
 | `.env.example` | Container environment variables template |
-| `DOCKER.md` | Docker Hub documentation |
+| `DOCKER.md` | Container image and Docker documentation |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `sub2api.service` | Systemd service unit file |
@@ -33,7 +33,7 @@ This directory contains files for deploying Sub2API on Linux servers and Apple-s
 
 ## Apple container Deployment
 
-Apple-silicon Macs running macOS 26 can run the complete Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
+Apple-silicon Macs running macOS 26 can run the complete Sub3API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
 
 ```bash
 ./apple-container.sh init
@@ -67,10 +67,10 @@ chmod +x docker-deploy.sh
 **What the script does:**
 - Downloads `docker-compose.local.yml` and `.env.example`
 - Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-- Configures the initial administrator as `admin` / `admin`
+- Requires an explicit `ADMIN_PASSWORD` for the first site-owner account
 - Creates `.env` file with generated secrets
 - Creates necessary data directories (data/, postgres_data/, redis_data/)
-- Stores the default administrator credentials in the owner-readable `.env` file
+- Stores the generated secrets and the site-owner password in the owner-readable `.env` file
 
 **After running the script:**
 ```bash
@@ -80,9 +80,8 @@ docker compose -f docker-compose.local.yml up -d
 # View logs
 docker compose -f docker-compose.local.yml logs -f sub2api
 
-# Initial login: admin
-# Initial password: admin
-# Change the password immediately after login.
+# The first startup uses ADMIN_EMAIL and ADMIN_PASSWORD from .env.
+# There is no public default password.
 
 # Access Web UI
 # http://localhost:8080
@@ -138,10 +137,10 @@ When using Docker Compose with `AUTO_SETUP=true`:
    - Connects to PostgreSQL and Redis
    - Applies database migrations (SQL files in `backend/migrations/*.sql`) and records them in `schema_migrations`
    - Generates JWT secret (if not provided)
-   - Creates the initial administrator with `admin` / `admin` unless overridden in `.env`
+   - Creates the initial site-owner account with `ADMIN_EMAIL` and `ADMIN_PASSWORD`
    - Writes config.yaml
 
-2. No manual Setup Wizard needed - just configure `.env` and start
+2. No manual Setup Wizard is needed for Docker - configure `.env` and start
 
 3. Log in with `admin` / `admin`, then change the administrator password immediately.
 
@@ -235,7 +234,7 @@ docker compose down -v
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
 | `ADMIN_EMAIL` | No | `admin` | Initial administrator login |
-| `ADMIN_PASSWORD` | No | `admin` | Initial administrator password; change after first login |
+| `ADMIN_PASSWORD` | **First install** | *(none)* | Initial administrator password; must be 8-128 characters |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -245,9 +244,11 @@ docker compose down -v
 
 See `.env.example` for all available options.
 
-> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. The initial administrator is `admin` / `admin`.
+> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. Set `ADMIN_PASSWORD` explicitly before the first start; Sub3API no longer creates a public default password.
 
 > **Existing data:** `ADMIN_PASSWORD` is used only when the admin account is created during the first setup. Changing it in `.env` does not change an existing admin password; use the account password-change or reset flow instead.
+
+> **Network exposure:** Published application ports bind to `127.0.0.1` by default. Put Caddy, Nginx, or another trusted TLS reverse proxy in front of Sub3API. Set `BIND_HOST=0.0.0.0` only when you intentionally need direct network access and have configured the host firewall.
 
 ### Easy Migration (Local Directory Version)
 

@@ -3,6 +3,7 @@
     <!-- Admin: Full version badge with dropdown -->
     <template v-if="isAdmin">
       <button
+        ref="triggerRef"
         @click="toggleDropdown"
         class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs transition-colors"
         :class="[
@@ -26,13 +27,12 @@
         </span>
       </button>
 
-      <!-- Dropdown -->
+      <!-- Inline panel: stays below the version badge and pushes sidebar navigation down -->
       <transition name="dropdown">
         <div
           v-if="dropdownOpen"
           ref="dropdownRef"
-          class="absolute left-0 z-50 mt-2 overflow-hidden whitespace-normal rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-200 dark:border-dark-700 dark:bg-dark-800"
-          :class="rollbackPanelOpen && isReleaseBuild ? 'w-80' : 'w-64'"
+          class="version-panel mt-2 max-h-[calc(100vh-8rem)] overflow-x-hidden overflow-y-auto whitespace-normal rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800"
         >
           <!-- Header with refresh button -->
           <div
@@ -668,6 +668,7 @@ const appStore = useAppStore()
 const isAdmin = computed(() => authStore.isAdmin)
 
 const dropdownOpen = ref(false)
+const triggerRef = ref<HTMLElement | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
 
 // Use store's cached version state
@@ -911,8 +912,11 @@ async function checkServiceAndReload() {
 
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as Node
-  const button = (event.target as Element).closest('button')
-  if (dropdownRef.value && !dropdownRef.value.contains(target) && !button?.contains(target)) {
+  if (
+    dropdownRef.value &&
+    !dropdownRef.value.contains(target) &&
+    !triggerRef.value?.contains(target)
+  ) {
     closeDropdown()
   }
 }
@@ -939,7 +943,12 @@ onBeforeUnmount(() => {
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(-4px);
+  transform: translateY(-4px);
+}
+
+.version-panel {
+  width: calc(100% + 3rem);
+  margin-left: -3rem;
 }
 
 .rollback-enter-active,

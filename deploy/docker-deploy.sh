@@ -5,7 +5,7 @@
 # This script prepares deployment files for Sub3API:
 #   - Downloads docker-compose.local.yml and .env.example
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-#   - Configures the initial administrator as admin / admin
+#   - Requires an explicit strong initial administrator password
 #   - Creates necessary data directories
 #
 # After running this script, you can start services with:
@@ -46,6 +46,39 @@ generate_secret() {
     openssl rand -hex 32
 }
 
+read_admin_password() {
+    local password="${ADMIN_PASSWORD:-}"
+    local confirmation
+
+    if [ -z "$password" ]; then
+        if [ ! -t 0 ]; then
+            print_error "ADMIN_PASSWORD is required for non-interactive first-time deployment." >&2
+            exit 1
+        fi
+        while true; do
+            read -r -s -p "Initial administrator password (8-128 characters): " password
+            echo
+            read -r -s -p "Confirm administrator password: " confirmation
+            echo
+            if [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; then
+                print_error "Administrator password must be 8-128 characters." >&2
+                continue
+            fi
+            if [ "$password" != "$confirmation" ]; then
+                print_error "Administrator passwords do not match." >&2
+                continue
+            fi
+            break
+        done
+    fi
+
+    if [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; then
+        print_error "ADMIN_PASSWORD must be 8-128 characters." >&2
+        exit 1
+    fi
+    printf '%s' "$password"
+}
+
 set_env_value() {
     local key="$1"
     local value="$2"
@@ -69,7 +102,7 @@ command_exists() {
 main() {
     echo ""
     echo "=========================================="
-    echo "  Sub2API Deployment Preparation"
+    echo "  Sub3API Deployment Preparation"
     echo "=========================================="
     echo ""
 
@@ -119,6 +152,7 @@ main() {
     JWT_SECRET=$(generate_secret)
     TOTP_ENCRYPTION_KEY=$(generate_secret)
     POSTGRES_PASSWORD=$(generate_secret)
+    ADMIN_PASSWORD=$(read_admin_password)
     # Create .env from .env.example
     cp .env.example .env
 
@@ -126,6 +160,7 @@ main() {
     set_env_value JWT_SECRET "$JWT_SECRET"
     set_env_value TOTP_ENCRYPTION_KEY "$TOTP_ENCRYPTION_KEY"
     set_env_value POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+    set_env_value ADMIN_PASSWORD "$ADMIN_PASSWORD"
 
     # Create data directories
     print_info "Creating data directories..."
@@ -145,6 +180,8 @@ main() {
     echo "  POSTGRES_PASSWORD:     ${POSTGRES_PASSWORD}"
     echo "  JWT_SECRET:            ${JWT_SECRET}"
     echo "  TOTP_ENCRYPTION_KEY:   ${TOTP_ENCRYPTION_KEY}"
+    echo "  ADMIN_EMAIL:           admin"
+    echo "  ADMIN_PASSWORD:        saved in .env (not printed)"
     echo ""
     print_warning "These credentials have been saved to .env file."
     print_warning "Please keep them secure and do not share publicly!"
@@ -169,8 +206,7 @@ main() {
     echo "     http://localhost:8080"
     echo ""
     print_warning "Initial administrator login: admin"
-    print_warning "Initial administrator password: admin"
-    print_warning "Change the administrator password immediately after the first login."
+    print_warning "The administrator password is stored only in the owner-readable .env file."
     echo ""
 }
 

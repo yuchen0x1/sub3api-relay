@@ -1,5 +1,5 @@
 /**
- * Vue Router configuration for Sub2API frontend
+ * Vue Router configuration for Sub3API frontend
  * Defines all application routes with lazy loading and navigation guards
  */
 
@@ -51,7 +51,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/register',
     name: 'Register',
-    component: () => import('@/views/auth/RegisterView.vue'),
+    redirect: '/login',
     meta: {
       requiresAuth: false,
       title: 'Register',
@@ -302,7 +302,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/users',
     name: 'AdminUsers',
-    component: () => import('@/views/admin/UsersView.vue'),
+    redirect: '/profile',
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
@@ -326,7 +326,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/admin/channels',
     name: 'AdminChannels',
-    component: () => import('@/views/admin/ChannelsView.vue'),
+    redirect: '/admin/channels/monitor',
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
@@ -648,13 +648,10 @@ router.beforeEach(async (to, _from, next) => {
     const restrictedPaths = [
       '/admin/ops',
       '/admin/users',
-      '/admin/groups',
       '/admin/announcements',
       '/admin/security-audit',
       '/admin/risk-control',
       '/admin/prompt-audit',
-      '/admin/usage',
-      '/admin/audit-logs',
     ]
 
     if (restrictedPaths.some((path) => to.path.startsWith(path))) {

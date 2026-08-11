@@ -79,11 +79,29 @@ func TestApplyAdminDefaults(t *testing.T) {
 	if admin.Email != defaultAdminLogin {
 		t.Fatalf("Email=%q, want %q", admin.Email, defaultAdminLogin)
 	}
-	if admin.Password != defaultAdminPassword {
-		t.Fatalf("Password=%q, want %q", admin.Password, defaultAdminPassword)
+	if admin.Password != "" {
+		t.Fatalf("Password=%q, want empty password so first install must set one explicitly", admin.Password)
 	}
-	if !isDefaultAdminCredentials(admin) {
-		t.Fatal("expected default administrator credentials")
+}
+
+func TestValidateInitialAdminRejectsMissingOrWeakPassword(t *testing.T) {
+	tests := []AdminConfig{
+		{Email: defaultAdminLogin},
+		{Email: defaultAdminLogin, Password: "admin"},
+		{Email: "invalid login", Password: "strong-password"},
+	}
+
+	for _, admin := range tests {
+		if err := validateInitialAdmin(admin); err == nil {
+			t.Fatalf("validateInitialAdmin(%+v) error = nil, want validation failure", admin)
+		}
+	}
+}
+
+func TestValidateInitialAdminAcceptsStrongPassword(t *testing.T) {
+	admin := AdminConfig{Email: defaultAdminLogin, Password: "strong-password"}
+	if err := validateInitialAdmin(admin); err != nil {
+		t.Fatalf("validateInitialAdmin() error = %v", err)
 	}
 }
 
@@ -213,7 +231,7 @@ func TestWriteConfigFileKeepsDefaultUserConcurrency(t *testing.T) {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
 
-	if !strings.Contains(string(data), "user_concurrency: 5") {
+	if !strings.Contains(string(data), "user_concurrency: 0") {
 		t.Fatalf("config missing default user concurrency, got:\n%s", string(data))
 	}
 }

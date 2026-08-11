@@ -258,8 +258,8 @@ export default {
         subscription: '订阅',
         invitation: '邀请码',
         // 管理员在用户管理页面调整余额/并发时产生的记录
-        admin_balance: '余额（管理员）',
-        admin_concurrency: '并发数（管理员）'
+        admin_balance: '余额（站长）',
+        admin_concurrency: '并发数（站长）'
       },
       // 用于选择器和筛选器的直接键
       balance: '余额',

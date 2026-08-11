@@ -132,7 +132,7 @@ describe('EmailVerifyView', () => {
     setTokenMock.mockResolvedValue({})
   })
 
-  it('acquires a fresh Tencent proof for each resend action', async () => {
+  it('ignores legacy Tencent proof fields when resending verification codes', async () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
@@ -142,9 +142,6 @@ describe('EmailVerifyView', () => {
       registration_email_suffix_whitelist: [],
     })
     sendVerifyCodeMock.mockResolvedValue({ countdown: 0 })
-    verifyActionMock
-      .mockResolvedValueOnce({ token: 'ticket-1', randstr: '@rand-1' })
-      .mockResolvedValueOnce({ token: 'ticket-2', randstr: '@rand-2' })
     sessionStorage.setItem(
       'register_data',
       JSON.stringify({
@@ -174,7 +171,7 @@ describe('EmailVerifyView', () => {
 
     await flushPromises()
     const resendButton = () => wrapper.findAll('button').find((button) =>
-      button.text().includes('auth.clickToResend')
+      button.text().includes('auth.resendCode')
     )!
 
     await resendButton().trigger('click')
@@ -182,15 +179,12 @@ describe('EmailVerifyView', () => {
     await resendButton().trigger('click')
     await flushPromises()
 
-    expect(verifyActionMock).toHaveBeenCalledTimes(2)
-    expect(sendVerifyCodeMock).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      tencent_captcha_ticket: 'ticket-1',
-      tencent_captcha_randstr: '@rand-1',
-    }))
-    expect(sendVerifyCodeMock).toHaveBeenNthCalledWith(3, expect.objectContaining({
-      tencent_captcha_ticket: 'ticket-2',
-      tencent_captcha_randstr: '@rand-2',
-    }))
+    expect(verifyActionMock).not.toHaveBeenCalled()
+    expect(sendVerifyCodeMock).toHaveBeenCalledTimes(3)
+    for (const [payload] of sendVerifyCodeMock.mock.calls) {
+      expect(payload).not.toHaveProperty('tencent_captcha_ticket')
+      expect(payload).not.toHaveProperty('tencent_captcha_randstr')
+    }
   })
 
   it('uses the pending oauth verify-code endpoint when register data carries a pending auth session', async () => {
@@ -228,7 +222,7 @@ describe('EmailVerifyView', () => {
     expect(sendVerifyCodeMock).not.toHaveBeenCalled()
   })
 
-  it('requires a fresh captcha proof after the initial send-code request fails', async () => {
+  it('shows the resend Turnstile after the user requests another code', async () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: true,
       turnstile_site_key: 'site-key',
@@ -263,6 +257,14 @@ describe('EmailVerifyView', () => {
     expect(sendVerifyCodeMock).toHaveBeenCalledWith(expect.objectContaining({
       turnstile_token: 'initial-proof',
     }))
+    expect(wrapper.find('[data-testid="resend-captcha"]').exists()).toBe(false)
+
+    const resendButton = wrapper.findAll('button').find((button) =>
+      button.text().includes('auth.clickToResend')
+    )
+    expect(resendButton).toBeDefined()
+    await resendButton!.trigger('click')
+
     expect(wrapper.find('[data-testid="resend-captcha"]').exists()).toBe(true)
   })
 
@@ -442,7 +444,6 @@ describe('EmailVerifyView', () => {
       email: 'fresh@example.com',
       password: 'secret-123',
       verify_code: '123456',
-      aff_code: 'AFF123',
     })
     expect(persistOAuthTokenContextMock).toHaveBeenCalledWith({
       access_token: 'oauth-access-token',
@@ -456,7 +457,7 @@ describe('EmailVerifyView', () => {
     expect(registerMock).not.toHaveBeenCalled()
   })
 
-  it('requires and submits a fresh turnstile token for pending oauth account creation', async () => {
+  it('does not require a second Turnstile proof for pending oauth account creation', async () => {
     authStoreState.pendingAuthSession = {
       token: 'pending-token-3',
       token_field: 'pending_auth_token',
@@ -511,10 +512,8 @@ describe('EmailVerifyView', () => {
     })
 
     await wrapper.get('#code').setValue('123456')
-    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
-
-    await wrapper.get('[data-testid="create-turnstile"]').trigger('click')
     expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="create-turnstile"]').exists()).toBe(false)
 
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
@@ -523,12 +522,11 @@ describe('EmailVerifyView', () => {
       email: 'fresh@example.com',
       password: 'secret-123',
       verify_code: '123456',
-      turnstile_token: 'create-token',
     })
     expect(setTokenMock).toHaveBeenCalledWith('oauth-access-token')
   })
 
-  it('resets the pending oauth create-account turnstile after submit failure', async () => {
+  it('reports a pending oauth create-account failure without a second Turnstile', async () => {
     authStoreState.pendingAuthSession = {
       token: 'pending-token-4',
       token_field: 'pending_auth_token',
@@ -569,8 +567,8 @@ describe('EmailVerifyView', () => {
 
     await flushPromises()
     await wrapper.get('#code').setValue('123456')
-    await wrapper.get('[data-testid="create-turnstile"]').trigger('click')
     expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="create-turnstile"]').exists()).toBe(false)
 
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
@@ -579,10 +577,10 @@ describe('EmailVerifyView', () => {
       email: 'fresh@example.com',
       password: 'secret-123',
       verify_code: '123456',
-      turnstile_token: 'create-token',
     })
-    expect(createTurnstileResetMock).toHaveBeenCalled()
-    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(createTurnstileResetMock).not.toHaveBeenCalled()
+    expect(showErrorMock).toHaveBeenCalled()
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
   })
 
   it('returns to the oauth callback flow when pending account creation becomes bind-login', async () => {
@@ -682,16 +680,12 @@ describe('EmailVerifyView', () => {
       password: 'secret-456',
       verify_code: '654321',
       turnstile_token: undefined,
-      tencent_captcha_ticket: undefined,
-      tencent_captcha_randstr: undefined,
-      promo_code: 'PROMO',
-      invitation_code: 'INVITE',
     })
     expect(apiClientPostMock).not.toHaveBeenCalled()
     expect(pushMock).toHaveBeenCalledWith('/dashboard')
   })
 
-  it('does not require another Tencent proof for final email registration', async () => {
+  it('ignores legacy Tencent proof fields during email verification', async () => {
     getPublicSettingsMock.mockResolvedValue({
       turnstile_enabled: false,
       turnstile_site_key: '',
@@ -728,24 +722,27 @@ describe('EmailVerifyView', () => {
     })
 
     await flushPromises()
-    expect(sendVerifyCodeMock).toHaveBeenCalledWith(expect.objectContaining({
-      tencent_captcha_ticket: 'send-code-ticket',
-      tencent_captcha_randstr: '@send-code-rand',
-    }))
+    expect(sendVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'normal@example.com',
+      pending_auth_token: undefined,
+      turnstile_token: undefined,
+    })
     expect(JSON.parse(sessionStorage.getItem('register_data') || '{}')).toEqual({
       email: 'normal@example.com',
       password: 'secret-456',
+      tencent_captcha_ticket: 'send-code-ticket',
+      tencent_captcha_randstr: '@send-code-rand',
     })
 
     await wrapper.get('#code').setValue('654321')
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(registerMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(registerMock).toHaveBeenCalledWith({
       email: 'normal@example.com',
+      password: 'secret-456',
       verify_code: '654321',
-      tencent_captcha_ticket: undefined,
-      tencent_captcha_randstr: undefined,
-    }))
+      turnstile_token: undefined,
+    })
   })
 })

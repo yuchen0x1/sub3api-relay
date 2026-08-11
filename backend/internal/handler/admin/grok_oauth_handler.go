@@ -266,6 +266,8 @@ func (h *GrokOAuthHandler) CreateAccountFromOAuth(c *gin.Context) {
 type GrokSSOToOAuthRequest struct {
 	SSOTokens          []string       `json:"sso_tokens"`
 	SSOToken           string         `json:"sso_token"`
+	IndexOffset        int            `json:"index_offset"`
+	TotalCount         int            `json:"total_count"`
 	Name               string         `json:"name"`
 	Notes              *string        `json:"notes"`
 	ProxyID            *int64         `json:"proxy_id"`
@@ -314,6 +316,14 @@ func (h *GrokOAuthHandler) CreateAccountsFromSSO(c *gin.Context) {
 		response.BadRequest(c, "sso_tokens is required")
 		return
 	}
+	indexOffset := req.IndexOffset
+	if indexOffset < 0 {
+		indexOffset = 0
+	}
+	totalCount := req.TotalCount
+	if minimumTotal := indexOffset + len(tokens); totalCount < minimumTotal {
+		totalCount = minimumTotal
+	}
 
 	ctx := c.Request.Context()
 	workerCount := grokSSOImportConcurrency
@@ -328,7 +338,7 @@ func (h *GrokOAuthHandler) CreateAccountsFromSSO(c *gin.Context) {
 		go func() {
 			defer wg.Done()
 			for job := range jobs {
-				items[job.index] = h.safeCreateAccountFromSSOToken(ctx, req, job.token, job.index+1, len(tokens))
+				items[job.index] = h.safeCreateAccountFromSSOToken(ctx, req, job.token, job.index+1+indexOffset, totalCount)
 			}
 		}()
 	}

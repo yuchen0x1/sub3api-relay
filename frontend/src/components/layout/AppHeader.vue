@@ -1,5 +1,5 @@
 <template>
-  <header class="app-header glass sticky top-0 z-30 border-b border-gray-200/50 dark:border-dark-700/50">
+  <header class="app-header glass sticky top-3 z-30 mx-3 mt-3 rounded-2xl border border-white/50 dark:border-white/10">
     <div class="flex h-16 items-center justify-between gap-2 px-2 sm:px-4 md:px-6">
       <!-- Left: Mobile Menu Toggle + Page Title -->
       <div class="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -12,10 +12,10 @@
         </button>
 
         <div class="hidden lg:block">
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1 class="app-header-title text-lg font-semibold">
             {{ pageTitle }}
           </h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-dark-400">
+          <p v-if="pageDescription" class="app-header-description text-xs">
             {{ pageDescription }}
           </p>
         </div>
@@ -61,7 +61,7 @@
         <div v-if="user" class="relative" ref="dropdownRef">
           <button
             @click="toggleDropdown"
-            class="flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors hover:border-white/30 hover:bg-white/35 dark:hover:border-white/10 dark:hover:bg-white/5"
+            class="app-user-menu flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors"
             :aria-label="t('common.userMenu')"
             aria-haspopup="menu"
             :aria-expanded="dropdownOpen"
@@ -78,9 +78,6 @@
             <div class="hidden text-left md:block">
               <div class="text-sm font-medium text-gray-900 dark:text-white">
                 {{ displayName }}
-              </div>
-              <div class="text-xs capitalize text-gray-500 dark:text-dark-400">
-                {{ user.role }}
               </div>
             </div>
             <Icon name="chevronDown" size="sm" class="hidden text-gray-400 md:block" />

@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	simpleModeAdminConcurrencyUpgradeKey = "simple_mode_admin_concurrency_upgraded_30"
-	simpleModeLegacyAdminConcurrency     = 5
-	simpleModeTargetAdminConcurrency     = 30
+	simpleModeAdminConcurrencyUpgradeKey = "simple_mode_admin_concurrency_upgraded_unlimited_175"
+	simpleModeTargetAdminConcurrency     = 0
 )
 
 func ensureSimpleModeAdminConcurrency(ctx context.Context, client *dbent.Client) error {
@@ -33,7 +32,7 @@ func ensureSimpleModeAdminConcurrency(ctx context.Context, client *dbent.Client)
 	if _, err := client.User.Update().
 		Where(
 			dbuser.RoleEQ(service.RoleAdmin),
-			dbuser.ConcurrencyEQ(simpleModeLegacyAdminConcurrency),
+			dbuser.ConcurrencyGT(0),
 		).
 		SetConcurrency(simpleModeTargetAdminConcurrency).
 		Save(ctx); err != nil {

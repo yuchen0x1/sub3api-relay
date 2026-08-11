@@ -124,7 +124,7 @@ export default {
     loadFailed: '文档加载失败',
     retryLater: '请稍后刷新页面重试。',
     notFound: '文档不存在',
-    notFoundDescription: '当前条款文档不存在或已被管理员移除。',
+    notFoundDescription: '当前条款文档不存在或已被站长移除。',
     updatedAt: '更新日期：{date}',
     empty: '暂无正文内容',
     loginAgreement: '登录条款',
@@ -219,7 +219,7 @@ export default {
     rememberMe: '记住我',
     dontHaveAccount: '还没有账户？',
     alreadyHaveAccount: '已有账户？',
-    registrationDisabled: '注册功能暂时关闭，请联系管理员。',
+    registrationDisabled: '注册功能暂时关闭，请联系站长。',
     emailLabel: '邮箱',
     emailPlaceholder: '请输入邮箱',
     loginIdentifierLabel: '账号或邮箱',
@@ -321,7 +321,7 @@ export default {
       error: {
         title: '钉钉登录失败',
         csrf: '登录会话已过期，请重新扫码登录',
-        corp_rejected: '您的钉钉账号不属于本企业，请联系管理员',
+        corp_rejected: '您的钉钉账号不属于本企业，请联系站长',
         dingtalk_not_enabled: '钉钉登录暂未启用',
         upstream_error: '钉钉服务暂时不可用，请稍后重试',
         missing_browser_session: '浏览器会话丢失，请重新登录',
@@ -439,7 +439,7 @@ export default {
     hint: '请输入身份验证器应用中的 6 位验证码以继续此敏感操作。',
     verifyFailed: '验证失败，请重试',
     notEnabled: '此操作需要开启二次验证，请先在个人资料中启用 TOTP。',
-    adminApiKeyForbidden: '管理 API Key 无法执行此操作，请使用已通过二次验证的管理员会话。'
+    adminApiKeyForbidden: '站长 API Key 无法执行此操作，请使用已通过二次验证的站长会话。'
   },
 
   // Dashboard

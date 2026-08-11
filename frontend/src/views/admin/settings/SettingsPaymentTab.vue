@@ -604,14 +604,14 @@ const appStore = useAppStore();
 
 const paymentGuideHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT_CN.md"
-    : "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT.md",
+    ? "https://github.com/yuchen0x1/sub3api-relay/blob/main/docs/PAYMENT_CN.md"
+    : "https://github.com/yuchen0x1/sub3api-relay/blob/main/docs/PAYMENT.md",
 );
 
 const paymentMethodsHref = computed(() =>
   locale.value.startsWith("zh")
-    ? "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
-    : "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT.md#supported-payment-methods",
+    ? "https://github.com/yuchen0x1/sub3api-relay/blob/main/docs/PAYMENT_CN.md#支持的支付方式"
+    : "https://github.com/yuchen0x1/sub3api-relay/blob/main/docs/PAYMENT.md#supported-payment-methods",
 );
 
 // ==================== Provider Management ====================
@@ -978,4 +978,3 @@ onMounted(() => {
   loadProviders();
 });
 </script>
-

@@ -116,6 +116,12 @@ export default {
         codeAssist: 'Code Assist',
         antigravityOauth: 'Antigravity OAuth',
         grokOauth: 'Grok OAuth',
+        grokBuildOauth: 'Grok Build OAuth',
+        grokBuildOauthDesc: 'Official authorization with automatic refresh',
+        grokWebSso: 'Grok Web SSO',
+        grokWebSsoDesc: 'Import SSO keys and convert them to Build OAuth',
+        xaiConsoleApiKey: 'xAI Console API Key',
+        xaiConsoleApiKeyDesc: 'Connect to the official Responses API',
         antigravityApikey: 'Connect via Base URL + API Key',
         upstream: 'Upstream',
         upstreamDesc: 'Connect via Base URL + API Key'
@@ -175,7 +181,7 @@ export default {
         ungrouped: 'Ungrouped',
         hint: 'Displayed as "group / base score / sticky bonus". The base score is computed within the current filtered candidate set and includes priority, load, queue depth, error rate, first-token latency, reset window, quota headroom, billing rate, and related factors. The sticky bonus applies only when sticky weighting is enabled for previous_response_id or session_hash. Higher scores are preferred.'
       },
-      usageWindowsHint: '"5h / 7d" are the upstream account\'s official rolling usage windows (e.g. OpenAI ChatGPT, Claude). They are imposed by the upstream provider on the account itself — not configured by sub2api, and unrelated to the models you map. Usage resets automatically once each window rolls over, and the limit cannot be lifted from within sub2api.',
+      usageWindowsHint: '"5h / 7d" are the upstream account\'s official rolling usage windows (e.g. OpenAI ChatGPT, Claude). They are imposed by the upstream provider on the account itself, not configured by Sub3API, and unrelated to the models you map. Usage resets automatically once each window rolls over, and the limit cannot be lifted from within Sub3API.',
       ollamaCloud: {
         title: 'Ollama Cloud usage',
         sessionSecurityHint: 'The browser session is encrypted at rest and sent only to the fixed official settings URL.',
@@ -226,7 +232,7 @@ export default {
         }
       },
       upstreamBilling: {
-        trustWarning: 'This rate is declared by the upstream site for the current API key. Sub2API cannot verify that it matches actual charges. The upstream site or an intermediary may return forged, stale, or modified data. Verify it against bills, balance changes, and actual usage.',
+        trustWarning: 'This rate is declared by the upstream site for the current API key. Sub3API cannot verify that it matches actual charges. The upstream site or an intermediary may return forged, stale, or modified data. Verify it against bills, balance changes, and actual usage.',
         autoProbe: 'Automatically probe upstream declared rate',
         autoProbeHint: 'Refresh the upstream declared rate on the global interval. This switch alone does not change the account rate.',
         syncRate: 'Sync upstream declared rate',
@@ -465,6 +471,7 @@ export default {
       accountName: 'Account Name',
       enterAccountName: 'Enter account name',
       accountType: 'Account Type',
+      grokProviderHint: 'Following the Grok Build, Web, and Console capability split: Web SSO is converted by the server into schedulable Build OAuth credentials, while API keys correspond to xAI Console.',
       claudeCode: 'Claude Code',
       claudeConsole: 'Claude Console',
       bedrockLabel: 'AWS Bedrock',
@@ -651,7 +658,7 @@ export default {
       poolMode: 'Pool Mode',
       poolModeHint: 'Enable when upstream is an account pool; errors won\'t mark local account status',
       poolModeInfo:
-        'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another sub2api instance.',
+        'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another Sub3API instance.',
       poolModeRetryCount: 'Same-Account Retries',
       poolModeRetryCountHint:
         'Only applies in pool mode. Use 0 to disable in-place retry. Default {default}, maximum {max}.',
@@ -1010,6 +1017,15 @@ export default {
           ssoCookieAuth: 'SSO Cookie Import',
           ssoCookieDesc: 'Paste one Grok Web SSO key per line. The server will complete the xAI Device Flow and convert them into Grok Build OAuth credentials.',
           ssoCookieLabel: 'Grok Web SSO Key',
+          selectSSOFile: 'Choose TXT File',
+          ssoFileLoaded: 'Loaded {name}',
+          ssoCheckedProgress: 'Checked {completed}/{total}',
+          ssoCheckingProgress: 'Checking {completed}/{total}',
+          ssoValidCount: 'Valid {count}',
+          ssoInvalidCount: 'Invalid {count}',
+          ssoPendingCount: 'Pending {count}',
+          ssoFailureDetails: 'Invalid or failed items',
+          ssoMoreFailures: '{count} more not shown',
           ssoCookiePlaceholder: 'One SSO key per line\nSupports multiple, one per line',
           ssoCookieHint: 'One SSO key per line. Multiple keys are imported with 3-way concurrency; expect about 90 seconds per batch. Use a matching-region proxy if needed.',
           convertingSSO: 'Converting...',

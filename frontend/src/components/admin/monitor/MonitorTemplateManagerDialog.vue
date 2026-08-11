@@ -230,7 +230,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { extractApiErrorMessage } from '@/utils/apiError'
+import { extractI18nErrorMessage } from '@/utils/apiError'
 import { adminAPI } from '@/api/admin'
 import type {
   APIMode,
@@ -245,7 +245,6 @@ import MonitorAdvancedRequestConfig from '@/components/admin/monitor/MonitorAdva
 import MonitorTemplateApplyPickerDialog from '@/components/admin/monitor/MonitorTemplateApplyPickerDialog.vue'
 import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
 import {
-  PROVIDER_ANTHROPIC,
   PROVIDER_OPENAI,
   PROVIDER_GEMINI,
   PROVIDER_GROK,
@@ -265,13 +264,12 @@ const appStore = useAppStore()
 const { providerPickerClass } = useChannelMonitorFormat()
 
 const providerTabs = computed<{ value: Provider; label: string }[]>(() => [
-  { value: PROVIDER_ANTHROPIC, label: t('monitorCommon.providers.anthropic') },
   { value: PROVIDER_OPENAI, label: t('monitorCommon.providers.openai') },
   { value: PROVIDER_GEMINI, label: t('monitorCommon.providers.gemini') },
   { value: PROVIDER_GROK, label: t('monitorCommon.providers.grok') },
 ])
 
-const activeProvider = ref<Provider>(PROVIDER_ANTHROPIC)
+const activeProvider = ref<Provider>(PROVIDER_OPENAI)
 const templates = ref<ChannelMonitorTemplate[]>([])
 const loading = ref(false)
 
@@ -304,7 +302,7 @@ interface TemplateForm {
 
 const editing = ref<null | 'new' | number>(null) // null = list view; 'new' = create; <id> = edit
 const submitting = ref(false)
-const form = reactive<TemplateForm>(emptyForm(PROVIDER_ANTHROPIC))
+const form = reactive<TemplateForm>(emptyForm(PROVIDER_OPENAI))
 
 function emptyForm(provider: Provider): TemplateForm {
   return {
@@ -351,7 +349,9 @@ async function fetchTemplates() {
     const { items } = await adminAPI.channelMonitorTemplate.list()
     templates.value = items
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   } finally {
     loading.value = false
   }
@@ -403,7 +403,9 @@ async function handleSubmit() {
     emit('updated')
     editing.value = null
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   } finally {
     submitting.value = false
   }
@@ -456,7 +458,9 @@ async function doDelete() {
     await fetchTemplates()
     emit('updated')
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+    appStore.showError(
+      extractI18nErrorMessage(err, t, 'admin.channelMonitor.errors', t('common.error')),
+    )
   }
 }
 

@@ -16,15 +16,17 @@ import (
 // AuditLogHandler 操作审计日志管理接口。
 // 审计日志仅管理员可见；不提供单条删除，仅支持带 TOTP 验证的全量清空。
 type AuditLogHandler struct {
-	auditService *service.AuditLogService
-	totpService  *service.TotpService
+	auditService   *service.AuditLogService
+	totpService    *service.TotpService
+	settingService *service.SettingService
 }
 
 // NewAuditLogHandler 创建审计日志处理器。
-func NewAuditLogHandler(auditService *service.AuditLogService, totpService *service.TotpService) *AuditLogHandler {
+func NewAuditLogHandler(auditService *service.AuditLogService, totpService *service.TotpService, settingService *service.SettingService) *AuditLogHandler {
 	return &AuditLogHandler{
-		auditService: auditService,
-		totpService:  totpService,
+		auditService:   auditService,
+		totpService:    totpService,
+		settingService: settingService,
 	}
 }
 
@@ -101,19 +103,19 @@ func (h *AuditLogHandler) Get(c *gin.Context) {
 }
 
 type auditLogClearRequest struct {
-	TotpCode string `json:"totp_code" binding:"required"`
+	TotpCode string `json:"totp_code"`
 }
 
 // Clear 全量清空审计日志。
 // POST /api/v1/admin/audit-logs/clear
 //
-// 安全要求（与需求对齐）：
-//  1. 每次清空都必须现场验证 TOTP 码（不复用 step-up sudo 窗口）
-//  2. 未启用 TOTP 的管理员不允许清空
-//  3. admin API key（机器凭证）不允许清空
-//  4. 清空完成后同步写入一条留痕记录（操作者、IP、UA、删除行数）
+// 安全要求：
+//  1. 二次验证开关开启时，清空必须现场验证 TOTP 码。
+//  2. 二次验证开关关闭时，沿用个人站长模式，确认后直接清空。
+//  3. 清空完成后同步写入一条留痕记录（操作者、IP、UA、删除行数）。
 func (h *AuditLogHandler) Clear(c *gin.Context) {
-	if c.GetString("auth_method") == service.AuditAuthMethodAdminAPIKey {
+	stepUpEnabled := h.settingService == nil || h.settingService.IsStepUpEnabled(c.Request.Context())
+	if stepUpEnabled && c.GetString("auth_method") == service.AuditAuthMethodAdminAPIKey {
 		response.ErrorWithDetails(c, http.StatusForbidden,
 			"Admin API key cannot clear audit logs; a two-factor verified admin session is required",
 			"STEP_UP_ADMIN_API_KEY_FORBIDDEN", nil)
@@ -126,17 +128,24 @@ func (h *AuditLogHandler) Clear(c *gin.Context) {
 		return
 	}
 
-	var req auditLogClearRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorWithDetails(c, http.StatusBadRequest,
-			"TOTP code is required to clear audit logs", "TOTP_CODE_REQUIRED", nil)
-		return
-	}
+	if stepUpEnabled {
+		var req auditLogClearRequest
+		if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.TotpCode) == "" {
+			response.ErrorWithDetails(c, http.StatusBadRequest,
+				"TOTP code is required to clear audit logs", "TOTP_CODE_REQUIRED", nil)
+			return
+		}
 
-	// 校验 TOTP：未启用（ErrTotpNotSetup）、码错误、尝试过多均在此拦截。
-	if err := h.totpService.VerifyCode(c.Request.Context(), subject.UserID, strings.TrimSpace(req.TotpCode)); err != nil {
-		response.ErrorFrom(c, err)
-		return
+		if h.totpService == nil {
+			response.ErrorWithDetails(c, http.StatusServiceUnavailable,
+				"Two-factor verification service unavailable", "TOTP_UNAVAILABLE", nil)
+			return
+		}
+		// 校验 TOTP：未启用、码错误、尝试过多均在此拦截。
+		if err := h.totpService.VerifyCode(c.Request.Context(), subject.UserID, strings.TrimSpace(req.TotpCode)); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
 	}
 
 	uid := subject.UserID
