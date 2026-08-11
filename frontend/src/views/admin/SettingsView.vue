@@ -44,16 +44,6 @@
           </nav>
         </div>
 
-        <!-- Tab: Security — Admin API Key, Registration, Turnstile, OAuth, OIDC -->
-        <KeepAlive>
-          <SettingsSecurityTab
-            v-if="activeTab === 'security'"
-            :form="form"
-            v-model:email-suffix-whitelist="registrationEmailSuffixWhitelistTags"
-          />
-        </KeepAlive>
-        <!-- /Tab: Security -->
-
         <!-- Tab: Gateway -->
         <div v-show="activeTab === 'gateway'" class="space-y-6">
           <!-- Overload Cooldown (529) Settings -->
@@ -1225,10 +1215,6 @@
         </div>
         <!-- /Tab: Gateway -->
 
-
-        <!-- Tab: Users -->
-        <SettingsUsersTab v-if="activeTab === 'users'" :form="form" :auth-source-defaults="authSourceDefaults" :auth-source-defaults-meta="authSourceDefaultsMeta" :subscription-groups="subscriptionGroups" />
-        <!-- /Tab: Users -->
 
         <!-- Tab: Gateway — Claude Code, Scheduling -->
         <div v-show="activeTab === 'gateway'" class="space-y-6">
@@ -2826,22 +2812,6 @@
         </KeepAlive>
 
 
-        <!-- Tab: Features (功能开关) -->
-        <KeepAlive>
-          <SettingsFeaturesTab v-if="activeTab === 'features'" :form="form" />
-        </KeepAlive>
-
-        <!-- Tab: Email -->
-        <KeepAlive>
-          <SettingsEmailTab
-            v-if="activeTab === 'email'"
-            :form="form"
-            :load-failed="loadFailed"
-          />
-        </KeepAlive>
-
-        <!-- /Tab: Email -->
-
         <!-- Tab: Backup -->
         <div v-show="activeTab === 'backup'">
           <BackupSettings />
@@ -2923,12 +2893,7 @@ import type {
 import AppLayout from "@/components/layout/AppLayout.vue";
 const BackupSettings = defineAsyncComponent(() => import('@/views/admin/BackupView.vue'))
 const OpenAIFastPolicyUserSelector = defineAsyncComponent(() => import('@/views/admin/settings/OpenAIFastPolicyUserSelector.vue'))
-const SettingsEmailTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsEmailTab.vue'))
-
 const SettingsGeneralTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsGeneralTab.vue'))
-const SettingsUsersTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsUsersTab.vue'))
-const SettingsFeaturesTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsFeaturesTab.vue'))
-const SettingsSecurityTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsSecurityTab.vue'))
 
 import Icon from "@/components/icons/Icon.vue";
 import Select from "@/components/common/Select.vue";
@@ -2967,23 +2932,14 @@ function localText(zh: string, en: string): string {
 
 type SettingsTab =
   | "general"
-  | "features"
-  | "security"
-  | "users"
   | "gateway"
-  | "email"
   | "backup";
 const activeTab = ref<SettingsTab>("general");
-const allSettingsTabs = [
+const settingsTabs = computed(() => [
   { key: "general" as SettingsTab, icon: "home" as const },
-  { key: "features" as SettingsTab, icon: "bolt" as const },
-  { key: "security" as SettingsTab, icon: "shield" as const },
-  { key: "users" as SettingsTab, icon: "user" as const },
   { key: "gateway" as SettingsTab, icon: "server" as const },
-  { key: "email" as SettingsTab, icon: "mail" as const },
   { key: "backup" as SettingsTab, icon: "database" as const },
-];
-const settingsTabs = computed(() => allSettingsTabs.filter(({ key }) => ['general', 'gateway', 'backup'].includes(key)));
+]);
 
 const settingsTabKeyboardActions = {
   ArrowLeft: -1,

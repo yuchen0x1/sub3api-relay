@@ -29,31 +29,6 @@ builds:
       - -X main.Date={{.Date}}
       - -X main.BuildType=release
 
-  # One-release migration bridge for installations running v0.1.174 and
-  # earlier. Their updater only recognizes the historical executable name.
-  # The binary contents are identical to the Sub3API build above.
-  - id: legacy-updater-bridge
-    dir: backend
-    main: ./cmd/server
-    binary: sub2api
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
-    ldflags:
-      - -s -w
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
-      - -X main.BuildType=release
-
 archives:
   - id: default
     format: tar.gz
