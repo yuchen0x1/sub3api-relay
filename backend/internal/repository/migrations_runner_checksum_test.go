@@ -7,6 +7,30 @@ import (
 )
 
 func TestIsMigrationChecksumCompatible(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		dbChecksum   string
+		fileChecksum string
+	}{
+		{"002_account_type_migration.sql", "aad3816e44f58ff007ea4df8092aae580f3f85180314c1deb1b1054b20892bbf", "68dbf4f6ab661ce3e6062185f578a248333254e63c8e66406066f2b3d972f067"},
+		{"003_subscription.sql", "4642fcb1ccd7954b1d3eef8f795cfba2ce21431257346cc5a7568cde61a60b13", "540fcaed6767cee55659c0785ef644e3c1846a474ccbcde1057b95eb8bdb120a"},
+		{"038_ops_errors_resolution_retry_results_and_standardize_classification.sql", "4cc121d97c7f59e9def9397b7d0314d4dfbfe4cd831698359456dd49bf995ece", "e8aeb9b713aebd3a4792e0a86fef11dfe02ad52349b07d1c739add803e545a5b"},
+		{"052_migrate_upstream_to_apikey.sql", "d2ea657ec24995664a8ddc1bfb9c3fe317646c7bcd12517dee8478bc6c36244a", "bdd9dbe1f2de4cfaeaa2764dce760827c386c5e23ef010a886365a5dc4270dab"},
+	} {
+		t.Run(tc.name+" project rename checksum is compatible", func(t *testing.T) {
+			require.True(t, isMigrationChecksumCompatible(tc.name, tc.dbChecksum, tc.fileChecksum))
+		})
+	}
+
+	t.Run("001 project rename checksum is compatible", func(t *testing.T) {
+		ok := isMigrationChecksumCompatible(
+			"001_init.sql",
+			"9ba0369779484625edcea7a7d1d4582397e31546db9149b05004990a3f16c630",
+			"11df0189325d29c37d8a5a78e9bf23d9f8ff37af29d415358b5217d7d65af624",
+		)
+		require.True(t, ok)
+	})
+
 	t.Run("054历史checksum可兼容", func(t *testing.T) {
 		ok := isMigrationChecksumCompatible(
 			"054_drop_legacy_cache_columns.sql",
