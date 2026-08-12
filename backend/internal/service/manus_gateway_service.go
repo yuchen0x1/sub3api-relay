@@ -51,7 +51,7 @@ func (s *ManusGatewayService) Forward(
 	body io.Reader,
 ) (*http.Response, error) {
 	if s == nil || s.httpUpstream == nil {
-		return nil, errors.New("Manus upstream is not configured")
+		return nil, errors.New("manus upstream is not configured")
 	}
 	if account == nil || !account.IsManus() {
 		return nil, errors.New("invalid Manus account")
@@ -82,13 +82,13 @@ func (s *ManusGatewayService) Forward(
 	case AccountTypeAPIKey:
 		apiKey := account.GetManusAPIKey()
 		if apiKey == "" {
-			return nil, errors.New("Manus API key is missing")
+			return nil, errors.New("manus API key is missing")
 		}
 		req.Header.Set("x-manus-api-key", apiKey)
 	case AccountTypeOAuth:
 		accessToken := account.GetManusAccessToken()
 		if accessToken == "" {
-			return nil, errors.New("Manus access token is missing")
+			return nil, errors.New("manus access token is missing")
 		}
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 	default:

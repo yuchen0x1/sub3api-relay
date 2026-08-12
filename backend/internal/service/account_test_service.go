@@ -248,54 +248,94 @@ func (s *AccountTestService) testManusAccountConnection(c *gin.Context, account 
 	if err != nil {
 		return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid Manus base URL: %s", err.Error()))
 	}
-	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, strings.TrimRight(baseURL, "/")+"/v2/task.list?limit=1", nil)
-	if err != nil {
-		return s.sendErrorAndEnd(c, fmt.Sprintf("Failed to build Manus request: %s", err.Error()))
-	}
-	req.Header.Set("Accept", "application/json")
-	switch account.Type {
-	case AccountTypeAPIKey:
-		apiKey := account.GetManusAPIKey()
-		if apiKey == "" {
-			return s.sendErrorAndEnd(c, "Manus API key is missing")
-		}
-		req.Header.Set("x-manus-api-key", apiKey)
-	case AccountTypeOAuth:
-		token := account.GetManusAccessToken()
-		if token == "" {
-			return s.sendErrorAndEnd(c, "Manus access token is missing")
-		}
-		req.Header.Set("Authorization", "Bearer "+token)
-	default:
-		return s.sendErrorAndEnd(c, "Unsupported Manus account type")
-	}
-	account.ApplyHeaderOverrides(req.Header)
-	if account.Type == AccountTypeAPIKey {
-		req.Header.Del("Authorization")
-	} else {
-		req.Header.Del("x-manus-api-key")
-	}
 
 	s.sendEvent(c, TestEvent{Type: "test_start", Model: "Manus Task API"})
+
 	proxyURL := ""
 	if account.ProxyID != nil && account.Proxy != nil {
 		proxyURL = account.Proxy.URL()
 	}
-	var resp *http.Response
-	if s.tlsFPProfileService != nil {
-		resp, err = s.httpUpstream.DoWithTLS(req, proxyURL, account.ID, account.Concurrency, s.tlsFPProfileService.ResolveTLSProfile(account))
-	} else {
-		resp, err = s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)
+
+	// Helper: build an authenticated Manus request.
+	buildReq := func(method, endpoint string, body io.Reader) (*http.Request, error) {
+		u := strings.TrimRight(baseURL, "/") + "/v2/" + endpoint
+		req, err := http.NewRequestWithContext(c.Request.Context(), method, u, body)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json")
+		switch account.Type {
+		case AccountTypeAPIKey:
+			apiKey := account.GetManusAPIKey()
+			if apiKey == "" {
+				return nil, fmt.Errorf("Manus API key is missing")
+			}
+			req.Header.Set("x-manus-api-key", apiKey)
+		case AccountTypeOAuth:
+			token := account.GetManusAccessToken()
+			if token == "" {
+				return nil, fmt.Errorf("Manus access token is missing")
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+		default:
+			return nil, fmt.Errorf("unsupported Manus account type")
+		}
+		account.ApplyHeaderOverrides(req.Header)
+		if account.Type == AccountTypeAPIKey {
+			req.Header.Del("Authorization")
+		} else {
+			req.Header.Del("x-manus-api-key")
+		}
+		return req, nil
 	}
+
+	doReq := func(req *http.Request) (*http.Response, error) {
+		if s.tlsFPProfileService != nil {
+			return s.httpUpstream.DoWithTLS(req, proxyURL, account.ID, account.Concurrency, s.tlsFPProfileService.ResolveTLSProfile(account))
+		}
+		return s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)
+	}
+
+	// Step 1: connectivity check via task.list
+	listReq, err := buildReq(http.MethodGet, "task.list?limit=1", nil)
 	if err != nil {
-		return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
+		return s.sendErrorAndEnd(c, err.Error())
 	}
-	defer func() { _ = resp.Body.Close() }()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return s.sendErrorAndEnd(c, fmt.Sprintf("Manus API returned %d: %s", resp.StatusCode, string(body)))
+	listResp, err := doReq(listReq)
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Connectivity check failed: %s", err.Error()))
 	}
-	s.sendEvent(c, TestEvent{Type: "content", Text: "Manus API connection succeeded."})
+	listBody, _ := io.ReadAll(io.LimitReader(listResp.Body, 64*1024))
+	_ = listResp.Body.Close()
+	if listResp.StatusCode < http.StatusOK || listResp.StatusCode >= http.StatusMultipleChoices {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Manus task.list returned %d: %s", listResp.StatusCode, string(listBody)))
+	}
+	s.sendEvent(c, TestEvent{Type: "content", Text: "Connectivity OK (task.list succeeded).\n"})
+
+	// Step 2: attempt a real conversation via task.create
+	prompt := "hi"
+	payload := `{"message":{"content":"` + prompt + `"}}`
+	createReq, err := buildReq(http.MethodPost, "task.create", strings.NewReader(payload))
+	if err != nil {
+		return s.sendErrorAndEnd(c, err.Error())
+	}
+	createResp, err := doReq(createReq)
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("task.create failed: %s", err.Error()))
+	}
+	createBody, _ := io.ReadAll(io.LimitReader(createResp.Body, 128*1024))
+	_ = createResp.Body.Close()
+	if createResp.StatusCode < http.StatusOK || createResp.StatusCode >= http.StatusMultipleChoices {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Manus task.create returned %d: %s", createResp.StatusCode, string(createBody)))
+	}
+
+	// Report a truncated excerpt of the response to the user.
+	excerpt := string(createBody)
+	if len(excerpt) > 500 {
+		excerpt = excerpt[:500] + "..."
+	}
+	s.sendEvent(c, TestEvent{Type: "content", Text: fmt.Sprintf("Conversation OK (task.create responded).\nResponse: %s", excerpt)})
 	s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
 	return nil
 }

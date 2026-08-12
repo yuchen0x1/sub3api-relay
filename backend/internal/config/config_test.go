@@ -18,7 +18,7 @@ func resetViperWithJWTSecret(t *testing.T) {
 	t.Helper()
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	t.Setenv("CONFIG_FILE", "")
+	t.Setenv("CONFIG_FILE", filepath.Join(t.TempDir(), "missing.yaml"))
 	t.Setenv("DATA_DIR", "")
 	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
 }
@@ -301,7 +301,11 @@ func TestLoadReturnsErrorForMissingConfigFile(t *testing.T) {
 func TestLoadForBootstrapAllowsMissingJWTSecret(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	t.Setenv("CONFIG_FILE", "")
+	cfgPath := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(cfgPath, nil, 0o600); err != nil {
+		t.Fatalf("write empty config: %v", err)
+	}
+	t.Setenv("CONFIG_FILE", cfgPath)
 	t.Setenv("DATA_DIR", "")
 	t.Setenv("JWT_SECRET", "")
 
