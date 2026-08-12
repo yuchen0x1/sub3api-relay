@@ -265,6 +265,10 @@ func (a *Account) IsGrok() bool {
 	return a.Platform == PlatformGrok
 }
 
+func (a *Account) IsManus() bool {
+	return a != nil && a.Platform == PlatformManus
+}
+
 func (a *Account) IsGrokOAuth() bool {
 	return a.IsGrok() && a.Type == AccountTypeOAuth
 }
@@ -1361,6 +1365,32 @@ func (a *Account) GetGrokRefreshToken() string {
 		return ""
 	}
 	return a.GetCredential("refresh_token")
+}
+
+const DefaultManusBaseURL = "https://api.manus.ai"
+
+func (a *Account) GetManusBaseURL() string {
+	if !a.IsManus() {
+		return ""
+	}
+	if baseURL := strings.TrimSpace(a.GetCredential("base_url")); baseURL != "" {
+		return strings.TrimRight(baseURL, "/")
+	}
+	return DefaultManusBaseURL
+}
+
+func (a *Account) GetManusAPIKey() string {
+	if !a.IsManus() || a.Type != AccountTypeAPIKey {
+		return ""
+	}
+	return strings.TrimSpace(a.GetCredential("api_key"))
+}
+
+func (a *Account) GetManusAccessToken() string {
+	if !a.IsManus() || a.Type != AccountTypeOAuth {
+		return ""
+	}
+	return strings.TrimSpace(a.GetCredential("access_token"))
 }
 
 func (a *Account) GetOpenAIIDToken() string {

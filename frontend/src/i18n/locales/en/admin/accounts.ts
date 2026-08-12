@@ -107,6 +107,7 @@ export default {
         gemini: 'Gemini',
         antigravity: 'Antigravity',
         grok: 'Grok',
+        manus: 'Manus',
       },
       types: {
         oauth: 'OAuth',
@@ -609,6 +610,10 @@ export default {
       grok: {
         baseUrlHint: 'Grok OAuth accounts forward to the official xAI API base URL.',
         apiKeyHint: 'Grok subscription support uses OAuth refresh tokens; API keys are out of scope for this account type.'
+      },
+      manus: {
+        baseUrlHint: 'Leave the official Manus API URL unless you use a trusted compatible relay.',
+        apiKeyHint: 'Create an API key in Manus API Integration settings. The key has full account access.'
       },
       anthropic: {
         apiKeyPassthrough: 'Auto passthrough (auth only)',

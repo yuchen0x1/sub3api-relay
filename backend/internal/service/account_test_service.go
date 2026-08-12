@@ -236,7 +236,68 @@ func (s *AccountTestService) testAccountConnection(c *gin.Context, account *Acco
 		return s.routeAntigravityTest(c, account, modelID, prompt)
 	}
 
+	if account.Platform == PlatformManus {
+		return s.testManusAccountConnection(c, account)
+	}
+
 	return s.testClaudeAccountConnection(c, account, modelID)
+}
+
+func (s *AccountTestService) testManusAccountConnection(c *gin.Context, account *Account) error {
+	baseURL, err := s.validateUpstreamBaseURL(account.GetManusBaseURL())
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid Manus base URL: %s", err.Error()))
+	}
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, strings.TrimRight(baseURL, "/")+"/v2/task.list?limit=1", nil)
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Failed to build Manus request: %s", err.Error()))
+	}
+	req.Header.Set("Accept", "application/json")
+	switch account.Type {
+	case AccountTypeAPIKey:
+		apiKey := account.GetManusAPIKey()
+		if apiKey == "" {
+			return s.sendErrorAndEnd(c, "Manus API key is missing")
+		}
+		req.Header.Set("x-manus-api-key", apiKey)
+	case AccountTypeOAuth:
+		token := account.GetManusAccessToken()
+		if token == "" {
+			return s.sendErrorAndEnd(c, "Manus access token is missing")
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+	default:
+		return s.sendErrorAndEnd(c, "Unsupported Manus account type")
+	}
+	account.ApplyHeaderOverrides(req.Header)
+	if account.Type == AccountTypeAPIKey {
+		req.Header.Del("Authorization")
+	} else {
+		req.Header.Del("x-manus-api-key")
+	}
+
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: "Manus Task API"})
+	proxyURL := ""
+	if account.ProxyID != nil && account.Proxy != nil {
+		proxyURL = account.Proxy.URL()
+	}
+	var resp *http.Response
+	if s.tlsFPProfileService != nil {
+		resp, err = s.httpUpstream.DoWithTLS(req, proxyURL, account.ID, account.Concurrency, s.tlsFPProfileService.ResolveTLSProfile(account))
+	} else {
+		resp, err = s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)
+	}
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Manus API returned %d: %s", resp.StatusCode, string(body)))
+	}
+	s.sendEvent(c, TestEvent{Type: "content", Text: "Manus API connection succeeded."})
+	s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
+	return nil
 }
 
 // testClaudeAccountConnection tests an Anthropic Claude account's connection

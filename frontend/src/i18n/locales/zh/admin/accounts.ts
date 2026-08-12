@@ -310,6 +310,7 @@ export default {
         gemini: 'Gemini',
         antigravity: 'Antigravity',
         grok: 'Grok',
+        manus: 'Manus',
       },
       types: {
         oauth: 'OAuth',
@@ -673,6 +674,10 @@ export default {
       grok: {
         baseUrlHint: 'Grok OAuth 账号会转发到官方 xAI API Base URL。',
         apiKeyHint: 'Grok 订阅支持使用 OAuth refresh token；API Key 账号不在本次范围内。'
+      },
+      manus: {
+        baseUrlHint: '默认使用 Manus 官方 API；仅在使用可信兼容中继时修改。',
+        apiKeyHint: '请在 Manus 的 API Integration 设置中创建 API Key，该密钥拥有完整账号访问权限。'
       },
       anthropic: {
         apiKeyPassthrough: '自动透传（仅替换认证）',

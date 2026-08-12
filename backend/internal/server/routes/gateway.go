@@ -373,6 +373,15 @@ func RegisterGatewayRoutes(
 		antigravityV1Beta.POST("/models/*modelAction", h.Gateway.GeminiV1BetaModels)
 	}
 
+	manusV2 := r.Group("/manus/v2")
+	manusV2.Use(bodyLimit)
+	manusV2.Use(clientRequestID)
+	manusV2.Use(opsErrorLogger)
+	manusV2.Use(middleware.ForcePlatform(service.PlatformManus))
+	manusV2.Use(gin.HandlerFunc(apiKeyAuth))
+	manusV2.Use(requireGroupAnthropic)
+	manusV2.Any("/*endpoint", h.ManusGateway.Proxy)
+
 }
 
 // getGroupPlatform extracts the group platform from the API Key stored in context.
