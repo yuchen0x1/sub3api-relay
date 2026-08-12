@@ -21,6 +21,7 @@ vi.mock('@/stores', () => ({
     fetchPublicSettings: vi.fn(async () => ({
       qq_group_number: '1016190748',
       qq_group_url: 'https://qm.qq.com/q/gBW5t6RmU0',
+      version: '0.1.181',
     })),
   }),
 }))
@@ -133,5 +134,20 @@ describe('Sub3LandingView navigation', () => {
     expect(wrapper.get('.nav-links a').text()).toBe('安全保护')
     expect(zhButton.attributes('aria-pressed')).toBe('true')
     expect(enButton.attributes('aria-pressed')).toBe('false')
+  })
+})
+
+describe('Sub3LandingView live status', () => {
+  it('renders the current version badge from public settings', async () => {
+    const { wrapper } = await mountLanding()
+    await flushPromises()
+
+    expect(wrapper.get('.monitor-title .badge').text()).toBe('v0.1.181')
+  })
+  it('renders the channel status line', async () => {
+    const { wrapper } = await mountLanding()
+    const line = wrapper.get('#chLine')
+    expect(line.exists()).toBe(true)
+    expect(line.text()).toContain('/')
   })
 })

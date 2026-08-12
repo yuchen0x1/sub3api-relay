@@ -28,6 +28,8 @@ ReadWritePaths=/opt/sub3api
 Environment=GIN_MODE=release
 Environment=SERVER_HOST=0.0.0.0
 Environment=SERVER_PORT=8080
+Environment=SETUP_SERVER_HOST=127.0.0.1
+Environment=SUB3API_DEPLOYMENT_TYPE=binary
 
 [Install]
 WantedBy=multi-user.target

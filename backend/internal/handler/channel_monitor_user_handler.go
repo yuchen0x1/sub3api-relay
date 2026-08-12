@@ -6,6 +6,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/handler/admin"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler/dto"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
+	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,19 @@ func (h *ChannelMonitorUserHandler) featureEnabled(c *gin.Context) bool {
 		return true
 	}
 	return h.settingService.GetChannelMonitorRuntime(c.Request.Context()).Enabled
+}
+
+// publicAllowed 返回匿名访客是否可以查看渠道监控：登录用户始终放行；
+// 未开启公开开关时匿名访客返回 false。
+func (h *ChannelMonitorUserHandler) publicAllowed(c *gin.Context) bool {
+	if h.settingService == nil {
+		return true
+	}
+	if h.settingService.GetChannelMonitorRuntime(c.Request.Context()).PublicEnabled {
+		return true
+	}
+	_, ok := middleware2.GetAuthSubjectFromContext(c)
+	return ok
 }
 
 // --- Response ---
@@ -144,6 +158,10 @@ func (h *ChannelMonitorUserHandler) List(c *gin.Context) {
 		response.Success(c, gin.H{"items": []channelMonitorUserListItem{}})
 		return
 	}
+	if !h.publicAllowed(c) {
+		response.Forbidden(c, "channel monitor is private")
+		return
+	}
 	views, err := h.monitorService.ListUserView(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -160,6 +178,10 @@ func (h *ChannelMonitorUserHandler) List(c *gin.Context) {
 func (h *ChannelMonitorUserHandler) GetStatus(c *gin.Context) {
 	if !h.featureEnabled(c) {
 		response.ErrorFrom(c, service.ErrChannelMonitorNotFound)
+		return
+	}
+	if !h.publicAllowed(c) {
+		response.Forbidden(c, "channel monitor is private")
 		return
 	}
 	// 复用 admin.ParseChannelMonitorID 保持错误码与日志一致。

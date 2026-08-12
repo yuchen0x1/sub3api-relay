@@ -55,7 +55,7 @@ func (h *ProxyHandler) ExportData(c *gin.Context) {
 	dataProxies := make([]DataProxy, 0, len(proxies))
 	for i := range proxies {
 		p := proxies[i]
-		key := buildProxyKey(p.Protocol, p.Host, p.Port, p.Username, p.Password)
+		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
 
 		var expiresAt *int64
 		if p.ExpiresAt != nil {
@@ -74,6 +74,7 @@ func (h *ProxyHandler) ExportData(c *gin.Context) {
 			Port:            p.Port,
 			Username:        p.Username,
 			Password:        p.Password,
+			TLSInsecure:     p.TLSInsecure,
 			Status:          p.Status,
 			ExpiresAt:       expiresAt,
 			FallbackMode:    p.FallbackMode,
@@ -122,7 +123,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 	proxyNameToID := make(map[string]int64, len(existingProxies))
 	for i := range existingProxies {
 		p := existingProxies[i]
-		key := buildProxyKey(p.Protocol, p.Host, p.Port, p.Username, p.Password)
+		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
 		proxyByKey[key] = p
 		if p.Name != "" {
 			proxyNameToID[p.Name] = p.ID
@@ -134,7 +135,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 		item := req.Data.Proxies[i]
 		key := item.ProxyKey
 		if key == "" {
-			key = buildProxyKey(item.Protocol, item.Host, item.Port, item.Username, item.Password)
+			key = buildProxyKeyWithTLS(item.Protocol, item.Host, item.Port, item.Username, item.Password, item.TLSInsecure)
 		}
 
 		if err := validateDataProxy(item); err != nil {
@@ -176,12 +177,13 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 					BackupProxyID:  existingBackupProxyID,
 					ExpiryWarnDays: item.ExpiryWarnDays,
 					// 保留已存在代理的网络配置字段
-					Name:     existing.Name,
-					Protocol: existing.Protocol,
-					Host:     existing.Host,
-					Port:     existing.Port,
-					Username: existing.Username,
-					Password: existing.Password,
+					Name:        existing.Name,
+					Protocol:    existing.Protocol,
+					Host:        existing.Host,
+					Port:        existing.Port,
+					Username:    existing.Username,
+					Password:    existing.Password,
+					TLSInsecure: existing.TLSInsecure,
 				}
 				if _, err := h.adminService.UpdateProxy(ctx, existing.ID, updateInput); err != nil {
 					result.Errors = append(result.Errors, DataImportError{
@@ -228,6 +230,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 			Port:           item.Port,
 			Username:       item.Username,
 			Password:       item.Password,
+			TLSInsecure:    item.TLSInsecure,
 			ExpiresAt:      expiresAt,
 			FallbackMode:   fallbackMode,
 			BackupProxyID:  backupProxyID,
@@ -264,6 +267,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 				Port:           created.Port,
 				Username:       created.Username,
 				Password:       created.Password,
+				TLSInsecure:    created.TLSInsecure,
 			}); err != nil {
 				result.Errors = append(result.Errors, DataImportError{
 					Kind:     "proxy",

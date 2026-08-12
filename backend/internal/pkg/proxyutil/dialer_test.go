@@ -62,6 +62,27 @@ func TestConfigureTransportProxy_SOCKS5H(t *testing.T) {
 	assert.NotNil(t, transport.DialContext, "SOCKS5H proxy should set DialContext")
 }
 
+func TestConfigureTransportProxy_Hysteria2(t *testing.T) {
+	transport := &http.Transport{}
+	proxyURL, _ := url.Parse("hysteria2://token@127.0.0.1:443?insecure=1")
+
+	err := ConfigureTransportProxy(transport, proxyURL)
+
+	require.NoError(t, err)
+	assert.Nil(t, transport.Proxy)
+	assert.NotNil(t, transport.DialContext)
+}
+
+func TestConfigureTransportProxy_Hysteria2RejectsUnsupportedOptions(t *testing.T) {
+	transport := &http.Transport{}
+	proxyURL, _ := url.Parse("hysteria2://token@127.0.0.1:443?obfs=salamander")
+
+	err := ConfigureTransportProxy(transport, proxyURL)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported hysteria2 option")
+}
+
 func TestConfigureTransportProxy_CaseInsensitive(t *testing.T) {
 	testCases := []struct {
 		scheme   string

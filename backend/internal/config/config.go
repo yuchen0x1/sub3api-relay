@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -1949,7 +1950,7 @@ func setDefaults() {
 	viper.SetDefault("security.csp.enabled", true)
 	viper.SetDefault("security.csp.policy", DefaultCSPPolicy)
 	viper.SetDefault("security.proxy_probe.insecure_skip_verify", false)
-	viper.SetDefault("security.trust_forwarded_ip_for_api_key_acl", true)
+	viper.SetDefault("security.trust_forwarded_ip_for_api_key_acl", false)
 
 	// Security - disable direct fallback on proxy error
 	viper.SetDefault("security.proxy_fallback.allow_direct_on_error", false)
@@ -3587,14 +3588,17 @@ func generateJWTSecret(byteLength int) (string, error) {
 // GetServerAddress returns the server address (host:port) from config file or environment variable.
 // This is a lightweight function that can be used before full config validation,
 // such as during setup wizard startup.
-// Priority: environment variables > config file > defaults.
+// Priority: setup-specific environment variables > legacy server environment
+// variables > config file > defaults.
 func GetServerAddress() string {
 	v := viper.New()
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
 	configureConfigSource(v.SetConfigFile, v.AddConfigPath)
 
-	// Support SERVER_HOST and SERVER_PORT environment variables
+	// Keep SERVER_HOST/SERVER_PORT compatibility, while allowing installers to
+	// bind the unauthenticated setup server to loopback without changing the
+	// address used after installation.
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	// The unauthenticated first-run wizard must not be exposed publicly by default.
@@ -3608,6 +3612,14 @@ func GetServerAddress() string {
 
 	host := v.GetString("server.host")
 	port := v.GetInt("server.port")
+	if setupHost := strings.TrimSpace(os.Getenv("SETUP_SERVER_HOST")); setupHost != "" {
+		host = setupHost
+	}
+	if setupPort := strings.TrimSpace(os.Getenv("SETUP_SERVER_PORT")); setupPort != "" {
+		if parsedPort, err := strconv.Atoi(setupPort); err == nil && parsedPort > 0 && parsedPort <= 65535 {
+			port = parsedPort
+		}
+	}
 	return fmt.Sprintf("%s:%d", host, port)
 }
 

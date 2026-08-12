@@ -79,6 +79,7 @@ export default {
       allProtocols: 'All Protocols',
       allStatus: 'All Status',
       protocols: {
+		hysteria2: 'Hysteria2',
         http: 'HTTP',
         https: 'HTTPS',
         socks5: 'SOCKS5',
@@ -171,6 +172,13 @@ export default {
       batchImportSuccess: 'Successfully imported {created} proxies, skipped {skipped} duplicates',
       batchImportAllSkipped: 'All {skipped} proxies already exist, skipped import',
       failedToImport: 'Failed to batch import',
+      authToken: 'Authentication Token',
+      authTokenPlaceholder: 'Enter the Hysteria2 authentication token',
+      tlsInsecure: 'Skip TLS certificate verification (trusted nodes only)',
+      subscriptionDetected: 'HTTPS subscription detected. Parse the nodes first, then confirm the import.',
+      parseSubscription: 'Parse Subscription',
+      subscriptionParsed: 'Parsed {count} nodes. Review and import them when ready.',
+      subscriptionParseFailed: 'Failed to parse subscription',
       // Other messages
       saving: 'Saving...',
       testing: 'Testing...',

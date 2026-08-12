@@ -69,6 +69,23 @@ func TestUpdateServicePerformUpdateNoUpdateReturnsSentinel(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoUpdateAvailable)
 }
 
+func TestUpdateServiceRejectsInPlaceUpdateOutsideStandaloneRelease(t *testing.T) {
+	for _, buildType := range []string{"source", "docker"} {
+		t.Run(buildType, func(t *testing.T) {
+			svc := NewUpdateService(
+				&updateServiceCacheStub{},
+				&updateServiceGitHubClientStub{},
+				"0.1.180",
+				buildType,
+			)
+
+			require.ErrorIs(t, svc.PerformUpdate(context.Background()), ErrInPlaceUpdateUnsupported)
+			require.ErrorIs(t, svc.Rollback(), ErrInPlaceUpdateUnsupported)
+			require.ErrorIs(t, svc.RollbackToVersion(context.Background(), "0.1.179"), ErrInPlaceUpdateUnsupported)
+		})
+	}
+}
+
 func newRollbackTestService(current string, releases []*GitHubRelease) *UpdateService {
 	return NewUpdateService(
 		&updateServiceCacheStub{},

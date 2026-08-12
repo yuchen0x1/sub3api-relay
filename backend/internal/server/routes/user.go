@@ -13,6 +13,7 @@ func RegisterUserRoutes(
 	v1 *gin.RouterGroup,
 	h *handler.Handlers,
 	jwtAuth middleware.JWTAuthMiddleware,
+	optionalJWT middleware.OptionalJWTAuthMiddleware,
 	auditLog middleware.AuditLogMiddleware,
 	settingService *service.SettingService,
 	panelRateLimiter *middleware.PanelRateLimiter,
@@ -117,8 +118,15 @@ func RegisterUserRoutes(
 			announcements.POST("/:id/read", h.Announcement.MarkRead)
 		}
 
-		// 渠道监控（用户只读）
-		monitors := authenticated.Group("/channel-monitors")
+	}
+
+	// Channel monitor (public read-only, gated by the channel-monitor feature flag):
+	// the homepage status view and the status page show channel status without login.
+	public := v1.Group("")
+	public.Use(panelRateLimiter.PublicIP())
+	public.Use(gin.HandlerFunc(optionalJWT))
+	{
+		monitors := public.Group("/channel-monitors")
 		{
 			monitors.GET("", h.ChannelMonitor.List)
 			monitors.GET("/:id/status", h.ChannelMonitor.GetStatus)

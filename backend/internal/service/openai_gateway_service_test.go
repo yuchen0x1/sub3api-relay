@@ -472,6 +472,36 @@ func TestExtractOpenAIUsage_CapturesImageInputTokens(t *testing.T) {
 	require.Zero(t, tu.ImageInputTokens)
 }
 
+func TestExtractOpenAIUsage_ReadsNestedDataEnvelopes(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "chat completions usage", body: `{"data":{"usage":{"prompt_tokens":8,"completion_tokens":27,"prompt_tokens_details":{"cached_tokens":4}}}}`},
+		{name: "responses usage", body: `{"data":{"response":{"usage":{"input_tokens":8,"output_tokens":27,"input_tokens_details":{"cached_tokens":4}}}}}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			usage, ok := extractOpenAIUsageFromJSONBytes([]byte(tt.body))
+			require.True(t, ok)
+			require.Equal(t, 8, usage.InputTokens)
+			require.Equal(t, 27, usage.OutputTokens)
+			require.Equal(t, 4, usage.CacheReadInputTokens)
+		})
+	}
+}
+
+func TestExtractOpenAIUsage_PreservesResponseUsagePriority(t *testing.T) {
+	body := []byte(`{"data":{"usage":{"prompt_tokens":100,"completion_tokens":50}},"response":{"usage":{"input_tokens":11,"output_tokens":5}}}`)
+
+	usage, ok := extractOpenAIUsageFromJSONBytes(body)
+
+	require.True(t, ok)
+	require.Equal(t, 11, usage.InputTokens)
+	require.Equal(t, 5, usage.OutputTokens)
+}
+
 func TestOpenAIGatewayService_BindHTTPResponseAccount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()

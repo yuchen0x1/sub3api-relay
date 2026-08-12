@@ -1,12 +1,129 @@
 package setup
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
+
+func TestSetupGuardRejectsRemoteRequestsByDefault(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("SETUP_ALLOW_REMOTE", "")
+
+	router := gin.New()
+	router.POST("/setup/install", setupGuard(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/setup/install", nil)
+	request.RemoteAddr = "203.0.113.10:12345"
+	request.Host = "127.0.0.1:8080"
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusForbidden)
+	}
+}
+
+func TestSetupGuardAllowsLocalRequests(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("SETUP_ALLOW_REMOTE", "")
+
+	router := gin.New()
+	router.POST("/setup/install", setupGuard(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/setup/install", nil)
+	request.RemoteAddr = "127.0.0.1:12345"
+	request.Host = "localhost:8080"
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNoContent)
+	}
+}
+
+func TestIsLocalSetupRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		remoteAddr string
+		host       string
+		headers    http.Header
+		want       bool
+	}{
+		{name: "IPv4 loopback", remoteAddr: "127.0.0.1:12345", host: "127.0.0.1:8080", want: true},
+		{name: "IPv6 loopback", remoteAddr: "[::1]:12345", host: "[::1]:8080", want: true},
+		{name: "localhost", remoteAddr: "127.0.0.1:12345", host: "localhost:8080", want: true},
+		{name: "public address", remoteAddr: "203.0.113.10:12345", host: "127.0.0.1:8080", want: false},
+		{name: "DNS rebinding host", remoteAddr: "127.0.0.1:12345", host: "attacker.example", want: false},
+		{name: "forwarded loopback", remoteAddr: "127.0.0.1:12345", host: "127.0.0.1:8080", headers: http.Header{"X-Forwarded-For": []string{"203.0.113.10"}}, want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := &http.Request{RemoteAddr: test.remoteAddr, Host: test.host, Header: test.headers}
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			if got := isLocalSetupRequest(req); got != test.want {
+				t.Fatalf("isLocalSetupRequest() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestValidateSetupTargetAddress(t *testing.T) {
+	t.Setenv("SETUP_ALLOW_PRIVATE_TARGETS", "")
+
+	allowed := []string{"127.0.0.1", "::1", "8.8.8.8", "2606:4700:4700::1111"}
+	for _, raw := range allowed {
+		if err := validateSetupTargetAddress(netip.MustParseAddr(raw), true); err != nil {
+			t.Fatalf("validateSetupTargetAddress(%s) error = %v", raw, err)
+		}
+	}
+
+	blocked := []string{"0.0.0.0", "10.0.0.1", "100.64.0.1", "169.254.169.254", "172.16.0.1", "192.168.1.1", "224.0.0.1", "fc00::1", "fe80::1"}
+	for _, raw := range blocked {
+		if err := validateSetupTargetAddress(netip.MustParseAddr(raw), false); err == nil {
+			t.Fatalf("validateSetupTargetAddress(%s) error = nil, want rejection", raw)
+		}
+	}
+}
+
+func TestValidateSetupTargetAddressAllowsPrivateOptIn(t *testing.T) {
+	t.Setenv("SETUP_ALLOW_PRIVATE_TARGETS", "true")
+	if err := validateSetupTargetAddress(netip.MustParseAddr("192.168.1.10"), privateSetupTargetsEnabled()); err != nil {
+		t.Fatalf("private target opt-in error = %v", err)
+	}
+	if err := validateSetupTargetAddress(netip.MustParseAddr("169.254.169.254"), privateSetupTargetsEnabled()); err == nil {
+		t.Fatal("link-local metadata target must remain blocked")
+	}
+}
+
+func TestRemoteSetupEnabledRequiresExplicitOptIn(t *testing.T) {
+	t.Setenv("SETUP_ALLOW_REMOTE", "")
+	if remoteSetupEnabled() {
+		t.Fatal("remote setup enabled by default")
+	}
+	t.Setenv("SETUP_ALLOW_REMOTE", "yes")
+	if !remoteSetupEnabled() {
+		t.Fatal("remote setup opt-in was ignored")
+	}
+}
 
 func TestDecideAdminBootstrap(t *testing.T) {
 	t.Parallel()

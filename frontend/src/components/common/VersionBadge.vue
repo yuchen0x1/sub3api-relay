@@ -231,8 +231,75 @@
                 </button>
               </div>
 
-              <!-- Priority 3: Update available for source build - show git pull hint -->
-              <div v-else-if="hasUpdate && !isReleaseBuild" class="space-y-2">
+              <!-- Priority 3: Update available for Docker - recreate from the published image -->
+              <div v-else-if="hasUpdate && isDockerBuild" class="space-y-2">
+                <div
+                  class="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/50 dark:bg-amber-900/20"
+                >
+                  <div
+                    class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50"
+                  >
+                    <Icon
+                      name="download"
+                      size="sm"
+                      :stroke-width="2"
+                      class="text-amber-600 dark:text-amber-400"
+                    />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-amber-700 dark:text-amber-300">
+                      {{ t('version.updateAvailable') }}
+                    </p>
+                    <p class="text-xs text-amber-600/70 dark:text-amber-400/70">
+                      v{{ latestVersion }}
+                    </p>
+                  </div>
+                </div>
+
+                <p class="text-xs leading-5 text-blue-600 dark:text-blue-400">
+                  {{ t('version.dockerModeHint') }}
+                </p>
+                <div
+                  data-testid="docker-update-command"
+                  class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600"
+                >
+                  <div
+                    class="flex items-center justify-between border-b border-gray-200 bg-gray-100 px-2 py-1.5 dark:border-dark-600 dark:bg-dark-700"
+                  >
+                    <span class="text-[11px] font-medium text-gray-500 dark:text-dark-300">Docker</span>
+                    <button
+                      @click="copyToClipboard(dockerUpdateCommand)"
+                      class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 dark:text-dark-400 dark:hover:bg-dark-600 dark:hover:text-dark-200"
+                    >
+                      <Icon
+                        :name="copied ? 'check' : 'copy'"
+                        size="xs"
+                        :stroke-width="2"
+                        :class="copied ? 'text-green-500' : ''"
+                      />
+                      {{ copied ? t('version.copied') : t('version.copyCommand') }}
+                    </button>
+                  </div>
+                  <code
+                    class="block select-all whitespace-pre-wrap break-all bg-gray-50 p-2.5 font-mono text-[10px] leading-relaxed text-gray-600 dark:bg-dark-900 dark:text-dark-300"
+                    >{{ dockerUpdateCommand }}</code
+                  >
+                </div>
+
+                <a
+                  v-if="releaseInfo"
+                  :href="releasePageUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center justify-center gap-1 text-xs text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-dark-200"
+                >
+                  {{ t('version.viewChangelog') }}
+                  <Icon name="externalLink" size="xs" :stroke-width="2" />
+                </a>
+              </div>
+
+              <!-- Priority 4: Update available for source build - show git pull hint -->
+              <div v-else-if="hasUpdate && isSourceBuild" class="space-y-2">
                 <a
                   v-if="releaseInfo"
                   :href="releasePageUrl"
@@ -291,7 +358,7 @@
                 </div>
               </div>
 
-              <!-- Priority 4: Update available for release build - show update button -->
+              <!-- Priority 5: Update available for standalone release binary -->
               <div v-else-if="hasUpdate && isReleaseBuild" class="space-y-2">
                 <!-- Update info card -->
                 <div
@@ -355,7 +422,7 @@
                 </a>
               </div>
 
-              <!-- Priority 5: Up to date - GitHub link + version rollback -->
+              <!-- Priority 6: Up to date - GitHub link + version rollback -->
               <div v-else class="space-y-2">
                 <a
                   v-if="releaseInfo"
@@ -397,7 +464,7 @@
                     <div v-if="rollbackPanelOpen" class="mt-2 space-y-2">
                       <!-- Source build: online rollback unavailable, use git instead -->
                       <div
-                        v-if="!isReleaseBuild"
+                        v-if="isSourceBuild"
                         class="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2 dark:border-blue-800/50 dark:bg-blue-900/20"
                       >
                         <svg
@@ -529,6 +596,7 @@
                                 class="flex items-center justify-between border-b border-gray-200 bg-gray-100 px-2 py-1.5 dark:border-dark-600 dark:bg-dark-700"
                               >
                                 <div
+                                  v-if="manualTabs.length > 1"
                                   class="flex items-center gap-0.5 rounded-md bg-gray-200/70 p-0.5 dark:bg-dark-600/70"
                                 >
                                   <button
@@ -584,6 +652,7 @@
                             </p>
 
                             <button
+                              v-if="isReleaseBuild"
                               @click="handleRollback"
                               :disabled="rollingBack"
                               class="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -624,6 +693,55 @@
                   </transition>
                 </div>
               </div>
+
+              <div v-if="releaseInfo" class="mt-3 border-t border-gray-100 pt-3 dark:border-dark-700">
+                <button
+                  type="button"
+                  data-testid="release-notes-toggle"
+                  @click="releaseNotesOpen = !releaseNotesOpen"
+                  class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-700/50 dark:hover:text-dark-200"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <Icon name="book" size="xs" :stroke-width="2" />
+                    {{ t('version.releaseNotes') }}
+                  </span>
+                  <Icon
+                    name="chevronDown"
+                    size="xs"
+                    :stroke-width="2"
+                    class="transition-transform duration-200"
+                    :class="{ 'rotate-180': releaseNotesOpen }"
+                  />
+                </button>
+
+                <transition name="release-notes">
+                  <div v-if="releaseNotesOpen" class="mt-2 space-y-2">
+                    <div
+                      v-if="sanitizedReleaseNotes"
+                      data-testid="release-notes-content"
+                      class="release-notes-content max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-300"
+                      v-html="sanitizedReleaseNotes"
+                    ></div>
+                    <p
+                      v-else
+                      data-testid="release-notes-empty"
+                      class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center text-xs text-gray-400 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-500"
+                    >
+                      {{ t('version.noReleaseNotes') }}
+                    </p>
+
+                    <a
+                      :href="releasePageUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex items-center justify-center gap-1 text-xs text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    >
+                      {{ t('version.openReleasePage') }}
+                      <Icon name="externalLink" size="xs" :stroke-width="2" />
+                    </a>
+                  </div>
+                </transition>
+              </div>
             </template>
           </div>
         </div>
@@ -640,6 +758,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import { useAuthStore, useAppStore } from '@/stores'
 import {
   performUpdate,
@@ -678,6 +798,15 @@ const latestVersion = computed(() => appStore.latestVersion)
 const hasUpdate = computed(() => appStore.hasUpdate)
 const releaseInfo = computed(() => appStore.releaseInfo)
 const buildType = computed(() => appStore.buildType)
+const releaseNotesOpen = ref(false)
+const sanitizedReleaseNotes = computed(() => {
+  const body = releaseInfo.value?.body?.trim()
+  if (!body) return ''
+
+  return DOMPurify.sanitize(marked.parse(body) as string, {
+    USE_PROFILES: { html: true }
+  })
+})
 const releasePageUrl = computed(() => {
   const version = latestVersion.value.trim()
   if (!version) return GITHUB_RELEASES_URL
@@ -711,10 +840,14 @@ const { copied, copyToClipboard } = useClipboard()
 // docker deployments pin the image tag instead
 const manualTab = ref<'script' | 'docker'>('script')
 
-const manualTabs = computed(() => [
-  { key: 'script' as const, label: t('version.deployScript') },
-  { key: 'docker' as const, label: t('version.deployDocker') }
-])
+const manualTabs = computed(() =>
+  isDockerBuild.value
+    ? [{ key: 'docker' as const, label: t('version.deployDocker') }]
+    : [
+        { key: 'script' as const, label: t('version.deployScript') },
+        { key: 'docker' as const, label: t('version.deployDocker') }
+      ]
+)
 
 const scriptRollbackCommand = computed(() => {
   if (!selectedRollbackVersion.value) return ''
@@ -733,12 +866,19 @@ const dockerRollbackCommand = computed(() => {
   ].join('\n')
 })
 
-const activeManualCommand = computed(() =>
-  manualTab.value === 'docker' ? dockerRollbackCommand.value : scriptRollbackCommand.value
+const dockerUpdateCommand = computed(() =>
+  ['docker compose pull', 'docker compose up -d'].join('\n')
 )
 
-// Only show update check for release builds (binary/docker deployment)
+const activeManualCommand = computed(() =>
+  isDockerBuild.value || manualTab.value === 'docker'
+    ? dockerRollbackCommand.value
+    : scriptRollbackCommand.value
+)
+
+const isSourceBuild = computed(() => buildType.value === 'source')
 const isReleaseBuild = computed(() => buildType.value === 'release')
+const isDockerBuild = computed(() => buildType.value === 'docker')
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
@@ -788,7 +928,7 @@ function resetRollbackState() {
   rollbackVersionsError.value = ''
   selectedRollbackVersion.value = ''
   rollbackError.value = ''
-  manualTab.value = 'script'
+  manualTab.value = isDockerBuild.value ? 'docker' : 'script'
 }
 
 async function toggleRollbackPanel() {
@@ -797,7 +937,7 @@ async function toggleRollbackPanel() {
   // Source builds only show a hint, no version list to fetch
   if (
     rollbackPanelOpen.value &&
-    isReleaseBuild.value &&
+    (isReleaseBuild.value || isDockerBuild.value) &&
     rollbackVersions.value.length === 0 &&
     !rollbackVersionsLoading.value
   ) {
@@ -952,12 +1092,16 @@ onBeforeUnmount(() => {
 }
 
 .rollback-enter-active,
-.rollback-leave-active {
+.rollback-leave-active,
+.release-notes-enter-active,
+.release-notes-leave-active {
   transition: all 0.2s ease;
 }
 
 .rollback-enter-from,
-.rollback-leave-to {
+.rollback-leave-to,
+.release-notes-enter-from,
+.release-notes-leave-to {
   opacity: 0;
   transform: translateY(-4px);
 }
@@ -967,5 +1111,50 @@ onBeforeUnmount(() => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.release-notes-content :deep(h1),
+.release-notes-content :deep(h2),
+.release-notes-content :deep(h3) {
+  margin: 0.75rem 0 0.35rem;
+  color: inherit;
+  font-weight: 600;
+}
+
+.release-notes-content :deep(h1:first-child),
+.release-notes-content :deep(h2:first-child),
+.release-notes-content :deep(h3:first-child),
+.release-notes-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.release-notes-content :deep(p),
+.release-notes-content :deep(ul),
+.release-notes-content :deep(ol) {
+  margin: 0.4rem 0;
+}
+
+.release-notes-content :deep(ul),
+.release-notes-content :deep(ol) {
+  padding-left: 1.1rem;
+}
+
+.release-notes-content :deep(ul) {
+  list-style: disc;
+}
+
+.release-notes-content :deep(ol) {
+  list-style: decimal;
+}
+
+.release-notes-content :deep(a) {
+  color: rgb(var(--color-primary-500));
+  text-decoration: underline;
+}
+
+.release-notes-content :deep(code) {
+  border-radius: 0.25rem;
+  background: rgb(0 0 0 / 0.06);
+  padding: 0.1rem 0.25rem;
 }
 </style>

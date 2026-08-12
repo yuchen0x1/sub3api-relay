@@ -47,6 +47,18 @@
                 {{ t('admin.settings.features.channelMonitor.defaultIntervalHint') }}
               </p>
             </div>
+
+            <div class="mt-4 flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.channelMonitor.publicEnabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.channelMonitor.publicEnabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.channel_monitor_public_enabled" />
+            </div>
           </div>
         </div>
 </div>

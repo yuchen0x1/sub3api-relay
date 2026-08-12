@@ -15,9 +15,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
+	hyclient "github.com/apernet/hysteria/core/v2/client"
 	"golang.org/x/net/proxy"
 )
 
@@ -80,7 +82,97 @@ func ConfigureTransportProxy(transport *http.Transport, proxyURL *url.URL) error
 		}
 		return nil
 
+	case "hysteria2":
+		dialContext, err := newHysteria2DialContext(proxyURL)
+		if err != nil {
+			return err
+		}
+		transport.Proxy = nil
+		transport.DialContext = dialContext
+		return nil
+
 	default:
 		return fmt.Errorf("unsupported proxy scheme: %s", scheme)
 	}
+}
+
+func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, string) (net.Conn, error), error) {
+	if proxyURL == nil || proxyURL.Hostname() == "" {
+		return nil, fmt.Errorf("hysteria2 proxy missing host")
+	}
+	port := proxyURL.Port()
+	if port == "" {
+		port = "443"
+	}
+	auth := ""
+	if proxyURL.User != nil {
+		auth = proxyURL.User.Username()
+		if password, ok := proxyURL.User.Password(); ok {
+			auth += ":" + password
+		}
+	}
+	query := proxyURL.Query()
+	for key := range query {
+		switch key {
+		case "insecure", "sni":
+		default:
+			return nil, fmt.Errorf("unsupported hysteria2 option: %s", key)
+		}
+	}
+	insecure := false
+	if raw := strings.TrimSpace(query.Get("insecure")); raw != "" {
+		var err error
+		insecure, err = strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid hysteria2 insecure option")
+		}
+	}
+	serverName := strings.TrimSpace(query.Get("sni"))
+	if serverName == "" {
+		serverName = proxyURL.Hostname()
+	}
+	serverAddress := net.JoinHostPort(proxyURL.Hostname(), port)
+	client, err := hyclient.NewReconnectableClient(func() (*hyclient.Config, error) {
+		resolved, err := net.ResolveUDPAddr("udp", serverAddress)
+		if err != nil {
+			return nil, fmt.Errorf("resolve hysteria2 server: %w", err)
+		}
+		return &hyclient.Config{
+			ServerAddr: resolved,
+			Auth:       auth,
+			TLSConfig: hyclient.TLSConfig{
+				ServerName:         serverName,
+				InsecureSkipVerify: insecure,
+			},
+		}, nil
+	}, nil, true)
+	if err != nil {
+		return nil, fmt.Errorf("create hysteria2 client: %w", err)
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if network != "tcp" && network != "tcp4" && network != "tcp6" {
+			return nil, fmt.Errorf("hysteria2 only supports TCP dialing, got %s", network)
+		}
+		type dialResult struct {
+			conn net.Conn
+			err  error
+		}
+		resultCh := make(chan dialResult, 1)
+		go func() {
+			conn, dialErr := client.TCP(addr)
+			resultCh <- dialResult{conn: conn, err: dialErr}
+		}()
+		select {
+		case <-ctx.Done():
+			go func() {
+				result := <-resultCh
+				if result.conn != nil {
+					_ = result.conn.Close()
+				}
+			}()
+			return nil, ctx.Err()
+		case result := <-resultCh:
+			return result.conn, result.err
+		}
+	}, nil
 }

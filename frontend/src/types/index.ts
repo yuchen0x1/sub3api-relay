@@ -265,6 +265,7 @@ export interface PublicSettings {
   balance_low_notify_threshold: number
   channel_monitor_enabled: boolean
   channel_monitor_default_interval_seconds: number
+  channel_monitor_public_enabled: boolean
   available_channels_enabled: boolean
   model_plaza_enabled: boolean
   model_plaza_require_auth: boolean
@@ -857,7 +858,7 @@ export interface UpdateGroupRequest {
 export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
-export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
+export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'hysteria2'
 
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {
@@ -875,6 +876,7 @@ export interface Proxy {
   port: number
   username: string | null
   password?: string | null
+  tls_insecure: boolean
   status: 'active' | 'inactive' | 'expired'
   account_count?: number // Number of accounts using this proxy
   latency_ms?: number
@@ -1434,6 +1436,7 @@ export interface CreateProxyRequest {
   port: number
   username?: string | null
   password?: string | null
+  tls_insecure?: boolean
   expires_at?: number | null   // unix 秒；null/0 = 永不过期
   fallback_mode?: 'none' | 'proxy' | 'direct'
   backup_proxy_id?: number | null
@@ -1447,6 +1450,7 @@ export interface UpdateProxyRequest {
   port?: number
   username?: string | null
   password?: string | null
+  tls_insecure?: boolean
   status?: 'active' | 'inactive'
   expires_at?: number | null   // unix 秒；null/0 = 永不过期
   fallback_mode?: 'none' | 'proxy' | 'direct'
@@ -1472,6 +1476,7 @@ export interface AdminDataProxy {
   port: number
   username?: string | null
   password?: string | null
+  tls_insecure?: boolean
   status: 'active' | 'inactive'
 }
 

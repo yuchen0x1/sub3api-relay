@@ -22,6 +22,8 @@ export default {
           enabledHint: 'Disabling stops background checks; existing history is preserved.',
           defaultInterval: 'Default check interval (seconds)',
           defaultIntervalHint: 'Pre-fills the interval when creating a new monitor; each monitor can override it. Range 15 – 3600.',
+          publicEnabled: 'Allow visitors to view channel status',
+          publicEnabledHint: 'When on, the homepage status view and status page are visible without signing in; when off, only signed-in users can see them.',
         },
         availableChannels: {
           title: 'Available Channels',

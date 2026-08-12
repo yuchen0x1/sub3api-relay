@@ -359,6 +359,7 @@
   </a>
   <nav class="top-links">
     <a href="../">返回首页</a>
+    <a href="https://github.com/yuchen0x1/sub3api-relay/releases/latest" target="_blank" rel="noopener noreferrer">更新日志</a>
     <a href="#quickstart">快速开始</a>
     <a href="#manus">Manus 网关</a>
   </nav>
@@ -375,6 +376,7 @@
     <a href="#clients">客户端配置</a>
     <a href="#faq">常见问题</a>
     <a href="#security">安全与维护</a>
+    <a href="https://github.com/yuchen0x1/sub3api-relay/releases/latest" target="_blank" rel="noopener noreferrer">更新日志 ↗</a>
   </aside>
 
   <main class="content">
@@ -384,7 +386,7 @@
       <p>这是本网关自建的中文使用文档。所有接口、密钥与 Manus 网关的使用说明都从这里开始，不再跳转任何第三方网站。</p>
       <div class="url-line">
         <span>网关地址</span>
-        <code>https://your-server.example.com:8443</code>
+        <code>https://your-domain.example</code>
       </div>
     </div>
 
@@ -394,7 +396,7 @@
       <ol class="steps">
         <li><strong>登录本站</strong>，进入 <strong>API 密钥</strong> 页面。本站默认关闭公开注册，账号由管理员创建。</li>
         <li><strong>创建 API Key</strong>，并选择一个分组。密钥以 <code>sk-</code> 开头，创建后只显示一次，请立即复制并妥善保存。</li>
-        <li><strong>配置客户端</strong>，把 Base URL 指向本站：<br><code>https://your-server.example.com:8443</code><br>认证使用 <code>Authorization: Bearer 你的APIKey</code> 或 <code>x-api-key: 你的APIKey</code>。</li>
+        <li><strong>配置客户端</strong>，把 Base URL 指向你的部署地址：<br><code>https://your-domain.example</code><br>认证使用 <code>Authorization: Bearer 你的APIKey</code> 或 <code>x-api-key: 你的APIKey</code>。</li>
       </ol>
       <div class="callout green">
         <b>先验证密钥</b>
@@ -467,11 +469,11 @@
       <ul>
         <li>API Key 必须绑定到 <strong>Manus 平台分组</strong>。</li>
         <li>该分组必须至少有一个可用的 Manus 账号，账号类型可以是 Manus API Key 或 OAuth 授权。</li>
-        <li>网关地址为 <code>https://your-server.example.com:8443/manus/v2/</code>。</li>
+        <li>网关地址为 <code>https://your-domain.example/manus/v2/</code>。</li>
       </ul>
       <h3>调用方式</h3>
       <p>把 Manus v2 的端点名直接放在 <code>/manus/v2/</code> 后面，认证头与本站其他接口一致：</p>
-<pre><code>POST https://your-server.example.com:8443/manus/v2/&lt;endpoint&gt;
+<pre><code>POST https://your-domain.example/manus/v2/&lt;endpoint&gt;
 Authorization: Bearer sk-你的APIKey
 Content-Type: application/json</code></pre>
       <p>请求会被转发到 Manus 上游，响应内容原样返回。API Key 账号自动使用上游的 <code>x-manus-api-key</code>，OAuth 账号自动使用 Bearer Token，无需自行拼接上游凭证。</p>
@@ -484,7 +486,7 @@ Content-Type: application/json</code></pre>
     <section id="clients">
       <h2><span class="no">06</span>客户端配置</h2>
       <h3>curl 示例</h3>
-<pre><code>curl https://your-server.example.com:8443/v1/chat/completions \
+<pre><code>curl https://your-domain.example/v1/chat/completions \
   -H "Authorization: Bearer sk-你的APIKey" \
   -H "Content-Type: application/json" \
   -d '{
@@ -492,13 +494,13 @@ Content-Type: application/json</code></pre>
     "messages": [{"role": "user", "content": "你好"}]
   }'</code></pre>
       <h3>OpenAI SDK</h3>
-      <p>Base URL 填 <code>https://your-server.example.com:8443/v1</code>，API Key 填本站密钥。</p>
+      <p>Base URL 填 <code>https://your-domain.example/v1</code>，API Key 填本站密钥。</p>
       <h3>Claude Code</h3>
       <p>Base URL 填网关根地址，认证 Token 填本站密钥：</p>
-<pre><code>export ANTHROPIC_BASE_URL="https://your-server.example.com:8443"
+<pre><code>export ANTHROPIC_BASE_URL="https://your-domain.example"
 export ANTHROPIC_AUTH_TOKEN="sk-你的APIKey"</code></pre>
       <h3>Codex CLI</h3>
-      <p>OpenAI 兼容客户端把 Base URL 指向 <code>https://your-server.example.com:8443/v1</code>，使用 <code>/responses</code> 或 <code>/chat/completions</code> 路径。若客户端需要 OpenAI 格式模型目录，可直接访问 <code>GET /v1/models</code>。</p>
+      <p>OpenAI 兼容客户端把 Base URL 指向 <code>https://your-domain.example/v1</code>，使用 <code>/responses</code> 或 <code>/chat/completions</code> 路径。若客户端需要 OpenAI 格式模型目录，可直接访问 <code>GET /v1/models</code>。</p>
       <h3>ChatBox / OpenCat 等桌面客户端</h3>
       <p>选择 OpenAI 兼容供应商，填写上面的 Base URL 和密钥即可。若客户端要求区分平台，请使用与密钥分组对应的模型名。</p>
       <div class="callout amber">
@@ -524,7 +526,7 @@ export ANTHROPIC_AUTH_TOKEN="sk-你的APIKey"</code></pre>
       <h3>为什么不能注册账号？</h3>
       <p>本网关是个人使用部署，默认关闭公开注册、支付与商业化功能。账号由管理员在控制台创建，然后登录使用。</p>
       <h3>为什么文档地址变了？</h3>
-      <p>文档已改为本站自建页面，地址为 <code>https://your-server.example.com:8443/docs/</code>，与第三方站点无关。页脚的“文档”入口会直接打开本页。</p>
+      <p>文档由当前部署实例自建，地址通常为 <code>https://your-domain.example/docs/</code>，与第三方站点无关。页脚的“文档”入口会直接打开本页。</p>
       <h3>如何查看余额和用量？</h3>
       <p>使用带密钥的请求调用 <code>GET /v1/usage</code>，或在站内“使用记录”页面查看。</p>
     </section>

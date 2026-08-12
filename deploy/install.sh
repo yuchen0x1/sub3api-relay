@@ -40,6 +40,7 @@ CONFIG_DIR="/etc/sub3api"
 # Server configuration (will be set by user)
 SERVER_HOST="0.0.0.0"
 SERVER_PORT="8080"
+SETUP_SERVER_HOST="127.0.0.1"
 
 # Language (default: zh = Chinese)
 LANG_CHOICE="zh"
@@ -627,27 +628,34 @@ download_and_extract() {
     trap "rm -rf $TEMP_DIR" EXIT
 
     # Download archive
-    if ! curl -sL "$download_url" -o "$TEMP_DIR/$archive_name"; then
+    if ! curl -fsSL "$download_url" -o "$TEMP_DIR/$archive_name"; then
         print_error "$(msg 'download_failed')"
         exit 1
     fi
 
     # Download and verify checksum
     print_info "$(msg 'verifying_checksum')"
-    if curl -sL "$checksum_url" -o "$TEMP_DIR/checksums.txt" 2>/dev/null; then
-        local expected_checksum=$(grep "$archive_name" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
-        local actual_checksum=$(sha256sum "$TEMP_DIR/$archive_name" | awk '{print $1}')
-
-        if [ "$expected_checksum" != "$actual_checksum" ]; then
-            print_error "$(msg 'checksum_failed')"
-            print_error "Expected: $expected_checksum"
-            print_error "Actual: $actual_checksum"
-            exit 1
-        fi
-        print_success "$(msg 'checksum_verified')"
-    else
-        print_warning "$(msg 'checksum_not_found')"
+    if ! curl -fsSL "$checksum_url" -o "$TEMP_DIR/checksums.txt" 2>/dev/null; then
+        print_error "$(msg 'checksum_not_found')"
+        exit 1
     fi
+
+    local expected_checksum
+    local actual_checksum
+    expected_checksum=$(awk -v archive="$archive_name" '$2 == archive || $2 == "*" archive { print $1; exit }' "$TEMP_DIR/checksums.txt")
+    actual_checksum=$(sha256sum "$TEMP_DIR/$archive_name" | awk '{print $1}')
+
+    if ! printf '%s' "$expected_checksum" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+        print_error "$(msg 'checksum_not_found')"
+        exit 1
+    fi
+    if [ "$expected_checksum" != "$actual_checksum" ]; then
+        print_error "$(msg 'checksum_failed')"
+        print_error "Expected: $expected_checksum"
+        print_error "Actual: $actual_checksum"
+        exit 1
+    fi
+    print_success "$(msg 'checksum_verified')"
 
     # Extract
     print_info "$(msg 'extracting')"
@@ -745,6 +753,8 @@ ReadWritePaths=/opt/sub3api
 Environment=GIN_MODE=release
 Environment=SERVER_HOST=${SERVER_HOST}
 Environment=SERVER_PORT=${SERVER_PORT}
+Environment=SETUP_SERVER_HOST=${SETUP_SERVER_HOST}
+Environment=SUB3API_DEPLOYMENT_TYPE=binary
 
 [Install]
 WantedBy=multi-user.target
@@ -815,10 +825,7 @@ enable_autostart() {
 print_completion() {
     # Use PUBLIC_IP which was set by get_public_ip()
     # Determine display address
-    local display_host="${PUBLIC_IP:-YOUR_SERVER_IP}"
-    if [ "$SERVER_HOST" = "127.0.0.1" ]; then
-        display_host="127.0.0.1"
-    fi
+    local display_host="127.0.0.1"
 
     echo ""
     echo "=============================================="
@@ -833,6 +840,7 @@ print_completion() {
     echo "=============================================="
     echo ""
     print_info "     http://${display_host}:${SERVER_PORT}"
+    print_info "     SSH: ssh -L ${SERVER_PORT}:127.0.0.1:${SERVER_PORT} user@${PUBLIC_IP:-YOUR_SERVER_IP}"
     echo ""
     echo "     $(msg 'wizard_guide')"
     echo "     - $(msg 'wizard_db')"

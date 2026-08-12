@@ -11,13 +11,15 @@
 
 **Personal-use backend AI API gateway**
 
-English | [中文](README_CN.md) | [日本語](README_JA.md)
+English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.181.md)
 
 </div>
 
-## v0.1.175 preview
+## v0.1.181 release highlights
 
-The `v0.1.175` release refreshes the public page and private operator console with a glass-style UI, clearer personal-operator navigation, channel monitoring, preserved usage and operation logs, and a sidebar release update entry.
+The `v0.1.181` release improves Codex compatibility, live homepage status, upstream response handling, and the release/update experience. The version panel now displays sanitized release notes directly, and every GitHub Release must include a matching release-notes file.
+
+The screenshots below show the interface introduced in `v0.1.175`; the current release keeps that design while improving its live status and maintenance behavior.
 
 | Public page | Usage records |
 | --- | --- |
@@ -31,7 +33,7 @@ The `v0.1.175` release refreshes the public page and private operator console wi
 | --- |
 | ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-See the [release notes](RELEASE_NOTES_v0.1.175.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
+See the [v0.1.181 release notes](RELEASE_NOTES_v0.1.181.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
@@ -108,7 +110,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -158,7 +160,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -181,7 +183,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -193,10 +195,10 @@ docker compose logs -f sub3api
 **What the script does:**
 - Downloads `docker-compose.local.yml` (saved as `docker-compose.yml`) and `.env.example`
 - Generates secure credentials (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-- Configures the initial administrator as `admin` / `admin`
+- Requires an explicit `ADMIN_PASSWORD` for the initial administrator
 - Creates `.env` file with auto-generated secrets
 - Creates data directories (uses local directories for easy backup/migration)
-- Stores the default administrator credentials in `.env`
+- Stores the configured administrator credentials in the owner-readable `.env`
 
 #### Manual Deployment
 
@@ -278,7 +280,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 Open `http://YOUR_SERVER_IP:8080` in your browser.
 
-Log in with `admin` / `admin`, then change the administrator password immediately from the account settings page. These defaults are used only when the first administrator is created.
+Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` you set during deployment. There is no public default password.
 
 #### Upgrade
 
@@ -526,7 +528,7 @@ Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipp
 
 **Two ways to create the admin account:**
 
-1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub3api` directly; the setup wizard at `http://localhost:8080` walks you through database and Redis setup, creates the initial `admin` / `admin` account unless changed, then writes `config.yaml` for you.
+1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./sub3api` directly; the setup wizard at `http://localhost:8080` walks you through database and Redis setup, asks you to create the initial administrator with a strong password, then writes `config.yaml` for you.
 
 2. **If you already created `config.yaml`:** Temporarily move it aside so the wizard can trigger on first run, then restore it afterwards:
    ```bash

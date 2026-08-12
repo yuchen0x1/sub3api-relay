@@ -331,6 +331,7 @@ type Proxy struct {
 	FallbackMode   string     `json:"fallback_mode"`
 	BackupProxyID  *int64     `json:"backup_proxy_id"`
 	ExpiryWarnDays int        `json:"expiry_warn_days"`
+	TLSInsecure    bool       `json:"tls_insecure"`
 }
 
 type ProxyWithAccountCount struct {

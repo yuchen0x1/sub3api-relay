@@ -13,13 +13,15 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語
+[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.181.md)
 
 </div>
 
-## v0.1.175 プレビュー
+## v0.1.181 リリース概要
 
-`v0.1.175` では、ガラス調のホームと個人運用者向けコンソールを更新し、利用履歴と操作ログを保持したまま、サイドバーのバージョン番号から更新できるようにしました。
+`v0.1.181` では、Codex 互換性、ホームのリアルタイム状態、上流レスポンス処理、リリースと更新の操作性を改善しました。バージョンパネルでサニタイズ済みの更新内容を確認でき、GitHub Release には対応するリリースノートが必須になります。
+
+以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースでもこのデザインを維持しながら、リアルタイム状態と保守機能を強化しています。
 
 | ホーム | 利用履歴 |
 | --- | --- |
@@ -33,7 +35,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.175 更新内容](RELEASE_NOTES_v0.1.175.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.1.181 更新内容](RELEASE_NOTES_v0.1.181.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -109,7 +111,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -159,7 +161,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # アンインストール
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -182,7 +184,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -194,10 +196,10 @@ docker compose logs -f sub3api
 **スクリプトの動作内容:**
 - `docker-compose.local.yml`（`docker-compose.yml` として保存）と `.env.example` をダウンロード
 - セキュアな認証情報（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）を自動生成
-- 初期管理者のログインとパスワードを `admin` / `admin` に設定
+- 初期管理者用の `ADMIN_PASSWORD` を明示的に要求
 - 自動生成されたシークレットで `.env` ファイルを作成
 - データディレクトリを作成（バックアップ・移行が容易なローカルディレクトリを使用）
-- 生成された認証情報を参照用に表示
+- 設定した管理者認証情報を所有者のみ読み取り可能な `.env` に保存
 
 #### 手動デプロイ
 
@@ -279,7 +281,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ブラウザで `http://YOUR_SERVER_IP:8080` を開いてください。
 
-`admin` / `admin` でログインし、アカウント設定からすぐに管理者パスワードを変更してください。
+デプロイ時に設定した `ADMIN_EMAIL` と `ADMIN_PASSWORD` でログインしてください。公開された既定パスワードはありません。
 
 #### アップグレード
 
@@ -481,7 +483,7 @@ URL バリデーションまたはレスポンスヘッダーフィルタリン�
 
 **管理者アカウントを作成する 2 つの方法:**
 
-1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub3api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベースと Redis を設定し、既定の `admin` / `admin` 管理者アカウントを作成して `config.yaml` を自動生成します。
+1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./sub3api` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベースと Redis を設定し、強力なパスワードで初期管理者を作成するよう求めてから `config.yaml` を自動生成します。
 
 2. **すでに `config.yaml` を作成してしまった場合:** 初回起動前に一時的に退避してウィザードを発生させ、完了後に戻します:
    ```bash

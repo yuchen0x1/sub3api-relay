@@ -76,6 +76,7 @@ func (s *adminServiceImpl) CreateProxy(ctx context.Context, input *CreateProxyIn
 		Port:           input.Port,
 		Username:       input.Username,
 		Password:       input.Password,
+		TLSInsecure:    input.TLSInsecure,
 		Status:         StatusActive,
 		ExpiresAt:      input.ExpiresAt,
 		FallbackMode:   mode,
@@ -139,6 +140,7 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 	proxy.FallbackMode = mode
 	proxy.BackupProxyID = input.BackupProxyID
 	proxy.ExpiryWarnDays = input.ExpiryWarnDays
+	proxy.TLSInsecure = input.TLSInsecure
 
 	if err := s.proxyRepo.Update(ctx, proxy); err != nil {
 		return nil, err

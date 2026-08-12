@@ -43,6 +43,7 @@ type DataProxy struct {
 	Port            int    `json:"port"`
 	Username        string `json:"username,omitempty"`
 	Password        string `json:"password,omitempty"`
+	TLSInsecure     bool   `json:"tls_insecure,omitempty"`
 	Status          string `json:"status"`
 	ExpiresAt       *int64 `json:"expires_at,omitempty"`        // unix 秒，与 DataAccount.ExpiresAt 风格一致
 	FallbackMode    string `json:"fallback_mode,omitempty"`     // none/direct/proxy
@@ -97,6 +98,14 @@ type DataImportError struct {
 
 func buildProxyKey(protocol, host string, port int, username, password string) string {
 	return fmt.Sprintf("%s|%s|%d|%s|%s", strings.TrimSpace(protocol), strings.TrimSpace(host), port, strings.TrimSpace(username), strings.TrimSpace(password))
+}
+
+func buildProxyKeyWithTLS(protocol, host string, port int, username, password string, tlsInsecure bool) string {
+	key := buildProxyKey(protocol, host, port, username, password)
+	if protocol == "hysteria2" && tlsInsecure {
+		return key + "|tls-insecure"
+	}
+	return key
 }
 
 func (h *AccountHandler) ExportData(c *gin.Context) {
@@ -159,7 +168,7 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 	dataProxies := make([]DataProxy, 0, len(proxies))
 	for i := range proxies {
 		p := proxies[i]
-		key := buildProxyKey(p.Protocol, p.Host, p.Port, p.Username, p.Password)
+		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
 		proxyKeyByID[p.ID] = key
 
 		var expiresAt *int64
@@ -179,6 +188,7 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 			Port:            p.Port,
 			Username:        p.Username,
 			Password:        p.Password,
+			TLSInsecure:     p.TLSInsecure,
 			Status:          p.Status,
 			ExpiresAt:       expiresAt,
 			FallbackMode:    p.FallbackMode,
@@ -268,7 +278,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 	proxyNameToID := make(map[string]int64, len(existingProxies))
 	for i := range existingProxies {
 		p := existingProxies[i]
-		key := buildProxyKey(p.Protocol, p.Host, p.Port, p.Username, p.Password)
+		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
 		proxyKeyToID[key] = p.ID
 		if p.Name != "" {
 			proxyNameToID[p.Name] = p.ID
@@ -279,7 +289,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		item := dataPayload.Proxies[i]
 		key := item.ProxyKey
 		if key == "" {
-			key = buildProxyKey(item.Protocol, item.Host, item.Port, item.Username, item.Password)
+			key = buildProxyKeyWithTLS(item.Protocol, item.Host, item.Port, item.Username, item.Password, item.TLSInsecure)
 		}
 		if err := validateDataProxy(item); err != nil {
 			result.ProxyFailed++
@@ -325,6 +335,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 						Port:           proxy.Port,
 						Username:       proxy.Username,
 						Password:       proxy.Password,
+						TLSInsecure:    proxy.TLSInsecure,
 					})
 				}
 			}
@@ -363,6 +374,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 			Port:           item.Port,
 			Username:       item.Username,
 			Password:       item.Password,
+			TLSInsecure:    item.TLSInsecure,
 			ExpiresAt:      expiresAt,
 			FallbackMode:   fallbackMode,
 			BackupProxyID:  backupProxyID,
@@ -399,6 +411,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 				Port:           created.Port,
 				Username:       created.Username,
 				Password:       created.Password,
+				TLSInsecure:    created.TLSInsecure,
 			})
 		}
 	}
@@ -731,7 +744,7 @@ func validateDataProxy(item DataProxy) error {
 		return errors.New("proxy port is invalid")
 	}
 	switch item.Protocol {
-	case "http", "https", "socks5", "socks5h":
+	case "http", "https", "socks5", "socks5h", "hysteria2":
 	default:
 		return fmt.Errorf("proxy protocol is invalid: %s", item.Protocol)
 	}

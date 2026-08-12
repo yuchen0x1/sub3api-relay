@@ -28,9 +28,12 @@ export default {
     viewUpdate: 'View Update',
     viewRelease: 'View Release',
     viewChangelog: 'View Changelog',
+    openReleasePage: 'Open GitHub Release',
     refresh: 'Refresh',
     sourceMode: 'Source Build',
     sourceModeHint: 'Source build, use git pull to update',
+    dockerModeHint:
+      'Docker deployments cannot persist an in-container binary replacement. Pull the image and recreate the container from the Compose directory.',
     updateNow: 'Update Now',
     updating: 'Updating...',
     updateComplete: 'Update Complete',

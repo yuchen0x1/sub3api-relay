@@ -13,13 +13,15 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.181.md)
 
 </div>
 
-## v0.1.175 新版预览
+## v0.1.181 更新亮点
 
-`v0.1.175` 更新了玻璃透光风格主页和个人站长控制台，保留使用记录与操作日志，并将版本更新入口放到侧边栏版本号下方。
+`v0.1.181` 重点完善 Codex 兼容性、主页实时状态、上游响应处理和发布更新体验。版本面板现在可以安全展示更新日志，并且每次 GitHub Release 都必须提供对应的版本说明文件。
+
+下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并增强了实时状态和维护能力。
 
 | 主页 | 使用记录 |
 | --- | --- |
@@ -33,7 +35,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.175 更新说明](RELEASE_NOTES_v0.1.175.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.1.181 更新说明](RELEASE_NOTES_v0.1.181.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -110,7 +112,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -160,7 +162,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # 卸载
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -183,7 +185,7 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -195,10 +197,10 @@ docker compose logs -f sub3api
 **脚本功能：**
 - 下载 `docker-compose.local.yml`（本地保存为 `docker-compose.yml`）和 `.env.example`
 - 自动生成安全凭证（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）
-- 将初始管理员账号和密码设置为 `admin` / `admin`
+- 要求为初始管理员显式设置 `ADMIN_PASSWORD`
 - 创建 `.env` 文件并填充自动生成的密钥
 - 创建数据目录（使用本地目录，便于备份和迁移）
-- 显示生成的凭证供你记录
+- 将配置的管理员凭证保存在仅所有者可读的 `.env` 文件中
 
 #### 手动部署
 
@@ -292,7 +294,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 在浏览器中打开 `http://你的服务器IP:8080`
 
-使用 `admin` / `admin` 登录，随后立即在账户设置中修改管理员密码。
+使用部署时设置的 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 登录；系统不存在公开默认密码。
 
 #### 升级
 
@@ -523,7 +525,7 @@ Invalid base URL: invalid url scheme: http
 
 **创建管理员的两种方式：**
 
-1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub3api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并创建默认 `admin` / `admin` 管理员账号，然后自动写出 `config.yaml`。
+1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub3api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并要求使用强密码创建初始管理员，然后自动写出 `config.yaml`。
 
 2. **如果你已经创建了 `config.yaml`：** 首次启动前先把它临时移走以触发向导，完成后再恢复：
    ```bash

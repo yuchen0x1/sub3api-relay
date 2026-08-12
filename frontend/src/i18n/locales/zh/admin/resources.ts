@@ -113,6 +113,7 @@ export default {
       allStatus: '全部状态',
       searchProxies: '搜索代理...',
       protocols: {
+		hysteria2: 'Hysteria2',
         http: 'HTTP',
         https: 'HTTPS',
         socks5: 'SOCKS5',
@@ -171,6 +172,13 @@ export default {
       batchImportSuccess: '成功导入 {created} 个代理，跳过 {skipped} 个重复',
       batchImportAllSkipped: '全部 {skipped} 个代理已存在，跳过导入',
       failedToImport: '批量导入失败',
+      authToken: '认证令牌',
+      authTokenPlaceholder: '请输入 Hysteria2 认证令牌',
+      tlsInsecure: '跳过 TLS 证书校验（仅用于可信节点）',
+      subscriptionDetected: '检测到 HTTPS 订阅地址，请先解析节点，再确认导入。',
+      parseSubscription: '解析订阅',
+      subscriptionParsed: '已解析 {count} 个节点，请确认后导入',
+      subscriptionParseFailed: '订阅解析失败',
       // Other messages
       saving: '保存中...',
       testing: '测试中...',

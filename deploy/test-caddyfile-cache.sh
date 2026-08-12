@@ -3,7 +3,7 @@ set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 caddyfile="$repo_root/deploy/Caddyfile"
-active_config=$(sed 's/[[:space:]]*#.*$//' "$caddyfile")
+active_config=$(sed 's/\r$//; s/[[:space:]]*#.*$//' "$caddyfile")
 normalized_config=$(printf '%s\n' "$active_config" | awk '
 	NF > 0 {
 		for (field = 1; field <= NF; field++) {

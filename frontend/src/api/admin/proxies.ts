@@ -195,11 +195,13 @@ export async function getProxyAccounts(id: number): Promise<ProxyAccountSummary[
  */
 export async function batchCreate(
   proxies: Array<{
+    name?: string
     protocol: string
     host: string
     port: number
     username?: string
     password?: string
+    tls_insecure?: boolean
   }>
 ): Promise<{
   created: number
@@ -209,6 +211,33 @@ export async function batchCreate(
     created: number
     skipped: number
   }>('/admin/proxies/batch', { proxies })
+  return data
+}
+
+export async function parseSubscription(url: string): Promise<{
+  count: number
+  proxies: Array<{
+    name: string
+    protocol: 'hysteria2'
+    host: string
+    port: number
+    username: string
+    password: string
+    tls_insecure: boolean
+  }>
+}> {
+  const { data } = await apiClient.post<{
+    count: number
+    proxies: Array<{
+      name: string
+      protocol: 'hysteria2'
+      host: string
+      port: number
+      username: string
+      password: string
+      tls_insecure: boolean
+    }>
+  }>('/admin/proxies/subscription/parse', { url })
   return data
 }
 
@@ -269,6 +298,7 @@ export const proxiesAPI = {
   getStats,
   getProxyAccounts,
   batchCreate,
+  parseSubscription,
   batchDelete,
   exportData,
   importData

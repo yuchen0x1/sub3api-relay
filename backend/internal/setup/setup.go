@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"net"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -17,7 +19,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/repository"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -86,21 +88,23 @@ type SetupConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string `json:"host" yaml:"host"`
-	Port     int    `json:"port" yaml:"port"`
-	User     string `json:"user" yaml:"user"`
-	Password string `json:"password" yaml:"password"`
-	DBName   string `json:"dbname" yaml:"dbname"`
-	SSLMode  string `json:"sslmode" yaml:"sslmode"`
+	Host              string `json:"host" yaml:"host"`
+	Port              int    `json:"port" yaml:"port"`
+	User              string `json:"user" yaml:"user"`
+	Password          string `json:"password" yaml:"password"`
+	DBName            string `json:"dbname" yaml:"dbname"`
+	SSLMode           string `json:"sslmode" yaml:"sslmode"`
+	resolvedAddresses []netip.Addr
 }
 
 type RedisConfig struct {
-	Host      string `json:"host" yaml:"host"`
-	Port      int    `json:"port" yaml:"port"`
-	Username  string `json:"username" yaml:"username"`
-	Password  string `json:"password" yaml:"password"`
-	DB        int    `json:"db" yaml:"db"`
-	EnableTLS bool   `json:"enable_tls" yaml:"enable_tls"`
+	Host              string `json:"host" yaml:"host"`
+	Port              int    `json:"port" yaml:"port"`
+	Username          string `json:"username" yaml:"username"`
+	Password          string `json:"password" yaml:"password"`
+	DB                int    `json:"db" yaml:"db"`
+	EnableTLS         bool   `json:"enable_tls" yaml:"enable_tls"`
+	resolvedAddresses []netip.Addr
 }
 
 type AdminConfig struct {
@@ -190,6 +194,53 @@ func buildDatabaseConnectionDSNs(cfg *DatabaseConfig) (bootstrapDSN, targetDSN s
 	return buildPostgresDSN(cfg, "postgres"), buildPostgresDSN(cfg, cfg.DBName)
 }
 
+type setupDialer struct {
+	addresses []netip.Addr
+	timeout   time.Duration
+}
+
+func (d setupDialer) Dial(network, address string) (net.Conn, error) {
+	return d.DialTimeout(network, address, d.timeout)
+}
+
+func (d setupDialer) DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return d.DialContext(ctx, network, address)
+}
+
+func (d setupDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, err
+	}
+	dialer := net.Dialer{Timeout: d.timeout}
+	var lastErr error
+	for _, target := range d.addresses {
+		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(target.String(), port))
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no approved target addresses")
+	}
+	return nil, lastErr
+}
+
+func openSetupPostgres(dsn string, addresses []netip.Addr) (*sql.DB, error) {
+	if len(addresses) == 0 {
+		return sql.Open("postgres", dsn)
+	}
+	connector, err := pq.NewConnector(dsn)
+	if err != nil {
+		return nil, err
+	}
+	connector.Dialer(setupDialer{addresses: addresses, timeout: 5 * time.Second})
+	return sql.OpenDB(connector), nil
+}
+
 // TestDatabaseConnection tests the database connection and creates database if not exists
 func TestDatabaseConnection(cfg *DatabaseConfig) error {
 	// First, connect to the default 'postgres' database to check/create target database.
@@ -197,7 +248,7 @@ func TestDatabaseConnection(cfg *DatabaseConfig) error {
 	// created yet, so the bootstrap connection must use PostgreSQL's maintenance DB.
 	defaultDSN, targetDSN := buildDatabaseConnectionDSNs(cfg)
 
-	db, err := sql.Open("postgres", defaultDSN)
+	db, err := openSetupPostgres(defaultDSN, cfg.resolvedAddresses)
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL: %w", err)
 	}
@@ -243,7 +294,7 @@ func TestDatabaseConnection(cfg *DatabaseConfig) error {
 	}
 	db = nil
 
-	targetDB, err := sql.Open("postgres", targetDSN)
+	targetDB, err := openSetupPostgres(targetDSN, cfg.resolvedAddresses)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database '%s': %w", cfg.DBName, err)
 	}
@@ -271,6 +322,21 @@ func TestRedisConnection(cfg *RedisConfig) error {
 		Username: cfg.Username,
 		Password: cfg.Password,
 		DB:       cfg.DB,
+	}
+	if len(cfg.resolvedAddresses) > 0 {
+		dialer := setupDialer{addresses: cfg.resolvedAddresses, timeout: 5 * time.Second}
+		opts.Dialer = func(ctx context.Context, network, address string) (net.Conn, error) {
+			conn, err := dialer.DialContext(ctx, network, address)
+			if err != nil || !cfg.EnableTLS {
+				return conn, err
+			}
+			tlsConn := tls.Client(conn, opts.TLSConfig)
+			if err := tlsConn.HandshakeContext(ctx); err != nil {
+				_ = conn.Close()
+				return nil, err
+			}
+			return tlsConn, nil
+		}
 	}
 
 	if cfg.EnableTLS {
@@ -359,7 +425,7 @@ func initializeDatabase(cfg *SetupConfig) error {
 		cfg.Database.Password, cfg.Database.DBName, cfg.Database.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := openSetupPostgres(dsn, cfg.Database.resolvedAddresses)
 	if err != nil {
 		return err
 	}
@@ -391,7 +457,7 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 		cfg.Database.Password, cfg.Database.DBName, cfg.Database.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := openSetupPostgres(dsn, cfg.Database.resolvedAddresses)
 	if err != nil {
 		return false, "", err
 	}

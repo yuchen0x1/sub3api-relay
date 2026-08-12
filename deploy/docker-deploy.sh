@@ -3,7 +3,8 @@
 # Sub3API Docker Deployment Preparation Script
 # =============================================================================
 # This script prepares deployment files for Sub3API:
-#   - Downloads docker-compose.local.yml and .env.example
+#   - Downloads a version-pinned deployment bundle from GitHub Releases
+#   - Verifies the deployment bundle with SHA-256 before writing files
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
 #   - Requires an explicit strong initial administrator password
 #   - Creates necessary data directories
@@ -21,8 +22,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# GitHub raw content base URL
-GITHUB_RAW_URL="https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy"
+GITHUB_REPO="${GITHUB_REPO:-yuchen0x1/sub3api-relay}"
+GITHUB_API_URL="https://api.github.com/repos/${GITHUB_REPO}"
+GITHUB_RELEASE_URL="https://github.com/${GITHUB_REPO}/releases/download"
+SUB3API_VERSION="${SUB3API_VERSION:-latest}"
 
 # Print colored message
 print_info() {
@@ -49,17 +52,22 @@ generate_secret() {
 read_admin_password() {
     local password="${ADMIN_PASSWORD:-}"
     local confirmation
+    local input_device="/dev/stdin"
 
     if [ -z "$password" ]; then
-        if [ ! -t 0 ]; then
-            print_error "ADMIN_PASSWORD is required for non-interactive first-time deployment." >&2
+        if [ -t 0 ]; then
+            input_device="/dev/stdin"
+        elif [ -r /dev/tty ] && (: < /dev/tty) 2>/dev/null; then
+            input_device="/dev/tty"
+        else
+            print_error "ADMIN_PASSWORD is required when no terminal is available." >&2
             exit 1
         fi
         while true; do
-            read -r -s -p "Initial administrator password (8-128 characters): " password
-            echo
-            read -r -s -p "Confirm administrator password: " confirmation
-            echo
+            read -r -s -p "Initial administrator password (8-128 characters): " password < "$input_device"
+            echo >&2
+            read -r -s -p "Confirm administrator password: " confirmation < "$input_device"
+            echo >&2
             if [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; then
                 print_error "Administrator password must be 8-128 characters." >&2
                 continue
@@ -98,6 +106,60 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+download_file() {
+    local url="$1"
+    local destination="$2"
+    if command_exists curl; then
+        curl -fsSL "$url" -o "$destination"
+    elif command_exists wget; then
+        wget -q "$url" -O "$destination"
+    else
+        print_error "Neither curl nor wget is installed. Please install one of them."
+        exit 1
+    fi
+}
+
+resolve_release_tag() {
+    if [ "$SUB3API_VERSION" != "latest" ]; then
+        if [[ "$SUB3API_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            printf 'v%s' "${SUB3API_VERSION#v}"
+            return
+        fi
+        print_error "SUB3API_VERSION must be latest or a semantic version such as v0.1.181."
+        exit 1
+    fi
+
+    local release_json
+    local tag
+    release_json=$(mktemp)
+    download_file "${GITHUB_API_URL}/releases/latest" "$release_json"
+    tag=$(sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$release_json" | head -n 1)
+    rm -f "$release_json"
+    if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf '%s' "$tag"
+        return
+    fi
+    print_error "Unable to resolve the latest stable release tag."
+    exit 1
+}
+
+verify_deployment_asset() {
+    local directory="$1"
+    local filename="$2"
+    local expected
+    local actual
+    expected=$(awk -v filename="$filename" '$2 == filename || $2 == "*" filename { print $1; exit }' "$directory/deploy-checksums.txt")
+    actual=$(sha256sum "$directory/$filename" | awk '{print $1}')
+    if ! printf '%s' "$expected" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+        print_error "Missing SHA-256 checksum for $filename."
+        exit 1
+    fi
+    if [ "$expected" != "$actual" ]; then
+        print_error "SHA-256 verification failed for $filename."
+        exit 1
+    fi
+}
+
 # Main installation function
 main() {
     echo ""
@@ -106,11 +168,12 @@ main() {
     echo "=========================================="
     echo ""
 
-    # Check if openssl is available
-    if ! command_exists openssl; then
-        print_error "openssl is not installed. Please install openssl first."
-        exit 1
-    fi
+    for dependency in openssl sha256sum awk sed; do
+        if ! command_exists "$dependency"; then
+            print_error "$dependency is not installed. Please install it first."
+            exit 1
+        fi
+    done
 
     # Check if deployment already exists
     if [ -f "docker-compose.yml" ] && [ -f ".env" ]; then
@@ -123,26 +186,23 @@ main() {
         fi
     fi
 
-    # Download docker-compose.local.yml and save as docker-compose.yml
-    print_info "Downloading docker-compose.yml..."
-    if command_exists curl; then
-        curl -sSL "${GITHUB_RAW_URL}/docker-compose.local.yml" -o docker-compose.yml
-    elif command_exists wget; then
-        wget -q "${GITHUB_RAW_URL}/docker-compose.local.yml" -O docker-compose.yml
-    else
-        print_error "Neither curl nor wget is installed. Please install one of them."
-        exit 1
-    fi
-    print_success "Downloaded docker-compose.yml"
+    local release_tag
+    local release_base
+    local download_dir
+    release_tag=$(resolve_release_tag)
+    release_base="${GITHUB_RELEASE_URL}/${release_tag}"
+    download_dir=$(mktemp -d)
+    trap "rm -rf -- '$download_dir'" EXIT
 
-    # Download .env.example
-    print_info "Downloading .env.example..."
-    if command_exists curl; then
-        curl -sSL "${GITHUB_RAW_URL}/.env.example" -o .env.example
-    else
-        wget -q "${GITHUB_RAW_URL}/.env.example" -O .env.example
-    fi
-    print_success "Downloaded .env.example"
+    print_info "Downloading verified deployment bundle for ${release_tag}..."
+    download_file "${release_base}/docker-compose.yml" "$download_dir/docker-compose.yml"
+    download_file "${release_base}/sub3api.env.example" "$download_dir/sub3api.env.example"
+    download_file "${release_base}/deploy-checksums.txt" "$download_dir/deploy-checksums.txt"
+    verify_deployment_asset "$download_dir" docker-compose.yml
+    verify_deployment_asset "$download_dir" sub3api.env.example
+    mv "$download_dir/docker-compose.yml" docker-compose.yml
+    mv "$download_dir/sub3api.env.example" .env.example
+    print_success "Downloaded and verified deployment bundle for ${release_tag}"
 
     # Generate .env file with auto-generated secrets
     print_info "Generating secure secrets..."
@@ -176,10 +236,7 @@ main() {
     echo "  Preparation Complete!"
     echo "=========================================="
     echo ""
-    echo "Generated secure credentials:"
-    echo "  POSTGRES_PASSWORD:     ${POSTGRES_PASSWORD}"
-    echo "  JWT_SECRET:            ${JWT_SECRET}"
-    echo "  TOTP_ENCRYPTION_KEY:   ${TOTP_ENCRYPTION_KEY}"
+    echo "Generated credentials were written to the owner-readable .env file."
     echo "  ADMIN_EMAIL:           admin"
     echo "  ADMIN_PASSWORD:        saved in .env (not printed)"
     echo ""

@@ -223,28 +223,33 @@
             <span class="font-mono text-xs text-gray-500 dark:text-gray-400">#{{ value }}</span>
           </template>
           <template #cell-name="{ row, value }">
-            <div class="flex flex-col">
+            <div class="flex min-w-0 max-w-[180px] flex-col">
               <HelpTooltip
                 v-if="accountHomepageUrl(row)"
                 :content="accountHomepageUrl(row)"
                 width-class="w-max max-w-sm break-all"
-                class="-ml-1 self-start"
+                class="-ml-1 max-w-full self-start"
               >
                 <template #trigger>
                   <a
                     :href="accountHomepageUrl(row)"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="border-b border-dotted border-gray-300 font-medium text-gray-900 dark:border-dark-600 dark:text-white"
+                    :title="String(value)"
+                    class="block max-w-full truncate border-b border-dotted border-gray-300 font-medium text-gray-900 dark:border-dark-600 dark:text-white"
                   >
                     {{ value }}
                   </a>
                 </template>
               </HelpTooltip>
-              <span v-else class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span
+                v-else
+                :title="String(value)"
+                class="block max-w-full truncate font-medium text-gray-900 dark:text-white"
+              >{{ value }}</span>
               <span
                 v-if="accountDisplayEmail(row)"
-                class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"
+                class="block max-w-full truncate text-xs text-gray-500 dark:text-gray-400"
                 :title="accountDisplayEmail(row) + (row.parent_chatgpt_account_id ? ' · ' + row.parent_chatgpt_account_id : '')"
               >
                 {{ accountDisplayEmail(row) }}

@@ -1,9 +1,13 @@
 package setup
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/mail"
+	"net/netip"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -58,8 +62,117 @@ func setupGuard() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		if !remoteSetupEnabled() && !isLocalSetupRequest(c.Request) {
+			response.Error(c, http.StatusForbidden, "Remote setup is disabled; use localhost or explicitly enable protected remote setup")
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
+}
+
+func remoteSetupEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("SETUP_ALLOW_REMOTE"))) {
+	case "true", "1", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+func privateSetupTargetsEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("SETUP_ALLOW_PRIVATE_TARGETS"))) {
+	case "true", "1", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+func isLocalSetupRequest(req *http.Request) bool {
+	if req == nil || hasForwardingHeaders(req.Header) || !isLocalSetupHost(req.Host) {
+		return false
+	}
+
+	host, _, err := net.SplitHostPort(strings.TrimSpace(req.RemoteAddr))
+	if err != nil {
+		host = strings.Trim(strings.TrimSpace(req.RemoteAddr), "[]")
+	}
+	addr, err := netip.ParseAddr(host)
+	return err == nil && addr.Unmap().IsLoopback()
+}
+
+func isLocalSetupHost(rawHost string) bool {
+	host := strings.TrimSpace(rawHost)
+	if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+		host = parsedHost
+	}
+	host = strings.Trim(strings.TrimSpace(host), "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	address, err := netip.ParseAddr(host)
+	return err == nil && address.Unmap().IsLoopback()
+}
+
+func hasForwardingHeaders(header http.Header) bool {
+	for _, name := range []string{
+		"Forwarded",
+		"X-Forwarded-For",
+		"X-Real-IP",
+		"CF-Connecting-IP",
+		"True-Client-IP",
+	} {
+		if strings.TrimSpace(header.Get(name)) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func resolveSetupTarget(host string, allowPrivate bool) ([]netip.Addr, error) {
+	host = strings.TrimSpace(host)
+	if !validateHostname(host) {
+		return nil, fmt.Errorf("invalid hostname format")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	addresses, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return nil, fmt.Errorf("resolve hostname: %w", err)
+	}
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("hostname resolved to no addresses")
+	}
+
+	approved := make([]netip.Addr, 0, len(addresses))
+	for _, address := range addresses {
+		address = address.Unmap()
+		if err := validateSetupTargetAddress(address, allowPrivate); err != nil {
+			return nil, err
+		}
+		approved = append(approved, address)
+	}
+	return approved, nil
+}
+
+func validateSetupTargetAddress(address netip.Addr, allowPrivate bool) error {
+	if !address.IsValid() || address.IsUnspecified() || address.IsMulticast() ||
+		address.IsLinkLocalUnicast() || address.IsLinkLocalMulticast() {
+		return fmt.Errorf("target address %s is not allowed during web setup", address)
+	}
+	if address.IsLoopback() || address.IsPrivate() || address.Is4In6() || isSharedAddressSpace(address) {
+		if !allowPrivate {
+			return fmt.Errorf("private target address %s is not allowed for remote web setup", address)
+		}
+	}
+	return nil
+}
+
+func isSharedAddressSpace(address netip.Addr) bool {
+	prefix := netip.MustParsePrefix("100.64.0.0/10")
+	return prefix.Contains(address)
 }
 
 // validateHostname checks if a hostname/IP is safe (no injection characters)
@@ -135,8 +248,9 @@ func testDatabase(c *gin.Context) {
 	}
 
 	// Security: Validate all inputs to prevent injection attacks
-	if !validateHostname(req.Host) {
-		response.Error(c, http.StatusBadRequest, "Invalid hostname format")
+	addresses, err := resolveSetupTarget(req.Host, isLocalSetupRequest(c.Request) || privateSetupTargetsEnabled())
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid database target: "+err.Error())
 		return
 	}
 	if !validatePort(req.Port) {
@@ -161,12 +275,13 @@ func testDatabase(c *gin.Context) {
 	}
 
 	cfg := &DatabaseConfig{
-		Host:     req.Host,
-		Port:     req.Port,
-		User:     req.User,
-		Password: req.Password,
-		DBName:   req.DBName,
-		SSLMode:  req.SSLMode,
+		Host:              req.Host,
+		Port:              req.Port,
+		User:              req.User,
+		Password:          req.Password,
+		DBName:            req.DBName,
+		SSLMode:           req.SSLMode,
+		resolvedAddresses: addresses,
 	}
 
 	if err := TestDatabaseConnection(cfg); err != nil {
@@ -196,8 +311,9 @@ func testRedis(c *gin.Context) {
 	}
 
 	// Security: Validate inputs
-	if !validateHostname(req.Host) {
-		response.Error(c, http.StatusBadRequest, "Invalid hostname format")
+	addresses, err := resolveSetupTarget(req.Host, isLocalSetupRequest(c.Request) || privateSetupTargetsEnabled())
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid Redis target: "+err.Error())
 		return
 	}
 	if !validatePort(req.Port) {
@@ -215,12 +331,13 @@ func testRedis(c *gin.Context) {
 	}
 
 	cfg := &RedisConfig{
-		Host:      req.Host,
-		Port:      req.Port,
-		Username:  req.Username,
-		Password:  req.Password,
-		DB:        req.DB,
-		EnableTLS: req.EnableTLS,
+		Host:              req.Host,
+		Port:              req.Port,
+		Username:          req.Username,
+		Password:          req.Password,
+		DB:                req.DB,
+		EnableTLS:         req.EnableTLS,
+		resolvedAddresses: addresses,
 	}
 
 	if err := TestRedisConnection(cfg); err != nil {
@@ -266,10 +383,13 @@ func install(c *gin.Context) {
 
 	// ========== COMPREHENSIVE INPUT VALIDATION ==========
 	// Database validation
-	if !validateHostname(req.Database.Host) {
-		response.Error(c, http.StatusBadRequest, "Invalid database hostname")
+	allowPrivateTargets := isLocalSetupRequest(c.Request) || privateSetupTargetsEnabled()
+	databaseAddresses, err := resolveSetupTarget(req.Database.Host, allowPrivateTargets)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid database target: "+err.Error())
 		return
 	}
+	req.Database.resolvedAddresses = databaseAddresses
 	if !validatePort(req.Database.Port) {
 		response.Error(c, http.StatusBadRequest, "Invalid database port")
 		return
@@ -284,10 +404,12 @@ func install(c *gin.Context) {
 	}
 
 	// Redis validation
-	if !validateHostname(req.Redis.Host) {
-		response.Error(c, http.StatusBadRequest, "Invalid Redis hostname")
+	redisAddresses, err := resolveSetupTarget(req.Redis.Host, allowPrivateTargets)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid Redis target: "+err.Error())
 		return
 	}
+	req.Redis.resolvedAddresses = redisAddresses
 	if !validatePort(req.Redis.Port) {
 		response.Error(c, http.StatusBadRequest, "Invalid Redis port")
 		return

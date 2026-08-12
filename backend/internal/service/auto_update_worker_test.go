@@ -17,6 +17,15 @@ func TestAutoUpdateWorkerStartGating(t *testing.T) {
 		worker.Stop()
 	})
 
+	t.Run("docker build disables worker", func(t *testing.T) {
+		updateSvc := &UpdateService{buildType: "docker"}
+		worker := NewAutoUpdateWorker(updateSvc, nil, &config.Config{})
+		worker.Start()
+		assert.False(t, worker.started, "docker build must not replace its in-container binary")
+		assert.True(t, worker.stopped)
+		worker.Stop()
+	})
+
 	t.Run("auto_enabled=false disables worker", func(t *testing.T) {
 		updateSvc := &UpdateService{buildType: "release"}
 		cfg := &config.Config{}

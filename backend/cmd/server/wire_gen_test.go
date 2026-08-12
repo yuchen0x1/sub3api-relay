@@ -20,6 +20,16 @@ func TestProvideServiceBuildInfo(t *testing.T) {
 	require.Equal(t, in.BuildType, out.BuildType)
 }
 
+func TestResolveBuildTypeNormalizesBinaryDeployment(t *testing.T) {
+	originalBuildType := BuildType
+	t.Cleanup(func() { BuildType = originalBuildType })
+
+	BuildType = "release"
+	t.Setenv("SUB3API_DEPLOYMENT_TYPE", "binary")
+
+	require.Equal(t, "release", resolveBuildType())
+}
+
 func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 	cfg := &config.Config{}
 

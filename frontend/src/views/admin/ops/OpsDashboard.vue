@@ -191,7 +191,7 @@ const hasLoadedOnce = ref(false)
 const errorMessage = ref('')
 const lastUpdated = ref<Date | null>(new Date())
 
-const timeRange = ref<TimeRange>('1h')
+const timeRange = ref<TimeRange>('5m')
 const platform = ref<string>('')
 const groupId = ref<number | null>(null)
 const queryMode = ref<QueryMode>('auto')
@@ -319,7 +319,7 @@ const buildQueryFromState = () => {
     delete next[k]
   })
 
-  if (timeRange.value !== '1h') next[QUERY_KEYS.timeRange] = timeRange.value
+  if (timeRange.value !== '5m') next[QUERY_KEYS.timeRange] = timeRange.value
   if (platform.value) next[QUERY_KEYS.platform] = platform.value
   if (typeof groupId.value === 'number' && groupId.value > 0) next[QUERY_KEYS.groupId] = String(groupId.value)
   if (queryMode.value !== 'auto') next[QUERY_KEYS.queryMode] = queryMode.value
@@ -527,7 +527,7 @@ function buildApiParams() {
       params.end_time = customEndTime.value
     } else {
       // Safety fallback: avoid sending time_range=custom (backend may not support it)
-      params.time_range = '1h'
+      params.time_range = '5m'
     }
   } else {
     params.time_range = timeRange.value

@@ -33,7 +33,7 @@ var (
 	Version   = ""
 	Commit    = "unknown"
 	Date      = "unknown"
-	BuildType = "source" // "source" for manual builds, "release" for CI builds (set by ldflags)
+	BuildType = "source" // "source", "release" (standalone binary), or "docker" (set by ldflags)
 )
 
 func init() {
@@ -49,6 +49,31 @@ func init() {
 	}
 }
 
+// resolveBuildType returns the effective deployment type. The
+// SUB3API_DEPLOYMENT_TYPE environment variable is authoritative and lets
+// containerized deployments (whose binary is compiled as "release") be
+// recognized as "docker", so in-place self-update stays disabled.
+func resolveBuildType() string {
+	if v := strings.TrimSpace(os.Getenv("SUB3API_DEPLOYMENT_TYPE")); v != "" {
+		switch v {
+		case "source", "release", "docker":
+			return v
+		case "binary":
+			return "release"
+		default:
+			log.Printf("WARNING: invalid SUB3API_DEPLOYMENT_TYPE=%q, falling back to %q", v, BuildType)
+		}
+	}
+	// Compatibility fallback: a release binary running inside a Docker container
+	// (e.g. the GoReleaser-built GHCR image) must never enable in-place self-update.
+	if BuildType == "release" {
+		if _, err := os.Stat("/.dockerenv"); err == nil {
+			return "docker"
+		}
+	}
+	return BuildType
+}
+
 // initLogger configures the default slog handler based on gin.Mode().
 // In non-release mode, Debug level logs are enabled.
 func main() {
@@ -59,6 +84,8 @@ func main() {
 	setupMode := flag.Bool("setup", false, "Run setup wizard in CLI mode")
 	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
+
+	BuildType = resolveBuildType()
 
 	if *showVersion {
 		log.Printf("Sub3API %s (commit: %s, built: %s)\n", Version, Commit, Date)

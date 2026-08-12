@@ -18,7 +18,7 @@ import (
 // BuildInfo contains build information
 type BuildInfo struct {
 	Version   string
-	BuildType string
+	BuildType string // "source", "release" (standalone binary), or "docker"
 }
 
 // ProvidePricingService creates and initializes PricingService

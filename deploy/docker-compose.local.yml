@@ -46,6 +46,7 @@ services:
       # Auto Setup (REQUIRED for Docker deployment)
       # =======================================================================
       - AUTO_SETUP=true
+      - SUB3API_DEPLOYMENT_TYPE=docker
 
       # =======================================================================
       # Server Configuration

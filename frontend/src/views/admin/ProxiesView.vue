@@ -464,7 +464,7 @@
             />
           </div>
         </div>
-        <div>
+        <div v-if="createForm.protocol !== 'hysteria2'">
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input
             v-model="createForm.username"
@@ -474,13 +474,15 @@
           />
         </div>
         <div>
-          <label class="input-label">{{ t('admin.proxies.password') }}</label>
+          <label class="input-label">
+            {{ createForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
+          </label>
           <div class="relative">
             <input
               v-model="createForm.password"
               :type="createPasswordVisible ? 'text' : 'password'"
               class="input pr-10"
-              :placeholder="t('admin.proxies.optionalAuth')"
+              :placeholder="createForm.protocol === 'hysteria2' ? t('admin.proxies.authTokenPlaceholder') : t('admin.proxies.optionalAuth')"
             />
             <button :aria-label="t('common.togglePassword')"
               type="button"
@@ -491,6 +493,10 @@
             </button>
           </div>
         </div>
+        <label v-if="createForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input v-model="createForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+          {{ t('admin.proxies.tlsInsecure') }}
+        </label>
         <div>
           <label class="input-label">{{ t('admin.proxies.expiresAt') }}</label>
           <div class="mb-2 flex flex-wrap gap-2">
@@ -544,6 +550,10 @@
             {{ t('admin.proxies.batchInputHint') }}
           </p>
         </div>
+
+		<div v-if="isSubscriptionInput && batchParseResult.valid === 0" class="rounded-lg border border-primary-200 bg-primary-50 p-3 text-sm text-primary-700 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
+			{{ t('admin.proxies.subscriptionDetected') }}
+		</div>
 
         <!-- Parse Result -->
         <div v-if="batchParseResult.total > 0" class="rounded-lg bg-gray-50 p-4 dark:bg-dark-700">
@@ -624,9 +634,9 @@
           </button>
           <button
             v-else
-            @click="handleBatchCreate"
+            @click="isSubscriptionInput && batchParseResult.valid === 0 ? handleParseSubscription() : handleBatchCreate()"
             type="button"
-            :disabled="submitting || batchParseResult.valid === 0"
+            :disabled="submitting || (!isSubscriptionInput && batchParseResult.valid === 0)"
             class="btn btn-primary"
           >
             <svg
@@ -652,7 +662,9 @@
             {{
               submitting
                 ? t('admin.proxies.importing')
-                : t('admin.proxies.importProxies', { count: batchParseResult.valid })
+				: isSubscriptionInput && batchParseResult.valid === 0
+				  ? t('admin.proxies.parseSubscription')
+				  : t('admin.proxies.importProxies', { count: batchParseResult.valid })
             }}
           </button>
         </div>
@@ -697,12 +709,14 @@
             />
           </div>
         </div>
-        <div>
+        <div v-if="editForm.protocol !== 'hysteria2'">
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input v-model="editForm.username" type="text" class="input" />
         </div>
         <div>
-          <label class="input-label">{{ t('admin.proxies.password') }}</label>
+          <label class="input-label">
+            {{ editForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
+          </label>
           <div class="relative">
             <input
               v-model="editForm.password"
@@ -720,6 +734,10 @@
             </button>
           </div>
         </div>
+        <label v-if="editForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input v-model="editForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+          {{ t('admin.proxies.tlsInsecure') }}
+        </label>
         <div>
           <label class="input-label">{{ t('admin.proxies.status') }}</label>
           <Select v-model="editForm.status" :options="editStatusOptions" />
@@ -1012,7 +1030,8 @@ const protocolOptions = computed(() => [
   { value: 'http', label: 'HTTP' },
   { value: 'https', label: 'HTTPS' },
   { value: 'socks5', label: 'SOCKS5' },
-  { value: 'socks5h', label: 'SOCKS5H' }
+  { value: 'socks5h', label: 'SOCKS5H' },
+  { value: 'hysteria2', label: 'Hysteria2' }
 ])
 
 const statusOptions = computed(() => [
@@ -1027,7 +1046,8 @@ const protocolSelectOptions = computed(() => [
   { value: 'http', label: t('admin.proxies.protocols.http') },
   { value: 'https', label: t('admin.proxies.protocols.https') },
   { value: 'socks5', label: t('admin.proxies.protocols.socks5') },
-  { value: 'socks5h', label: t('admin.proxies.protocols.socks5h') }
+  { value: 'socks5h', label: t('admin.proxies.protocols.socks5h') },
+  { value: 'hysteria2', label: t('admin.proxies.protocols.hysteria2') }
 ])
 
 const editStatusOptions = computed(() => [
@@ -1116,6 +1136,8 @@ const batchParseResult = reactive({
     port: number
     username: string
     password: string
+	name?: string
+	tls_insecure?: boolean
   }>
 })
 
@@ -1126,6 +1148,7 @@ const createForm = reactive({
   port: 8080,
   username: '',
   password: '',
+	tls_insecure: false,
   expires_at: '' as string,
   fallback_mode: 'none' as 'none' | 'proxy' | 'direct',
   backup_proxy_id: null as number | null,
@@ -1139,6 +1162,7 @@ const editForm = reactive({
   port: 8080,
   username: '',
   password: '',
+	tls_insecure: false,
   status: 'active' as 'active' | 'inactive' | 'expired',
   expires_at: '' as string,
   fallback_mode: 'none' as 'none' | 'proxy' | 'direct',
@@ -1255,6 +1279,7 @@ const closeCreateModal = () => {
   createForm.port = 8080
   createForm.username = ''
   createForm.password = ''
+	createForm.tls_insecure = false
   createForm.expires_at = ''
   createForm.fallback_mode = 'none'
   createForm.backup_proxy_id = null
@@ -1306,7 +1331,18 @@ const parseProxyUrl = (
   }
 }
 
+const normalizedBatchInput = computed(() => batchInput.value.trim().replace(/[，。；、！!？?]+$/u, ''))
+const isSubscriptionInput = computed(() => /^https:\/\/\S+$/i.test(normalizedBatchInput.value))
+
 const parseBatchInput = () => {
+	if (isSubscriptionInput.value) {
+		batchParseResult.total = 0
+		batchParseResult.valid = 0
+		batchParseResult.invalid = 0
+		batchParseResult.duplicate = 0
+		batchParseResult.proxies = []
+		return
+	}
   const lines = batchInput.value.split('\n').filter((l) => l.trim())
   const seen = new Set<string>()
   const proxies: typeof batchParseResult.proxies = []
@@ -1335,6 +1371,24 @@ const parseBatchInput = () => {
   batchParseResult.invalid = invalid
   batchParseResult.duplicate = duplicate
   batchParseResult.proxies = proxies
+}
+
+const handleParseSubscription = async () => {
+	if (!isSubscriptionInput.value) return
+	submitting.value = true
+	try {
+		const result = await adminAPI.proxies.parseSubscription(normalizedBatchInput.value)
+		batchParseResult.total = result.count
+		batchParseResult.valid = result.proxies.length
+		batchParseResult.invalid = 0
+		batchParseResult.duplicate = 0
+		batchParseResult.proxies = result.proxies
+		appStore.showSuccess(t('admin.proxies.subscriptionParsed', { count: result.count }))
+	} catch (error: any) {
+		appStore.showError(error.response?.data?.detail || t('admin.proxies.subscriptionParseFailed'))
+	} finally {
+		submitting.value = false
+	}
 }
 
 const handleBatchCreate = async () => {
@@ -1384,6 +1438,7 @@ const handleCreateProxy = async () => {
       port: createForm.port,
       username: createForm.username.trim() || null,
       password: createForm.password.trim() || null,
+	  tls_insecure: createForm.protocol === 'hysteria2' && createForm.tls_insecure,
       expires_at: createForm.expires_at ? Math.floor(new Date(createForm.expires_at).getTime() / 1000) : null,
       fallback_mode: createForm.fallback_mode,
       backup_proxy_id: createForm.fallback_mode === 'proxy' ? createForm.backup_proxy_id : null,
@@ -1408,6 +1463,7 @@ const handleEdit = (proxy: Proxy) => {
   editForm.port = proxy.port
   editForm.username = proxy.username || ''
   editForm.password = proxy.password || ''
+	editForm.tls_insecure = proxy.tls_insecure || false
   editForm.status = proxy.status === 'expired' ? 'inactive' : proxy.status
   editForm.expires_at = proxy.expires_at ? proxy.expires_at.slice(0, 10) : ''
   editForm.fallback_mode = proxy.fallback_mode || 'none'
@@ -1453,6 +1509,7 @@ const handleUpdateProxy = async () => {
       fallback_mode: editForm.fallback_mode,
       backup_proxy_id: editForm.fallback_mode === 'proxy' ? editForm.backup_proxy_id : null,
       expiry_warn_days: editForm.expiry_warn_days,
+	  tls_insecure: editForm.protocol === 'hysteria2' && editForm.tls_insecure,
     }
 
     // Only include password if user actually modified the field

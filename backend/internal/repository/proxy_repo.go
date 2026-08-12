@@ -42,11 +42,11 @@ func (r *proxyRepository) Create(ctx context.Context, proxyIn *service.Proxy) er
 		SetStatus(proxyIn.Status).
 		SetFallbackMode(proxyIn.FallbackMode).
 		SetExpiryWarnDays(proxyIn.ExpiryWarnDays)
-	if proxyIn.Username != "" {
-		builder.SetUsername(proxyIn.Username)
+	if username := proxyIn.PersistenceUsername(); username != "" {
+		builder.SetUsername(username)
 	}
-	if proxyIn.Password != "" {
-		builder.SetPassword(proxyIn.Password)
+	if proxyIn.Password != "" || proxyIn.Protocol == "hysteria2" {
+		builder.SetPassword(proxyIn.PersistencePassword())
 	}
 	if proxyIn.ExpiresAt != nil {
 		builder.SetExpiresAt(*proxyIn.ExpiresAt)
@@ -137,8 +137,8 @@ func proxyProbeIdentityFromService(proxyIn *service.Proxy) proxyProbeIdentity {
 		protocol: proxyIn.Protocol,
 		host:     proxyIn.Host,
 		port:     proxyIn.Port,
-		username: proxyIn.Username,
-		password: proxyIn.Password,
+		username: proxyIn.PersistenceUsername(),
+		password: proxyIn.PersistencePassword(),
 		status:   proxyIn.Status,
 	}
 }
@@ -156,13 +156,13 @@ func updateProxyAndInvalidateProbeSnapshots(ctx context.Context, client *dbent.C
 		SetStatus(proxyIn.Status).
 		SetFallbackMode(proxyIn.FallbackMode).
 		SetExpiryWarnDays(proxyIn.ExpiryWarnDays)
-	if proxyIn.Username != "" {
-		builder.SetUsername(proxyIn.Username)
+	if username := proxyIn.PersistenceUsername(); username != "" {
+		builder.SetUsername(username)
 	} else {
 		builder.ClearUsername()
 	}
-	if proxyIn.Password != "" {
-		builder.SetPassword(proxyIn.Password)
+	if proxyIn.Password != "" || proxyIn.Protocol == "hysteria2" {
+		builder.SetPassword(proxyIn.PersistencePassword())
 	} else {
 		builder.ClearPassword()
 	}
@@ -599,12 +599,15 @@ func proxyEntityToService(m *dbent.Proxy) *service.Proxy {
 		BackupProxyID:  m.BackupProxyID,
 		ExpiryWarnDays: m.ExpiryWarnDays,
 	}
+	username := ""
 	if m.Username != nil {
-		out.Username = *m.Username
+		username = *m.Username
 	}
+	password := ""
 	if m.Password != nil {
-		out.Password = *m.Password
+		password = *m.Password
 	}
+	out.ApplyPersistenceAuth(username, password)
 	return out
 }
 

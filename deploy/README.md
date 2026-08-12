@@ -58,16 +58,17 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh -o docker-deploy.sh
+curl -fsSLO https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
 
 **What the script does:**
-- Downloads `docker-compose.local.yml` and `.env.example`
+- Resolves a fixed GitHub Release and verifies the deployment bundle with SHA-256
+- Downloads the release's `docker-compose.yml` and `sub3api.env.example`
 - Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
 - Requires an explicit `ADMIN_PASSWORD` for the first site-owner account
 - Creates `.env` file with generated secrets
@@ -380,7 +381,7 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation

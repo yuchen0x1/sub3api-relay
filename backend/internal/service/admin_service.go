@@ -471,6 +471,7 @@ type CreateProxyInput struct {
 	Port           int
 	Username       string
 	Password       string
+	TLSInsecure    bool
 	ExpiresAt      *time.Time
 	FallbackMode   string
 	BackupProxyID  *int64
@@ -484,6 +485,7 @@ type UpdateProxyInput struct {
 	Port           int
 	Username       string
 	Password       string
+	TLSInsecure    bool
 	Status         string
 	ExpiresAt      *time.Time
 	FallbackMode   string

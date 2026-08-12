@@ -22,6 +22,8 @@ export default {
           enabledHint: '关闭后后台不再执行定时检测，已有数据保留。',
           defaultInterval: '默认检测间隔（秒）',
           defaultIntervalHint: '新建渠道监控时表单的默认值，可被单个渠道覆盖。范围 15 – 3600 秒。',
+          publicEnabled: '允许游客查看渠道状态',
+          publicEnabledHint: '开启后，主页实时状态与状态页无需登录即可查看；关闭后仅登录用户可见。',
         },
         availableChannels: {
           title: '可用渠道',

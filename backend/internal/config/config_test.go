@@ -23,6 +23,13 @@ func resetViperWithJWTSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
 }
 
+func isolateConfigFile(t *testing.T) {
+	t.Helper()
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+	require.NoError(t, os.WriteFile(configFile, nil, 0o600))
+	t.Setenv("CONFIG_FILE", configFile)
+}
+
 func TestLoadServerTimingConfig(t *testing.T) {
 	t.Run("disabled by default", func(t *testing.T) {
 		resetViperWithJWTSecret(t)
@@ -57,7 +64,7 @@ func TestLoadHTTPIngressSafetyDefaults(t *testing.T) {
 	require.Equal(t, 64*1024, cfg.Server.MaxHeaderBytes)
 	require.Empty(t, cfg.Server.TrustedProxies)
 	require.False(t, cfg.Server.TrustedProxiesConfigured)
-	require.True(t, cfg.TrustForwardedIPForAPIKeyACL())
+	require.False(t, cfg.TrustForwardedIPForAPIKeyACL())
 	require.Equal(t, int64(32*1024*1024), cfg.Gateway.TextMaxBodySize)
 	require.True(t, cfg.APIKeyAuth.InvalidAbuse.Enabled)
 	require.Equal(t, 120, cfg.APIKeyAuth.InvalidAbuse.Threshold)
@@ -781,6 +788,7 @@ func TestLoadDefaultSecurityToggles(t *testing.T) {
 
 func TestLoadDefaultServerMode(t *testing.T) {
 	resetViperWithJWTSecret(t)
+	isolateConfigFile(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -824,6 +832,7 @@ func TestLoadJWTAccessTokenExpireMinutesFromEnv(t *testing.T) {
 
 func TestLoadDefaultDatabaseSSLMode(t *testing.T) {
 	resetViperWithJWTSecret(t)
+	isolateConfigFile(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -1234,6 +1243,17 @@ func TestGetServerAddressFromEnv(t *testing.T) {
 	if address != "127.0.0.1:9090" {
 		t.Fatalf("GetServerAddress() = %q", address)
 	}
+}
+
+func TestGetServerAddressPrefersSetupEnv(t *testing.T) {
+	t.Setenv("CONFIG_FILE", "")
+	t.Setenv("DATA_DIR", "")
+	t.Setenv("SERVER_HOST", "0.0.0.0")
+	t.Setenv("SERVER_PORT", "8080")
+	t.Setenv("SETUP_SERVER_HOST", "127.0.0.1")
+	t.Setenv("SETUP_SERVER_PORT", "9090")
+
+	require.Equal(t, "127.0.0.1:9090", GetServerAddress())
 }
 
 func TestGetServerAddressDefaultsToLoopback(t *testing.T) {

@@ -14,7 +14,9 @@ import {
   listRequestDetails,
   type OpsDashboardOverview,
   type OpsRequestDetail,
+  subscribeQPS,
 } from '@/api/admin/ops'
+import { list as listChannelMonitorViews, type UserMonitorView } from '@/api/channelMonitor'
 import { getModelStats as getAdminModelStats } from '@/api/admin/dashboard'
 import { useAppStore } from '@/stores'
 import type { PublicSettings } from '@/types'
@@ -28,6 +30,12 @@ let animationFrame: number | null = null
 let stopLocaleWatch: WatchStopHandle | null = null
 let landingDataController: AbortController | null = null
 let landingOnline: boolean | null = null
+let channelSummaryTimer: number | null = null
+let qpsUnsubscribe: (() => void) | null = null
+let channelOnlineCount = 0
+let channelTotalCount = 0
+let channelMonitorKnown = false
+let liveQps: number | null = null
 const navigationHandlers: Array<{ element: HTMLAnchorElement; handler: (event: Event) => void }> = []
 const cleanupCallbacks: Array<() => void> = []
 
@@ -48,8 +56,11 @@ const landingMessages = {
     offlineStatus: 'Gateway Offline',
     realtimeStatus: 'REAL-TIME · 实时状态',
     online: '● 在线',
+    offline: '● 离线',
     requestLog: '请求日志',
     live: '实时',
+    channelsOnline: '渠道在线',
+    channelMonitorDisabled: '渠道监控未启用',
     metrics: ['监控', '并发', '保护'],
     featureTitles: ['<em>一键</em>接入', '<em>稳定</em>可靠', '密钥与用量<em>透明</em>'],
     featureDescriptions: [
@@ -74,8 +85,11 @@ const landingMessages = {
     offlineStatus: 'Gateway Offline',
     realtimeStatus: 'REAL-TIME · LIVE STATUS',
     online: '● ONLINE',
+    offline: '● OFFLINE',
     requestLog: 'Request Log',
     live: 'LIVE',
+    channelsOnline: 'channels online',
+    channelMonitorDisabled: 'Channel monitoring disabled',
     metrics: ['Monitoring', 'Concurrency', 'Protected'],
     featureTitles: ['<em>One-key</em> access', '<em>Stable</em> routing', 'Transparent <em>usage</em>'],
     featureDescriptions: [
@@ -144,6 +158,7 @@ function applyLandingLocale(locale: LandingLocale) {
     button.setAttribute('aria-pressed', String(button.dataset.locale === locale))
   })
   if (landingOnline !== null) applyHealthStatus(landingOnline)
+  if (channelMonitorKnown) applyChannelSummary(channelOnlineCount, channelTotalCount, channelMonitorKnown)
 }
 
 function applyQQGroupSettings(settings?: PublicSettings | null) {
@@ -160,6 +175,15 @@ function applyQQGroupSettings(settings?: PublicSettings | null) {
     element.setAttribute('target', '_blank')
     element.setAttribute('rel', 'noopener noreferrer')
     if (element.closest('.nav-links')) element.textContent = navLabel
+  })
+}
+
+function applyVersionBadge(settings?: PublicSettings | null) {
+  const version = settings?.version?.trim()
+  if (!version || !host.value) return
+  const label = version.startsWith('v') ? version : `v${version}`
+  host.value.querySelectorAll<HTMLElement>('.monitor-title .badge').forEach((element) => {
+    element.textContent = label
   })
 }
 
@@ -241,12 +265,8 @@ function applyHealthStatus(online: boolean) {
     )
   }
   const statusTag = host.value?.querySelector<HTMLElement>('.realtime-tag')
-  if (statusTag) {
-    statusTag.dataset.connected = String(online)
-    statusTag.textContent = online
-      ? (locale === 'zh' ? '● 在线' : '● ONLINE')
-      : (locale === 'zh' ? '● 离线' : '● OFFLINE')
-  }
+  if (statusTag) statusTag.dataset.connected = String(online)
+  updateRealtimeTag()
 }
 
 function applyOverviewMetrics(overview: OpsDashboardOverview | null, modelCount: number | null) {
@@ -263,6 +283,69 @@ function applyOverviewMetrics(overview: OpsDashboardOverview | null, modelCount:
   const redis = overview.system_metrics?.redis_ok
   setLandingValue('.metric:nth-child(2) .m-val', redis === undefined || redis === null ? '--' : redis ? 'Ready' : 'Down')
   setLandingValue('.metric:nth-child(3) .m-val', window.location.protocol === 'https:' ? 'TLS' : 'HTTP')
+}
+
+function updateRealtimeTag() {
+  const tag = host.value?.querySelector<HTMLElement>('.realtime-tag')
+  if (!tag) return
+  const locale = normalizeLocale(getLocale())
+  const base = landingOnline ? landingMessages[locale].online : landingMessages[locale].offline
+  tag.textContent = landingOnline && liveQps !== null ? base + ' · ' + liveQps.toFixed(1) + ' QPS' : base
+}
+
+function applyChannelSummary(online: number, total: number, known: boolean) {
+  const line = host.value?.querySelector<HTMLElement>('.channel-line')
+  const text = host.value?.querySelector<HTMLElement>('#chText')
+  if (!line || !text) return
+  channelOnlineCount = online
+  channelTotalCount = total
+  channelMonitorKnown = known
+  const locale = normalizeLocale(getLocale())
+  if (!known || total === 0) {
+    line.classList.remove('online', 'degraded', 'offline')
+    line.classList.add('offline')
+    text.textContent = landingMessages[locale].channelMonitorDisabled
+    return
+  }
+  const any = online > 0
+  const ok = any && online === total
+  line.classList.toggle('online', ok)
+  line.classList.toggle('degraded', any && !ok)
+  line.classList.toggle('offline', !any)
+  text.textContent = online + '/' + total + ' ' + landingMessages[locale].channelsOnline
+}
+
+async function refreshChannelSummary() {
+  if (!host.value || /jsdom/i.test(navigator.userAgent)) return
+  try {
+    const res = await listChannelMonitorViews()
+    const items: UserMonitorView[] = res.items || []
+    const online = items.filter((it) => it.primary_status === 'operational').length
+    applyChannelSummary(online, items.length, true)
+  } catch {
+    applyChannelSummary(0, 0, false)
+  }
+}
+
+function setupLiveQps() {
+  const viewer = getPersistedViewer()
+  if (!viewer.authenticated || !viewer.admin) return
+  qpsUnsubscribe = subscribeQPS(
+    (data: { data?: { qps?: unknown } }) => {
+      const qps = Number(data?.data?.qps)
+      if (Number.isFinite(qps)) {
+        liveQps = qps
+        updateRealtimeTag()
+      }
+    },
+    {
+      staleTimeoutMs: 60_000,
+      onFatalClose: () => {
+        liveQps = null
+        updateRealtimeTag()
+      },
+    },
+  )
 }
 
 function mapOpsActivity(item: OpsRequestDetail): LandingActivity {
@@ -286,6 +369,7 @@ function mapUserActivity(item: Awaited<ReturnType<typeof queryUserUsage>>['items
 
 async function refreshLandingData() {
   if (!host.value || /jsdom/i.test(navigator.userAgent)) return
+  if (document.hidden) return
   landingDataController?.abort()
   const controller = new AbortController()
   landingDataController = controller
@@ -346,6 +430,15 @@ function setupLandingInteractions() {
   window.addEventListener('scroll', onScroll, { passive: true })
   cleanupCallbacks.push(() => window.removeEventListener('scroll', onScroll))
 
+  const monitorCard = host.value.querySelector<HTMLElement>('.monitor')
+  if (monitorCard) {
+    const openMonitor = () => {
+      void router?.push('/monitor')
+    }
+    monitorCard.addEventListener('click', openMonitor)
+    cleanupCallbacks.push(() => monitorCard.removeEventListener('click', openMonitor))
+  }
+
   const navToggle = host.value.querySelector<HTMLButtonElement>('.nav-toggle')
   const toggleMobileNav = () => nav?.classList.toggle('mobile-open')
   navToggle?.addEventListener('click', toggleMobileNav)
@@ -362,7 +455,19 @@ function setupLandingInteractions() {
   })
 
   void refreshLandingData()
-  activityTimer = window.setInterval(() => void refreshLandingData(), 30_000)
+  activityTimer = window.setInterval(() => void refreshLandingData(), 10_000)
+  void refreshChannelSummary()
+  channelSummaryTimer = window.setInterval(() => void refreshChannelSummary(), 30_000)
+  setupLiveQps()
+
+  const onVisibilityChange = () => {
+    if (!document.hidden) {
+      void refreshLandingData()
+      void refreshChannelSummary()
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  cleanupCallbacks.push(() => document.removeEventListener('visibilitychange', onVisibilityChange))
 
   if (/jsdom/i.test(navigator.userAgent)) return
   const canvas = host.value.querySelector<HTMLCanvasElement>('#particles')
@@ -433,7 +538,10 @@ function mountLandingPage() {
   })
   setupLandingInteractions()
   applyLandingLocale(normalizeLocale(getLocale()))
-  void Promise.resolve(appStore.fetchPublicSettings()).then((settings) => applyQQGroupSettings(settings))
+  void Promise.resolve(appStore.fetchPublicSettings()).then((settings) => {
+    applyQQGroupSettings(settings)
+    applyVersionBadge(settings)
+  })
   stopLocaleWatch = watch(
     () => i18n.global.locale.value,
     (locale) => applyLandingLocale(normalizeLocale(String(locale))),
@@ -449,12 +557,16 @@ onBeforeUnmount(() => {
   cleanupCallbacks.length = 0
   if (activityTimer !== null) window.clearTimeout(activityTimer)
   if (activityTimer !== null) window.clearInterval(activityTimer)
+  if (channelSummaryTimer !== null) window.clearInterval(channelSummaryTimer)
+  qpsUnsubscribe?.()
   landingDataController?.abort()
   if (animationFrame !== null) window.cancelAnimationFrame(animationFrame)
   stopLocaleWatch?.()
   styleElement?.remove()
   host.value?.replaceChildren()
   activityTimer = null
+  channelSummaryTimer = null
+  qpsUnsubscribe = null
   landingDataController = null
   landingOnline = null
   animationFrame = null
