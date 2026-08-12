@@ -360,15 +360,20 @@ Build and run from source code for development or customization.
 git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay
 
-# 2. Build backend
-cd backend
-VERSION="$(./scripts/resolve-version.sh)"
-go build -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+# 2. Build frontend assets (embedded into the backend binary)
+cd frontend
+pnpm install
+pnpm build
 
-# 3. Create configuration file
+# 3. Build backend with embedded frontend
+cd ../backend
+VERSION="$(./scripts/resolve-version.sh)"
+go build -tags embed -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+
+# 4. Create configuration file
 cp ../deploy/config.example.yaml ./config.yaml
 
-# 4. Edit configuration
+# 5. Edit configuration
 nano config.yaml
 ```
 

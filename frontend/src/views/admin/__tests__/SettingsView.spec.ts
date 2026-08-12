@@ -377,6 +377,8 @@ const baseSettingsResponse = {
   api_base_url: "",
   contact_info: "",
   doc_url: "",
+  qq_group_number: "1016190748",
+  qq_group_url: "https://qm.qq.com/q/gBW5t6RmU0",
   home_content: "",
   compact_home_enabled: false,
   hide_ccs_import_button: false,

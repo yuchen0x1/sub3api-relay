@@ -13,6 +13,8 @@ interface GeneralFormFields {
   custom_endpoints: CustomEndpoint[];
   contact_info: string;
   doc_url: string;
+  qq_group_number: string;
+  qq_group_url: string;
   site_logo: string;
   home_content: string;
   compact_home_enabled: boolean;
@@ -370,6 +372,42 @@ function removeEndpoint(index: number) {
                 />
                 <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   {{ t("admin.settings.site.docUrlHint") }}
+                </p>
+              </div>
+
+              <!-- QQ Group Number -->
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{ t("admin.settings.site.qqGroupNumber") }}
+                </label>
+                <input
+                  v-model="form.qq_group_number"
+                  type="text"
+                  class="input font-mono text-sm"
+                  :placeholder="t('admin.settings.site.qqGroupNumberPlaceholder')"
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.site.qqGroupNumberHint") }}
+                </p>
+              </div>
+
+              <!-- QQ Group URL -->
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{ t("admin.settings.site.qqGroupUrl") }}
+                </label>
+                <input
+                  v-model="form.qq_group_url"
+                  type="url"
+                  class="input font-mono text-sm"
+                  :placeholder="t('admin.settings.site.qqGroupUrlPlaceholder')"
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.site.qqGroupUrlHint") }}
                 </p>
               </div>
 

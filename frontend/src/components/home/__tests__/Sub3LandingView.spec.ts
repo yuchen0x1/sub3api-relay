@@ -16,6 +16,15 @@ vi.mock('@/i18n', () => ({
   setLocale: i18nMock.setLocale,
 }))
 
+vi.mock('@/stores', () => ({
+  useAppStore: () => ({
+    fetchPublicSettings: vi.fn(async () => ({
+      qq_group_number: '1016190748',
+      qq_group_url: 'https://qm.qq.com/q/gBW5t6RmU0',
+    })),
+  }),
+}))
+
 import Sub3LandingView from '../Sub3LandingView.vue'
 
 const paths = ['/home', '/login', '/keys', '/usage', '/available-channels', '/monitor']
@@ -71,7 +80,12 @@ describe('Sub3LandingView navigation', () => {
       '/usage',
       '/available-channels',
       '/monitor',
+      'https://qm.qq.com/q/gBW5t6RmU0',
     ])
+    const qqLink = wrapper.get('.qq-group-link')
+    expect(qqLink.attributes('target')).toBe('_blank')
+    expect(qqLink.attributes('rel')).toBe('noopener noreferrer')
+    expect(qqLink.text()).toBe('QQ群：1016190748')
   })
 
   it.each([

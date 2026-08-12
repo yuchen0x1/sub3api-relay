@@ -16,9 +16,12 @@ import {
   type OpsRequestDetail,
 } from '@/api/admin/ops'
 import { getModelStats as getAdminModelStats } from '@/api/admin/dashboard'
+import { useAppStore } from '@/stores'
+import type { PublicSettings } from '@/types'
 
 const host = ref<HTMLElement | null>(null)
 const router = inject(routerKey, null)
+const appStore = useAppStore()
 let styleElement: HTMLStyleElement | null = null
 let activityTimer: number | null = null
 let animationFrame: number | null = null
@@ -32,12 +35,13 @@ type LandingLocale = 'zh' | 'en'
 
 const landingMessages = {
   zh: {
-    nav: ['安全保护', '按量计费', '订阅转 API'],
+    nav: ['安全保护', '按量计费', '订阅转 API', 'QQ群'],
     login: '登录',
     eyebrow: 'Sub3API · Private Gateway',
     description: '一个 <b>API Key</b>，统一调度所有已接入的 AI 模型。智能路由、自动容灾、按量计费，为个人与小型团队提供 <b>稳定 · 透明 · 安全</b> 的私有网关服务。',
     start: '立即开始',
     docs: '仓库下载',
+    qqGroup: 'QQ群',
     stats: ['服务可用性', '已接入 AI 模型', '网关转发延迟'],
     checkingStatus: '正在检测网关',
     gatewayStatus: 'Gateway Online',
@@ -54,15 +58,16 @@ const landingMessages = {
       '按 Key 分配配额与倍率，个人、家庭或小团队都能清楚看到每一次调用成本，账单一目了然。',
     ],
     featureActions: ['管理密钥', '查看服务状态', '查看用量'],
-    footer: ['安全保护', '按量计费', '订阅转 API', '服务状态'],
+    footer: ['安全保护', '按量计费', '订阅转 API', '服务状态', 'QQ群'],
   },
   en: {
-    nav: ['Security', 'Usage Billing', 'Subscription API'],
+    nav: ['Security', 'Usage Billing', 'Subscription API', 'QQ Group'],
     login: 'Sign in',
     eyebrow: 'Sub3API · Private Gateway',
     description: 'One <b>API key</b> connects every available AI model through unified routing, automatic failover, and usage-based billing. A <b>stable · transparent · secure</b> private gateway for individuals and small teams.',
     start: 'Get Started',
     docs: 'Repository Download',
+    qqGroup: 'QQ Group',
     stats: ['Service Availability', 'Connected AI Models', 'Gateway Latency'],
     checkingStatus: 'CHECKING GATEWAY',
     gatewayStatus: 'Gateway Online',
@@ -79,7 +84,7 @@ const landingMessages = {
       'Assign quotas and rates per key, then track every request and cost clearly for individuals or teams.',
     ],
     featureActions: ['Manage Keys', 'View Service Status', 'View Usage'],
-    footer: ['Security', 'Usage Billing', 'Subscription API', 'Service Status'],
+    footer: ['Security', 'Usage Billing', 'Subscription API', 'Service Status', 'QQ Group'],
   },
 } as const
 
@@ -139,6 +144,23 @@ function applyLandingLocale(locale: LandingLocale) {
     button.setAttribute('aria-pressed', String(button.dataset.locale === locale))
   })
   if (landingOnline !== null) applyHealthStatus(landingOnline)
+}
+
+function applyQQGroupSettings(settings?: PublicSettings | null) {
+  const url = settings?.qq_group_url?.trim() || ''
+  const number = settings?.qq_group_number?.trim() || ''
+  const navLabel = `${landingMessages[normalizeLocale(getLocale())].qqGroup}：${number}`
+  host.value?.querySelectorAll<HTMLAnchorElement>('.qq-group-link').forEach((element) => {
+    if (!url || !number) {
+      element.style.display = 'none'
+      return
+    }
+    element.style.display = ''
+    element.href = url
+    element.setAttribute('target', '_blank')
+    element.setAttribute('rel', 'noopener noreferrer')
+    if (element.closest('.nav-links')) element.textContent = navLabel
+  })
 }
 
 type LandingActivity = {
@@ -411,6 +433,7 @@ function mountLandingPage() {
   })
   setupLandingInteractions()
   applyLandingLocale(normalizeLocale(getLocale()))
+  void Promise.resolve(appStore.fetchPublicSettings()).then((settings) => applyQQGroupSettings(settings))
   stopLocaleWatch = watch(
     () => i18n.global.locale.value,
     (locale) => applyLandingLocale(normalizeLocale(String(locale))),

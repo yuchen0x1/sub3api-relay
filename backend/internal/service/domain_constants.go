@@ -287,6 +287,8 @@ const (
 	SettingKeyAPIBaseURL                  = "api_base_url"                  // API端点地址（用于客户端配置和导入）
 	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式
 	SettingKeyDocURL                      = "doc_url"                       // 文档链接
+	SettingKeyQQGroupNumber               = "qq_group_number"               // QQ group number shown in homepage nav
+	SettingKeyQQGroupURL                  = "qq_group_url"                  // QQ group invite link
 	SettingKeyHomeContent                 = "home_content"                  // 首页内容（支持 Markdown/HTML，或 URL 作为 iframe src）
 	SettingKeyCompactHomeEnabled          = "compact_home_enabled"          // 是否启用内置简洁首页
 	SettingKeyHideCcsImportButton         = "hide_ccs_import_button"        // 是否隐藏 API Keys 页面的导入 CCS 按钮
@@ -571,6 +573,12 @@ const (
 
 	// Web Search Emulation
 	SettingKeyWebSearchEmulationConfig = "web_search_emulation_config" // JSON 配置
+)
+
+// Default homepage QQ group values used when existing databases have no stored rows.
+const (
+	defaultQQGroupNumber = "1016190748"
+	defaultQQGroupURL    = "https://qm.qq.com/q/gBW5t6RmU0"
 )
 
 // SettingKeyDefaultPlatformQuotas —— 系统全局：每用户 × 平台日/周/月 USD 上限（JSON）。

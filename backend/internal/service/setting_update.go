@@ -341,6 +341,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyAPIBaseURL] = settings.APIBaseURL
 	updates[SettingKeyContactInfo] = settings.ContactInfo
 	updates[SettingKeyDocURL] = settings.DocURL
+	updates[SettingKeyQQGroupNumber] = settings.QQGroupNumber
+	updates[SettingKeyQQGroupURL] = strings.TrimSpace(settings.QQGroupURL)
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyCompactHomeEnabled] = strconv.FormatBool(settings.CompactHomeEnabled)
 	updates[SettingKeyHideCcsImportButton] = strconv.FormatBool(settings.HideCcsImportButton)

@@ -3526,6 +3526,8 @@ const form = reactive<SettingsForm>({
   api_base_url: "",
   contact_info: "",
   doc_url: "",
+  qq_group_number: "1016190748",
+  qq_group_url: "https://qm.qq.com/q/gBW5t6RmU0",
   home_content: "",
   compact_home_enabled: false,
   backend_mode_enabled: false,
@@ -4607,6 +4609,7 @@ async function saveSettings() {
     // Optional URL fields: auto-clear invalid values so they don't cause backend 400 errors
     if (!isValidHttpUrl(form.frontend_url)) form.frontend_url = "";
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
+    if (!isValidHttpUrl(form.qq_group_url)) form.qq_group_url = "";
     syncWeChatConnectMode();
     const wechatStoredMode = deriveWeChatConnectStoredMode(
       form.wechat_connect_open_enabled,
@@ -4663,6 +4666,8 @@ async function saveSettings() {
       api_base_url: form.api_base_url,
       contact_info: form.contact_info,
       doc_url: form.doc_url,
+      qq_group_number: form.qq_group_number,
+      qq_group_url: form.qq_group_url,
       home_content: form.home_content,
       compact_home_enabled: form.compact_home_enabled,
       backend_mode_enabled: form.backend_mode_enabled,

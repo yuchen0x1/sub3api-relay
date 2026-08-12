@@ -314,3 +314,12 @@ func (s *SettingService) getStringOrDefault(settings map[string]string, key, def
 	}
 	return defaultValue
 }
+
+// getOptionalStringOrMissingDefault returns the stored value even when blank,
+// and only falls back to defaultValue when the key does not exist.
+func (s *SettingService) getOptionalStringOrMissingDefault(settings map[string]string, key, defaultValue string) string {
+	if value, ok := settings[key]; ok {
+		return value
+	}
+	return defaultValue
+}

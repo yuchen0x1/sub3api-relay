@@ -52,6 +52,53 @@ func (s *settingPublicRepoStub) Delete(ctx context.Context, key string) error {
 	panic("unexpected Delete call")
 }
 
+func TestSettingService_GetPublicSettings_QQGroupFallsBackToDefaultsWhenMissing(t *testing.T) {
+	svc := NewSettingService(&settingPublicRepoStub{values: map[string]string{}}, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "1016190748", settings.QQGroupNumber)
+	require.Equal(t, "https://qm.qq.com/q/gBW5t6RmU0", settings.QQGroupURL)
+
+	adminView := svc.parseSettings(map[string]string{})
+	require.Equal(t, "1016190748", adminView.QQGroupNumber)
+	require.Equal(t, "https://qm.qq.com/q/gBW5t6RmU0", adminView.QQGroupURL)
+}
+
+func TestSettingService_GetPublicSettings_QQGroupBlankStillHides(t *testing.T) {
+	svc := NewSettingService(&settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyQQGroupNumber: "",
+			SettingKeyQQGroupURL:    "",
+		},
+	}, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Empty(t, settings.QQGroupNumber)
+	require.Empty(t, settings.QQGroupURL)
+
+	adminView := svc.parseSettings(map[string]string{
+		SettingKeyQQGroupNumber: "",
+		SettingKeyQQGroupURL:    "",
+	})
+	require.Empty(t, adminView.QQGroupNumber)
+	require.Empty(t, adminView.QQGroupURL)
+}
+
+func TestSettingService_GetPublicSettings_QQGroupDatabaseOverridesDefault(t *testing.T) {
+	svc := NewSettingService(&settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyQQGroupNumber: "88888888",
+			SettingKeyQQGroupURL:    "https://qm.qq.com/q/custom",
+		},
+	}, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "88888888", settings.QQGroupNumber)
+	require.Equal(t, "https://qm.qq.com/q/custom", settings.QQGroupURL)
+}
 func TestSettingService_GetPublicSettings_ExposesRegistrationEmailSuffixWhitelist(t *testing.T) {
 	repo := &settingPublicRepoStub{
 		values: map[string]string{
