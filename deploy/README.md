@@ -22,6 +22,8 @@ This directory contains the official Sub3API deployment files for Linux servers 
 | `.env.example` | Container environment variables template |
 | `DOCKER.md` | Container image and Docker documentation |
 | `install.sh` | One-click binary installation script |
+| `update-binary.sh` | One-command binary upgrade script (embedded frontend, backup, restart, health check) |
+| `BINARY_UPGRADE.md` | Binary upgrade guide: embedded frontend, Caddy full-site reverse proxy, verify/rollback |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `sub3api.service` | Systemd service unit file |
 | `sub3api-datamanagementd.service` | datamanagementd systemd service unit file |
@@ -393,6 +395,28 @@ curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/
    sudo systemctl start sub3api
    ```
 5. Open the Setup Wizard in your browser to complete configuration
+
+> **v0.1.178+:** Release binaries embed the frontend. Upgrading only requires replacing the binary and restarting `sub3api`; do **not** download or extract `sub3api_<version>_web.tar.gz` for a normal upgrade.
+>
+> **Caddy/nginx:** All site traffic, including `/` and `/manus/`, must be reverse-proxied to the backend. Do not expose a separate static frontend directory with `file_server`; keep any old `/var/www/...` directory only as an offline backup.
+
+### Binary Upgrade (v0.1.178+)
+
+```bash
+# Upgrade to the latest release
+sudo ./update-binary.sh
+
+# Upgrade to a specific version
+sudo ./update-binary.sh v0.1.178
+
+# Non-default install layout (custom binary path / service / health URL)
+sudo SUB3API_BIN=/opt/sub3api/sub3api \
+     SUB3API_SERVICE=sub3api \
+     SUB3API_HEALTH_URL=http://127.0.0.1:8080/health \
+     ./update-binary.sh v0.1.178
+```
+
+See [BINARY_UPGRADE.md](./BINARY_UPGRADE.md) for the full upgrade, Caddy, verification, and rollback guide.
 
 ### Commands
 
