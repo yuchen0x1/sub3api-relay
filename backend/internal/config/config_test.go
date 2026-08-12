@@ -18,8 +18,8 @@ func resetViperWithJWTSecret(t *testing.T) {
 	t.Helper()
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	t.Setenv("CONFIG_FILE", filepath.Join(t.TempDir(), "missing.yaml"))
-	t.Setenv("DATA_DIR", "")
+	t.Setenv("CONFIG_FILE", "")
+	t.Setenv("DATA_DIR", t.TempDir())
 	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
 }
 

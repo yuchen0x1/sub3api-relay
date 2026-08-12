@@ -269,13 +269,13 @@ func (s *AccountTestService) testManusAccountConnection(c *gin.Context, account 
 		case AccountTypeAPIKey:
 			apiKey := account.GetManusAPIKey()
 			if apiKey == "" {
-				return nil, fmt.Errorf("Manus API key is missing")
+				return nil, fmt.Errorf("manus API key is missing")
 			}
 			req.Header.Set("x-manus-api-key", apiKey)
 		case AccountTypeOAuth:
 			token := account.GetManusAccessToken()
 			if token == "" {
-				return nil, fmt.Errorf("Manus access token is missing")
+				return nil, fmt.Errorf("manus access token is missing")
 			}
 			req.Header.Set("Authorization", "Bearer "+token)
 		default:
