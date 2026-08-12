@@ -99,6 +99,15 @@ func (s *FrontendServer) Middleware() gin.HandlerFunc {
 			cleanPath = "index.html"
 		}
 
+		// Resolve directory requests to their index.html so embedded static
+		// folders such as /docs/ are served instead of falling back to the SPA.
+		if info, err := fs.Stat(s.distFS, strings.TrimSuffix(cleanPath, "/")); err == nil && info.IsDir() {
+			indexPath := strings.TrimSuffix(cleanPath, "/") + "/index.html"
+			if _, err := fs.Stat(s.distFS, indexPath); err == nil {
+				cleanPath = indexPath
+			}
+		}
+
 		// For index.html or SPA routes, serve with injected settings
 		if cleanPath == "index.html" || !s.fileExists(cleanPath) {
 			s.serveIndexHTML(c)
