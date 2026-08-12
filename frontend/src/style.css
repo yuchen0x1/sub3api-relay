@@ -927,7 +927,7 @@
   }
 
   .app-header {
-    overflow: hidden;
+    overflow: visible;
     background:
       linear-gradient(110deg, rgba(255, 255, 255, 0.34), transparent 48%),
       color-mix(in srgb, var(--glass-bg-strong) 80%, transparent);
