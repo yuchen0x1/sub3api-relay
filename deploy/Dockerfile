@@ -1,17 +1,32 @@
 # =============================================================================
 # Sub3API Personal Backend Dockerfile
 # =============================================================================
-# Stage 1: Build Go backend (no embedded frontend)
-# Stage 2: Final minimal image
+# Stage 1: Build frontend
+# Stage 2: Build Go backend with embedded frontend
+# Stage 3: Final minimal image
 # =============================================================================
 
 ARG GOLANG_IMAGE=golang:1.26.5-alpine
 ARG ALPINE_IMAGE=alpine:3.20
 ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
+ARG NODE_IMAGE=node:24-alpine
 
 # -----------------------------------------------------------------------------
-# Stage 1: Backend Builder
+# Stage 1: Frontend Builder
+# -----------------------------------------------------------------------------
+FROM ${NODE_IMAGE} AS frontend-builder
+
+WORKDIR /app/frontend
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prefer-offline
+COPY frontend/ ./
+COPY docs/legal/ /app/docs/legal/
+RUN pnpm run build
+
+# -----------------------------------------------------------------------------
+# Stage 2: Backend Builder
 # -----------------------------------------------------------------------------
 FROM ${GOLANG_IMAGE} AS backend-builder
 
@@ -36,13 +51,14 @@ RUN go mod download
 
 # Copy backend source first
 COPY backend/ ./
+COPY --from=frontend-builder /app/backend/internal/web/dist ./internal/web/dist
 
-# Build the binary (BuildType=release for CI builds, backend-only)
+# Build the binary (BuildType=release for CI builds, embedded frontend)
 # Version precedence: build arg VERSION > exact git tag > cmd/server/VERSION
 RUN VERSION_VALUE="${VERSION}" && \
     if [ -z "${VERSION_VALUE}" ]; then VERSION_VALUE="$(./scripts/resolve-version.sh)"; fi && \
     DATE_VALUE="${DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" && \
-    CGO_ENABLED=0 GOOS=linux go build \
+    CGO_ENABLED=0 GOOS=linux go build -tags embed \
     -ldflags="-s -w -X main.Version=${VERSION_VALUE} -X main.Commit=${COMMIT} -X main.Date=${DATE_VALUE} -X main.BuildType=release" \
     -o /app/sub3api \
     ./cmd/server

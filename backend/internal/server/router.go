@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"sync/atomic"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/routes"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/web"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -67,8 +69,22 @@ func SetupRouter(
 		return nil
 	}))
 	r.Use(middleware2.ServerTiming(cfg.Server.EnableServerTiming))
-	// 前端已移除，纯后端模式不注册静态资源处理器。
-	settingService.SetOnUpdateCallback(refreshFrameOrigins)
+	if web.HasEmbeddedFrontend() {
+		frontendServer, err := web.NewFrontendServer(settingService)
+		if err != nil {
+			log.Printf("Warning: failed to initialize embedded frontend: %v", err)
+			r.Use(web.ServeEmbeddedFrontend())
+			settingService.SetOnUpdateCallback(refreshFrameOrigins)
+		} else {
+			settingService.SetOnUpdateCallback(func() {
+				frontendServer.InvalidateCache()
+				refreshFrameOrigins()
+			})
+			r.Use(frontendServer.Middleware())
+		}
+	} else {
+		settingService.SetOnUpdateCallback(refreshFrameOrigins)
+	}
 
 	// 注册路由
 	registerRoutes(r, handlers, jwtAuth, optionalJWTAuth, adminAuth, apiKeyAuth, auditLog, stepUpAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, cfg, redisClient)

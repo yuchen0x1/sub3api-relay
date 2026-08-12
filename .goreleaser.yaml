@@ -13,6 +13,8 @@ builds:
     binary: sub3api
     env:
       - CGO_ENABLED=0
+    tags:
+      - embed
     goos:
       - linux
       - windows
