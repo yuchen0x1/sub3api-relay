@@ -88,10 +88,10 @@ download_release() {
     local expected actual
 
     print_info "Downloading ${asset} ..."
-    curl -fL --connect-timeout 10 --max-time 300 -o "${TMP_DIR}/${asset}" "${base}/${asset}"
+    curl -fsSL --connect-timeout 10 --max-time 300 -o "${TMP_DIR}/${asset}" "${base}/${asset}"
 
     print_info "Downloading checksums.txt ..."
-    curl -fL --connect-timeout 10 --max-time 60 -o "${TMP_DIR}/checksums.txt" "${base}/checksums.txt"
+    curl -fsSL --connect-timeout 10 --max-time 60 -o "${TMP_DIR}/checksums.txt" "${base}/checksums.txt"
 
     expected="$(awk -v name="${asset}" '$2 == name { print $1 }' "${TMP_DIR}/checksums.txt" | head -1)"
     if [ -z "$expected" ]; then
