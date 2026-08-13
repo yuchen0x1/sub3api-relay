@@ -57,6 +57,11 @@ func (c *identityCache) SetFingerprint(ctx context.Context, accountID int64, fp 
 	return c.rdb.Set(ctx, key, val, fingerprintTTL).Err()
 }
 
+func (c *identityCache) DeleteFingerprint(ctx context.Context, accountID int64) error {
+	key := fingerprintKey(accountID)
+	return c.rdb.Del(ctx, key).Err()
+}
+
 func (c *identityCache) GetMaskedSessionID(ctx context.Context, accountID int64) (string, error) {
 	key := maskedSessionKey(accountID)
 	val, err := c.rdb.Get(ctx, key).Result()

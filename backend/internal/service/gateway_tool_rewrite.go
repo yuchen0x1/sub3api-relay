@@ -24,7 +24,7 @@ var staticToolNameRewrites = map[string]string{
 }
 
 // fakeToolNamePrefixes 是"动态映射"的前缀池，与 Parrot _FAKE_PREFIXES 一致。
-// 当 tools 数量 > dynamicToolMapThreshold 时随机选用其中前缀生成可读假名。
+// 无论 tools 数量多少都随机选用其中前缀生成可读假名。
 var fakeToolNamePrefixes = []string{
 	"analyze_", "compute_", "fetch_", "generate_", "lookup_", "modify_",
 	"process_", "query_", "render_", "resolve_", "sync_", "update_",
@@ -32,9 +32,9 @@ var fakeToolNamePrefixes = []string{
 	"review_", "search_", "transform_", "handle_", "invoke_", "notify_",
 }
 
-// dynamicToolMapThreshold 与 Parrot 一致：tools 数量超过 5 才启用动态映射。
-// 少量工具不需要混淆（一般是 Claude Code 自己的核心工具 bash/edit/read 等）。
-const dynamicToolMapThreshold = 5
+// 无论 tools 数量多少都启用动态映射：delegate_task / skill_* 等非官方核心工具名
+// 若原样透传，会被上游判定为第三方客户端，把用量切到"第三方额外额度"，导致
+// 余额/额度与官方不一致。因此这里不再设置数量门槛。
 
 // ToolNameRewrite 是单次请求内的工具名混淆映射。
 //   - Forward: real → fake，请求阶段在 body 上应用。
@@ -52,7 +52,6 @@ type ToolNameRewrite struct {
 // buildDynamicToolMap 构造 tools 的动态假名映射。
 //
 // 与 Parrot _build_dynamic_tool_map 语义等价：
-//   - tools 数量 ≤ dynamicToolMapThreshold 时返回 nil（不做动态映射，走静态 fallback）
 //   - 同一组 tool_names 在同进程内映射稳定（保证 cache 命中）
 //
 // Parrot 用 `random.Random(hash(tuple(tool_names)))` 作 seed + shuffle 前缀池；
@@ -60,9 +59,6 @@ type ToolNameRewrite struct {
 // 用 fnv64a(strings.Join(names, "\x00")) 作 seed 喂 math/rand.New。
 // 字节级不同不影响上游判定（Anthropic 不会验证我们的随机种子算法）。
 func buildDynamicToolMap(toolNames []string) map[string]string {
-	if len(toolNames) <= dynamicToolMapThreshold {
-		return nil
-	}
 	h := fnv.New64a()
 	for i, n := range toolNames {
 		if i > 0 {

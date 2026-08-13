@@ -352,6 +352,18 @@ export async function resetAccountQuota(id: number): Promise<Account> {
 }
 
 /**
+ * Reset a poisoned account identity fingerprint
+ * @param id - Account ID
+ * @returns Reset result
+ */
+export async function resetFingerprint(id: number): Promise<{ reset: boolean }> {
+  const { data } = await apiClient.post<{ reset: boolean }>(
+    `/admin/accounts/${id}/reset-fingerprint`
+  )
+  return data
+}
+
+/**
  * Get temporary unschedulable status
  * @param id - Account ID
  * @returns Status with detail state if active
@@ -995,6 +1007,7 @@ export const accountsAPI = {
   clearRateLimit,
   recoverState,
   resetAccountQuota,
+  resetFingerprint,
   getTempUnschedulableStatus,
   resetTempUnschedulable,
   setSchedulable,

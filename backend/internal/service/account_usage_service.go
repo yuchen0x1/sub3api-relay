@@ -333,6 +333,19 @@ func NewAccountUsageService(
 	}
 }
 
+// ResetFingerprint 删除账号指纹缓存，用于管理员一键重置被毒化的指纹。
+// 删除后下一次请求会按当前请求头重新生成指纹。
+func (s *AccountUsageService) ResetFingerprint(ctx context.Context, accountID int64) error {
+	if s == nil || s.identityCache == nil {
+		return fmt.Errorf("identity cache is not configured")
+	}
+	if err := s.identityCache.DeleteFingerprint(ctx, accountID); err != nil {
+		return fmt.Errorf("delete fingerprint failed: %w", err)
+	}
+	slog.Info("fingerprint_reset", "account_id", accountID)
+	return nil
+}
+
 // GetUsage 获取账号使用量
 // OAuth账号: 调用Anthropic API获取真实数据（需要profile scope），API响应缓存10分钟，窗口统计缓存1分钟
 // Setup Token账号: 根据session_window推算5h窗口，7d数据不可用（没有profile scope）

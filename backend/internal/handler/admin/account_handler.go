@@ -2333,6 +2333,25 @@ func (h *AccountHandler) ClearRateLimit(c *gin.Context) {
 	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), account))
 }
 
+// ResetFingerprint handles resetting an account's cached identity fingerprint.
+// POST /api/v1/admin/accounts/:id/reset-fingerprint
+func (h *AccountHandler) ResetFingerprint(c *gin.Context) {
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+	if h.accountUsageService == nil {
+		response.ErrorFrom(c, errors.New("account usage service is not configured"))
+		return
+	}
+	if err := h.accountUsageService.ResetFingerprint(c.Request.Context(), accountID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"reset": true})
+}
+
 // ResetQuota handles resetting account quota usage
 // POST /api/v1/admin/accounts/:id/reset-quota
 func (h *AccountHandler) ResetQuota(c *gin.Context) {

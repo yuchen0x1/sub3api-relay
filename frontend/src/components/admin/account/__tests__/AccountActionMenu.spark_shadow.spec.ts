@@ -173,4 +173,44 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
 
     wrapper.unmount()
   })
+
+  it.each(['oauth', 'setup-token'] as const)('shows reset fingerprint for %s parent accounts', (type) => {
+    const account = makeAccount({ platform: 'anthropic', type, parent_account_id: null })
+    const wrapper = mount(AccountActionMenu, {
+      props: { show: true, account, position },
+      attachTo: document.body,
+    })
+    expect(getBodyText()).toContain('admin.accounts.resetFingerprint')
+    wrapper.unmount()
+  })
+
+  it('hides reset fingerprint for shadow accounts', () => {
+    const account = makeAccount({ platform: 'openai', type: 'oauth', parent_account_id: 42 })
+    const wrapper = mount(AccountActionMenu, {
+      props: { show: true, account, position },
+      attachTo: document.body,
+    })
+    expect(getBodyText()).not.toContain('admin.accounts.resetFingerprint')
+    wrapper.unmount()
+  })
+
+  it('emits reset-fingerprint with the selected account', async () => {
+    const account = makeAccount({ platform: 'anthropic', type: 'oauth', parent_account_id: null })
+    const wrapper = mount(AccountActionMenu, {
+      props: { show: true, account, position },
+      attachTo: document.body,
+    })
+
+    const resetBtn = getBodyButtons().find(b => b.textContent?.includes('admin.accounts.resetFingerprint'))
+    expect(resetBtn).toBeDefined()
+
+    resetBtn!.click()
+    await wrapper.vm.$nextTick()
+
+    const emitted = wrapper.emitted('reset-fingerprint')
+    expect(emitted).toBeTruthy()
+    expect(emitted![0][0]).toMatchObject({ id: account.id, type: 'oauth' })
+
+    wrapper.unmount()
+  })
 })

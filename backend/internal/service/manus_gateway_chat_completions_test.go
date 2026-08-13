@@ -80,7 +80,7 @@ func TestManusChatBridgeCreatesTaskAndPollsUntilStopped(t *testing.T) {
 	taskID, err := svc.CreateChatTask(t.Context(), account, req)
 	require.NoError(t, err)
 	require.Equal(t, "tsk_123", taskID)
-	require.JSONEq(t, `{"message":{"content":"be brief\n\nsay hi"}}`, upstream.createBody)
+	require.JSONEq(t, `{"message":{"content":[{"type":"text","text":"be brief\n\nsay hi"}]}}`, upstream.createBody)
 
 	var deltas []string
 	result, err := svc.WaitForChatResult(t.Context(), account, taskID, func(text string) {

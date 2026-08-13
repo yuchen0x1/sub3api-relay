@@ -13,13 +13,13 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.182.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.183.md)
 
 </div>
 
-## v0.1.182 安全热修
+## v0.1.183 Manus 与 Claude 兼容性修复
 
-`v0.1.182` 修复代理订阅 URL 进入审计日志的问题，加强订阅 SSRF 与远程 setup 防护，阻止部署密码换行注入，并让 Docker 更新和回滚持久保存明确的镜像版本。
+`v0.1.183` 修复 Manus 账号可以连接但 Claude 风格请求无法实际使用的问题，按 Manus v2 内容块格式创建任务，并强化 Claude 指纹复用逻辑，新增管理员重置指纹操作。
 
 下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并增强了实时状态和维护能力。
 
@@ -35,7 +35,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.182 更新说明](RELEASE_NOTES_v0.1.182.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.1.183 更新说明](RELEASE_NOTES_v0.1.183.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -112,7 +112,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -164,7 +164,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # 卸载
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -187,7 +187,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/de
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.183/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -302,7 +302,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 固定目标版本、拉取镜像并重建容器
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.183|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

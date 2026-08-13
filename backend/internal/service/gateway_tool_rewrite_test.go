@@ -10,10 +10,17 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 )
 
-func TestBuildDynamicToolMap_BelowThreshold(t *testing.T) {
-	// Parrot 行为：tools 数量 ≤ 5 时不做动态映射。
+func TestBuildDynamicToolMap_SmallCountAlsoMapped(t *testing.T) {
+	// 修复后：无论 tools 数量多少都启用动态映射，避免 delegate_task / skill_* 等
+	// 非官方工具名在小工具集场景下原样透传，被上游判定为第三方客户端。
 	names := []string{"bash", "edit", "read", "write", "search"}
-	require.Nil(t, buildDynamicToolMap(names))
+	m := buildDynamicToolMap(names)
+	require.NotNil(t, m)
+	require.Len(t, m, len(names))
+	for _, name := range names {
+		require.Contains(t, m, name)
+		require.NotEqual(t, name, m[name])
+	}
 }
 
 func TestBuildDynamicToolMap_AboveThresholdIsStable(t *testing.T) {
@@ -74,35 +81,45 @@ func TestApplyToolNameRewriteToBody_RenamesToolsAndToolChoice(t *testing.T) {
 	// web_search 是 server tool，不参与工具名改写
 	require.NotContains(t, rw.Forward, "web_search")
 
+	// 修复后：小工具集同样启用动态映射，断言使用实际生成的假名而非静态前缀。
+	fakeList := rw.Forward["sessions_list"]
+	fakeGet := rw.Forward["session_get"]
+	require.NotEmpty(t, fakeList)
+	require.NotEmpty(t, fakeGet)
+	require.NotEqual(t, "sessions_list", fakeList)
+	require.NotEqual(t, "session_get", fakeGet)
+
 	out := applyToolNameRewriteToBody(body, rw)
 
 	// tools[0].name 和 tools[1].name 被改写，tools[2].name 保持不变
-	require.Equal(t, "cc_sess_list", gjson.GetBytes(out, "tools.0.name").String())
-	require.Equal(t, "cc_ses_get", gjson.GetBytes(out, "tools.1.name").String())
+	require.Equal(t, fakeList, gjson.GetBytes(out, "tools.0.name").String())
+	require.Equal(t, fakeGet, gjson.GetBytes(out, "tools.1.name").String())
 	require.Equal(t, "web_search", gjson.GetBytes(out, "tools.2.name").String())
 
 	// tool_choice.name 被同步改写
-	require.Equal(t, "cc_sess_list", gjson.GetBytes(out, "tool_choice.name").String())
+	require.Equal(t, fakeList, gjson.GetBytes(out, "tool_choice.name").String())
 	require.Equal(t, "tool", gjson.GetBytes(out, "tool_choice.type").String())
 }
 
 func TestApplyToolNameRewriteToBody_RenamesToolUseInMessages(t *testing.T) {
-	// sessions_list 通过静态前缀规则改写为 cc_sess_list
-	// web_search 是 server tool（type != ""），不参与工具名改写
-	// messages 中的 tool_use.name 必须同步改写，才能和 tools[] 保持一致
+	// 修复后：小工具集同样启用动态映射，sessions_list 不再走静态前缀规则。
+	// web_search 是 server tool（type != ""），不参与工具名改写。
+	// messages 中的 tool_use.name 必须同步改写，才能和 tools[] 保持一致。
 	body := []byte(`{"tools":[{"name":"sessions_list","input_schema":{}},{"name":"web_search","type":"web_search_20250305"}],"messages":[{"role":"user","content":[{"type":"text","text":"hi"}]},{"role":"assistant","content":[{"type":"tool_use","id":"tu_01","name":"sessions_list","input":{}},{"type":"text","text":"thinking"}]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"tu_01","content":"ok"}]}]}`)
 	rw := buildToolNameRewriteFromBody(body)
 	require.NotNil(t, rw)
-	require.Equal(t, "cc_sess_list", rw.Forward["sessions_list"])
+	fakeList := rw.Forward["sessions_list"]
+	require.NotEmpty(t, fakeList)
+	require.NotEqual(t, "sessions_list", fakeList)
 
 	out := applyToolNameRewriteToBody(body, rw)
 
 	// tools[0].name 被改写
-	require.Equal(t, "cc_sess_list", gjson.GetBytes(out, "tools.0.name").String())
+	require.Equal(t, fakeList, gjson.GetBytes(out, "tools.0.name").String())
 	// tools[1].name 是 server tool，保持不变
 	require.Equal(t, "web_search", gjson.GetBytes(out, "tools.1.name").String())
 	// messages[1].content[0].name 是 tool_use，必须同步改写以匹配 tools[]
-	require.Equal(t, "cc_sess_list", gjson.GetBytes(out, "messages.1.content.0.name").String())
+	require.Equal(t, fakeList, gjson.GetBytes(out, "messages.1.content.0.name").String())
 	// messages[1].content[1] 是 text，保持不变
 	require.Equal(t, "thinking", gjson.GetBytes(out, "messages.1.content.1.text").String())
 	// messages[2].content[0] 是 tool_result，不包含 name 字段，保持不变

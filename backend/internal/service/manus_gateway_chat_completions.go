@@ -49,7 +49,12 @@ func (s *ManusGatewayService) CreateChatTask(
 		return "", errors.New("no message content to send to Manus")
 	}
 	payload, err := json.Marshal(map[string]any{
-		"message": map[string]any{"content": prompt},
+		"message": map[string]any{
+			"content": []map[string]string{{
+				"type": "text",
+				"text": prompt,
+			}},
+		},
 	})
 	if err != nil {
 		return "", fmt.Errorf("marshal Manus task.create payload: %w", err)

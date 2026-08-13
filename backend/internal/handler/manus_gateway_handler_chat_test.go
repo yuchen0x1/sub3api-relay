@@ -57,3 +57,34 @@ func TestManusChatModelIDEchoesRequestedModel(t *testing.T) {
 	require.Equal(t, "manus", service.ManusChatModelID("   "))
 	require.Equal(t, "gpt-4o", service.ManusChatModelID("gpt-4o"))
 }
+
+func TestManusAnthropicResponseMatchesMessagesShape(t *testing.T) {
+	resp := manusAnthropicResponse("tsk_123", "hello from manus", "claude-sonnet-4-5")
+
+	require.Equal(t, "msg-tsk_123", resp.ID)
+	require.Equal(t, "message", resp.Type)
+	require.Equal(t, "assistant", resp.Role)
+	require.Equal(t, "claude-sonnet-4-5", resp.Model)
+	require.NotNil(t, resp.StopReason)
+	require.Equal(t, "end_turn", *resp.StopReason)
+	require.Len(t, resp.Content, 1)
+	require.Equal(t, "text", resp.Content[0].Type)
+	require.Equal(t, "hello from manus", resp.Content[0].Text)
+
+	encoded, err := json.Marshal(resp)
+	require.NoError(t, err)
+	require.JSONEq(t, `{
+		"id":"msg-tsk_123",
+		"type":"message",
+		"role":"assistant",
+		"content":[{"type":"text","text":"hello from manus"}],
+		"model":"claude-sonnet-4-5",
+		"stop_reason":"end_turn",
+		"usage":{
+			"input_tokens":0,
+			"output_tokens":0,
+			"cache_creation_input_tokens":0,
+			"cache_read_input_tokens":0
+		}
+	}`, string(encoded))
+}

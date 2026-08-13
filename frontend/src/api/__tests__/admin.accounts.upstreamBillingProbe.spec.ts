@@ -14,6 +14,7 @@ import {
   getUpstreamBillingProbeSettings,
   probeUpstreamBilling,
   probeUpstreamBillingBatch,
+  resetFingerprint,
   setUpstreamBillingProbeEnabled,
   updateUpstreamBillingProbeSettings
 } from '@/api/admin/accounts'
@@ -49,5 +50,13 @@ describe('admin account upstream billing probe API', () => {
     expect(put).toHaveBeenCalledWith('/admin/accounts/7/upstream-billing-probe', { enabled: true })
     expect(post).toHaveBeenNthCalledWith(1, '/admin/accounts/7/upstream-billing-probe')
     expect(post).toHaveBeenNthCalledWith(2, '/admin/accounts/upstream-billing-probe/batch', { account_ids: [7] })
+  })
+
+  it('uses the dedicated fingerprint reset endpoint', async () => {
+    post.mockResolvedValueOnce({ data: { reset: true } })
+
+    await expect(resetFingerprint(42)).resolves.toEqual({ reset: true })
+
+    expect(post).toHaveBeenCalledWith('/admin/accounts/42/reset-fingerprint')
   })
 })
