@@ -15,6 +15,7 @@
 - Release deployment bundles now pin `SUB3API_IMAGE` to the matching release version.
 - The administrator version panel now updates or rolls back `SUB3API_IMAGE` before pulling and recreating containers.
 - Removed the incomplete simple-release path from the stable Release workflow so every stable release includes binary archives, checksums, deployment assets, and multi-architecture images.
+- Added cross-platform deployment secret tests to CI and a narrowly validated exception for an unreviewed Hysteria server-only vulnerability record that incorrectly flags the newer client-only integration.
 
 ## Public Channel Status
 

@@ -77,6 +77,7 @@ for password in \
     cd "$test_dir"
     source <(head -n -1 "$script")
     set_env_value ADMIN_PASSWORD "$password"
+    unset ADMIN_PASSWORD
     compose_config --env-file .env -f compose.yml run --rm --no-deps probe sh -c 'printf %s "$ADMIN_PASSWORD"' > actual
     printf '%s' "$password" > expected
     cmp -s expected actual

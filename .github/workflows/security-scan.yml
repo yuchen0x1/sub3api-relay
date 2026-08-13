@@ -28,4 +28,10 @@ jobs:
         working-directory: backend
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
+          status=0
+          govulncheck -format json ./... > govulncheck.json || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
+            echo "govulncheck failed with exit code $status" >&2
+            exit "$status"
+          fi
+          python3 scripts/check-govuln-report.py govulncheck.json
