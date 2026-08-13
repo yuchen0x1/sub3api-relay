@@ -775,6 +775,7 @@ const GITHUB_REPO = 'yuchen0x1/sub3api-relay'
 const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`
 // Docker image published by the project's CI (tags carry no "v" prefix).
 const DOCKER_IMAGE = 'ghcr.io/yuchen0x1/sub3api-relay'
+const STRICT_RELEASE_VERSION = /^\d+\.\d+\.\d+$/
 
 const { t } = useI18n()
 
@@ -850,25 +851,36 @@ const manualTabs = computed(() =>
 )
 
 const scriptRollbackCommand = computed(() => {
-  if (!selectedRollbackVersion.value) return ''
+  if (!STRICT_RELEASE_VERSION.test(selectedRollbackVersion.value)) return ''
   const tag = `v${selectedRollbackVersion.value}`
   return `curl -sSL https://raw.githubusercontent.com/${GITHUB_REPO}/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
 })
 
 const dockerRollbackCommand = computed(() => {
-  if (!selectedRollbackVersion.value) return ''
+  if (!STRICT_RELEASE_VERSION.test(selectedRollbackVersion.value)) return ''
+  const image = `${DOCKER_IMAGE}:${selectedRollbackVersion.value}`
   return [
     `# ${t('version.dockerEditCompose')}`,
-    `image: ${DOCKER_IMAGE}:${selectedRollbackVersion.value}`,
+    `grep -q '^SUB3API_IMAGE=' .env && sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=${image}|' .env || printf 'SUB3API_IMAGE=${image}\\n' >> .env`,
     '',
     `# ${t('version.dockerRecreate')}`,
-    'docker compose up -d'
+    'docker compose pull sub3api',
+    'docker compose up -d --no-deps sub3api'
   ].join('\n')
 })
 
-const dockerUpdateCommand = computed(() =>
-  ['docker compose pull', 'docker compose up -d'].join('\n')
-)
+const dockerUpdateCommand = computed(() => {
+  const version = latestVersion.value.trim()
+  if (!STRICT_RELEASE_VERSION.test(version)) {
+    return ['docker compose pull sub3api', 'docker compose up -d --no-deps sub3api'].join('\n')
+  }
+  const image = `${DOCKER_IMAGE}:${version}`
+  return [
+    `grep -q '^SUB3API_IMAGE=' .env && sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=${image}|' .env || printf 'SUB3API_IMAGE=${image}\\n' >> .env`,
+    'docker compose pull sub3api',
+    'docker compose up -d --no-deps sub3api'
+  ].join('\n')
+})
 
 const activeManualCommand = computed(() =>
   isDockerBuild.value || manualTab.value === 'docker'

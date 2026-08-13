@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './client'
+import type { AxiosRequestConfig } from 'axios'
 import type { Provider, MonitorStatus } from './admin/channelMonitor'
 
 export type { Provider, MonitorStatus } from './admin/channelMonitor'
@@ -63,7 +64,8 @@ export interface UserMonitorDetail {
 export async function list(options?: { signal?: AbortSignal }): Promise<UserMonitorListResponse> {
   const { data } = await apiClient.get<UserMonitorListResponse>('/channel-monitors', {
     signal: options?.signal,
-  })
+    suppressAuthRedirect: true,
+  } as AxiosRequestConfig & { suppressAuthRedirect: boolean })
   return data
 }
 

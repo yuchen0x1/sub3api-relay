@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -72,6 +73,10 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 			if _, err := urlvalidator.ValidateHTTPSURL(req.URL.String(), urlvalidator.ValidationOptions{}); err != nil {
 				return errors.New("subscription redirect is not allowed")
 			}
+			if len(via) == 0 || !sameSubscriptionOrigin(via[0].URL, req.URL) {
+				return errors.New("subscription redirect must remain on the same origin")
+			}
+			req.Header.Del("Referer")
 			return nil
 		},
 	}
@@ -99,6 +104,32 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 	return parseProxySubscriptionBody(body)
 }
 
+func sameSubscriptionOrigin(left, right *url.URL) bool {
+	if left == nil || right == nil {
+		return false
+	}
+	return strings.EqualFold(left.Scheme, right.Scheme) && strings.EqualFold(left.Host, right.Host)
+}
+
+var blockedSubscriptionPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("240.0.0.0/4"),
+	netip.MustParsePrefix("64:ff9b::/96"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("2001::/23"),
+	netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("2002::/16"),
+	netip.MustParsePrefix("3fff::/20"),
+	netip.MustParsePrefix("5f00::/16"),
+}
+
 func safeSubscriptionDialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
@@ -118,8 +149,22 @@ func safeSubscriptionDialContext(ctx context.Context, network, address string) (
 }
 
 func isBlockedSubscriptionIP(ip net.IP) bool {
-	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+	address, err := netip.ParseAddr(ip.String())
+	if err != nil {
+		return true
+	}
+	address = address.Unmap()
+	if !address.IsValid() || address.IsUnspecified() || address.IsMulticast() ||
+		address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() ||
+		address.IsLinkLocalMulticast() || address.Is4In6() {
+		return true
+	}
+	for _, prefix := range blockedSubscriptionPrefixes {
+		if prefix.Contains(address) {
+			return true
+		}
+	}
+	return false
 }
 
 func trimSubscriptionURLPunctuation(raw string) string {

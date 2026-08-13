@@ -4,7 +4,7 @@
 
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -13,13 +13,13 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.181.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.182.md)
 
 </div>
 
-## v0.1.181 更新亮点
+## v0.1.182 安全热修
 
-`v0.1.181` 重点完善 Codex 兼容性、主页实时状态、上游响应处理和发布更新体验。版本面板现在可以安全展示更新日志，并且每次 GitHub Release 都必须提供对应的版本说明文件。
+`v0.1.182` 修复代理订阅 URL 进入审计日志的问题，加强订阅 SSRF 与远程 setup 防护，阻止部署密码换行注入，并让 Docker 更新和回滚持久保存明确的镜像版本。
 
 下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并增强了实时状态和维护能力。
 
@@ -35,7 +35,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.181 更新说明](RELEASE_NOTES_v0.1.181.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.1.182 更新说明](RELEASE_NOTES_v0.1.182.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -78,7 +78,7 @@ Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和�
 
 | 组件 | 技术 |
 |------|------|
-| 后端 | Go 1.25.7, Gin, Ent |
+| 后端 | Go 1.26.5, Gin, Ent |
 | 数据库 | PostgreSQL 15+ |
 | 缓存/队列 | Redis 7+ |
 
@@ -112,7 +112,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -131,8 +131,10 @@ sudo systemctl start sub3api
 # 2. 设置开机自启
 sudo systemctl enable sub3api
 
-# 3. 在浏览器中打开设置向导
-# http://你的服务器IP:8080
+# 3. 在本机建立 SSH 隧道访问仅监听回环地址的设置向导
+ssh -L 8080:127.0.0.1:8080 user@你的服务器IP
+
+# 4. 在本机浏览器打开 http://127.0.0.1:8080
 ```
 
 设置向导将引导你完成：
@@ -162,7 +164,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # 卸载
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -185,7 +187,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/de
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -292,16 +294,17 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 #### 访问
 
-在浏览器中打开 `http://你的服务器IP:8080`
+访问反向代理发布的 HTTPS 地址。Compose 默认只绑定 `127.0.0.1:8080`，在配置可信 TLS 反向代理或 SSH 隧道前不会直接暴露到公网。
 
 使用部署时设置的 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 登录；系统不存在公开默认密码。
 
 #### 升级
 
 ```bash
-# 拉取最新镜像并重建容器
-docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
+# 固定目标版本、拉取镜像并重建容器
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+docker compose pull sub3api
+docker compose up -d --no-deps sub3api
 ```
 
 #### 轻松迁移（本地目录版）
@@ -364,8 +367,9 @@ cd sub3api-relay/deploy
 
 #### 前置条件
 
-- Go 1.21+
-- Node.js 18+
+- Go 1.26.5
+- Node.js 24
+- pnpm 11.20.0
 - PostgreSQL 15+
 - Redis 7+
 
@@ -376,15 +380,21 @@ cd sub3api-relay/deploy
 git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay
 
-# 2. 编译后端
-cd backend
-VERSION="$(./scripts/resolve-version.sh)"
-go build -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+# 2. 安装并编译前端资源
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
 
-# 3. 创建配置文件
+# 3. 编译包含前端资源的后端
+cd ../backend
+VERSION="$(./scripts/resolve-version.sh)"
+go build -tags embed -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+
+# 4. 创建配置文件
 cp ../deploy/config.example.yaml ./config.yaml
 
-# 4. 编辑配置
+# 5. 编辑配置
 nano config.yaml
 ```
 

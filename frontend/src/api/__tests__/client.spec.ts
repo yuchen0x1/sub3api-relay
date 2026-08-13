@@ -310,6 +310,35 @@ describe('API Client', () => {
   // --- 401 Token 刷新 ---
 
   describe('401 Token 刷新', () => {
+    it('公开请求的 401 不跳转到登录页', async () => {
+      const originalLocation = window.location
+      Object.defineProperty(window, 'location', {
+        value: { ...originalLocation, pathname: '/monitor', href: '/monitor' },
+        writable: true,
+      })
+
+      const adapter = vi.fn().mockImplementation((config) => Promise.reject({
+        response: {
+          status: 401,
+          data: { code: 'AUTH_REQUIRED', message: 'Authentication required' },
+        },
+        config,
+        code: 'ERR_BAD_REQUEST',
+      }))
+      apiClient.defaults.adapter = adapter
+
+      await expect(apiClient.get('/channel-monitors', {
+        suppressAuthRedirect: true,
+      } as Record<string, unknown>)).rejects.toMatchObject({ status: 401 })
+
+      expect(window.location.href).toBe('/monitor')
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      })
+    })
+
     it('无 refresh_token 时 401 清除 localStorage', async () => {
       localStorage.setItem('auth_token', 'expired-token')
       // 不设置 refresh_token

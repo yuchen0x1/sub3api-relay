@@ -43,11 +43,9 @@ type LandingLocale = 'zh' | 'en'
 
 const landingMessages = {
   zh: {
-    nav: ['安全保护', '按量计费', '订阅转 API', 'QQ群'],
-    login: '登录',
+    nav: ['服务状态', 'QQ群'],
     eyebrow: 'Sub3API · Private Gateway',
     description: '一个 <b>API Key</b>，统一调度所有已接入的 AI 模型。智能路由、自动容灾、按量计费，为个人与小型团队提供 <b>稳定 · 透明 · 安全</b> 的私有网关服务。',
-    start: '立即开始',
     docs: '仓库下载',
     qqGroup: 'QQ群',
     stats: ['服务可用性', '已接入 AI 模型', '网关转发延迟'],
@@ -68,15 +66,13 @@ const landingMessages = {
       '智能调度多个上游账号，自动切换与负载均衡，故障自动容灾，告别频繁报错与排队等待。',
       '按 Key 分配配额与倍率，个人、家庭或小团队都能清楚看到每一次调用成本，账单一目了然。',
     ],
-    featureActions: ['管理密钥', '查看服务状态', '查看用量'],
-    footer: ['安全保护', '按量计费', '订阅转 API', '服务状态', 'QQ群'],
+    featureActions: ['查看服务状态'],
+    footer: ['服务状态', 'QQ群'],
   },
   en: {
-    nav: ['Security', 'Usage Billing', 'Subscription API', 'QQ Group'],
-    login: 'Sign in',
+    nav: ['Service Status', 'QQ Group'],
     eyebrow: 'Sub3API · Private Gateway',
     description: 'One <b>API key</b> connects every available AI model through unified routing, automatic failover, and usage-based billing. A <b>stable · transparent · secure</b> private gateway for individuals and small teams.',
-    start: 'Get Started',
     docs: 'Repository Download',
     qqGroup: 'QQ Group',
     stats: ['Service Availability', 'Connected AI Models', 'Gateway Latency'],
@@ -97,8 +93,8 @@ const landingMessages = {
       'Route traffic across multiple upstream accounts with automatic switching, load balancing, and failover.',
       'Assign quotas and rates per key, then track every request and cost clearly for individuals or teams.',
     ],
-    featureActions: ['Manage Keys', 'View Service Status', 'View Usage'],
-    footer: ['Security', 'Usage Billing', 'Subscription API', 'Service Status', 'QQ Group'],
+    featureActions: ['View Service Status'],
+    footer: ['Service Status', 'QQ Group'],
   },
 } as const
 
@@ -123,12 +119,9 @@ function applyLandingLocale(locale: LandingLocale) {
   const messages = landingMessages[locale]
 
   setTextList('.nav-links a', messages.nav)
-  const login = host.value.querySelector<HTMLElement>('.nav-right > .btn-primary')
-  if (login) login.textContent = messages.login
   setLabelPreservingChildren(host.value.querySelector<HTMLElement>('.eyebrow'), messages.eyebrow)
   const description = host.value.querySelector<HTMLElement>('.hero-sub')
   if (description) description.innerHTML = messages.description
-  setLabelPreservingChildren(host.value.querySelector<HTMLElement>('.hero-cta .btn-primary'), messages.start)
   const docs = host.value.querySelector<HTMLElement>('.hero-cta .btn-ghost')
   if (docs) docs.textContent = messages.docs
   setTextList('.hero-stats .lbl', messages.stats)

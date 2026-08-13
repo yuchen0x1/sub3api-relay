@@ -255,6 +255,15 @@
     color:var(--accent);border:1px solid rgba(0,255,94,.4);border-radius:6px;
     padding:4px 9px;background:rgba(0,255,94,.07);
   }
+  .monitor-shell{cursor:pointer}
+  .channel-line{
+    display:flex;align-items:center;gap:8px;margin:-8px 0 16px;
+    font-family:var(--mono);font-size:10.5px;color:var(--text-3);letter-spacing:1px;
+  }
+  .channel-line .ch-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+  .channel-line.online .ch-dot{background:var(--accent);box-shadow:0 0 6px rgba(0,255,94,.5)}
+  .channel-line.degraded .ch-dot{background:#FFB020;box-shadow:0 0 6px rgba(255,176,32,.5)}
+  .channel-line.offline .ch-dot{background:#FF6B7D;box-shadow:0 0 6px rgba(255,107,125,.5)}
   .code-block{
     background:#0A0E16;border:1px solid rgba(255,255,255,.07);border-radius:12px;
     font-family:var(--mono);font-size:12.3px;line-height:1.75;
@@ -423,9 +432,8 @@
       <span class="brand-name">Sub3<b>API</b></span>
     </a>
     <div class="nav-links">
-      <a href="/keys">安全保护</a>
-      <a href="/usage">按量计费</a>
-      <a href="/available-channels">订单续 API</a>
+      <a href="/monitor">服务状态</a>
+      <a class="qq-group-link" href="https://qm.qq.com/q/gBW5t6RmU0" target="_blank" rel="noopener noreferrer">QQ群：1016190748</a>
     </div>
   </div>
   <div class="nav-right">
@@ -433,7 +441,6 @@
       <button class="active" type="button" data-locale="zh" aria-pressed="true">ZH</button>
       <button type="button" data-locale="en" aria-pressed="false">EN</button>
     </div>
-    <a class="btn btn-primary" href="/login" target="_top">登录</a>
     <button class="nav-toggle" type="button" aria-label="菜单">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
@@ -453,10 +460,6 @@
           为个人与小型团队提供 <b>稳定 · 透明 · 安全</b> 的私有网关服务。
         </p>
         <div class="hero-cta reveal d4">
-          <a class="btn btn-primary" href="/login" target="_top">
-            立即开始
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
           <a class="btn btn-ghost" href="https://github.com/yuchen0x1/sub3api-relay/releases" target="_blank" rel="noopener noreferrer">仓库下载</a>
         </div>
         <div class="hero-stats reveal d5">
@@ -480,7 +483,7 @@
         <div class="monitor-shell">
           <div class="monitor-bar">
             <span class="dot-light"></span><span class="dot-light"></span><span class="dot-light"></span>
-            <span class="monitor-title">sub3api-gateway <span class="badge">v0.1.181</span></span>
+            <span class="monitor-title">sub3api-gateway <span class="badge">v0.1.182</span></span>
           </div>
           <div class="monitor-body">
             <div class="status-line">
@@ -489,6 +492,11 @@
                 <span class="status-text">正在检测网关<small>REAL-TIME · 实时状态</small></span>
               </div>
               <span class="realtime-tag">● CHECKING</span>
+            </div>
+
+            <div class="channel-line" id="chLine">
+              <span class="ch-dot" id="chDot"></span>
+              <span class="ch-text" id="chText">-- / --</span>
             </div>
 
             <div class="code-block">
@@ -538,9 +546,6 @@
         </div>
         <h3><em>一键</em>接入</h3>
         <p>获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。统一的接口风格，让接入成本趋近于零。</p>
-        <a class="f-more" href="/keys">管理密钥
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
       </div>
 
       <div class="f-card reveal d3" id="billing">
@@ -560,9 +565,6 @@
         </div>
         <h3>密钥与用量<em>透明</em></h3>
         <p>按 Key 分配配额与倍率，个人、家庭或小团队都能清楚看到每一次调用成本，账单一目了然。</p>
-        <a class="f-more" href="/usage">查看用量
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
       </div>
     </section>
 
@@ -570,10 +572,8 @@
     <footer>
       <span class="ft-brand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="#00FF5E"/></svg>Sub3<b>API</b></span>
       <div class="ft-right">
-        <a href="/keys">安全保护</a>
-        <a href="/usage">按量计费</a>
-        <a href="/available-channels">订单续 API</a>
         <a href="/monitor">服务状态</a>
+        <a class="qq-group-link" href="https://qm.qq.com/q/gBW5t6RmU0" target="_blank" rel="noopener noreferrer">QQ群：1016190748</a>
       </div>
       <span class="ft-copy">© 2026 Sub3API · PRIVATE GATEWAY</span>
     </footer>

@@ -342,7 +342,7 @@ func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) e
 	}
 
 	target := strings.TrimPrefix(strings.TrimSpace(version), "v")
-	if target == "" {
+	if !isStrictReleaseVersion(target) {
 		return ErrRollbackVersionNotAllowed
 	}
 
@@ -389,7 +389,7 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 			continue
 		}
 		v := strings.TrimPrefix(r.TagName, "v")
-		if v == "" || seen[v] {
+		if !isStrictReleaseVersion(v) || seen[v] {
 			continue
 		}
 		// Only versions strictly older than current (also excludes current itself)
@@ -420,6 +420,9 @@ func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, er
 	}
 
 	latestVersion := strings.TrimPrefix(release.TagName, "v")
+	if !isStrictReleaseVersion(latestVersion) {
+		return nil, fmt.Errorf("invalid release version %q", release.TagName)
+	}
 
 	assets := make([]Asset, len(release.Assets))
 	for i, a := range release.Assets {
@@ -681,6 +684,9 @@ func (s *UpdateService) getFromCache(ctx context.Context) (*UpdateInfo, error) {
 	if time.Now().Unix()-cached.Timestamp > updateCacheTTL {
 		return nil, fmt.Errorf("cache expired")
 	}
+	if !isStrictReleaseVersion(cached.Latest) {
+		return nil, fmt.Errorf("invalid cached release version %q", cached.Latest)
+	}
 
 	return &UpdateInfo{
 		CurrentVersion: s.currentVersion,
@@ -733,4 +739,22 @@ func parseVersion(v string) [3]int {
 		}
 	}
 	return result
+}
+
+func isStrictReleaseVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	for _, part := range parts {
+		if part == "" {
+			return false
+		}
+		for _, char := range part {
+			if char < '0' || char > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }

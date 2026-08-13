@@ -46,14 +46,14 @@ function mountVersionBadge(body: string) {
   }
   appStore.versionLoaded = true
   appStore.currentVersion = '0.1.180'
-  appStore.latestVersion = '0.1.181'
+  appStore.latestVersion = '0.1.182'
   appStore.hasUpdate = true
   appStore.buildType = 'release'
   appStore.releaseInfo = {
-    name: 'Sub3API 0.1.181',
+    name: 'Sub3API 0.1.182',
     body,
     published_at: '2026-08-12T00:00:00Z',
-    html_url: 'https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.1.181'
+    html_url: 'https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.1.182'
   }
 
   return mount(VersionBadge)
@@ -109,11 +109,28 @@ describe('VersionBadge release notes', () => {
     await wrapper.get('button').trigger('click')
 
     expect(wrapper.get('[data-testid="docker-update-command"]').text()).toContain(
-      'docker compose pull'
+      'SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182'
     )
     expect(wrapper.get('[data-testid="docker-update-command"]').text()).toContain(
-      'docker compose up -d'
+      'docker compose pull sub3api'
+    )
+    expect(wrapper.get('[data-testid="docker-update-command"]').text()).toContain(
+      'docker compose up -d --no-deps sub3api'
     )
     expect(wrapper.text()).not.toContain('version.updateNow')
+  })
+
+  it('does not interpolate an invalid release version into Docker commands', async () => {
+    const wrapper = mountVersionBadge('Invalid release')
+    const appStore = useAppStore()
+    appStore.buildType = 'docker'
+    appStore.latestVersion = "0.1.182'$(touch /tmp/nope)'"
+
+    await wrapper.get('button').trigger('click')
+
+    const command = wrapper.get('[data-testid="docker-update-command"]').text()
+    expect(command).not.toContain('touch /tmp/nope')
+    expect(command).not.toContain('SUB3API_IMAGE=')
+    expect(command).toContain('docker compose pull sub3api')
   })
 })

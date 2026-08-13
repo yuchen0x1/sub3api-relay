@@ -107,7 +107,10 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean
+      suppressAuthRedirect?: boolean
+    }
 
     // Handle common errors
     if (error.response) {
@@ -207,7 +210,7 @@ apiClient.interceptors.response.use(
             localStorage.removeItem('token_expires_at')
             sessionStorage.setItem('auth_expired', '1')
 
-            if (!window.location.pathname.includes('/login')) {
+            if (!originalRequest.suppressAuthRedirect && !window.location.pathname.includes('/login')) {
               window.location.href = '/login'
             }
 
@@ -238,7 +241,7 @@ apiClient.interceptors.response.use(
           sessionStorage.setItem('auth_expired', '1')
         }
         // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/login')) {
+        if (!originalRequest.suppressAuthRedirect && !window.location.pathname.includes('/login')) {
           window.location.href = '/login'
         }
       }

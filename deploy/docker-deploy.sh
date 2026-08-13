@@ -22,7 +22,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-GITHUB_REPO="${GITHUB_REPO:-yuchen0x1/sub3api-relay}"
+GITHUB_REPO="yuchen0x1/sub3api-relay"
 GITHUB_API_URL="https://api.github.com/repos/${GITHUB_REPO}"
 GITHUB_RELEASE_URL="https://github.com/${GITHUB_REPO}/releases/download"
 SUB3API_VERSION="${SUB3API_VERSION:-latest}"
@@ -84,17 +84,33 @@ read_admin_password() {
         print_error "ADMIN_PASSWORD must be 8-128 characters." >&2
         exit 1
     fi
+    case "$password" in
+        *$'\r'*|*$'\n'*)
+            print_error "ADMIN_PASSWORD must not contain line breaks." >&2
+            exit 1
+            ;;
+    esac
     printf '%s' "$password"
+}
+
+dotenv_quote() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//\$/\$\$}
+    printf '"%s"' "$value"
 }
 
 set_env_value() {
     local key="$1"
     local value="$2"
+    local encoded_value
     local tmp_file
+    encoded_value=$(dotenv_quote "$value")
     tmp_file=$(mktemp .env.XXXXXX)
     while IFS= read -r line || [ -n "$line" ]; do
         case "$line" in
-            "${key}="*) printf '%s=%s\n' "$key" "$value" >> "$tmp_file" ;;
+            "${key}="*) printf '%s=%s\n' "$key" "$encoded_value" >> "$tmp_file" ;;
             *) printf '%s\n' "$line" >> "$tmp_file" ;;
         esac
     done < .env
@@ -125,7 +141,7 @@ resolve_release_tag() {
             printf 'v%s' "${SUB3API_VERSION#v}"
             return
         fi
-        print_error "SUB3API_VERSION must be latest or a semantic version such as v0.1.181."
+        print_error "SUB3API_VERSION must be latest or a semantic version such as v0.1.182."
         exit 1
     fi
 
@@ -221,6 +237,7 @@ main() {
     set_env_value TOTP_ENCRYPTION_KEY "$TOTP_ENCRYPTION_KEY"
     set_env_value POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
     set_env_value ADMIN_PASSWORD "$ADMIN_PASSWORD"
+    set_env_value SUB3API_IMAGE "ghcr.io/${GITHUB_REPO}:${release_tag#v}"
 
     # Create data directories
     print_info "Creating data directories..."

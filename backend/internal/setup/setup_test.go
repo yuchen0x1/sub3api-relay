@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetupGuardRejectsRemoteRequestsByDefault(t *testing.T) {
@@ -54,6 +55,41 @@ func TestSetupGuardAllowsLocalRequests(t *testing.T) {
 
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNoContent)
+	}
+}
+
+func TestSetupGuardRequiresRemoteToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("SETUP_ALLOW_REMOTE", "true")
+	t.Setenv("SETUP_REMOTE_TOKEN", "0123456789abcdef0123456789abcdef")
+
+	router := gin.New()
+	router.POST("/setup/install", setupGuard(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	for _, tc := range []struct {
+		name  string
+		token string
+		want  int
+	}{
+		{name: "missing", want: http.StatusForbidden},
+		{name: "wrong", token: "fedcba9876543210fedcba9876543210", want: http.StatusForbidden},
+		{name: "valid", token: "0123456789abcdef0123456789abcdef", want: http.StatusNoContent},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/setup/install", nil)
+			request.RemoteAddr = "203.0.113.10:12345"
+			request.Host = "setup.example.com"
+			if tc.token != "" {
+				request.Header.Set("X-Setup-Token", tc.token)
+			}
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			require.Equal(t, tc.want, recorder.Code)
+		})
 	}
 }
 

@@ -10,17 +10,6 @@ on:
         description: "Tag to release (e.g., v1.0.0)"
         required: true
         type: string
-      simple_release:
-        description: "Simple release: only x86_64 GHCR image, skip other artifacts"
-        required: false
-        type: boolean
-        default: false
-
-# 环境变量：合并 workflow_dispatch 输入和 repository variable
-# tag push 触发时读取 vars.SIMPLE_RELEASE，workflow_dispatch 时使用输入参数
-env:
-  SIMPLE_RELEASE: ${{ github.event.inputs.simple_release == 'true' || vars.SIMPLE_RELEASE == 'true' }}
-
 permissions:
   contents: write
   packages: write
@@ -163,7 +152,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
-          args: release --clean --skip=validate ${{ env.SIMPLE_RELEASE == 'true' && '--config=.goreleaser.simple.yaml' || '' }}
+          args: release --clean --skip=validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO_OWNER: ${{ github.repository_owner }}
@@ -191,6 +180,7 @@ jobs:
           cp deploy/docker-deploy.sh "$DEPLOY_BUNDLE/docker-deploy.sh"
           cp deploy/docker-compose.local.yml "$DEPLOY_BUNDLE/docker-compose.yml"
           cp deploy/.env.example "$DEPLOY_BUNDLE/sub3api.env.example"
+          sed -i "s|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${RELEASE_VERSION}|" "$DEPLOY_BUNDLE/sub3api.env.example"
           (
             cd "$DEPLOY_BUNDLE"
             sha256sum install.sh docker-deploy.sh docker-compose.yml sub3api.env.example > deploy-checksums.txt
@@ -205,7 +195,7 @@ jobs:
 
       # Update DockerHub description
       - name: Update DockerHub description
-        if: ${{ env.SIMPLE_RELEASE != 'true' && env.DOCKERHUB_USERNAME != '' }}
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
         uses: peter-evans/dockerhub-description@v5
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -218,7 +208,6 @@ jobs:
 
       # Send Telegram notification
       - name: Send Telegram Notification
-        if: ${{ env.SIMPLE_RELEASE != 'true' }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

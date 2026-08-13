@@ -58,10 +58,10 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -fsSLO https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh
+curl -fsSLO https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
@@ -71,14 +71,14 @@ chmod +x docker-deploy.sh
 - Downloads the release's `docker-compose.yml` and `sub3api.env.example`
 - Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
 - Requires an explicit `ADMIN_PASSWORD` for the first site-owner account
-- Creates `.env` file with generated secrets
+- Creates `.env` with generated secrets and a release-pinned `SUB3API_IMAGE`
 - Creates necessary data directories (data/, postgres_data/, redis_data/)
 - Stores the generated secrets and the site-owner password in the owner-readable `.env` file
 
 **After running the script:**
 ```bash
 # Start services
-docker compose -f docker-compose.local.yml up -d
+docker compose up -d
 
 # View logs
 docker compose -f docker-compose.local.yml logs -f sub3api
@@ -117,7 +117,7 @@ mkdir -p data postgres_data redis_data
 docker compose -f docker-compose.local.yml up -d
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f sub3api
+docker compose logs -f sub3api
 
 # Access Web UI
 # http://localhost:8080
@@ -145,7 +145,7 @@ When using Docker Compose with `AUTO_SETUP=true`:
 
 2. No manual Setup Wizard is needed for Docker - configure `.env` and start
 
-3. Log in with `admin` / `admin`, then change the administrator password immediately.
+3. Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` configured in `.env`; there is no public default password.
 
 ### Database Migration Notes (PostgreSQL)
 
@@ -196,9 +196,10 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 # Restart Sub3API only
 docker compose -f docker-compose.local.yml restart sub3api
 
-# Update to latest version
-docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
+# Update to a specific release
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+docker compose pull sub3api
+docker compose up -d --no-deps sub3api
 
 # Remove all data (caution!)
 docker compose -f docker-compose.local.yml down
@@ -220,9 +221,10 @@ docker compose logs -f sub3api
 # Restart Sub3API only
 docker compose restart sub3api
 
-# Update to latest version
-docker compose pull
-docker compose up -d
+# Update to a specific release
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+docker compose pull sub3api
+docker compose up -d --no-deps sub3api
 
 # Remove all data (caution!)
 docker compose down -v
@@ -252,6 +254,8 @@ See `.env.example` for all available options.
 > **Existing data:** `ADMIN_PASSWORD` is used only when the admin account is created during the first setup. Changing it in `.env` does not change an existing admin password; use the account password-change or reset flow instead.
 
 > **Network exposure:** Published application ports bind to `127.0.0.1` by default. Put Caddy, Nginx, or another trusted TLS reverse proxy in front of Sub3API. Set `BIND_HOST=0.0.0.0` only when you intentionally need direct network access and have configured the host firewall.
+
+> **Remote setup:** Binary installs keep the unauthenticated first-run wizard on loopback; an SSH tunnel is the supported and recommended access method. Do not expose the setup wizard through a public reverse proxy. If an operator accepts the risk and enables `SETUP_ALLOW_REMOTE=true`, `SETUP_REMOTE_TOKEN` must contain at least 32 random characters and access must first be restricted by an independent control such as mTLS, VPN, or an IP allowlist. The proxy must discard any client-supplied `X-Setup-Token` before setting its own value. `SETUP_ALLOW_PRIVATE_TARGETS=true` further expands the setup wizard's network reach and should remain disabled unless strictly required.
 
 ### Easy Migration (Local Directory Version)
 
@@ -381,7 +385,7 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation
@@ -395,7 +399,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/de
    sudo systemctl enable sub3api
    sudo systemctl start sub3api
    ```
-5. Open the Setup Wizard in your browser to complete configuration
+5. Create an SSH tunnel with `ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP`, then open `http://127.0.0.1:8080` locally to complete configuration
 
 > **v0.1.178+:** Release binaries embed the frontend. Upgrading only requires replacing the binary and restarting `sub3api`; do **not** download or extract `sub3api_<version>_web.tar.gz` for a normal upgrade.
 >

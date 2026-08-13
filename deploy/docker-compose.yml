@@ -16,7 +16,7 @@ services:
   # Sub3API Application
   # ===========================================================================
   sub3api:
-    image: ghcr.io/yuchen0x1/sub3api-relay:latest
+    image: ${SUB3API_IMAGE:-ghcr.io/yuchen0x1/sub3api-relay:latest}
     container_name: sub3api
     restart: unless-stopped
     security_opt:

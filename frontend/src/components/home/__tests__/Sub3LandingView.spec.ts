@@ -21,7 +21,7 @@ vi.mock('@/stores', () => ({
     fetchPublicSettings: vi.fn(async () => ({
       qq_group_number: '1016190748',
       qq_group_url: 'https://qm.qq.com/q/gBW5t6RmU0',
-      version: '0.1.181',
+      version: '0.1.182',
     })),
   }),
 }))
@@ -50,13 +50,21 @@ describe('Sub3LandingView navigation', () => {
     i18nMock.setLocale.mockClear()
   })
 
-  it('opens the application login route from the primary CTA', async () => {
-    const { router, wrapper } = await mountLanding()
+  it('does not expose login or authenticated dashboard links', async () => {
+    const { wrapper } = await mountLanding()
 
-    await wrapper.get('.hero-cta a[href="/login"]').trigger('click')
-    await flushPromises()
+    const internalLinks = wrapper
+      .findAll('a[href^="/"]')
+      .map((link) => link.attributes('href'))
 
-    expect(router.currentRoute.value.path).toBe('/login')
+    expect(new Set(internalLinks)).toEqual(new Set(['/', '/monitor']))
+    for (const path of ['/login', '/keys', '/usage', '/available-channels', '/admin']) {
+      expect(wrapper.find(`a[href="${path}"]`).exists()).toBe(false)
+    }
+    expect(wrapper.text()).not.toContain('立即开始')
+    expect(wrapper.text()).not.toContain('登录')
+    expect(wrapper.text()).not.toContain('Get Started')
+    expect(wrapper.text()).not.toContain('Sign in')
   })
 
   it('opens the repository releases page from the secondary CTA', async () => {
@@ -69,17 +77,14 @@ describe('Sub3LandingView navigation', () => {
     expect(docsLink.text()).toBe('仓库下载')
   })
 
-  it('connects feature and footer actions to real application pages', async () => {
+  it('keeps only public status and community links', async () => {
     const { wrapper } = await mountLanding()
     const featureLinks = wrapper.findAll('.f-more')
     const footerLinks = wrapper.findAll('.ft-right a')
 
-    expect(featureLinks.map((link) => link.attributes('href'))).toEqual(['/keys', '/monitor', '/usage'])
-    expect(featureLinks.map((link) => link.text())).toEqual(['管理密钥', '查看服务状态', '查看用量'])
+    expect(featureLinks.map((link) => link.attributes('href'))).toEqual(['/monitor'])
+    expect(featureLinks.map((link) => link.text())).toEqual(['查看服务状态'])
     expect(footerLinks.map((link) => link.attributes('href'))).toEqual([
-      '/keys',
-      '/usage',
-      '/available-channels',
       '/monitor',
       'https://qm.qq.com/q/gBW5t6RmU0',
     ])
@@ -89,18 +94,13 @@ describe('Sub3LandingView navigation', () => {
     expect(qqLink.text()).toBe('QQ群：1016190748')
   })
 
-  it.each([
-    ['/keys', '/keys'],
-    ['/usage', '/usage'],
-    ['/available-channels', '/available-channels'],
-    ['/monitor', '/monitor'],
-  ])('routes %s links through Vue Router', async (href, expectedPath) => {
+  it('routes the public status link through Vue Router', async () => {
     const { router, wrapper } = await mountLanding()
 
-    await wrapper.get(`a[href="${href}"]`).trigger('click')
+    await wrapper.get('a[href="/monitor"]').trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe(expectedPath)
+    expect(router.currentRoute.value.path).toBe('/monitor')
   })
 
   it('switches the complete landing page between Chinese and English', async () => {
@@ -115,15 +115,10 @@ describe('Sub3LandingView navigation', () => {
     await flushPromises()
 
     expect(i18nMock.setLocale).toHaveBeenCalledWith('en')
-    expect(wrapper.get('.nav-links a').text()).toBe('Security')
+    expect(wrapper.get('.nav-links a').text()).toBe('Service Status')
     expect(wrapper.get('.hero-sub').text()).toContain('One API key')
-    expect(wrapper.get('.hero-cta .btn-primary').text()).toContain('Get Started')
     expect(wrapper.get('.f-card h3').text()).toContain('One-key')
-    expect(wrapper.findAll('.f-more').map((link) => link.text())).toEqual([
-      'Manage Keys',
-      'View Service Status',
-      'View Usage',
-    ])
+    expect(wrapper.findAll('.f-more').map((link) => link.text())).toEqual(['View Service Status'])
     expect(enButton.attributes('aria-pressed')).toBe('true')
     expect(zhButton.attributes('aria-pressed')).toBe('false')
 
@@ -131,7 +126,7 @@ describe('Sub3LandingView navigation', () => {
     await flushPromises()
 
     expect(i18nMock.setLocale).toHaveBeenLastCalledWith('zh')
-    expect(wrapper.get('.nav-links a').text()).toBe('安全保护')
+    expect(wrapper.get('.nav-links a').text()).toBe('服务状态')
     expect(zhButton.attributes('aria-pressed')).toBe('true')
     expect(enButton.attributes('aria-pressed')).toBe('false')
   })
@@ -142,7 +137,7 @@ describe('Sub3LandingView live status', () => {
     const { wrapper } = await mountLanding()
     await flushPromises()
 
-    expect(wrapper.get('.monitor-title .badge').text()).toBe('v0.1.181')
+    expect(wrapper.get('.monitor-title .badge').text()).toBe('v0.1.182')
   })
   it('renders the channel status line', async () => {
     const { wrapper } = await mountLanding()

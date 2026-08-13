@@ -100,6 +100,7 @@ func TestUpdateServiceListRollbackVersionsFiltersAndCaps(t *testing.T) {
 		{TagName: "v0.1.148", PublishedAt: "2026-07-09T00:00:00Z"},                       // newer than current: excluded
 		{TagName: "v0.1.147", PublishedAt: "2026-07-08T00:00:00Z"},                       // current: excluded
 		{TagName: "v0.1.146-rc1", PublishedAt: "2026-07-07T12:00:00Z", Prerelease: true}, // prerelease: excluded
+		{TagName: "v0.1.146'$(touch /tmp/nope)'", PublishedAt: "2026-07-07T06:00:00Z"},     // invalid: excluded
 		{TagName: "v0.1.146", PublishedAt: "2026-07-07T00:00:00Z"},
 		{TagName: "v0.1.145", PublishedAt: "2026-07-06T00:00:00Z", Draft: true}, // draft: excluded
 		{TagName: "v0.1.144", PublishedAt: "2026-07-05T00:00:00Z"},
@@ -116,6 +117,31 @@ func TestUpdateServiceListRollbackVersionsFiltersAndCaps(t *testing.T) {
 	require.Equal(t, "0.1.146", versions[0].Version)
 	require.Equal(t, "0.1.144", versions[1].Version)
 	require.Equal(t, "0.1.143", versions[2].Version)
+}
+
+func TestUpdateServiceRejectsInvalidLatestReleaseVersion(t *testing.T) {
+	svc := NewUpdateService(
+		&updateServiceCacheStub{},
+		&updateServiceGitHubClientStub{release: &GitHubRelease{TagName: "v0.1.182'$(id)'"}},
+		"0.1.181",
+		"release",
+	)
+
+	info, err := svc.CheckUpdate(context.Background(), true)
+
+	require.NoError(t, err)
+	require.Equal(t, "0.1.181", info.LatestVersion)
+	require.False(t, info.HasUpdate)
+	require.Contains(t, info.Warning, "invalid release version")
+}
+
+func TestStrictReleaseVersion(t *testing.T) {
+	for _, version := range []string{"0.1.182", "10.20.30"} {
+		require.True(t, isStrictReleaseVersion(version), version)
+	}
+	for _, version := range []string{"", "v0.1.182", "0.1", "0.1.182-rc1", "0.1.182'$(id)'", "０.１.１８２"} {
+		require.False(t, isStrictReleaseVersion(version), version)
+	}
 }
 
 func TestUpdateServiceListRollbackVersionsSortsUnorderedInput(t *testing.T) {

@@ -2,7 +2,9 @@ package setup
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/mail"
@@ -67,8 +69,22 @@ func setupGuard() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		if !isLocalSetupRequest(c.Request) && !validRemoteSetupToken(c.GetHeader("X-Setup-Token")) {
+			response.Error(c, http.StatusForbidden, "Remote setup requires a valid setup token")
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
+}
+
+func validRemoteSetupToken(provided string) bool {
+	expected := strings.TrimSpace(os.Getenv("SETUP_REMOTE_TOKEN"))
+	provided = strings.TrimSpace(provided)
+	if len(expected) < 32 || len(provided) != len(expected) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
 }
 
 func remoteSetupEnabled() bool {
@@ -285,7 +301,8 @@ func testDatabase(c *gin.Context) {
 	}
 
 	if err := TestDatabaseConnection(cfg); err != nil {
-		response.Error(c, http.StatusBadRequest, "Connection failed: "+err.Error())
+		log.Printf("setup database connection test failed for %s:%d", cfg.Host, cfg.Port)
+		response.Error(c, http.StatusBadRequest, "Database connection failed; verify the connection settings")
 		return
 	}
 
@@ -341,7 +358,8 @@ func testRedis(c *gin.Context) {
 	}
 
 	if err := TestRedisConnection(cfg); err != nil {
-		response.Error(c, http.StatusBadRequest, "Connection failed: "+err.Error())
+		log.Printf("setup Redis connection test failed for %s:%d", cfg.Host, cfg.Port)
+		response.Error(c, http.StatusBadRequest, "Redis connection failed; verify the connection settings")
 		return
 	}
 
@@ -469,7 +487,8 @@ func install(c *gin.Context) {
 	}
 
 	if err := Install(cfg); err != nil {
-		response.Error(c, http.StatusInternalServerError, "Installation failed: "+err.Error())
+		log.Printf("setup installation failed")
+		response.Error(c, http.StatusInternalServerError, "Installation failed; check the server logs for details")
 		return
 	}
 

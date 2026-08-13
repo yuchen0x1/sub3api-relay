@@ -4,7 +4,7 @@
 
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -13,13 +13,13 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.181.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.182.md)
 
 </div>
 
-## v0.1.181 リリース概要
+## v0.1.182 セキュリティホットフィックス
 
-`v0.1.181` では、Codex 互換性、ホームのリアルタイム状態、上流レスポンス処理、リリースと更新の操作性を改善しました。バージョンパネルでサニタイズ済みの更新内容を確認でき、GitHub Release には対応するリリースノートが必須になります。
+`v0.1.182` は、プロキシ購読 URL が監査ログに保存される問題を修正し、購読 SSRF とリモート setup の保護を強化し、デプロイパスワードの改行注入を拒否し、Docker の更新とロールバックで明示的なイメージバージョンを永続化します。
 
 以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースでもこのデザインを維持しながら、リアルタイム状態と保守機能を強化しています。
 
@@ -35,7 +35,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.181 更新内容](RELEASE_NOTES_v0.1.181.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.1.182 更新内容](RELEASE_NOTES_v0.1.182.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -77,7 +77,7 @@ Sub3API を拡張・統合するコミュニティプロジェクト:
 
 | コンポーネント | 技術 |
 |-----------|------------|
-| バックエンド | Go 1.25.7, Gin, Ent |
+| バックエンド | Go 1.26.5, Gin, Ent |
 | データベース | PostgreSQL 15+ |
 | キャッシュ/キュー | Redis 7+ |
 
@@ -111,7 +111,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -130,8 +130,10 @@ sudo systemctl start sub3api
 # 2. 起動時の自動起動を有効化
 sudo systemctl enable sub3api
 
-# 3. ブラウザでセットアップウィザードを開く
-# http://YOUR_SERVER_IP:8080
+# 3. ローカル端末から、ループバック専用のセットアップウィザードへ SSH トンネルを作成
+ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP
+
+# 4. ローカルブラウザで http://127.0.0.1:8080 を開く
 ```
 
 セットアップウィザードでは以下の設定を行います:
@@ -161,7 +163,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # アンインストール
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -184,7 +186,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -279,16 +281,17 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 #### アクセス
 
-ブラウザで `http://YOUR_SERVER_IP:8080` を開いてください。
+リバースプロキシで公開した HTTPS アドレスを開いてください。Compose は既定で `127.0.0.1:8080` のみにバインドするため、信頼できる TLS リバースプロキシまたは SSH トンネルを設定するまで直接公開されません。
 
 デプロイ時に設定した `ADMIN_EMAIL` と `ADMIN_PASSWORD` でログインしてください。公開された既定パスワードはありません。
 
 #### アップグレード
 
 ```bash
-# 最新イメージをプルしてコンテナを再作成
-docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
+# 対象リリースを固定し、イメージを取得してコンテナを再作成
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+docker compose pull sub3api
+docker compose up -d --no-deps sub3api
 ```
 
 #### 簡単な移行（ローカルディレクトリバージョン）
@@ -351,8 +354,9 @@ cd sub3api-relay/deploy
 
 #### 前提条件
 
-- Go 1.21+
-- Node.js 18+
+- Go 1.26.5
+- Node.js 24
+- pnpm 11.20.0
 - PostgreSQL 15+
 - Redis 7+
 
@@ -363,15 +367,21 @@ cd sub3api-relay/deploy
 git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay
 
-# 2. バックエンドをビルド
-cd backend
-VERSION="$(./scripts/resolve-version.sh)"
-go build -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+# 2. フロントエンド資産をインストールしてビルド
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
 
-# 3. 設定ファイルを作成
+# 3. フロントエンドを埋め込んだバックエンドをビルド
+cd ../backend
+VERSION="$(./scripts/resolve-version.sh)"
+go build -tags embed -ldflags="-X main.Version=${VERSION}" -o sub3api ./cmd/server
+
+# 4. 設定ファイルを作成
 cp ../deploy/config.example.yaml ./config.yaml
 
-# 4. 設定を編集
+# 5. 設定を編集
 nano config.yaml
 ```
 

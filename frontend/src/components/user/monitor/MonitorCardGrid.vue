@@ -42,7 +42,8 @@
         :window="window"
         :availability-value="resolveAvailability(item)"
         :countdown-seconds="countdownSeconds"
-        @click="emit('cardClick', item)"
+        :interactive="interactive"
+        @click="interactive && emit('cardClick', item)"
       />
     </div>
   </div>
@@ -54,13 +55,16 @@ import type { UserMonitorView, UserMonitorDetail } from '@/api/channelMonitor'
 import EmptyState from '@/components/common/EmptyState.vue'
 import MonitorCard from './MonitorCard.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   items: UserMonitorView[]
   window: '7d' | '15d' | '30d'
   countdownSeconds: number
   loading: boolean
   detailCache: Record<number, UserMonitorDetail>
-}>()
+  interactive?: boolean
+}>(), {
+  interactive: true,
+})
 
 const emit = defineEmits<{
   (e: 'cardClick', item: UserMonitorView): void

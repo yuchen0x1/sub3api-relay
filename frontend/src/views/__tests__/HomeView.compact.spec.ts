@@ -51,10 +51,6 @@ function mountHome(settings: Record<string, unknown> = {}) {
   })
 }
 
-function compactDestination(wrapper: ReturnType<typeof mountHome>) {
-  return wrapper.get('[data-testid="compact-home"]').findComponent(RouterLinkStub).props('to')
-}
-
 describe('HomeView compact mode', () => {
   beforeEach(() => {
     authStore.isAuthenticated = false
@@ -83,6 +79,24 @@ describe('HomeView compact mode', () => {
 
     expect(wrapper.get('#safe').attributes('onclick')).toBeUndefined()
     expect(wrapper.find('script').exists()).toBe(false)
+  })
+
+  it('disables private internal links in custom HTML', () => {
+    const wrapper = mountHome({
+      home_content: [
+        '<a id="login-link" href="/login">Login</a>',
+        '<a id="keys-link" href="/keys">Keys</a>',
+        '<a id="admin-link" href="/admin/dashboard">Admin</a>',
+        '<a id="relative-login-link" href="./login">Relative login</a>',
+        '<a id="status-link" href="/monitor">Status</a>',
+      ].join(''),
+    })
+
+    expect(wrapper.get('#login-link').attributes('href')).toBeUndefined()
+    expect(wrapper.get('#keys-link').attributes('href')).toBeUndefined()
+    expect(wrapper.get('#admin-link').attributes('href')).toBeUndefined()
+    expect(wrapper.get('#relative-login-link').attributes('href')).toBeUndefined()
+    expect(wrapper.get('#status-link').attributes('href')).toBe('/monitor')
   })
 
   it('does not render non-http custom content as an iframe', () => {
@@ -117,22 +131,16 @@ describe('HomeView compact mode', () => {
     expect(wrapper.text()).toContain('Test site')
   })
 
-  it('links unauthenticated visitors to login', () => {
-    expect(compactDestination(mountHome({ compact_home_enabled: true }))).toBe('/login')
-  })
-
-  it('links authenticated users to their dashboard', () => {
-    authStore.isAuthenticated = true
-
-    expect(compactDestination(mountHome({ compact_home_enabled: true }))).toBe('/dashboard')
-  })
-
-  it('links administrators to the admin dashboard', () => {
+  it('does not expose login or dashboard links in compact mode', () => {
     authStore.isAuthenticated = true
     authStore.isAdmin = true
 
     const wrapper = mountHome({ compact_home_enabled: true })
-    expect(compactDestination(wrapper)).toBe('/admin/dashboard')
+    expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false)
+    expect(wrapper.html()).not.toContain('/login')
+    expect(wrapper.html()).not.toContain('/dashboard')
+    expect(wrapper.text()).not.toContain('home.login')
+    expect(wrapper.text()).not.toContain('home.goToDashboard')
     expect(authStore.checkAuth).toHaveBeenCalledOnce()
     expect(appStore.fetchPublicSettings).not.toHaveBeenCalled()
   })

@@ -4,20 +4,20 @@
 
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
 **Personal-use backend AI API gateway**
 
-English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.181.md)
+English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.182.md)
 
 </div>
 
-## v0.1.181 release highlights
+## v0.1.182 security hotfix
 
-The `v0.1.181` release improves Codex compatibility, live homepage status, upstream response handling, and the release/update experience. The version panel now displays sanitized release notes directly, and every GitHub Release must include a matching release-notes file.
+The `v0.1.182` hotfix prevents proxy subscription URLs from entering audit logs, tightens subscription SSRF protection and remote setup access, rejects newline injection in deployment passwords, and makes Docker upgrades and rollbacks persist an explicit image version.
 
 The screenshots below show the interface introduced in `v0.1.175`; the current release keeps that design while improving its live status and maintenance behavior.
 
@@ -33,7 +33,7 @@ The screenshots below show the interface introduced in `v0.1.175`; the current r
 | --- |
 | ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-See the [v0.1.181 release notes](RELEASE_NOTES_v0.1.181.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
+See the [v0.1.182 release notes](RELEASE_NOTES_v0.1.182.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
@@ -76,7 +76,7 @@ Community projects that extend or integrate with Sub3API:
 
 | Component | Technology |
 |-----------|------------|
-| Backend | Go 1.25.7, Gin, Ent |
+| Backend | Go 1.26.5, Gin, Ent |
 | Database | PostgreSQL 15+ |
 | Cache/Queue | Redis 7+ |
 
@@ -110,7 +110,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -129,8 +129,10 @@ sudo systemctl start sub3api
 # 2. Enable auto-start on boot
 sudo systemctl enable sub3api
 
-# 3. Open Setup Wizard in browser
-# http://YOUR_SERVER_IP:8080
+# 3. On your workstation, create an SSH tunnel to the loopback-only Setup Wizard
+ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP
+
+# 4. Open http://127.0.0.1:8080 in your local browser
 ```
 
 The Setup Wizard will guide you through:
@@ -160,7 +162,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # Uninstall
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.181/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.182/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -183,7 +185,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # Download and run deployment preparation script
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.181/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.182/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -278,16 +280,17 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 #### Access
 
-Open `http://YOUR_SERVER_IP:8080` in your browser.
+Open the address published by your reverse proxy. The default Compose bind is `127.0.0.1:8080`, so direct remote access is intentionally unavailable until you configure a trusted TLS reverse proxy or SSH tunnel.
 
 Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` you set during deployment. There is no public default password.
 
 #### Upgrade
 
 ```bash
-# Pull latest image and recreate container
-docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
+# Pin the target release, pull it, and recreate the container
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.182|' .env
+docker compose pull sub3api
+docker compose up -d --no-deps sub3api
 ```
 
 #### Easy Migration (Local Directory Version)
@@ -350,8 +353,9 @@ Build and run from source code for development or customization.
 
 #### Prerequisites
 
-- Go 1.21+
-- Node.js 18+
+- Go 1.26.5
+- Node.js 24
+- pnpm 11.20.0
 - PostgreSQL 15+
 - Redis 7+
 

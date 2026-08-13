@@ -11,7 +11,6 @@
         <div class="flex items-center gap-2">
           <LocaleSwitcher />
           <ThemeButton :is-dark="isDark" @toggle="toggleTheme" />
-          <router-link :to="entryPath" class="btn btn-primary">{{ entryLabel }}</router-link>
         </div>
       </div>
     </header>
@@ -19,7 +18,6 @@
       <section class="sub3-glass-panel w-full max-w-2xl p-8 text-center sm:p-12">
         <BrandMark :site-logo="siteLogo" :site-name="siteName" centered />
         <p class="mx-auto mt-6 max-w-xl text-lg text-token-text-secondary">{{ siteSubtitle || t('home.heroSubtitle') }}</p>
-        <router-link :to="entryPath" class="btn btn-primary mt-8">{{ entryLabel }} <Icon name="arrowRight" size="md" /></router-link>
       </section>
     </main>
   </div>
@@ -54,13 +52,28 @@ const homeContentUrl = computed(() => {
   if (!/^https:\/\//i.test(value)) return ''
   return sanitizeUrl(value)
 })
-const sanitizedHomeContent = computed(() => DOMPurify.sanitize(homeContent.value, {
-  USE_PROFILES: { html: true },
-}))
+const PUBLIC_HOME_PATHS = new Set(['/', '/home', '/monitor'])
+const sanitizedHomeContent = computed(() => {
+  const sanitized = DOMPurify.sanitize(homeContent.value, {
+    USE_PROFILES: { html: true },
+  })
+  const documentFragment = document.createElement('template')
+  documentFragment.innerHTML = sanitized
+  documentFragment.content.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+    const href = link.getAttribute('href')?.trim() || ''
+    try {
+      const destination = new URL(href, window.location.origin)
+      if (destination.origin !== window.location.origin || PUBLIC_HOME_PATHS.has(destination.pathname)) return
+      link.removeAttribute('href')
+      link.removeAttribute('target')
+    } catch {
+      link.removeAttribute('href')
+      link.removeAttribute('target')
+    }
+  })
+  return documentFragment.innerHTML
+})
 const isDark = computed(() => appStore.isDark)
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-const entryPath = computed(() => isAuthenticated.value ? (authStore.isAdmin ? '/admin/dashboard' : '/dashboard') : '/login')
-const entryLabel = computed(() => isAuthenticated.value ? t('home.goToDashboard') : t('home.login'))
 function toggleTheme() {
   appStore.toggleTheme()
 }
