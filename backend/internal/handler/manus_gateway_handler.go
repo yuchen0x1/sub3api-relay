@@ -34,31 +34,9 @@ func (h *ManusGatewayHandler) Proxy(c *gin.Context) {
 		return
 	}
 	endpoint := strings.TrimPrefix(c.Param("endpoint"), "/")
-	selection, err := h.gatewayService.SelectAccountWithLoadAwareness(
-		c.Request.Context(), apiKey.GroupID, "", "", nil, "", 0,
-	)
-	if err != nil {
-		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
-		writeManusError(c, http.StatusServiceUnavailable, "no_available_account", "No available Manus accounts")
+	account, release, ok := h.acquireManusAccount(c, apiKey.GroupID, writeManusError)
+	if !ok {
 		return
-	}
-	account := selection.Account
-	setOpsSelectedAccount(c, account.ID, account.Platform)
-
-	release := selection.ReleaseFunc
-	if !selection.Acquired {
-		if selection.WaitPlan == nil {
-			writeManusError(c, http.StatusServiceUnavailable, "no_available_account", "No available Manus accounts")
-			return
-		}
-		streamStarted := false
-		release, err = h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
-			c, account.ID, selection.WaitPlan.MaxConcurrency, selection.WaitPlan.Timeout, false, &streamStarted,
-		)
-		if err != nil {
-			writeManusError(c, http.StatusTooManyRequests, "rate_limited", err.Error())
-			return
-		}
 	}
 	if release != nil {
 		defer release()
