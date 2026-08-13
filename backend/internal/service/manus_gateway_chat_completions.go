@@ -148,7 +148,7 @@ func (s *ManusGatewayService) drainManusEvents(
 				if collected.Len() > 0 {
 					text = "\n\n" + text
 				}
-				collected.WriteString(text)
+				_, _ = collected.WriteString(text)
 				if onDelta != nil {
 					onDelta(text)
 				}
