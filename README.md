@@ -11,15 +11,15 @@
 
 **Personal-use backend AI API gateway**
 
-English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.186.md)
+English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.187.md)
 
 </div>
 
-## v0.1.186 public card redemption
+## v0.1.187 card-code admin entry
 
-The `v0.1.186` release adds a public card-code redemption system for promotion and trial distribution. Admin-generated balance cards can now be redeemed on the homepage into a generated SK/API key with quota, and visitors can query remaining SK balance without logging in.
+The `v0.1.187` release restores the admin card-code management entry, so administrators can open the generation page from the sidebar and create balance card codes for homepage redemption into SK/API keys.
 
-The screenshots below show the interface introduced in `v0.1.175`; the current release keeps that design while adding the public redemption and key-balance panel.
+The screenshots below show the interface introduced in `v0.1.175`; the current release keeps that design and makes the card-code generation flow visible in the admin sidebar.
 
 | Public page | Usage records |
 | --- | --- |
@@ -33,7 +33,7 @@ The screenshots below show the interface introduced in `v0.1.175`; the current r
 | --- |
 | ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-See the [v0.1.186 release notes](RELEASE_NOTES_v0.1.186.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
+See the [v0.1.187 release notes](RELEASE_NOTES_v0.1.187.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
@@ -110,7 +110,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -162,7 +162,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # Uninstall
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -185,7 +185,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # Download and run deployment preparation script
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.186/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.187/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -288,7 +288,7 @@ Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` you set during deployment. Th
 
 ```bash
 # Pin the target release, pull it, and recreate the container
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.186|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.187|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

@@ -395,6 +395,19 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/redeem',
+    alias: ['/admin/cards', '/admin/card-codes'],
+    name: 'AdminRedeem',
+    component: () => import('@/views/admin/RedeemView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Card Codes',
+      titleKey: 'admin.redeem.title',
+      descriptionKey: 'admin.redeem.description'
+    }
+  },
+  {
     path: '/admin/settings',
     name: 'AdminSettings',
     component: () => import('@/views/admin/SettingsView.vue'),

@@ -68,4 +68,8 @@ describe('AppSidebar simple mode navigation', () => {
       "items.filter((item) => item.path !== '/keys' && item.path !== '/usage')"
     )
   })
+
+  it('shows card code management to administrators', () => {
+    expect(componentSource).toContain("{ path: '/admin/redeem', label: t('nav.redeemCodes'), icon: KeyIcon }")
+  })
 })

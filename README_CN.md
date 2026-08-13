@@ -13,15 +13,15 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.186.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.187.md)
 
 </div>
 
-## v0.1.186 卡密兑换与 SK 余额查询
+## v0.1.187 卡密管理入口修复
 
-`v0.1.186` 新增公开卡密兑换系统，方便推广和试用分发。后台生成的余额卡密现在可以在首页兑换成一把带额度的 SK/API Key，访客也可以不登录直接查询 SK 剩余额度。
+`v0.1.187` 修复后台找不到卡密生成入口的问题。管理员现在可以直接从左侧菜单打开「卡密管理」，生成余额卡密后让访客在首页兑换成带额度的 SK/API Key。
 
-下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并在首页增加卡密兑换和密钥余额查询入口。
+下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并把卡密生成流程明确放回后台侧边栏。
 
 | 主页 | 使用记录 |
 | --- | --- |
@@ -35,7 +35,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.186 更新说明](RELEASE_NOTES_v0.1.186.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.1.187 更新说明](RELEASE_NOTES_v0.1.187.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -112,7 +112,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -164,7 +164,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # 卸载
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -187,7 +187,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/de
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.186/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.187/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -302,7 +302,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 固定目标版本、拉取镜像并重建容器
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.186|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.187|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

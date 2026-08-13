@@ -13,15 +13,15 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.186.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.187.md)
 
 </div>
 
-## v0.1.186 公開カード交換と SK 残高確認
+## v0.1.187 カードコード管理入口の修正
 
-`v0.1.186` は、プロモーションやトライアル配布向けの公開カード交換システムを追加します。管理者が生成した残高カードをホームページで SK/API Key に交換でき、未ログインのまま SK の残高も確認できます。
+`v0.1.187` は、管理者画面でカードコード生成ページを見つけられない問題を修正します。管理者はサイドバーからカードコード管理を開き、残高カードを生成してホームページで SK/API Key に交換できるようになりました。
 
-以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースではこのデザインを維持しながら、公開カード交換とキー残高確認パネルを追加しています。
+以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースではこのデザインを維持しながら、カードコード生成フローを管理者サイドバーに戻しています。
 
 | ホーム | 利用履歴 |
 | --- | --- |
@@ -35,7 +35,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.186 更新内容](RELEASE_NOTES_v0.1.186.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.1.187 更新内容](RELEASE_NOTES_v0.1.187.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -111,7 +111,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -163,7 +163,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # アンインストール
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.186/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -186,7 +186,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.186/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.187/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -289,7 +289,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 対象リリースを固定し、イメージを取得してコンテナを再作成
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.186|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.187|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

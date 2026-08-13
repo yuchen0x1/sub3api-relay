@@ -170,7 +170,7 @@ export default {
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
-    redeemCodes: 'Redeem Codes',
+    redeemCodes: 'Card Codes',
     ops: 'Ops',
     promoCodes: 'Promo Codes',
     settings: 'Settings',

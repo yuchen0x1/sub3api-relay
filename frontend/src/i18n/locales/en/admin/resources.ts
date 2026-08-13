@@ -248,9 +248,9 @@ export default {
 
     // Redeem Codes
     redeem: {
-      title: 'Redeem Code Management',
-      description: 'Generate and manage redeem codes',
-      generateCodes: 'Generate Codes',
+      title: 'Card Code Management',
+      description: 'Generate and manage card codes that visitors redeem into API keys',
+      generateCodes: 'Generate Card Codes',
       searchCodes: 'Search codes or email...',
       allTypes: 'All Types',
       allStatus: 'All Status',
@@ -297,7 +297,7 @@ export default {
       deleteAllUnusedConfirm:
         'Are you sure you want to delete all unused (active) redeem codes? This action cannot be undone.',
       deleteAll: 'Delete All',
-      generateCodesTitle: 'Generate Redeem Codes',
+      generateCodesTitle: 'Generate Card Codes',
       generatedSuccessfully: 'Generated Successfully',
       codesCreated: '{count} redeem code(s) created',
       codeType: 'Code Type',
@@ -370,12 +370,12 @@ export default {
       disableCode: 'Disable',
       enableCode: 'Enable',
       deleteConfirmMessage: 'Are you sure you want to delete this redeem code?',
-      noCodes: 'No redeem codes yet',
-      noCodesDescription: 'Generate redeem codes to distribute balance or concurrency to users.',
-      codesGeneratedSuccess: 'Redeem codes generated successfully, {count} total',
-      codeDisabledSuccess: 'Redeem code disabled',
-      codeEnabledSuccess: 'Redeem code enabled',
-      codeDeletedSuccess: 'Redeem code deleted successfully',
+      noCodes: 'No card codes yet',
+      noCodesDescription: 'Generate balance card codes so visitors can redeem them into API keys.',
+      codesGeneratedSuccess: 'Card codes generated successfully, {count} total',
+      codeDisabledSuccess: 'Card code disabled',
+      codeEnabledSuccess: 'Card code enabled',
+      codeDeletedSuccess: 'Card code deleted successfully',
       failedToUpdate: 'Failed to update redeem code'
     },
 
