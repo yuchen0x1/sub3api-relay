@@ -131,5 +131,13 @@ func RegisterUserRoutes(
 			monitors.GET("", h.ChannelMonitor.List)
 			monitors.GET("/:id/status", h.ChannelMonitor.GetStatus)
 		}
+
+		if h.PublicCard != nil {
+			cards := public.Group("/public/cards")
+			{
+				cards.POST("/redeem", h.PublicCard.Redeem)
+				cards.POST("/query", h.PublicCard.Query)
+			}
+		}
 	}
 }

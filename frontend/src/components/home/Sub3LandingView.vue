@@ -18,6 +18,7 @@ import {
 } from '@/api/admin/ops'
 import { list as listChannelMonitorViews, type UserMonitorView } from '@/api/channelMonitor'
 import { getModelStats as getAdminModelStats } from '@/api/admin/dashboard'
+import { publicCardAPI, type PublicCardBalance } from '@/api/publicCard'
 import { useAppStore } from '@/stores'
 import type { PublicSettings } from '@/types'
 
@@ -40,6 +41,32 @@ const navigationHandlers: Array<{ element: HTMLAnchorElement; handler: (event: E
 const cleanupCallbacks: Array<() => void> = []
 
 type LandingLocale = 'zh' | 'en'
+
+const publicCardStyles = [
+  '',
+  '.promo-card-panel{margin-top:22px;max-width:560px;border:1px solid rgba(0,255,94,.18);border-radius:16px;background:linear-gradient(135deg,rgba(0,255,94,.08),rgba(53,208,255,.055));box-shadow:0 18px 60px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.05);padding:16px}',
+  '.promo-card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:13px}',
+  '.promo-card-kicker{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1.4px;text-transform:uppercase}',
+  '.promo-card-title{margin-top:4px;font-size:17px;font-weight:700;color:#fff}',
+  '.promo-card-sub{margin-top:4px;color:var(--text-3);font-size:12.5px;line-height:1.55}',
+  '.promo-card-actions{display:flex;gap:10px;flex-wrap:wrap}',
+  '.promo-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px}',
+  '.promo-card-field{display:flex;flex-direction:column;gap:7px}',
+  '.promo-card-field label{font-size:12px;color:var(--text-3)}',
+  '.promo-card-field input,.promo-card-keybox textarea{width:100%;border:1px solid rgba(255,255,255,.12);background:rgba(5,12,20,.72);color:#fff;border-radius:10px;padding:11px 12px;font-family:var(--mono);font-size:12px;outline:none}',
+  '.promo-card-field input:focus,.promo-card-keybox textarea:focus{border-color:rgba(0,255,94,.5);box-shadow:0 0 0 3px rgba(0,255,94,.08)}',
+  '.promo-card-result{margin-top:12px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;color:var(--text-2);font-size:13px;line-height:1.7}',
+  '.promo-card-result.error{color:#ff8b9a}',
+  '.promo-card-result.success{color:#d9ffe7}',
+  '.promo-card-balance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+  '.promo-card-metric{border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.035);padding:9px}',
+  '.promo-card-metric span{display:block;color:var(--text-3);font-size:11px}',
+  '.promo-card-metric b{display:block;margin-top:3px;color:#fff;font-family:var(--display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.promo-card-keybox{margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}',
+  '.promo-card-keybox textarea{min-height:64px;resize:vertical;line-height:1.45}',
+  '.promo-card-copy{height:42px}',
+  '@media (max-width:760px){.promo-card-head{display:block}.promo-card-actions{margin-top:12px}.promo-card-grid,.promo-card-balance,.promo-card-keybox{grid-template-columns:1fr}}',
+].join('\n')
 
 const landingMessages = {
   zh: {
@@ -506,8 +533,195 @@ async function refreshLandingData() {
   }
 }
 
+function formatPublicCardMoney(value: number) {
+  if (!Number.isFinite(value)) return '--'
+  if (value < 0) return '无限'
+  return '$' + value.toFixed(value >= 10 ? 2 : 4)
+}
+
+function publicCardStatusLabel(status: string) {
+  switch (status) {
+    case 'active':
+      return '可用'
+    case 'quota_exhausted':
+      return '额度已用完'
+    case 'expired':
+      return '已过期'
+    case 'disabled':
+      return '已停用'
+    default:
+      return status || '--'
+  }
+}
+
+function setPublicCardResultText(result: HTMLElement | null, message: string, kind: 'idle' | 'success' | 'error' = 'idle') {
+  if (!result) return
+  result.classList.toggle('success', kind === 'success')
+  result.classList.toggle('error', kind === 'error')
+  result.textContent = message
+}
+
+function publicCardErrorMessage(error: unknown) {
+  const maybe = error as { message?: unknown }
+  return typeof maybe?.message === 'string' && maybe.message
+    ? maybe.message
+    : '操作失败，请检查卡密或 SK 后重试。'
+}
+
+function renderPublicCardBalance(result: HTMLElement | null, balance: PublicCardBalance, apiKey?: string) {
+  if (!result) return
+  result.classList.add('success')
+  result.classList.remove('error')
+  result.replaceChildren()
+
+  const metrics = document.createElement('div')
+  metrics.className = 'promo-card-balance'
+  const rows = [
+    ['状态', publicCardStatusLabel(balance.status)],
+    ['总额度', formatPublicCardMoney(balance.quota)],
+    ['已使用', formatPublicCardMoney(balance.quota_used)],
+    ['剩余额度', formatPublicCardMoney(balance.quota_remaining)],
+  ]
+  rows.forEach(([label, value]) => {
+    const item = document.createElement('div')
+    item.className = 'promo-card-metric'
+    const labelEl = document.createElement('span')
+    labelEl.textContent = label
+    const valueEl = document.createElement('b')
+    valueEl.textContent = value
+    item.append(labelEl, valueEl)
+    metrics.appendChild(item)
+  })
+  result.appendChild(metrics)
+
+  if (!apiKey) return
+  const keyBox = document.createElement('div')
+  keyBox.className = 'promo-card-keybox'
+  const textarea = document.createElement('textarea')
+  textarea.readOnly = true
+  textarea.value = apiKey
+  textarea.setAttribute('aria-label', '兑换生成的 API Key')
+  const copy = document.createElement('button')
+  copy.type = 'button'
+  copy.className = 'btn btn-primary promo-card-copy'
+  copy.textContent = '复制 SK'
+  const copyKey = async () => {
+    try {
+      await navigator.clipboard?.writeText(apiKey)
+      copy.textContent = '已复制'
+      window.setTimeout(() => {
+        copy.textContent = '复制 SK'
+      }, 1800)
+    } catch {
+      textarea.focus()
+      textarea.select()
+      copy.textContent = '请手动复制'
+    }
+  }
+  copy.addEventListener('click', copyKey)
+  cleanupCallbacks.push(() => copy.removeEventListener('click', copyKey))
+  keyBox.append(textarea, copy)
+  result.appendChild(keyBox)
+
+  const hint = document.createElement('div')
+  hint.style.marginTop = '8px'
+  hint.style.color = 'var(--text-3)'
+  hint.textContent = '完整 SK 只在本次兑换后显示一次，请立即保存。'
+  result.appendChild(hint)
+}
+
+function setupPublicCardPanel() {
+  if (!host.value || host.value.querySelector('#promoCardPanel')) return
+  const anchor = host.value.querySelector<HTMLElement>('.hero-cta')
+  if (!anchor) return
+
+  const panel = document.createElement('section')
+  panel.id = 'promoCardPanel'
+  panel.className = 'promo-card-panel'
+  panel.innerHTML = [
+    '<div class="promo-card-head">',
+    '  <div>',
+    '    <div class="promo-card-kicker">PROMO CARD ACCESS</div>',
+    '    <div class="promo-card-title">卡密兑换与 SK 余额查询</div>',
+    '    <div class="promo-card-sub">输入卡密可兑换一把带额度的 SK；粘贴 SK 可查询剩余额度。</div>',
+    '  </div>',
+    '  <div class="promo-card-actions">',
+    '    <button type="button" class="btn btn-primary" id="promoRedeemBtn">兑换卡密</button>',
+    '    <button type="button" class="btn btn-ghost" id="promoQueryBtn">查询余额</button>',
+    '  </div>',
+    '</div>',
+    '<div class="promo-card-grid">',
+    '  <div class="promo-card-field">',
+    '    <label for="promoCardCode">卡密</label>',
+    '    <input id="promoCardCode" autocomplete="off" placeholder="输入后台生成的卡密">',
+    '  </div>',
+    '  <div class="promo-card-field">',
+    '    <label for="promoApiKey">SK / API Key</label>',
+    '    <input id="promoApiKey" autocomplete="off" placeholder="粘贴 sk-... 查询余额">',
+    '  </div>',
+    '</div>',
+    '<div class="promo-card-result" id="promoCardResult">推广卡兑换后会自动生成 SK；余额用完后 SK 会自动失效。</div>',
+  ].join('')
+  anchor.insertAdjacentElement('afterend', panel)
+
+  const codeInput = panel.querySelector<HTMLInputElement>('#promoCardCode')
+  const keyInput = panel.querySelector<HTMLInputElement>('#promoApiKey')
+  const redeemButton = panel.querySelector<HTMLButtonElement>('#promoRedeemBtn')
+  const queryButton = panel.querySelector<HTMLButtonElement>('#promoQueryBtn')
+  const result = panel.querySelector<HTMLElement>('#promoCardResult')
+
+  const redeem = async () => {
+    const code = codeInput?.value.trim() || ''
+    if (!code) {
+      setPublicCardResultText(result, '请先输入卡密。', 'error')
+      return
+    }
+    if (redeemButton) redeemButton.disabled = true
+    setPublicCardResultText(result, '正在兑换卡密，请稍等...', 'idle')
+    try {
+      const data = await publicCardAPI.redeem(code)
+      if (keyInput) keyInput.value = data.api_key
+      renderPublicCardBalance(result, data, data.api_key)
+    } catch (error) {
+      setPublicCardResultText(result, publicCardErrorMessage(error), 'error')
+    } finally {
+      if (redeemButton) redeemButton.disabled = false
+    }
+  }
+
+  const query = async () => {
+    const apiKey = keyInput?.value.trim() || ''
+    if (!apiKey) {
+      setPublicCardResultText(result, '请先粘贴 SK / API Key。', 'error')
+      return
+    }
+    if (queryButton) queryButton.disabled = true
+    setPublicCardResultText(result, '正在查询余额...', 'idle')
+    try {
+      const data = await publicCardAPI.query(apiKey)
+      renderPublicCardBalance(result, data)
+    } catch (error) {
+      setPublicCardResultText(result, publicCardErrorMessage(error), 'error')
+    } finally {
+      if (queryButton) queryButton.disabled = false
+    }
+  }
+
+  redeemButton?.addEventListener('click', redeem)
+  queryButton?.addEventListener('click', query)
+  codeInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') void redeem()
+  })
+  keyInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') void query()
+  })
+  cleanupCallbacks.push(() => redeemButton?.removeEventListener('click', redeem))
+  cleanupCallbacks.push(() => queryButton?.removeEventListener('click', query))
+}
+
 function setupLandingInteractions() {
   if (!host.value) return
+  setupPublicCardPanel()
 
   const nav = host.value.querySelector<HTMLElement>('#nav')
   const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 24)
@@ -605,7 +819,7 @@ function mountLandingPage() {
 
   styleElement = document.createElement('style')
   styleElement.dataset.sub3Landing = 'true'
-  styleElement.textContent = sourceStyle
+  styleElement.textContent = sourceStyle + publicCardStyles
   document.head.appendChild(styleElement)
 
   const pageNodes = Array.from(parsed.body.childNodes).filter((node) => node.nodeName !== 'SCRIPT')
