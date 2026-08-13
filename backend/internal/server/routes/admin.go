@@ -87,6 +87,9 @@ func RegisterAdminRoutes(
 		// API Key 管理
 		registerAdminAPIKeyRoutes(admin, h)
 
+		// 卡密管理
+		registerRedeemCodeRoutes(admin, h)
+
 		// 定时测试计划
 		registerScheduledTestRoutes(admin, h)
 
@@ -485,7 +488,6 @@ func registerProxyRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAuth
 	}
 }
 
-//nolint:unused // Retained for compatibility with deployments that still expose redeem-code routes.
 func registerRedeemCodeRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	codes := admin.Group("/redeem-codes")
 	{
