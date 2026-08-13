@@ -59,6 +59,8 @@ const landingMessages = {
     live: '实时',
     channelsOnline: '渠道在线',
     channelMonitorDisabled: '渠道监控未启用',
+    noPublicStatusChecks: '暂无公开状态检查',
+    publicStatusUnavailable: '公开状态暂不可用',
     metrics: ['监控', '并发', '保护'],
     featureTitles: ['<em>一键</em>接入', '<em>稳定</em>可靠', '密钥与用量<em>透明</em>'],
     featureDescriptions: [
@@ -86,6 +88,8 @@ const landingMessages = {
     live: 'LIVE',
     channelsOnline: 'channels online',
     channelMonitorDisabled: 'Channel monitoring disabled',
+    noPublicStatusChecks: 'No public status checks',
+    publicStatusUnavailable: 'Public status unavailable',
     metrics: ['Monitoring', 'Concurrency', 'Protected'],
     featureTitles: ['<em>One-key</em> access', '<em>Stable</em> routing', 'Transparent <em>usage</em>'],
     featureDescriptions: [
@@ -360,6 +364,99 @@ function mapUserActivity(item: Awaited<ReturnType<typeof queryUserUsage>>['items
   return { statusCode: 200, label, createdAt: item.created_at, kind: 'success' }
 }
 
+function statusCodeForMonitorStatus(status: string) {
+  switch (status) {
+    case 'operational':
+      return 200
+    case 'degraded':
+      return 206
+    case 'failed':
+    case 'error':
+      return 503
+    default:
+      return 200
+  }
+}
+
+function isMonitorStatusOnline(status: string) {
+  return status === 'operational'
+}
+
+function isMonitorStatusError(status: string) {
+  return status === 'failed' || status === 'error'
+}
+
+function applyPublicMonitorMetrics(items: UserMonitorView[], healthOnline: boolean) {
+  const locale = normalizeLocale(getLocale())
+  const modelNames = new Set<string>()
+  const availabilityValues: number[] = []
+  const latencyValues: number[] = []
+  const activities: LandingActivity[] = []
+
+  for (const item of items) {
+    if (item.primary_model?.trim()) modelNames.add(item.primary_model.trim())
+    for (const extra of item.extra_models || []) {
+      if (extra.model?.trim()) modelNames.add(extra.model.trim())
+      if (Number.isFinite(extra.latency_ms)) latencyValues.push(Number(extra.latency_ms))
+    }
+    if (Number.isFinite(item.availability_7d)) availabilityValues.push(Number(item.availability_7d))
+    if (Number.isFinite(item.primary_latency_ms)) latencyValues.push(Number(item.primary_latency_ms))
+
+    for (const point of item.timeline || []) {
+      const createdAt = point.checked_at
+      if (!createdAt || Number.isNaN(new Date(createdAt).getTime())) continue
+      const provider = item.provider?.trim()
+      const model = item.primary_model?.trim()
+      const label = [provider, model].filter(Boolean).join(' / ') || 'Channel status check'
+      activities.push({
+        statusCode: statusCodeForMonitorStatus(point.status),
+        label,
+        createdAt,
+        kind: isMonitorStatusError(point.status) ? 'error' : 'success',
+      })
+    }
+  }
+
+  const avgAvailability = availabilityValues.length
+    ? availabilityValues.reduce((sum, value) => sum + value, 0) / availabilityValues.length
+    : null
+  const avgLatency = latencyValues.length
+    ? latencyValues.reduce((sum, value) => sum + value, 0) / latencyValues.length
+    : null
+  const online = items.filter((item) => isMonitorStatusOnline(item.primary_status)).length
+
+  setLandingValue(
+    '.hero-stats .stat:nth-child(1) .num',
+    avgAvailability === null ? (healthOnline ? 'Online' : 'Down') : `${avgAvailability.toFixed(1)}%`,
+  )
+  setLandingValue('.hero-stats .stat:nth-child(2) .num', modelNames.size ? `${modelNames.size}+` : '--')
+  setLandingValue('.hero-stats .stat:nth-child(3) .num', avgLatency === null ? '--' : `${Math.round(avgLatency)}ms`)
+  setLandingValue('.metric:nth-child(2) .m-val', healthOnline ? 'Ready' : 'Down')
+  setLandingValue('.metric:nth-child(3) .m-val', window.location.protocol === 'https:' ? 'TLS' : 'HTTP')
+
+  activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  renderActivityRows(activities, landingMessages[locale].noPublicStatusChecks)
+  applyChannelSummary(online, items.length, true)
+}
+
+async function refreshPublicLandingData(healthOnline: boolean, signal: AbortSignal) {
+  const locale = normalizeLocale(getLocale())
+  try {
+    const res = await listChannelMonitorViews({ signal })
+    if (signal.aborted) return
+    applyPublicMonitorMetrics(res.items || [], healthOnline)
+  } catch {
+    if (signal.aborted) return
+    renderActivityRows([], landingMessages[locale].publicStatusUnavailable)
+    setLandingValue('.hero-stats .stat:nth-child(1) .num', healthOnline ? 'Online' : 'Down')
+    setLandingValue('.hero-stats .stat:nth-child(2) .num', '--')
+    setLandingValue('.hero-stats .stat:nth-child(3) .num', '--')
+    setLandingValue('.metric:nth-child(2) .m-val', healthOnline ? 'Ready' : 'Down')
+    setLandingValue('.metric:nth-child(3) .m-val', window.location.protocol === 'https:' ? 'TLS' : 'HTTP')
+  }
+  applyHealthStatus(healthOnline)
+}
+
 async function refreshLandingData() {
   if (!host.value || /jsdom/i.test(navigator.userAgent)) return
   if (document.hidden) return
@@ -374,13 +471,7 @@ async function refreshLandingData() {
 
   const viewer = getPersistedViewer()
   if (!viewer.authenticated) {
-    renderActivityRows([])
-    setLandingValue('.hero-stats .stat:nth-child(1) .num', '--')
-    setLandingValue('.hero-stats .stat:nth-child(2) .num', '--')
-    setLandingValue('.hero-stats .stat:nth-child(3) .num', '--')
-    setLandingValue('.metric:nth-child(2) .m-val', '--')
-    setLandingValue('.metric:nth-child(3) .m-val', window.location.protocol === 'https:' ? 'TLS' : 'HTTP')
-    applyHealthStatus(healthOnline)
+    await refreshPublicLandingData(healthOnline, controller.signal)
     return
   }
 
