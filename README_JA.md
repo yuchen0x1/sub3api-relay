@@ -13,13 +13,13 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.183.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.184.md)
 
 </div>
 
-## v0.1.183 Manus と Claude の互換性修正
+## v0.1.184 管理画面ログイン保護ホットフィックス
 
-`v0.1.183` は、Manus アカウントが接続できても Claude 形式の実リクエストで使えない問題を修正し、Manus v2 の content block 形式で task.create を呼び出し、Claude fingerprint の再利用と管理者リセット操作を強化します。
+`v0.1.184` は、管理画面パスワードの総当たり攻撃に対するサーバー側保護を追加します。連続したログイン失敗でクライアント IP と対象ログイン識別子を一時ロックし、公開ログイン入口の 1 分あたりの保護上限も引き締めます。
 
 以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースでもこのデザインを維持しながら、リアルタイム状態と保守機能を強化しています。
 
@@ -35,7 +35,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.183 更新内容](RELEASE_NOTES_v0.1.183.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.1.184 更新内容](RELEASE_NOTES_v0.1.184.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -111,7 +111,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.184/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -163,7 +163,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # アンインストール
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.184/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -186,7 +186,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.183/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.184/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -289,7 +289,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 対象リリースを固定し、イメージを取得してコンテナを再作成
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.183|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.184|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

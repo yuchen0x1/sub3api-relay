@@ -58,10 +58,10 @@ Use the automated preparation script for the easiest setup:
 
 ```bash
 # Download and run the preparation script
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.183/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.184/docker-deploy.sh | bash
 
 # Or download first, then run
-curl -fsSLO https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.183/docker-deploy.sh
+curl -fsSLO https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.184/docker-deploy.sh
 chmod +x docker-deploy.sh
 ./docker-deploy.sh
 ```
@@ -197,7 +197,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 docker compose -f docker-compose.local.yml restart sub3api
 
 # Update to a specific release
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.183|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.184|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 
@@ -222,7 +222,7 @@ docker compose logs -f sub3api
 docker compose restart sub3api
 
 # Update to a specific release
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.183|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.184|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 
@@ -385,7 +385,7 @@ For production servers using systemd.
 ### One-Line Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.184/deploy/install.sh | sudo bash
 ```
 
 ### Manual Installation

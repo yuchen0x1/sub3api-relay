@@ -11,13 +11,13 @@
 
 **Personal-use backend AI API gateway**
 
-English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.183.md)
+English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.184.md)
 
 </div>
 
-## v0.1.183 Manus and Claude compatibility fix
+## v0.1.184 admin login protection hotfix
 
-The `v0.1.183` release fixes Manus accounts that could connect but fail real Claude-style requests, aligns Manus task creation with the v2 content-block payload, and hardens Claude fingerprint reuse with an admin reset action.
+The `v0.1.184` hotfix adds server-side protection against admin password brute-force attempts: repeated failed logins now temporarily lock the client IP and targeted login identifier, and the public login endpoint has a stricter per-minute safety limit.
 
 The screenshots below show the interface introduced in `v0.1.175`; the current release keeps that design while improving its live status and maintenance behavior.
 
@@ -33,7 +33,7 @@ The screenshots below show the interface introduced in `v0.1.175`; the current r
 | --- |
 | ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-See the [v0.1.183 release notes](RELEASE_NOTES_v0.1.183.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
+See the [v0.1.184 release notes](RELEASE_NOTES_v0.1.184.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
@@ -110,7 +110,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.184/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -162,7 +162,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # Uninstall
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.183/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.184/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -185,7 +185,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # Download and run deployment preparation script
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.183/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.184/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -288,7 +288,7 @@ Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` you set during deployment. Th
 
 ```bash
 # Pin the target release, pull it, and recreate the container
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.183|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.184|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

@@ -2,9 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler/dto"
@@ -195,19 +198,42 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	req.Email = strings.TrimSpace(req.Email)
+	clientIP := ip.GetClientIP(c)
+	if h.authService == nil {
+		response.InternalError(c, "Authentication service unavailable")
+		return
+	}
+	if lock, locked := h.authService.CheckLoginLocked(clientIP, req.Email); locked {
+		writeLoginLockout(c, lock)
+		return
+	}
 
 	proof := captchaProof(req.TurnstileToken, req.TencentCaptchaTicket, req.TencentCaptchaRandstr)
-	if err := h.authService.VerifyCaptcha(c.Request.Context(), proof, ip.GetClientIP(c)); err != nil {
+	if err := h.authService.VerifyCaptcha(c.Request.Context(), proof, clientIP); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
 
 	token, user, err := h.authService.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			if lock, locked := h.authService.RecordLoginFailure(clientIP, req.Email); locked {
+				slog.Warn("auth_login_temporarily_locked",
+					"client_ip", clientIP,
+					"scope", lock.Scope,
+					"retry_after_seconds", loginLockoutRetryAfterSeconds(lock.RetryAfter),
+				)
+				writeLoginLockout(c, lock)
+				return
+			}
+		}
 		response.ErrorFrom(c, err)
 		return
 	}
 	_ = token // token 由 authService.Login 返回但此处由 respondWithTokenPair 重新生成
+
+	h.authService.ResetLoginFailures(clientIP, req.Email)
 
 	if err := h.ensureBackendModeAllowsUser(c.Request.Context(), user); err != nil {
 		response.ErrorFrom(c, err)
@@ -234,6 +260,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
 
 	h.respondWithTokenPair(c, user)
+}
+
+func writeLoginLockout(c *gin.Context, lock service.LoginLockout) {
+	seconds := loginLockoutRetryAfterSeconds(lock.RetryAfter)
+	c.Header("Retry-After", strconv.FormatInt(seconds, 10))
+	response.ErrorFrom(c, service.LoginTemporarilyLockedError(lock))
+}
+
+func loginLockoutRetryAfterSeconds(d time.Duration) int64 {
+	if d <= 0 {
+		d = 30 * time.Minute
+	}
+	seconds := int64(d / time.Second)
+	if d%time.Second > 0 {
+		seconds++
+	}
+	if seconds < 1 {
+		return 1
+	}
+	return seconds
 }
 
 // TotpLoginResponse represents the response when 2FA is required

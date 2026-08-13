@@ -82,6 +82,7 @@ type AuthService struct {
 	affiliateService      *AffiliateService
 	defaultSubAssigner    DefaultSubscriptionAssigner
 	userPlatformQuotaRepo UserPlatformQuotaRepository
+	loginAbuseProtector   *LoginAbuseProtector
 }
 
 type CaptchaProof struct {
@@ -132,7 +133,29 @@ func NewAuthService(
 		affiliateService:      affiliateService,
 		defaultSubAssigner:    defaultSubAssigner,
 		userPlatformQuotaRepo: userPlatformQuotaRepo,
+		loginAbuseProtector:   NewLoginAbuseProtector(),
 	}
+}
+
+func (s *AuthService) CheckLoginLocked(clientIP, identifier string) (LoginLockout, bool) {
+	if s == nil || s.loginAbuseProtector == nil {
+		return LoginLockout{}, false
+	}
+	return s.loginAbuseProtector.CheckLoginLocked(clientIP, identifier)
+}
+
+func (s *AuthService) RecordLoginFailure(clientIP, identifier string) (LoginLockout, bool) {
+	if s == nil || s.loginAbuseProtector == nil {
+		return LoginLockout{}, false
+	}
+	return s.loginAbuseProtector.RecordLoginFailure(clientIP, identifier)
+}
+
+func (s *AuthService) ResetLoginFailures(clientIP, identifier string) {
+	if s == nil || s.loginAbuseProtector == nil {
+		return
+	}
+	s.loginAbuseProtector.ResetLoginFailures(clientIP, identifier)
 }
 
 func (s *AuthService) EntClient() *dbent.Client {
