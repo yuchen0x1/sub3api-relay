@@ -1291,6 +1291,14 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 	if input.ExpiresAt != nil && !input.ExpiresAt.After(time.Now()) {
 		return nil, ErrRedeemCodeExpired
 	}
+	if input.Type == RedeemTypePromo {
+		if input.Value <= 0 {
+			return nil, errors.New("promo card amount must be greater than zero")
+		}
+		if input.Concurrency <= 0 || input.Concurrency > 100 {
+			return nil, errors.New("promo card concurrency must be between 1 and 100")
+		}
+	}
 
 	// 如果是订阅类型，验证必须有 GroupID
 	if input.Type == RedeemTypeSubscription {
@@ -1327,6 +1335,10 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 			if code.ValidityDays <= 0 {
 				code.ValidityDays = 30 // 默认30天
 			}
+		} else if input.Type == RedeemTypePromo {
+			// Promo cards reuse this otherwise subscription-only column so older
+			// installations can upgrade without a disruptive schema migration.
+			code.ValidityDays = input.Concurrency
 		}
 		if err := s.redeemCodeRepo.Create(ctx, &code); err != nil {
 			return nil, err

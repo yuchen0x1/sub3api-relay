@@ -254,17 +254,25 @@ export default {
       searchCodes: 'Search codes or email...',
       allTypes: 'All Types',
       allStatus: 'All Status',
+      promo: 'Promo Card',
       balance: 'Balance',
       concurrency: 'Concurrency',
       subscription: 'Subscription',
       invitation: 'Invitation',
       invitationHint: 'Invitation codes are used to restrict user registration. They are automatically marked as used after use.',
+      promoHint: 'Each promo card includes both API credit and a concurrency limit. Redeeming it on the homepage creates a ready-to-use API key.',
+      cardConcurrency: 'Concurrency per API key',
+      cardConcurrencyHint: 'Keep this at 1 unless the same API key should run multiple requests at once.',
       unused: 'Unused',
       used: 'Used',
       columns: {
         code: 'Code',
         type: 'Type',
         value: 'Value',
+        concurrency: 'Concurrency',
+        quotaUsed: 'Used Credit',
+        quotaRemaining: 'Remaining',
+        apiKey: 'API Key',
         status: 'Status',
         usedBy: 'Used By',
         usedAt: 'Used At',
@@ -320,6 +328,7 @@ export default {
       failedToDeleteUnused: 'Failed to delete unused codes',
       failedToCopy: 'Failed to copy codes',
       types: {
+        promo: 'Promo Card',
         balance: 'Balance',
         concurrency: 'Concurrency',
         subscription: 'Subscription',
@@ -327,6 +336,12 @@ export default {
         // Admin adjustment types (created when admin modifies user balance/concurrency)
         admin_balance: 'Balance (Admin)',
         admin_concurrency: 'Concurrency (Admin)'
+      },
+      keyStatus: {
+        active: 'Active',
+        quota_exhausted: 'Credit exhausted',
+        expired: 'Expired',
+        disabled: 'Disabled'
       },
       selectGroup: 'Select Group',
       selectGroupPlaceholder: 'Choose a subscription group',

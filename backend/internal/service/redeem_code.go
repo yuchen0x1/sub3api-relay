@@ -20,9 +20,17 @@ type RedeemCode struct {
 
 	GroupID      *int64
 	ValidityDays int
+	APIKey       *APIKey
 
 	User  *User
 	Group *Group
+}
+
+func (r *RedeemCode) PromoConcurrency() int {
+	if r != nil && r.Type == RedeemTypePromo && r.ValidityDays > 0 {
+		return r.ValidityDays
+	}
+	return 1
 }
 
 func (r *RedeemCode) IsUsed() bool {

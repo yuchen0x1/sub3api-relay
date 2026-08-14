@@ -100,3 +100,26 @@ func TestRedeemRejectsInvitationCodeBeforeTransaction(t *testing.T) {
 	require.Equal(t, StatusUnused, redeemRepo.code.Status)
 	require.Nil(t, redeemRepo.code.UsedBy)
 }
+
+func TestRedeemRejectsPromoCardBeforeTransaction(t *testing.T) {
+	ctx := context.Background()
+	redeemRepo := &redeemRejectRepo{
+		code: RedeemCode{
+			ID:     2,
+			Code:   "PROMO-001",
+			Type:   RedeemTypePromo,
+			Value:  10,
+			Status: StatusUnused,
+		},
+	}
+	redeemService := NewRedeemService(redeemRepo, nil, nil, nil, nil, nil, nil, nil)
+
+	got, err := redeemService.Redeem(ctx, 3, redeemRepo.code.Code)
+
+	require.Nil(t, got)
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Equal(t, "REDEEM_CODE_UNSUPPORTED_TYPE", infraerrors.Reason(err))
+	require.False(t, redeemRepo.useCalled)
+	require.Equal(t, StatusUnused, redeemRepo.code.Status)
+}

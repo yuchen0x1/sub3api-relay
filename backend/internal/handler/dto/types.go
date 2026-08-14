@@ -414,7 +414,14 @@ type RedeemCode struct {
 type AdminRedeemCode struct {
 	RedeemCode
 
-	Notes string `json:"notes"`
+	Notes          string     `json:"notes"`
+	Concurrency    int        `json:"concurrency"`
+	APIKeyPreview  string     `json:"api_key_preview,omitempty"`
+	APIKeyStatus   string     `json:"api_key_status,omitempty"`
+	Quota          float64    `json:"quota"`
+	QuotaUsed      float64    `json:"quota_used"`
+	QuotaRemaining float64    `json:"quota_remaining"`
+	LastUsedAt     *time.Time `json:"last_used_at,omitempty"`
 }
 
 type NullableTimeField struct {

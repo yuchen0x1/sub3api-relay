@@ -76,6 +76,34 @@
             />
           </template>
 
+          <template #cell-concurrency="{ row }">
+            <span class="text-sm text-gray-700 dark:text-gray-300">
+              {{ row.type === 'promo' ? row.concurrency || 1 : '-' }}
+            </span>
+          </template>
+
+          <template #cell-quota_used="{ row }">
+            <span class="text-sm text-gray-700 dark:text-gray-300">
+              {{ row.api_key_preview ? `$${(row.quota_used || 0).toFixed(4)}` : '-' }}
+            </span>
+          </template>
+
+          <template #cell-quota_remaining="{ row }">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">
+              {{ row.api_key_preview ? `$${(row.quota_remaining || 0).toFixed(4)}` : '-' }}
+            </span>
+          </template>
+
+          <template #cell-api_key_status="{ row }">
+            <div v-if="row.api_key_preview" class="text-xs">
+              <div class="font-mono text-gray-700 dark:text-gray-300">{{ row.api_key_preview }}</div>
+              <div class="mt-1 text-gray-500 dark:text-gray-400">
+                {{ t('admin.redeem.keyStatus.' + (row.api_key_status || 'active')) }}
+              </div>
+            </div>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
           <template #cell-select="{ row }">
             <input
               data-test="select-code"
@@ -130,7 +158,7 @@
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="row.type === 'balance'">${{ value.toFixed(2) }}</template>
+              <template v-if="row.type === 'balance' || row.type === 'promo'">${{ value.toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -283,79 +311,36 @@
             {{ t('admin.redeem.generateCodesTitle') }}
           </h2>
           <form @submit.prevent="handleGenerateCodes" class="space-y-4">
-            <div>
-              <label class="input-label">{{ t('admin.redeem.codeType') }}</label>
-              <Select v-model="generateForm.type" :options="typeOptions" />
+            <div
+              class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200"
+            >
+              {{ t('admin.redeem.promoHint') }}
             </div>
-            <!-- 余额/并发类型：显示数值输入 -->
-            <div v-if="generateForm.type !== 'subscription' && generateForm.type !== 'invitation'">
-              <label class="input-label">
-                {{
-                  generateForm.type === 'balance'
-                    ? t('admin.redeem.amount')
-                    : t('admin.redeem.columns.value')
-                }}
-              </label>
+            <div>
+              <label class="input-label">{{ t('admin.redeem.amount') }}</label>
               <input
                 v-model.number="generateForm.value"
                 type="number"
-                :step="generateForm.type === 'balance' ? '0.01' : '1'"
-                :min="generateForm.type === 'balance' ? '0.01' : '1'"
+                step="0.01"
+                min="0.01"
                 required
                 class="input"
               />
             </div>
-            <!-- 邀请码类型：显示提示信息 -->
-            <div v-if="generateForm.type === 'invitation'" class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-              <p class="text-sm text-blue-700 dark:text-blue-300">
-                {{ t('admin.redeem.invitationHint') }}
+            <div>
+              <label class="input-label">{{ t('admin.redeem.cardConcurrency') }}</label>
+              <input
+                v-model.number="generateForm.concurrency"
+                type="number"
+                min="1"
+                max="100"
+                required
+                class="input"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.redeem.cardConcurrencyHint') }}
               </p>
             </div>
-            <!-- 订阅类型：显示分组选择和有效天数 -->
-            <template v-if="generateForm.type === 'subscription'">
-              <div>
-                <label class="input-label">{{ t('admin.redeem.selectGroup') }}</label>
-                <Select
-                  v-model="generateForm.group_id"
-                  :options="subscriptionGroupOptions"
-                  :placeholder="t('admin.redeem.selectGroupPlaceholder')"
-                >
-                  <template #selected="{ option }">
-                    <GroupBadge
-                      v-if="option"
-                      :name="(option as unknown as GroupOption).label"
-                      :platform="(option as unknown as GroupOption).platform"
-                      :subscription-type="(option as unknown as GroupOption).subscriptionType"
-                      :rate-multiplier="(option as unknown as GroupOption).rate"
-                    />
-                    <span v-else class="text-gray-400">{{
-                      t('admin.redeem.selectGroupPlaceholder')
-                    }}</span>
-                  </template>
-                  <template #option="{ option, selected }">
-                    <GroupOptionItem
-                      :name="(option as unknown as GroupOption).label"
-                      :platform="(option as unknown as GroupOption).platform"
-                      :subscription-type="(option as unknown as GroupOption).subscriptionType"
-                      :rate-multiplier="(option as unknown as GroupOption).rate"
-                      :description="(option as unknown as GroupOption).description"
-                      :selected="selected"
-                    />
-                  </template>
-                </Select>
-              </div>
-              <div>
-                <label class="input-label">{{ t('admin.redeem.validityDays') }}</label>
-                <input
-                  v-model.number="generateForm.validity_days"
-                  type="number"
-                  min="1"
-                  max="365"
-                  required
-                  class="input"
-                />
-              </div>
-            </template>
             <div>
               <label class="input-label">{{ t('admin.redeem.codeExpiry') }}</label>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -608,7 +593,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useClipboard } from '@/composables/useClipboard'
@@ -620,8 +605,6 @@ import type {
   RedeemCode,
   RedeemCodeType,
   Group,
-  GroupPlatform,
-  SubscriptionType,
   BatchUpdateRedeemCodeFields
 } from '@/types'
 import type { Column } from '@/components/common/types'
@@ -631,22 +614,11 @@ import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
-import GroupBadge from '@/components/common/GroupBadge.vue'
-import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 import Icon from '@/components/icons/Icon.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
 const { copyToClipboard: clipboardCopy } = useClipboard()
-
-interface GroupOption {
-  value: number
-  label: string
-  description: string | null
-  platform: GroupPlatform
-  subscriptionType: SubscriptionType
-  rate: number
-}
 
 const showGenerateDialog = ref(false)
 const showResultDialog = ref(false)
@@ -724,6 +696,10 @@ const columns = computed<Column[]>(() => [
   { key: 'code', label: t('admin.redeem.columns.code') },
   { key: 'type', label: t('admin.redeem.columns.type'), sortable: true },
   { key: 'value', label: t('admin.redeem.columns.value'), sortable: true },
+  { key: 'concurrency', label: t('admin.redeem.columns.concurrency') },
+  { key: 'quota_used', label: t('admin.redeem.columns.quotaUsed') },
+  { key: 'quota_remaining', label: t('admin.redeem.columns.quotaRemaining') },
+  { key: 'api_key_status', label: t('admin.redeem.columns.apiKey') },
   { key: 'status', label: t('admin.redeem.columns.status'), sortable: true },
   { key: 'used_by', label: t('admin.redeem.columns.usedBy') },
   { key: 'used_at', label: t('admin.redeem.columns.usedAt'), sortable: true },
@@ -731,15 +707,9 @@ const columns = computed<Column[]>(() => [
   { key: 'actions', label: t('admin.redeem.columns.actions') }
 ])
 
-const typeOptions = computed(() => [
-  { value: 'balance', label: t('admin.redeem.balance') },
-  { value: 'concurrency', label: t('admin.redeem.concurrency') },
-  { value: 'subscription', label: t('admin.redeem.subscription') },
-  { value: 'invitation', label: t('admin.redeem.invitation') }
-])
-
 const filterTypeOptions = computed(() => [
   { value: '', label: t('admin.redeem.allTypes') },
+  { value: 'promo', label: t('admin.redeem.promo') },
   { value: 'balance', label: t('admin.redeem.balance') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
@@ -828,26 +798,13 @@ const redeemCodeExpiryOptions = computed<{ value: RedeemCodeExpiryOption; label:
 ])
 
 const generateForm = reactive({
-  type: 'balance' as RedeemCodeType,
+  type: 'promo' as RedeemCodeType,
   value: 10,
+  concurrency: 1,
   count: 1,
-  group_id: null as number | null,
-  validity_days: 30,
   expiry_option: 'never' as RedeemCodeExpiryOption,
   custom_expiry_days: 7
 })
-
-// 监听类型变化，邀请码类型时自动设置 value 为 0
-watch(
-  () => generateForm.type,
-  (newType) => {
-    if (newType === 'invitation') {
-      generateForm.value = 0
-    } else if (generateForm.value === 0) {
-      generateForm.value = 10
-    }
-  }
-)
 
 const buildRedeemQueryFilters = () => ({
   type: (filters.type || undefined) as RedeemCodeType | undefined,
@@ -1018,12 +975,6 @@ const buildBatchUpdateFields = (): BatchUpdateRedeemCodeFields | null => {
 }
 
 const handleGenerateCodes = async () => {
-  // 订阅类型必须选择分组
-  if (generateForm.type === 'subscription' && !generateForm.group_id) {
-    appStore.showError(t('admin.redeem.groupRequired'))
-    return
-  }
-
   const expiresInDays = getRedeemCodeExpiresInDays()
   if (expiresInDays === null) {
     appStore.showError(t('admin.redeem.expiryDaysRequired'))
@@ -1036,16 +987,16 @@ const handleGenerateCodes = async () => {
       generateForm.count,
       generateForm.type,
       generateForm.value,
-      generateForm.type === 'subscription' ? generateForm.group_id : undefined,
-      generateForm.type === 'subscription' ? generateForm.validity_days : undefined,
-      expiresInDays
+      undefined,
+      undefined,
+      expiresInDays,
+      generateForm.concurrency
     )
     showGenerateDialog.value = false
     generatedCodes.value = result
     showResultDialog.value = true
     // 重置表单
-    generateForm.group_id = null
-    generateForm.validity_days = 30
+    generateForm.concurrency = 1
     generateForm.expiry_option = 'never'
     generateForm.custom_expiry_days = 7
     loadCodes()

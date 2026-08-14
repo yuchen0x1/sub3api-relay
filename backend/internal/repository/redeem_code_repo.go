@@ -6,6 +6,7 @@ import (
 	"time"
 
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/ent/apikey"
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/user"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
@@ -70,6 +71,7 @@ func (r *redeemCodeRepository) CreateBatch(ctx context.Context, codes []service.
 func (r *redeemCodeRepository) GetByID(ctx context.Context, id int64) (*service.RedeemCode, error) {
 	m, err := r.client.RedeemCode.Query().
 		Where(redeemcode.IDEQ(id)).
+		WithUser(withPromoAPIKey).
 		Only(ctx)
 	if err != nil {
 		if dbent.IsNotFound(err) {
@@ -83,7 +85,16 @@ func (r *redeemCodeRepository) GetByID(ctx context.Context, id int64) (*service.
 func (r *redeemCodeRepository) GetByCode(ctx context.Context, code string) (*service.RedeemCode, error) {
 	m, err := r.client.RedeemCode.Query().
 		Where(redeemcode.CodeEQ(code)).
+		WithUser(withPromoAPIKey).
 		Only(ctx)
+	if dbent.IsNotFound(err) {
+		// Legacy integrations may have stored lowercase card codes while the
+		// public form historically normalized input to uppercase.
+		m, err = r.client.RedeemCode.Query().
+			Where(redeemcode.CodeEqualFold(code)).
+			WithUser(withPromoAPIKey).
+			Only(ctx)
+	}
 	if err != nil {
 		if dbent.IsNotFound(err) {
 			return nil, service.ErrRedeemCodeNotFound
@@ -147,7 +158,7 @@ func (r *redeemCodeRepository) ListWithFilters(ctx context.Context, params pagin
 	}
 
 	codesQuery := q.
-		WithUser().
+		WithUser(withPromoAPIKey).
 		WithGroup().
 		Offset(params.Offset()).
 		Limit(params.Limit())
@@ -163,6 +174,15 @@ func (r *redeemCodeRepository) ListWithFilters(ctx context.Context, params pagin
 	outCodes := redeemCodeEntitiesToService(codes)
 
 	return outCodes, paginationResultFromTotal(int64(total), params), nil
+}
+
+func withPromoAPIKey(q *dbent.UserQuery) {
+	q.WithAPIKeys(func(keyQuery *dbent.APIKeyQuery) {
+		keyQuery.
+			Where(apikey.NameHasPrefix("Promo card ")).
+			Order(dbent.Desc(apikey.FieldID)).
+			Limit(1)
+	})
 }
 
 func redeemCodeListOrder(params pagination.PaginationParams) []func(*entsql.Selector) {
@@ -395,7 +415,7 @@ func (r *redeemCodeRepository) SumPositiveBalanceByUser(ctx context.Context, use
 		Where(
 			redeemcode.UsedByEQ(userID),
 			redeemcode.ValueGT(0),
-			redeemcode.TypeIn("balance", "admin_balance"),
+			redeemcode.TypeIn("balance", "admin_balance", "promo"),
 		).
 		Aggregate(dbent.As(dbent.Sum(redeemcode.FieldValue), "sum")).
 		Scan(ctx, &result)
@@ -428,6 +448,12 @@ func redeemCodeEntityToService(m *dbent.RedeemCode) *service.RedeemCode {
 	}
 	if m.Edges.User != nil {
 		out.User = userEntityToService(m.Edges.User)
+		if keys := m.Edges.User.Edges.APIKeys; len(keys) > 0 {
+			if key := apiKeyEntityToService(keys[0]); key != nil {
+				out.APIKey = key
+				out.User.APIKeys = []service.APIKey{*key}
+			}
+		}
 	}
 	if m.Edges.Group != nil {
 		out.Group = groupEntityToService(m.Edges.Group)

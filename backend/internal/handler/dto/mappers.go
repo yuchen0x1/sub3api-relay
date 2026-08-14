@@ -3,6 +3,7 @@ package dto
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
@@ -575,10 +576,35 @@ func RedeemCodeFromServiceAdmin(rc *service.RedeemCode) *AdminRedeemCode {
 	if rc == nil {
 		return nil
 	}
-	return &AdminRedeemCode{
+	out := &AdminRedeemCode{
 		RedeemCode: redeemCodeFromServiceBase(rc),
 		Notes:      rc.Notes,
 	}
+	if rc.Type == service.RedeemTypePromo || rc.APIKey != nil {
+		out.Concurrency = rc.PromoConcurrency()
+	}
+	if rc.APIKey != nil {
+		out.APIKeyPreview = maskAdminAPIKey(rc.APIKey.Key)
+		out.APIKeyStatus = rc.APIKey.Status
+		if rc.APIKey.IsExpired() {
+			out.APIKeyStatus = service.StatusAPIKeyExpired
+		} else if rc.APIKey.IsQuotaExhausted() {
+			out.APIKeyStatus = service.StatusAPIKeyQuotaExhausted
+		}
+		out.Quota = rc.APIKey.Quota
+		out.QuotaUsed = rc.APIKey.QuotaUsed
+		out.QuotaRemaining = rc.APIKey.GetQuotaRemaining()
+		out.LastUsedAt = rc.APIKey.LastUsedAt
+	}
+	return out
+}
+
+func maskAdminAPIKey(key string) string {
+	key = strings.TrimSpace(key)
+	if len(key) <= 10 {
+		return "****"
+	}
+	return key[:4] + "..." + key[len(key)-6:]
 }
 
 func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {

@@ -35,8 +35,9 @@ func NewRedeemHandler(adminService service.AdminService, redeemService *service.
 // GenerateRedeemCodesRequest represents generate redeem codes request
 type GenerateRedeemCodesRequest struct {
 	Count         int        `json:"count" binding:"required,min=1,max=100"`
-	Type          string     `json:"type" binding:"required,oneof=balance concurrency subscription invitation"`
+	Type          string     `json:"type" binding:"required,oneof=balance concurrency subscription invitation promo"`
 	Value         float64    `json:"value"`
+	Concurrency   int        `json:"concurrency" binding:"omitempty,min=1,max=100"`
 	GroupID       *int64     `json:"group_id"`      // 订阅类型必填
 	ValidityDays  int        `json:"validity_days"` // 订阅类型使用，正数增加/负数退款扣减
 	ExpiresAt     *time.Time `json:"expires_at"`
@@ -147,6 +148,7 @@ func (h *RedeemHandler) Generate(c *gin.Context) {
 			Count:        req.Count,
 			Type:         req.Type,
 			Value:        req.Value,
+			Concurrency:  req.Concurrency,
 			GroupID:      req.GroupID,
 			ValidityDays: req.ValidityDays,
 			ExpiresAt:    expiresAt,
@@ -404,6 +406,7 @@ func (h *RedeemHandler) redeemStatsFromAdmin(ctx context.Context) (map[string]an
 			service.RedeemTypeConcurrency:  0,
 			service.RedeemTypeSubscription: 0,
 			service.RedeemTypeInvitation:   0,
+			service.RedeemTypePromo:        0,
 		},
 	}
 
@@ -451,6 +454,7 @@ func (h *RedeemHandler) redeemStatsFromAdmin(ctx context.Context) (map[string]an
 		service.RedeemTypeConcurrency,
 		service.RedeemTypeSubscription,
 		service.RedeemTypeInvitation,
+		service.RedeemTypePromo,
 	} {
 		byType[codeType], err = countCodes(codeType, "")
 		if err != nil {

@@ -721,6 +721,23 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 	return apiKey, nil
 }
 
+// GetByKeyFresh bypasses the authentication cache for user-facing quota
+// queries so used and remaining credit always reflect the database.
+func (s *APIKeyService) GetByKeyFresh(ctx context.Context, key string) (*APIKey, error) {
+	if len(key) == 0 || len(key) > MaxAPIKeyCredentialBytes {
+		return nil, ErrAPIKeyNotFound
+	}
+	apiKey, err := s.apiKeyRepo.GetByKey(ctx, key)
+	if err != nil {
+		return nil, fmt.Errorf("get api key: %w", err)
+	}
+	s.compileAPIKeyIPRules(apiKey)
+	if apiKey != nil {
+		apiKey.CurrentConcurrency = s.currentConcurrencyForAPIKey(ctx, apiKey.ID)
+	}
+	return apiKey, nil
+}
+
 // Update 更新API Key
 func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req UpdateAPIKeyRequest) (*APIKey, error) {
 	apiKey, err := s.apiKeyRepo.GetByID(ctx, id)

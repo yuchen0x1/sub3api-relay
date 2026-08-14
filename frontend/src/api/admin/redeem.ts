@@ -70,7 +70,8 @@ export async function generate(
   value: number,
   groupId?: number | null,
   validityDays?: number,
-  expiresInDays?: number | null
+  expiresInDays?: number | null,
+  concurrency?: number
 ): Promise<RedeemCode[]> {
   const payload: GenerateRedeemCodesRequest = {
     count,
@@ -84,6 +85,9 @@ export async function generate(
     if (validityDays && validityDays > 0) {
       payload.validity_days = validityDays
     }
+  }
+  if (type === 'promo' && concurrency && concurrency > 0) {
+    payload.concurrency = concurrency
   }
   if (expiresInDays && expiresInDays > 0) {
     payload.expires_in_days = expiresInDays

@@ -58,14 +58,24 @@ const publicCardStyles = [
   '.promo-card-result{margin-top:12px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;color:var(--text-2);font-size:13px;line-height:1.7}',
   '.promo-card-result.error{color:#ff8b9a}',
   '.promo-card-result.success{color:#d9ffe7}',
-  '.promo-card-balance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+  '.promo-card-balance{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}',
   '.promo-card-metric{border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.035);padding:9px}',
   '.promo-card-metric span{display:block;color:var(--text-3);font-size:11px}',
   '.promo-card-metric b{display:block;margin-top:3px;color:#fff;font-family:var(--display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
   '.promo-card-keybox{margin-top:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}',
   '.promo-card-keybox textarea{min-height:64px;resize:vertical;line-height:1.45}',
+  '.promo-card-connection{margin-top:12px;display:grid;gap:8px}',
+  '.promo-card-connection-row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:8px;align-items:center}',
+  '.promo-card-connection-label{color:var(--text-3);font-size:12px}',
+  '.promo-card-connection-value{min-width:0;border:1px solid rgba(255,255,255,.12);background:rgba(5,12,20,.72);color:#fff;border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}',
   '.promo-card-copy{height:42px}',
-  '@media (max-width:760px){.promo-card-head{display:block}.promo-card-actions{margin-top:12px}.promo-card-grid,.promo-card-balance,.promo-card-keybox{grid-template-columns:1fr}}',
+  '.promo-key-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(1,7,13,.82);backdrop-filter:blur(10px)}',
+  '.promo-key-modal-card{width:min(680px,100%);border:1px solid rgba(0,255,94,.32);border-radius:20px;background:linear-gradient(145deg,#0b1923,#071018);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 50px rgba(0,255,94,.08);padding:22px;color:#fff}',
+  '.promo-key-modal-title{font-family:var(--display);font-size:24px;font-weight:800}',
+  '.promo-key-modal-sub{margin-top:6px;color:var(--text-3);font-size:13px;line-height:1.6}',
+  '.promo-key-modal-value{display:block;margin-top:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#050c14;padding:14px;color:#dfffea;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-wrap:anywhere;user-select:all}',
+  '.promo-key-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}',
+  '@media (max-width:760px){.promo-card-head{display:block}.promo-card-actions{margin-top:12px}.promo-card-grid,.promo-card-balance,.promo-card-keybox,.promo-card-connection-row{grid-template-columns:1fr}.promo-card-connection-row .promo-card-copy{width:100%}}',
 ].join('\n')
 
 const landingMessages = {
@@ -549,6 +559,10 @@ function publicCardStatusLabel(status: string) {
       return '已过期'
     case 'disabled':
       return '已停用'
+    case 'unused':
+      return '未兑换'
+    case 'used':
+      return '已兑换'
     default:
       return status || '--'
   }
@@ -568,6 +582,22 @@ function publicCardErrorMessage(error: unknown) {
     : '操作失败，请检查卡密或 SK 后重试。'
 }
 
+async function copyPublicCardText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+  const fallback = document.createElement('textarea')
+  fallback.value = value
+  fallback.style.position = 'fixed'
+  fallback.style.opacity = '0'
+  document.body.appendChild(fallback)
+  fallback.select()
+  const copied = typeof document.execCommand === 'function' && document.execCommand('copy')
+  fallback.remove()
+  if (!copied) throw new Error('clipboard unavailable')
+}
+
 function renderPublicCardBalance(result: HTMLElement | null, balance: PublicCardBalance, apiKey?: string) {
   if (!result) return
   result.classList.add('success')
@@ -578,6 +608,7 @@ function renderPublicCardBalance(result: HTMLElement | null, balance: PublicCard
   metrics.className = 'promo-card-balance'
   const rows = [
     ['状态', publicCardStatusLabel(balance.status)],
+    ['并发', String(balance.concurrency || 1)],
     ['总额度', formatPublicCardMoney(balance.quota)],
     ['已使用', formatPublicCardMoney(balance.quota_used)],
     ['剩余额度', formatPublicCardMoney(balance.quota_remaining)],
@@ -595,39 +626,106 @@ function renderPublicCardBalance(result: HTMLElement | null, balance: PublicCard
   result.appendChild(metrics)
 
   if (!apiKey) return
-  const keyBox = document.createElement('div')
-  keyBox.className = 'promo-card-keybox'
-  const textarea = document.createElement('textarea')
-  textarea.readOnly = true
-  textarea.value = apiKey
-  textarea.setAttribute('aria-label', '兑换生成的 API Key')
-  const copy = document.createElement('button')
-  copy.type = 'button'
-  copy.className = 'btn btn-primary promo-card-copy'
-  copy.textContent = '复制 SK'
-  const copyKey = async () => {
-    try {
-      await navigator.clipboard?.writeText(apiKey)
-      copy.textContent = '已复制'
-      window.setTimeout(() => {
-        copy.textContent = '复制 SK'
-      }, 1800)
-    } catch {
-      textarea.focus()
-      textarea.select()
-      copy.textContent = '请手动复制'
+
+  const connection = document.createElement('div')
+  connection.className = 'promo-card-connection'
+  const apiBase = buildGatewayUrl('/v1')
+
+  const addConnectionRow = (label: string, value: string, copyLabel: string) => {
+    const row = document.createElement('div')
+    row.className = 'promo-card-connection-row'
+    const labelEl = document.createElement('span')
+    labelEl.className = 'promo-card-connection-label'
+    labelEl.textContent = label
+    const valueEl = document.createElement('code')
+    valueEl.className = 'promo-card-connection-value'
+    valueEl.textContent = value
+    const copy = document.createElement('button')
+    copy.type = 'button'
+    copy.className = 'btn btn-primary promo-card-copy'
+    copy.textContent = copyLabel
+    const copyValue = async () => {
+      try {
+        await copyPublicCardText(value)
+        copy.textContent = '已复制'
+        window.setTimeout(() => {
+          copy.textContent = copyLabel
+        }, 1800)
+      } catch {
+        copy.textContent = '请手动复制'
+      }
     }
+    copy.addEventListener('click', copyValue)
+    cleanupCallbacks.push(() => copy.removeEventListener('click', copyValue))
+    row.append(labelEl, valueEl, copy)
+    connection.appendChild(row)
   }
-  copy.addEventListener('click', copyKey)
-  cleanupCallbacks.push(() => copy.removeEventListener('click', copyKey))
-  keyBox.append(textarea, copy)
-  result.appendChild(keyBox)
+
+  addConnectionRow('API 地址', apiBase, '复制地址')
+  addConnectionRow('SK / API Key', apiKey, '复制 SK')
+  result.appendChild(connection)
 
   const hint = document.createElement('div')
   hint.style.marginTop = '8px'
   hint.style.color = 'var(--text-3)'
-  hint.textContent = '完整 SK 只在本次兑换后显示一次，请立即保存。'
+  hint.textContent = '在 OpenAI 兼容客户端中，将 API 地址和 SK 分别填入 Base URL 与 API Key。完整 SK 只显示一次，请立即保存。'
   result.appendChild(hint)
+
+  showPublicCardKeyModal(apiKey, apiBase)
+}
+
+function showPublicCardKeyModal(apiKey: string, apiBase: string) {
+  document.querySelector('.promo-key-modal')?.remove()
+
+  const overlay = document.createElement('div')
+  overlay.className = 'promo-key-modal'
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
+
+  const card = document.createElement('div')
+  card.className = 'promo-key-modal-card'
+  const title = document.createElement('div')
+  title.className = 'promo-key-modal-title'
+  title.textContent = '兑换成功，SK 已生成'
+  const sub = document.createElement('div')
+  sub.className = 'promo-key-modal-sub'
+  sub.textContent = '完整 SK 只展示这一次。请立即复制保存，然后把接口地址填入客户端的 Base URL。'
+  const baseValue = document.createElement('code')
+  baseValue.className = 'promo-key-modal-value'
+  baseValue.textContent = `API 地址：${apiBase}`
+  const keyValue = document.createElement('code')
+  keyValue.className = 'promo-key-modal-value'
+  keyValue.textContent = `SK / API Key：${apiKey}`
+  const actions = document.createElement('div')
+  actions.className = 'promo-key-modal-actions'
+  const close = document.createElement('button')
+  close.type = 'button'
+  close.className = 'btn btn-ghost'
+  close.textContent = '我已保存，关闭'
+  const copy = document.createElement('button')
+  copy.type = 'button'
+  copy.className = 'btn btn-primary'
+  copy.textContent = '复制 SK'
+
+  const remove = () => overlay.remove()
+  close.addEventListener('click', remove)
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) remove()
+  })
+  copy.addEventListener('click', async () => {
+    try {
+      await copyPublicCardText(apiKey)
+      copy.textContent = 'SK 已复制'
+    } catch {
+      copy.textContent = '请手动复制上方 SK'
+    }
+  })
+
+  actions.append(close, copy)
+  card.append(title, sub, baseValue, keyValue, actions)
+  overlay.appendChild(card)
+  document.body.appendChild(overlay)
+  cleanupCallbacks.push(remove)
 }
 
 function setupPublicCardPanel() {
@@ -643,7 +741,7 @@ function setupPublicCardPanel() {
     '  <div>',
     '    <div class="promo-card-kicker">PROMO CARD ACCESS</div>',
     '    <div class="promo-card-title">卡密兑换与 SK 余额查询</div>',
-    '    <div class="promo-card-sub">输入卡密可兑换一把带额度的 SK；粘贴 SK 可查询剩余额度。</div>',
+    '    <div class="promo-card-sub">输入卡密可兑换一把带额度的 SK；使用卡密或 SK 都能查询剩余额度。</div>',
     '  </div>',
     '  <div class="promo-card-actions">',
     '    <button type="button" class="btn btn-primary" id="promoRedeemBtn">兑换卡密</button>',
@@ -656,8 +754,8 @@ function setupPublicCardPanel() {
     '    <input id="promoCardCode" autocomplete="off" placeholder="输入后台生成的卡密">',
     '  </div>',
     '  <div class="promo-card-field">',
-    '    <label for="promoApiKey">SK / API Key</label>',
-    '    <input id="promoApiKey" autocomplete="off" placeholder="粘贴 sk-... 查询余额">',
+    '    <label for="promoApiKey">SK / 卡密查询</label>',
+    '    <input id="promoApiKey" autocomplete="off" placeholder="粘贴 sk-... 或卡密查询余额">',
     '  </div>',
     '</div>',
     '<div class="promo-card-result" id="promoCardResult">推广卡兑换后会自动生成 SK；余额用完后 SK 会自动失效。</div>',
@@ -690,15 +788,15 @@ function setupPublicCardPanel() {
   }
 
   const query = async () => {
-    const apiKey = keyInput?.value.trim() || ''
-    if (!apiKey) {
-      setPublicCardResultText(result, '请先粘贴 SK / API Key。', 'error')
+    const credential = codeInput?.value.trim() || keyInput?.value.trim() || ''
+    if (!credential) {
+      setPublicCardResultText(result, '请先输入卡密或粘贴 SK。', 'error')
       return
     }
     if (queryButton) queryButton.disabled = true
     setPublicCardResultText(result, '正在查询余额...', 'idle')
     try {
-      const data = await publicCardAPI.query(apiKey)
+      const data = await publicCardAPI.query(credential)
       renderPublicCardBalance(result, data)
     } catch (error) {
       setPublicCardResultText(result, publicCardErrorMessage(error), 'error')

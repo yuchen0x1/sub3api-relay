@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	dbent "github.com/yuchen0x1/sub3api-relay/ent"
+	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
@@ -29,6 +31,7 @@ type PublicCardKeyQueryRequest struct {
 type PublicCardKeyBalance struct {
 	KeyPreview     string     `json:"key_preview"`
 	Status         string     `json:"status"`
+	Concurrency    int        `json:"concurrency"`
 	Quota          float64    `json:"quota"`
 	QuotaUsed      float64    `json:"quota_used"`
 	QuotaRemaining float64    `json:"quota_remaining"`
@@ -82,59 +85,156 @@ func (s *PublicCardService) Redeem(ctx context.Context, req PublicCardRedeemRequ
 		return nil, err
 	}
 
-	user, err := s.createPromoUser(ctx, card)
-	if err != nil {
-		return nil, fmt.Errorf("create promo user: %w", err)
-	}
-
-	redeemed, err := s.redeemService.Redeem(ContextSkipRedeemAffiliate(ctx), user.ID, code)
+	key, err := s.redeemPublicCardAtomically(ctx, card)
 	if err != nil {
 		return nil, fmt.Errorf("redeem public card: %w", err)
 	}
 
-	key, err := s.createRedeemedAPIKey(ctx, user.ID, redeemed)
-	if err != nil {
-		return nil, fmt.Errorf("create redeemed api key: %w", err)
-	}
-
+	balance := publicCardBalanceFromAPIKey(key)
+	balance.Concurrency = card.PromoConcurrency()
 	return &PublicCardRedeemResult{
 		APIKey:               key.Key,
-		PublicCardKeyBalance: publicCardBalanceFromAPIKey(key),
+		PublicCardKeyBalance: balance,
 	}, nil
 }
 
 func (s *PublicCardService) QueryKey(ctx context.Context, req PublicCardKeyQueryRequest) (*PublicCardKeyBalance, error) {
-	if s == nil || s.apiKeyService == nil {
+	if s == nil || s.apiKeyService == nil || s.redeemService == nil {
 		return nil, infraerrors.New(500, "PUBLIC_CARD_SERVICE_UNAVAILABLE", "card key query is temporarily unavailable")
 	}
 
-	apiKey := strings.TrimSpace(req.APIKey)
-	if len(apiKey) < 16 {
+	credential := strings.TrimSpace(req.APIKey)
+	if len(credential) < 3 {
 		return nil, ErrPublicCardKeyInvalid
 	}
 
-	key, err := s.apiKeyService.GetByKey(ctx, apiKey)
-	if err != nil {
-		if errors.Is(err, ErrAPIKeyNotFound) {
-			return nil, ErrPublicCardKeyInvalid
-		}
+	key, err := s.apiKeyService.GetByKeyFresh(ctx, credential)
+	if err == nil {
+		balance := publicCardBalanceFromAPIKey(key)
+		balance.KeyPreview = maskPublicAPIKey(credential)
+		return &balance, nil
+	}
+	if !errors.Is(err, ErrAPIKeyNotFound) {
 		return nil, fmt.Errorf("get api key: %w", err)
 	}
 
+	card, err := s.redeemService.GetByCode(ctx, credential)
+	if err != nil {
+		if errors.Is(err, ErrRedeemCodeNotFound) {
+			return nil, ErrPublicCardKeyInvalid
+		}
+		return nil, fmt.Errorf("get redeem code: %w", err)
+	}
+	if card.Type != RedeemTypeBalance && card.Type != RedeemTypePromo {
+		return nil, ErrPublicCardKeyInvalid
+	}
+	if card.APIKey != nil {
+		balance := publicCardBalanceFromAPIKey(card.APIKey)
+		balance.Concurrency = card.PromoConcurrency()
+		return &balance, nil
+	}
+	if !card.CanUse() && !card.IsExpired() {
+		return nil, ErrPublicCardKeyInvalid
+	}
+
+	status := card.Status
+	remaining := card.Value
+	if card.IsExpired() {
+		status = StatusExpired
+		remaining = 0
+	}
 	return &PublicCardKeyBalance{
-		KeyPreview:     maskPublicAPIKey(apiKey),
-		Status:         publicAPIKeyStatus(key),
-		Quota:          key.Quota,
-		QuotaUsed:      key.QuotaUsed,
-		QuotaRemaining: key.GetQuotaRemaining(),
-		ExpiresAt:      key.ExpiresAt,
-		LastUsedAt:     key.LastUsedAt,
-		CreatedAt:      key.CreatedAt,
-		UpdatedAt:      key.UpdatedAt,
+		Status:         status,
+		Concurrency:    card.PromoConcurrency(),
+		Quota:          card.Value,
+		QuotaRemaining: remaining,
+		CreatedAt:      card.CreatedAt,
+		UpdatedAt:      card.CreatedAt,
 	}, nil
 }
 
-func (s *PublicCardService) createPromoUser(ctx context.Context, card *RedeemCode) (*User, error) {
+func (s *PublicCardService) redeemPublicCardAtomically(ctx context.Context, card *RedeemCode) (*APIKey, error) {
+	if s.redeemService.entClient == nil {
+		return nil, infraerrors.New(500, "PUBLIC_CARD_SERVICE_UNAVAILABLE", "card redemption is temporarily unavailable")
+	}
+
+	user, err := newPromoCardUser(card)
+	if err != nil {
+		return nil, fmt.Errorf("build promo user: %w", err)
+	}
+	keyValue, err := s.apiKeyService.GenerateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := s.redeemService.entClient.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	txCtx := dbent.NewTxContext(ctx, tx)
+
+	user.Balance = card.Value
+	if err := s.userRepo.Create(txCtx, user); err != nil {
+		return nil, fmt.Errorf("create promo user: %w", err)
+	}
+
+	keyBuilder := tx.APIKey.Create().
+		SetUserID(user.ID).
+		SetKey(keyValue).
+		SetName(fmt.Sprintf("Promo card %s", shortCardCode(card.Code))).
+		SetStatus(StatusAPIKeyActive).
+		SetQuota(card.Value).
+		SetQuotaUsed(0)
+	if card.GroupID != nil {
+		keyBuilder.SetGroupID(*card.GroupID)
+	}
+	createdKey, err := keyBuilder.Save(txCtx)
+	if err != nil {
+		return nil, fmt.Errorf("create redeemed api key: %w", err)
+	}
+
+	usedAt := time.Now().UTC()
+	updated, err := tx.RedeemCode.Update().
+		Where(
+			redeemcode.IDEQ(card.ID),
+			redeemcode.StatusEQ(StatusUnused),
+			redeemcode.Or(redeemcode.ExpiresAtIsNil(), redeemcode.ExpiresAtGT(usedAt)),
+		).
+		SetStatus(StatusUsed).
+		SetUsedBy(user.ID).
+		SetUsedAt(usedAt).
+		Save(txCtx)
+	if err != nil {
+		return nil, fmt.Errorf("mark card as used: %w", err)
+	}
+	if updated != 1 {
+		if card.IsExpiredAt(usedAt) {
+			return nil, ErrRedeemCodeExpired
+		}
+		return nil, ErrRedeemCodeUsed
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit public card redemption: %w", err)
+	}
+
+	return &APIKey{
+		ID:        createdKey.ID,
+		UserID:    user.ID,
+		Key:       createdKey.Key,
+		Name:      createdKey.Name,
+		GroupID:   createdKey.GroupID,
+		Status:    createdKey.Status,
+		Quota:     createdKey.Quota,
+		QuotaUsed: createdKey.QuotaUsed,
+		CreatedAt: createdKey.CreatedAt,
+		UpdatedAt: createdKey.UpdatedAt,
+		User:      user,
+	}, nil
+}
+
+func newPromoCardUser(card *RedeemCode) (*User, error) {
 	suffix, err := randomPublicCardHex(12)
 	if err != nil {
 		return nil, err
@@ -150,7 +250,7 @@ func (s *PublicCardService) createPromoUser(ctx context.Context, card *RedeemCod
 		Notes:        fmt.Sprintf("Created by public card redemption: %s", card.Code),
 		Role:         RoleUser,
 		Status:       StatusActive,
-		Concurrency:  5,
+		Concurrency:  card.PromoConcurrency(),
 		SignupSource: "email",
 	}
 	if card.GroupID != nil {
@@ -159,27 +259,7 @@ func (s *PublicCardService) createPromoUser(ctx context.Context, card *RedeemCod
 	if err := user.SetPassword(password); err != nil {
 		return nil, err
 	}
-	if err := s.userRepo.Create(ctx, user); err != nil {
-		return nil, err
-	}
 	return user, nil
-}
-
-func (s *PublicCardService) createRedeemedAPIKey(ctx context.Context, userID int64, card *RedeemCode) (*APIKey, error) {
-	req := CreateAPIKeyRequest{
-		Name:    fmt.Sprintf("Promo card %s", shortCardCode(card.Code)),
-		GroupID: card.GroupID,
-		Quota:   card.Value,
-	}
-	key, err := s.apiKeyService.Create(ctx, userID, req)
-	if err == nil {
-		return key, nil
-	}
-	if req.GroupID != nil && errors.Is(err, ErrGroupNotAllowed) {
-		req.GroupID = nil
-		return s.apiKeyService.Create(ctx, userID, req)
-	}
-	return nil, err
 }
 
 func validatePublicBalanceCard(card *RedeemCode) error {
@@ -192,23 +272,28 @@ func validatePublicBalanceCard(card *RedeemCode) error {
 	if !card.CanUse() {
 		return ErrRedeemCodeUsed
 	}
-	if card.Type != RedeemTypeBalance || card.Value <= 0 {
+	if (card.Type != RedeemTypeBalance && card.Type != RedeemTypePromo) || card.Value <= 0 {
 		return ErrPublicCardUnsupported
 	}
 	return nil
 }
 
 func normalizePublicCardCode(code string) string {
-	return strings.ToUpper(strings.TrimSpace(code))
+	return strings.TrimSpace(code)
 }
 
 func publicCardBalanceFromAPIKey(key *APIKey) PublicCardKeyBalance {
 	if key == nil {
 		return PublicCardKeyBalance{}
 	}
+	concurrency := 0
+	if key.User != nil {
+		concurrency = key.User.Concurrency
+	}
 	return PublicCardKeyBalance{
 		KeyPreview:     maskPublicAPIKey(key.Key),
 		Status:         publicAPIKeyStatus(key),
+		Concurrency:    concurrency,
 		Quota:          key.Quota,
 		QuotaUsed:      key.QuotaUsed,
 		QuotaRemaining: key.GetQuotaRemaining(),

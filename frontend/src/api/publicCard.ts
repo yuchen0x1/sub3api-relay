@@ -3,6 +3,7 @@ import { apiClient } from './client'
 export interface PublicCardBalance {
   key_preview: string
   status: string
+  concurrency: number
   quota: number
   quota_used: number
   quota_remaining: number

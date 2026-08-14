@@ -253,6 +253,10 @@ export default {
         code: '卡密',
         type: '类型',
         value: '面值',
+        concurrency: '并发',
+        quotaUsed: '已用额度',
+        quotaRemaining: '剩余额度',
+        apiKey: '对应 SK',
         status: '状态',
         usedBy: '使用者',
         usedAt: '使用时间',
@@ -261,6 +265,7 @@ export default {
         actions: '操作'
       },
       types: {
+        promo: '推广卡',
         balance: '余额',
         concurrency: '并发数',
         subscription: '订阅',
@@ -270,11 +275,15 @@ export default {
         admin_concurrency: '并发数（站长）'
       },
       // 用于选择器和筛选器的直接键
+      promo: '推广卡',
       balance: '余额',
       concurrency: '并发数',
       subscription: '订阅',
       invitation: '邀请码',
       invitationHint: '邀请码用于限制用户注册，使用后自动标记为已使用。',
+      promoHint: '一张推广卡同时包含调用金额和并发限制。用户在首页兑换后会直接得到一把可调用的 SK。',
+      cardConcurrency: '每把 SK 的并发数',
+      cardConcurrencyHint: '建议保持 1；需要允许同一把 SK 同时发起多个请求时再调高。',
       allTypes: '全部类型',
       allStatus: '全部状态',
       unused: '未使用',
@@ -335,6 +344,12 @@ export default {
         used: '已使用',
         expired: '已过期',
         disabled: '已禁用'
+      },
+      keyStatus: {
+        active: '可用',
+        quota_exhausted: '额度已用完',
+        expired: '已过期',
+        disabled: '已停用'
       },
       form: {
         typeLabel: '类型',

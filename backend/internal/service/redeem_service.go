@@ -524,7 +524,11 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 	// 重新获取更新后的兑换码
 	redeemCode, err = s.redeemRepo.GetByID(ctx, redeemCode.ID)
 	if err != nil {
-		return nil, fmt.Errorf("get updated redeem code: %w", err)
+		usedAt := time.Now()
+		redeemCode.Status = StatusUsed
+		redeemCode.UsedBy = &userID
+		redeemCode.UsedAt = &usedAt
+		return redeemCode, nil
 	}
 
 	return redeemCode, nil
@@ -654,6 +658,7 @@ func (s *RedeemService) GetStats(ctx context.Context) (map[string]any, error) {
 			RedeemTypeConcurrency:  0,
 			RedeemTypeSubscription: 0,
 			RedeemTypeInvitation:   0,
+			RedeemTypePromo:        0,
 		},
 	}
 
@@ -667,6 +672,7 @@ func (s *RedeemService) GetStats(ctx context.Context) (map[string]any, error) {
 		RedeemTypeConcurrency:  0,
 		RedeemTypeSubscription: 0,
 		RedeemTypeInvitation:   0,
+		RedeemTypePromo:        0,
 	}
 
 	const statsPageSize = 1000

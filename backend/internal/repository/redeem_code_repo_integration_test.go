@@ -112,6 +112,54 @@ func (s *RedeemCodeRepoSuite) TestGetByCode() {
 	s.Require().Equal("GET-BY-CODE", got.Code)
 }
 
+func (s *RedeemCodeRepoSuite) TestGetByCode_IgnoresCaseForLegacyCodes() {
+	_, err := s.client.RedeemCode.Create().
+		SetCode("de7b4aada24ed73c87797063947d5a59").
+		SetType(service.RedeemTypeBalance).
+		SetStatus(service.StatusUnused).
+		SetValue(10).
+		SetNotes("").
+		SetValidityDays(30).
+		Save(s.ctx)
+	s.Require().NoError(err, "seed lowercase redeem code")
+
+	got, err := s.repo.GetByCode(s.ctx, "DE7B4AADA24ED73C87797063947D5A59")
+	s.Require().NoError(err, "GetByCode should accept a different case")
+	s.Require().Equal("de7b4aada24ed73c87797063947d5a59", got.Code)
+}
+
+func (s *RedeemCodeRepoSuite) TestGetByCode_PreloadsPromoAPIKeyUsage() {
+	user := s.createUser(uniqueTestValue(s.T(), "promo-key") + "@example.com")
+	key, err := s.client.APIKey.Create().
+		SetUserID(user.ID).
+		SetKey("sk-" + uniqueTestValue(s.T(), "promo-key")).
+		SetName("Promo card 12345678").
+		SetQuota(10).
+		SetQuotaUsed(2.5).
+		Save(s.ctx)
+	s.Require().NoError(err)
+
+	usedAt := time.Now().UTC()
+	cardCode, err := service.GenerateRedeemCode()
+	s.Require().NoError(err)
+	card := &service.RedeemCode{
+		Code:         cardCode,
+		Type:         service.RedeemTypePromo,
+		Value:        10,
+		Status:       service.StatusUsed,
+		UsedBy:       &user.ID,
+		UsedAt:       &usedAt,
+		ValidityDays: 1,
+	}
+	s.Require().NoError(s.repo.Create(s.ctx, card))
+
+	got, err := s.repo.GetByCode(s.ctx, card.Code)
+	s.Require().NoError(err)
+	s.Require().NotNil(got.APIKey)
+	s.Require().Equal(key.ID, got.APIKey.ID)
+	s.Require().Equal(2.5, got.APIKey.QuotaUsed)
+}
+
 func (s *RedeemCodeRepoSuite) TestGetByCode_NotFound() {
 	_, err := s.repo.GetByCode(s.ctx, "NON-EXISTENT")
 	s.Require().Error(err, "expected error for non-existent code")
