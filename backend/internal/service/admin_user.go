@@ -1329,13 +1329,14 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 			ExpiresAt: input.ExpiresAt,
 		}
 		// 订阅类型专用字段
-		if input.Type == RedeemTypeSubscription {
+		switch input.Type {
+		case RedeemTypeSubscription:
 			code.GroupID = input.GroupID
 			code.ValidityDays = input.ValidityDays
 			if code.ValidityDays <= 0 {
 				code.ValidityDays = 30 // 默认30天
 			}
-		} else if input.Type == RedeemTypePromo {
+		case RedeemTypePromo:
 			// Promo cards reuse this otherwise subscription-only column so older
 			// installations can upgrade without a disruptive schema migration.
 			code.ValidityDays = input.Concurrency
