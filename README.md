@@ -11,7 +11,7 @@
 
 **Personal-use backend AI API gateway**
 
-English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.187.md)
+English | [中文](README_CN.md) | [日本語](README_JA.md) | [Changelog](RELEASE_NOTES_v0.1.191.md)
 
 </div>
 
@@ -33,7 +33,7 @@ The screenshots below show the interface introduced in `v0.1.175`; the current r
 | --- |
 | ![Channel monitoring](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-See the [v0.1.187 release notes](RELEASE_NOTES_v0.1.187.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
+See the [v0.1.187 release notes](RELEASE_NOTES_v0.1.191.md), [release process](docs/RELEASING.md), [AI deployment guide](deploy/AI_DEPLOY.md), and [deployment guide](deploy/README.md).
 
 ## ⚠️ Important Notice
 
