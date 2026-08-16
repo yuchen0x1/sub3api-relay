@@ -210,7 +210,11 @@ func (s *GrokOAuthService) RefreshAccountToken(ctx context.Context, account *Acc
 	if err != nil {
 		return nil, err
 	}
-	tokenInfo.SubscriptionTier = account.GetCredential("subscription_tier")
+	// 优先使用本次刷新令牌 JWT 中解码出的档位，覆盖存储中已失效的订阅档位；
+	// 仅当 JWT 未携带档位时才回退到账号已存凭证。
+	if tokenInfo.SubscriptionTier == "" {
+		tokenInfo.SubscriptionTier = account.GetCredential("subscription_tier")
+	}
 	tokenInfo.EntitlementStatus = account.GetCredential("entitlement_status")
 	return tokenInfo, nil
 }
@@ -342,5 +346,12 @@ func applyGrokTokenClaims(info *GrokTokenInfo, token string) {
 	}
 	if info.TeamID == "" {
 		info.TeamID = xai.JWTClaimString(claims, "team_id")
+	}
+	if info.SubscriptionTier == "" {
+		if tier := xai.JWTClaimString(claims, "subscription_tier"); tier != "" {
+			info.SubscriptionTier = tier
+		} else {
+			info.SubscriptionTier = xai.JWTClaimString(claims, "tier")
+		}
 	}
 }
