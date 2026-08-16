@@ -2645,3 +2645,44 @@ func TestGatewayServiceCalculateRecordUsageCost_ChannelImageBillingNormalizesMis
 	require.InDelta(t, 0.44, cost.TotalCost, 1e-12)
 	require.InDelta(t, 0.44, cost.ActualCost, 1e-12)
 }
+
+func TestOpenAIGatewayServiceRecordUsage_UpstreamResponseBillingModelSource(t *testing.T) {
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	userRepo := &openAIRecordUsageUserRepoStub{}
+	subRepo := &openAIRecordUsageSubRepoStub{}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, userRepo, subRepo, nil)
+	usage := OpenAIUsage{InputTokens: 20, OutputTokens: 10}
+
+	// 上游实际返回 gpt-5.5（与请求/映射的 gpt-5.4 不同）：
+	// upstream_response 基准必须按响应模型计费，捕捉上游静默换模。
+	expectedCost, err := svc.billingService.CalculateCost("gpt-5.5", UsageTokens{
+		InputTokens:  20,
+		OutputTokens: 10,
+	}, 1.1)
+	require.NoError(t, err)
+
+	err = svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:             "resp_upstream_response_billing",
+			Model:                 "gpt-5.4",
+			BillingModel:          "gpt-5.5",
+			UpstreamModel:         "gpt-5.4",
+			UpstreamResponseModel: "gpt-5.5",
+			Usage:                 usage,
+			Duration:              time.Second,
+		},
+		APIKey:  &APIKey{ID: 10},
+		User:    &User{ID: 20},
+		Account: &Account{ID: 30},
+		ChannelUsageFields: ChannelUsageFields{
+			OriginalModel:      "gpt-5.4",
+			ChannelMappedModel: "gpt-5.4",
+			BillingModelSource: BillingModelSourceUpstreamResponse,
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	require.Equal(t, expectedCost.ActualCost, usageRepo.lastLog.ActualCost)
+	require.True(t, usageRepo.lastLog.ActualCost > 0, "cost must not be zero")
+}

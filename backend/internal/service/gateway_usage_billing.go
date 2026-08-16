@@ -705,6 +705,11 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 	if input.BillingModelSource == BillingModelSourceRequested && input.OriginalModel != "" {
 		billingModel = input.OriginalModel
 	}
+	// upstream_response：以上游实际返回声明的模型计费，用于捕捉上游侧静默换模。
+	// 响应未观察到模型（空值）时保持既有基准，不改变默认行为。
+	if input.BillingModelSource == BillingModelSourceUpstreamResponse && strings.TrimSpace(result.UpstreamResponseModel) != "" {
+		billingModel = strings.TrimSpace(result.UpstreamResponseModel)
+	}
 	// composite 分组的公开别名（如 all/claude）会经 OriginalModel/ChannelMappedModel
 	// 进入上面的来源覆盖：任意别名查无价会静默落 $0，含家族词的别名则被价格表的
 	// 家族模糊匹配错计（如 Opus 流量按 Sonnet 兜底价）。除非管理员为别名显式配置了

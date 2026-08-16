@@ -192,6 +192,11 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 	if input.BillingModelSource == BillingModelSourceRequested && input.OriginalModel != "" {
 		billingModel = input.OriginalModel
 	}
+	// upstream_response：以上游实际返回声明的模型计费，用于捕捉上游侧静默换模。
+	// 响应未观察到模型（空值）时保持既有基准，不改变默认行为。
+	if input.BillingModelSource == BillingModelSourceUpstreamResponse && strings.TrimSpace(result.UpstreamResponseModel) != "" {
+		billingModel = strings.TrimSpace(result.UpstreamResponseModel)
+	}
 	billingModels := usageBillingModelCandidates(
 		billingModel,
 		result.BillingModel,

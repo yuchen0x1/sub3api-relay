@@ -291,3 +291,9 @@ func TestIsUpstreamModelRestrictedByChannel_UnsupportedModel(t *testing.T) {
 	require.False(t, svc.isUpstreamModelRestrictedByChannel(context.Background(), 10, account, "totally-unknown-model"),
 		"unmappable model → upstream model empty → not restricted (account filter handles this)")
 }
+
+func TestBillingModelForRestriction_UpstreamResponse(t *testing.T) {
+	t.Parallel()
+	got := billingModelForRestriction(BillingModelSourceUpstreamResponse, "claude-sonnet-4-5", "claude-sonnet-4-6")
+	require.Equal(t, "", got, "upstream_response should return empty (per-account check needed)")
+}

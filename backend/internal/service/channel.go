@@ -36,9 +36,10 @@ func (m BillingMode) IsValidUsageFilter() bool {
 }
 
 const (
-	BillingModelSourceRequested     = "requested"
-	BillingModelSourceUpstream      = "upstream"
-	BillingModelSourceChannelMapped = "channel_mapped"
+	BillingModelSourceRequested        = "requested"
+	BillingModelSourceUpstream         = "upstream"
+	BillingModelSourceUpstreamResponse = "upstream_response"
+	BillingModelSourceChannelMapped    = "channel_mapped"
 )
 
 // Channel 渠道实体

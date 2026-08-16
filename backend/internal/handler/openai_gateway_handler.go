@@ -84,6 +84,12 @@ func openAIWSTurnBillingModel(result *service.OpenAIForwardResult, mapping servi
 		if mappedModel != "" && mappedModel != requestedModel {
 			billingModel = mappedModel
 		}
+	case service.BillingModelSourceUpstreamResponse:
+		if result != nil {
+			if responseModel := strings.TrimSpace(result.UpstreamResponseModel); responseModel != "" {
+				billingModel = responseModel
+			}
+		}
 	}
 	return billingModel
 }

@@ -15,8 +15,10 @@ export type BillingMode =
 /** Billing-model-source values (must match service.BillingModelSource* constants in Go). */
 export const BILLING_MODEL_SOURCE_REQUESTED = 'requested' as const
 export const BILLING_MODEL_SOURCE_UPSTREAM = 'upstream' as const
+export const BILLING_MODEL_SOURCE_UPSTREAM_RESPONSE = 'upstream_response' as const
 export const BILLING_MODEL_SOURCE_CHANNEL_MAPPED = 'channel_mapped' as const
 export type BillingModelSource =
   | typeof BILLING_MODEL_SOURCE_REQUESTED
   | typeof BILLING_MODEL_SOURCE_UPSTREAM
+  | typeof BILLING_MODEL_SOURCE_UPSTREAM_RESPONSE
   | typeof BILLING_MODEL_SOURCE_CHANNEL_MAPPED

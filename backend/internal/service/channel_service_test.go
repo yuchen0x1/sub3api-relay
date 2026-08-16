@@ -2490,3 +2490,17 @@ func TestUpdate_MappingConflict(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "MAPPING_PATTERN_CONFLICT")
 }
+
+func TestResolveChannelMapping_UpstreamResponseBillingModelSource(t *testing.T) {
+	ch := Channel{
+		ID:                 1,
+		Status:             StatusActive,
+		GroupIDs:           []int64{10},
+		BillingModelSource: BillingModelSourceUpstreamResponse,
+	}
+	repo := makeStandardRepo(ch, map[int64]string{10: "anthropic"})
+	svc := newTestChannelService(repo)
+
+	result := svc.ResolveChannelMapping(context.Background(), 10, "claude-opus-4")
+	require.Equal(t, BillingModelSourceUpstreamResponse, result.BillingModelSource)
+}

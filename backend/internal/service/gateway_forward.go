@@ -921,12 +921,12 @@ func (s *GatewayService) checkChannelPricingRestriction(ctx context.Context, gro
 }
 
 // billingModelForRestriction 根据计费基准确定限制检查使用的模型。
-// upstream 返回空（需逐账号检查）。
+// upstream / upstream_response 返回空（需逐账号检查）。
 func billingModelForRestriction(source, requestedModel, channelMappedModel string) string {
 	switch source {
 	case BillingModelSourceRequested:
 		return requestedModel
-	case BillingModelSourceUpstream:
+	case BillingModelSourceUpstream, BillingModelSourceUpstreamResponse:
 		return ""
 	case BillingModelSourceChannelMapped:
 		return channelMappedModel
@@ -969,7 +969,7 @@ func (s *GatewayService) needsUpstreamChannelRestrictionCheck(ctx context.Contex
 	if ch == nil || !ch.RestrictModels {
 		return false
 	}
-	return ch.BillingModelSource == BillingModelSourceUpstream
+	return ch.BillingModelSource == BillingModelSourceUpstream || ch.BillingModelSource == BillingModelSourceUpstreamResponse
 }
 
 // isStickyAccountUpstreamRestricted 检查粘性会话命中的账号是否受 upstream 渠道限制。

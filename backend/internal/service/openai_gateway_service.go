@@ -619,7 +619,7 @@ func (s *OpenAIGatewayService) needsUpstreamChannelRestrictionCheck(ctx context.
 	if ch == nil || !ch.RestrictModels {
 		return false
 	}
-	return ch.BillingModelSource == BillingModelSourceUpstream
+	return ch.BillingModelSource == BillingModelSourceUpstream || ch.BillingModelSource == BillingModelSourceUpstreamResponse
 }
 
 // ReplaceModelInBody 替换请求体中的 JSON model 字段（通用 gjson/sjson 实现）。
