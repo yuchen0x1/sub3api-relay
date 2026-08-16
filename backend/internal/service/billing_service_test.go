@@ -1661,3 +1661,42 @@ func TestComputeTokenBreakdown_NonExplicitZeroImagePrice_FallsBackToOutput(t *te
 	// textOutputTokens = 200 - 50 = 150
 	require.InDelta(t, 150*15e-6, bd.OutputCost, 1e-12)
 }
+
+func TestGetModelPricing_Grok46OfficialFallback(t *testing.T) {
+	svc := newTestBillingService()
+
+	for _, model := range []string{"grok-4.6", "grok-4.6-latest"} {
+		model := model
+		t.Run(model, func(t *testing.T) {
+			pricing, err := svc.GetModelPricing(model)
+			require.NoError(t, err)
+			require.InDelta(t, 2e-6, pricing.InputPricePerToken, 1e-12)
+			require.InDelta(t, 6e-6, pricing.OutputPricePerToken, 1e-12)
+			require.InDelta(t, 0.5e-6, pricing.CacheReadPricePerToken, 1e-12)
+			require.False(t, pricing.SupportsCacheBreakdown)
+			// xAI 官方：≥200k 长上下文档位输入/输出翻倍
+			require.Equal(t, 200000, pricing.LongContextInputThreshold)
+			require.InDelta(t, 2.0, pricing.LongContextInputMultiplier, 1e-12)
+			require.InDelta(t, 2.0, pricing.LongContextOutputMultiplier, 1e-12)
+		})
+	}
+}
+
+func TestCalculateCost_Grok46LongContextDoubles(t *testing.T) {
+	svc := newTestBillingService()
+
+	short := UsageTokens{InputTokens: 100000, OutputTokens: 1000}
+	shortCost, err := svc.CalculateCost("grok-4.6", short, 1.0)
+	require.NoError(t, err)
+
+	long := UsageTokens{InputTokens: 250000, OutputTokens: 1000}
+	longCost, err := svc.CalculateCost("grok-4.6", long, 1.0)
+	require.NoError(t, err)
+
+	// 250k 输入按 2x 单价计费：input 部分 (250000*2*2e-6 + 1000*6e-6*2) 对比
+	// 100k (100000*2e-6 + 1000*6e-6)。粗验总价比非长档位按 2x 输入价更高。
+	expectedShort := 100000*2e-6 + 1000*6e-6
+	expectedLong := 250000*2e-6*2 + 1000*6e-6*2
+	require.InDelta(t, expectedShort, shortCost.TotalCost, 1e-9)
+	require.InDelta(t, expectedLong, longCost.TotalCost, 1e-9)
+}

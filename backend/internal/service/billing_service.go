@@ -585,6 +585,18 @@ func (s *BillingService) initFallbackPricing() {
 		SupportsCacheBreakdown:  false,
 	}
 
+	// xAI Grok 4.6 (official docs: $2 input / $0.50 cached input / $6 output per MTok;
+	// ≥200k long context doubles across the board to $4 / $1 / $12 per MTok)
+	s.fallbackPrices["grok-4.6"] = &ModelPricing{
+		InputPricePerToken:          2e-6,
+		OutputPricePerToken:         6e-6,
+		CacheReadPricePerToken:      0.5e-6,
+		SupportsCacheBreakdown:      false,
+		LongContextInputThreshold:   200000,
+		LongContextInputMultiplier:  2,
+		LongContextOutputMultiplier: 2,
+	}
+
 	// xAI Grok 4.5 (official docs: $2 input / $0.50 cached input / $6 output per MTok)
 	s.fallbackPrices["grok-4.5"] = &ModelPricing{
 		InputPricePerToken:     2e-6,
@@ -803,6 +815,8 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	}
 
 	switch modelLower {
+	case "grok-4.6", "grok-4.6-latest":
+		return s.fallbackPrices["grok-4.6"]
 	case "grok", "grok-latest", "grok-4.5", "grok-4.5-latest", "grok-build-latest":
 		return s.fallbackPrices["grok-4.5"]
 	case "grok-4.3",
