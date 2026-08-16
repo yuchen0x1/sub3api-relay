@@ -805,6 +805,22 @@ func buildForbiddenErrorMessage(prefix string, upstreamMsg string, responseBody 
 // Antigravity 平台区分 validation/violation/generic 三种类型，均 SetError 永久禁用；
 // 其他平台保持原有 SetError 行为。
 func (s *RateLimitService) handle403(ctx context.Context, account *Account, upstreamMsg string, responseBody []byte) (shouldDisable bool) {
+	// HTML 403 拦截页（WAF/CDN/IP 风控页）不是账号凭据问题：写账号 error 会把
+	// 整池账号批量下线。改为短时临时不可调度，冷却期后自动恢复；本次请求
+	// 照常切号。结构化 API 403 不受影响，继续走平台专属判定。
+	if isHTMLErrorResponseBody(responseBody) {
+		msg := buildForbiddenErrorMessage(
+			"Access forbidden (403):",
+			upstreamMsg,
+			responseBody,
+			"upstream returned an HTML block page (WAF/CDN); temporary cooldown applied",
+		)
+		until := time.Now().Add(html403Cooldown)
+		if err := s.accountRepo.SetTempUnschedulable(ctx, account.ID, until, msg); err != nil {
+			slog.Warn("html_403_set_temp_unschedulable_failed", "account_id", account.ID, "error", err)
+		}
+		return true
+	}
 	if account.Platform == PlatformAntigravity {
 		return s.handleAntigravity403(ctx, account, upstreamMsg, responseBody)
 	}
@@ -820,6 +836,19 @@ func (s *RateLimitService) handle403(ctx context.Context, account *Account, upst
 	)
 	s.handleAuthError(ctx, account, msg)
 	return true
+}
+
+// html403Cooldown 是 HTML 拦截页触发的临时不可调度时长。
+const html403Cooldown = 5 * time.Minute
+
+// isHTMLErrorResponseBody 判断错误响应体是否为 HTML 页面而非结构化 API 错误。
+// 拦截页通常以 `<!DOCTYPE html>` / `<html` 开头；JSON API 错误以 `{` 开头，
+// 不会误判。
+func isHTMLErrorResponseBody(body []byte) bool {
+	trimmed := bytes.TrimLeft(body, " \t\r\n")
+	// 跳过 UTF-8 BOM
+	trimmed = bytes.TrimPrefix(trimmed, []byte{0xEF, 0xBB, 0xBF})
+	return len(trimmed) > 0 && trimmed[0] == '<'
 }
 
 func (s *RateLimitService) handleOpenAI403(ctx context.Context, account *Account, upstreamMsg string, responseBody []byte) (shouldDisable bool) {

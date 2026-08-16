@@ -86,3 +86,63 @@ func TestRateLimitService_HandleUpstreamError_OpenAI403ThresholdDisables(t *test
 	require.Contains(t, repo.lastErrorMsg, "workspace forbidden by policy")
 	require.Contains(t, repo.lastErrorMsg, "consecutive_403=3/3")
 }
+
+func TestRateLimitService_HandleUpstreamError_HTML403TempUnschedulable(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       401,
+		Platform: PlatformAnthropic,
+		Type:     AccountTypeOAuth,
+	}
+
+	shouldDisable := service.HandleUpstreamError(
+		context.Background(),
+		account,
+		http.StatusForbidden,
+		http.Header{},
+		[]byte("<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body>Access denied by WAF.</body></html>"),
+	)
+
+	// HTML 拦截页不得写账号 error，只能短时临时不可调度。
+	require.True(t, shouldDisable)
+	require.Equal(t, 0, repo.setErrorCalls)
+	require.Equal(t, 1, repo.tempCalls)
+	require.Contains(t, repo.lastTempReason, "Access forbidden (403)")
+	require.Contains(t, repo.lastTempReason, "<!DOCTYPE html>")
+}
+
+func TestRateLimitService_HandleUpstreamError_HTML403AppliesToOpenAIToo(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	counter := &openAI403CounterCacheStub{counts: []int64{3}}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	service.SetOpenAI403CounterCache(counter)
+	account := &Account{
+		ID:       402,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeOAuth,
+	}
+
+	shouldDisable := service.HandleUpstreamError(
+		context.Background(),
+		account,
+		http.StatusForbidden,
+		http.Header{},
+		[]byte("\n  <html><body>blocked</body></html>"),
+	)
+
+	// OpenAI 平台的 HTML 403 同样走临时冷却，即使计数器已达阈值也不永久禁用。
+	require.True(t, shouldDisable)
+	require.Equal(t, 0, repo.setErrorCalls)
+	require.Equal(t, 1, repo.tempCalls)
+}
+
+func TestIsHTMLErrorResponseBody(t *testing.T) {
+	require.True(t, isHTMLErrorResponseBody([]byte("<!DOCTYPE html><html></html>")))
+	require.True(t, isHTMLErrorResponseBody([]byte("<html><body></body></html>")))
+	require.True(t, isHTMLErrorResponseBody([]byte("  \r\n\t <html>x</html>")))
+	require.True(t, isHTMLErrorResponseBody(append([]byte{0xEF, 0xBB, 0xBF}, []byte("<!DOCTYPE html>")...)))
+	require.False(t, isHTMLErrorResponseBody([]byte(`{"error":{"message":"forbidden"}}`)))
+	require.False(t, isHTMLErrorResponseBody(nil))
+	require.False(t, isHTMLErrorResponseBody([]byte("   ")))
+}
