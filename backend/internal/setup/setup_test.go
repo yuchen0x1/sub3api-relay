@@ -232,15 +232,15 @@ func TestApplyAdminDefaults(t *testing.T) {
 	if admin.Email != defaultAdminLogin {
 		t.Fatalf("Email=%q, want %q", admin.Email, defaultAdminLogin)
 	}
-	if admin.Password != "" {
-		t.Fatalf("Password=%q, want empty password so first install must set one explicitly", admin.Password)
+	if admin.Password != defaultAdminPassword {
+		t.Fatalf("Password=%q, want %q", admin.Password, defaultAdminPassword)
 	}
 }
 
 func TestValidateInitialAdminRejectsMissingOrWeakPassword(t *testing.T) {
 	tests := []AdminConfig{
-		{Email: defaultAdminLogin},
-		{Email: defaultAdminLogin, Password: "admin"},
+		{Email: defaultAdminLogin, Password: ""},
+		{Email: defaultAdminLogin, Password: "short"},
 		{Email: "invalid login", Password: "strong-password"},
 	}
 
@@ -248,6 +248,13 @@ func TestValidateInitialAdminRejectsMissingOrWeakPassword(t *testing.T) {
 		if err := validateInitialAdmin(admin); err == nil {
 			t.Fatalf("validateInitialAdmin(%+v) error = nil, want validation failure", admin)
 		}
+	}
+}
+
+func TestValidateInitialAdminAcceptsDefaultPassword(t *testing.T) {
+	admin := AdminConfig{Email: defaultAdminLogin, Password: defaultAdminPassword}
+	if err := validateInitialAdmin(admin); err != nil {
+		t.Fatalf("validateInitialAdmin() error = %v", err)
 	}
 }
 

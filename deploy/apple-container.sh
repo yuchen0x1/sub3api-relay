@@ -333,18 +333,18 @@ generate_secret() {
 }
 
 read_admin_password() {
-    local password=${ADMIN_PASSWORD:-}
+    local password=${ADMIN_PASSWORD:-admin}
     local confirmation
 
     if [[ -z "${password}" ]]; then
         [[ -t 0 ]] || die "ADMIN_PASSWORD is required for non-interactive first-time initialization."
         while true; do
-            read -r -s -p "Initial administrator password (8-128 characters): " password
+            read -r -s -p "Initial administrator password (default: admin): " password
             printf '\n'
             read -r -s -p "Confirm administrator password: " confirmation
             printf '\n'
-            if (( ${#password} < 8 || ${#password} > 128 )); then
-                warn "Administrator password must be 8-128 characters." >&2
+            if [[ "${password}" != "admin" ]] && (( ${#password} < 8 || ${#password} > 128 )); then
+                warn "Administrator password must be admin or 8-128 characters." >&2
                 continue
             fi
             if [[ "${password}" != "${confirmation}" ]]; then
@@ -355,8 +355,8 @@ read_admin_password() {
         done
     fi
 
-    (( ${#password} >= 8 && ${#password} <= 128 )) || \
-        die "ADMIN_PASSWORD must be 8-128 characters."
+    [[ "${password}" == "admin" || ( ${#password} -ge 8 && ${#password} -le 128 ) ]] || \
+        die "ADMIN_PASSWORD must be admin or 8-128 characters."
     printf '%s' "${password}"
 }
 

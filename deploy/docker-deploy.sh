@@ -6,7 +6,7 @@
 #   - Downloads a version-pinned deployment bundle from GitHub Releases
 #   - Verifies the deployment bundle with SHA-256 before writing files
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-#   - Requires an explicit strong initial administrator password
+#   - Uses admin/admin as the initial administrator credential unless overridden
 #   - Creates necessary data directories
 #
 # After running this script, you can start services with:
@@ -50,7 +50,7 @@ generate_secret() {
 }
 
 read_admin_password() {
-    local password="${ADMIN_PASSWORD:-}"
+    local password="${ADMIN_PASSWORD:-admin}"
     local confirmation
     local input_device="/dev/stdin"
 
@@ -64,12 +64,12 @@ read_admin_password() {
             exit 1
         fi
         while true; do
-            read -r -s -p "Initial administrator password (8-128 characters): " password < "$input_device"
+            read -r -s -p "Initial administrator password (default: admin): " password < "$input_device"
             echo >&2
             read -r -s -p "Confirm administrator password: " confirmation < "$input_device"
             echo >&2
-            if [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; then
-                print_error "Administrator password must be 8-128 characters." >&2
+            if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
+                print_error "Administrator password must be admin or 8-128 characters." >&2
                 continue
             fi
             if [ "$password" != "$confirmation" ]; then
@@ -80,8 +80,8 @@ read_admin_password() {
         done
     fi
 
-    if [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; then
-        print_error "ADMIN_PASSWORD must be 8-128 characters." >&2
+    if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
+        print_error "ADMIN_PASSWORD must be admin or 8-128 characters." >&2
         exit 1
     fi
     case "$password" in
@@ -255,7 +255,7 @@ main() {
     echo ""
     echo "Generated credentials were written to the owner-readable .env file."
     echo "  ADMIN_EMAIL:           admin"
-    echo "  ADMIN_PASSWORD:        saved in .env (not printed)"
+    echo "  ADMIN_PASSWORD:        admin (change after first login)"
     echo ""
     print_warning "These credentials have been saved to .env file."
     print_warning "Please keep them secure and do not share publicly!"

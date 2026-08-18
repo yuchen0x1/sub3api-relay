@@ -70,7 +70,7 @@ chmod +x docker-deploy.sh
 - Resolves a fixed GitHub Release and verifies the deployment bundle with SHA-256
 - Downloads the release's `docker-compose.yml` and `sub3api.env.example`
 - Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-- Requires an explicit `ADMIN_PASSWORD` for the first site-owner account
+- Uses `admin` as the default password for the first site-owner account
 - Creates `.env` with generated secrets and a release-pinned `SUB3API_IMAGE`
 - Creates necessary data directories (data/, postgres_data/, redis_data/)
 - Stores the generated secrets and the site-owner password in the owner-readable `.env` file
@@ -84,7 +84,7 @@ docker compose up -d
 docker compose -f docker-compose.local.yml logs -f sub3api
 
 # The first startup uses ADMIN_EMAIL and ADMIN_PASSWORD from .env.
-# There is no public default password.
+# Default login: admin / admin. Change the password after first login.
 
 # Access Web UI
 # http://localhost:8080
@@ -239,7 +239,7 @@ docker compose down -v
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
 | `ADMIN_EMAIL` | No | `admin` | Initial administrator login |
-| `ADMIN_PASSWORD` | **First install** | *(none)* | Initial administrator password; must be 8-128 characters |
+| `ADMIN_PASSWORD` | No | `admin` | Initial administrator password; change it after first login |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -249,7 +249,7 @@ docker compose down -v
 
 See `.env.example` for all available options.
 
-> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. Set `ADMIN_PASSWORD` explicitly before the first start; Sub3API no longer creates a public default password.
+> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. If `ADMIN_PASSWORD` is not set, the first administrator uses `admin`; change it after first login.
 
 > **Existing data:** `ADMIN_PASSWORD` is used only when the admin account is created during the first setup. Changing it in `.env` does not change an existing admin password; use the account password-change or reset flow instead.
 

@@ -197,7 +197,7 @@ docker compose logs -f sub3api
 **What the script does:**
 - Downloads `docker-compose.local.yml` (saved as `docker-compose.yml`) and `.env.example`
 - Generates secure credentials (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-- Requires an explicit `ADMIN_PASSWORD` for the initial administrator
+- Uses `admin` as the default password for the initial administrator; override it with `ADMIN_PASSWORD`
 - Creates `.env` file with auto-generated secrets
 - Creates data directories (uses local directories for easy backup/migration)
 - Stores the configured administrator credentials in the owner-readable `.env`
@@ -233,7 +233,7 @@ TOTP_ENCRYPTION_KEY=your_totp_key_here
 
 # Initial administrator account
 ADMIN_EMAIL=admin
-ADMIN_PASSWORD=replace_with_a_strong_password
+ADMIN_PASSWORD=admin
 
 # Optional: Custom port
 SERVER_PORT=8080
@@ -526,7 +526,7 @@ or mitigating upstream WebSocket issues.
 
 #### ⚠️ Important: Creating the Admin Account
 
-The initial administrator is created during first-run setup. Docker deployments with `AUTO_SETUP=true` require an explicit `ADMIN_PASSWORD` of 8-128 characters when the database is empty. Source deployments prompt for the password in the setup wizard. Existing databases with an administrator are not overwritten. The `default.admin_email` / `default.admin_password` fields in `config.yaml` are not used to create the account.
+The initial administrator is created during first-run setup. Docker deployments with `AUTO_SETUP=true` use `admin / admin` when the database is empty unless `ADMIN_PASSWORD` overrides it. Source deployments use the same default. Existing databases with an administrator are not overwritten. `ADMIN_PASSWORD` is used only when the initial administrator is created.
 
 Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipped on first run**: the server detects an existing config and boots straight into normal mode with an empty `users` table, so the first login attempt fails with `invalid email or password`.
 

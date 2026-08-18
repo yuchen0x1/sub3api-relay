@@ -33,6 +33,7 @@ const (
 	simpleModeAdminConcurrency = 0
 	defaultMigrationTimeout    = 60 * time.Second
 	defaultAdminLogin          = "admin"
+	defaultAdminPassword       = "admin"
 )
 
 func setupDefaultAdminConcurrency() int {
@@ -529,6 +530,9 @@ func applyAdminDefaults(admin *AdminConfig) {
 	if admin.Email == "" {
 		admin.Email = defaultAdminLogin
 	}
+	if admin.Password == "" {
+		admin.Password = defaultAdminPassword
+	}
 }
 
 func validateInitialAdmin(admin AdminConfig) error {
@@ -676,7 +680,7 @@ func AutoSetupFromEnv() error {
 		},
 		Admin: AdminConfig{
 			Email:    getEnvOrDefault("ADMIN_EMAIL", defaultAdminLogin),
-			Password: os.Getenv("ADMIN_PASSWORD"),
+			Password: getEnvOrDefault("ADMIN_PASSWORD", defaultAdminPassword),
 		},
 		Server: ServerConfig{
 			Host: getEnvOrDefault("SERVER_HOST", "0.0.0.0"),

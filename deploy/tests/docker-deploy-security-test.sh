@@ -13,7 +13,7 @@ if grep -Eq 'echo .*\$\{?(POSTGRES_PASSWORD|JWT_SECRET|TOTP_ENCRYPTION_KEY)\}?' 
 fi
 
 grep -Fq 'input_device="/dev/tty"' "$script"
-grep -Fq 'ADMIN_PASSWORD is required when no terminal is available.' "$script"
+grep -Fq 'Uses admin/admin as the initial administrator credential unless overridden' "$script"
 grep -Fq 'Generated credentials were written to the owner-readable .env file.' "$script"
 grep -Fq 'deploy-checksums.txt' "$script"
 grep -Fq 'verify_deployment_asset' "$script"
@@ -36,6 +36,12 @@ fi
 safe_password=$(ADMIN_PASSWORD='Safe-Pass_123@prod' bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script")
 if [ "$safe_password" != 'Safe-Pass_123@prod' ]; then
   echo "read_admin_password changed a safe password" >&2
+  exit 1
+fi
+
+default_password=$(env -u ADMIN_PASSWORD bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script")
+if [ "$default_password" != 'admin' ]; then
+  echo "read_admin_password did not use the admin default" >&2
   exit 1
 fi
 

@@ -38,8 +38,8 @@ check_default_admin_credentials() {
     printf '%s must default ADMIN_EMAIL to admin\n' "$file" >&2
     exit 1
   }
-  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}' "$file" || {
-    printf '%s must not provide a default administrator password\n' "$file" >&2
+  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}' "$file" || {
+    printf '%s must default ADMIN_PASSWORD to admin\n' "$file" >&2
     exit 1
   }
 }
@@ -64,7 +64,7 @@ do
 done
 
 grep -Fxq 'ADMIN_EMAIL=admin' deploy/.env.example
-grep -Fxq 'ADMIN_PASSWORD=' deploy/.env.example
+grep -Fxq 'ADMIN_PASSWORD=admin' deploy/.env.example
 grep -Fxq 'BIND_HOST=127.0.0.1' deploy/.env.example
 
 printf 'docker compose security test passed\n'

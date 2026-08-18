@@ -2155,10 +2155,9 @@ func setDefaults() {
 	viper.SetDefault("totp.encryption_key", "")
 
 	// Default
-	// Admin credentials are created via the setup flow (web wizard / CLI / AUTO_SETUP).
-	// Do not ship fixed defaults here to avoid insecure "known credentials" in production.
-	viper.SetDefault("default.admin_email", "")
-	viper.SetDefault("default.admin_password", "")
+	// Admin credentials used by first-run setup when no explicit values are provided.
+	viper.SetDefault("default.admin_email", "admin")
+	viper.SetDefault("default.admin_password", "admin")
 	viper.SetDefault("default.user_concurrency", 0)
 	viper.SetDefault("default.user_balance", 0)
 	viper.SetDefault("default.api_key_prefix", "sk-")

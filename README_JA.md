@@ -198,7 +198,7 @@ docker compose logs -f sub3api
 **スクリプトの動作内容:**
 - `docker-compose.local.yml`（`docker-compose.yml` として保存）と `.env.example` をダウンロード
 - セキュアな認証情報（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）を自動生成
-- 初期管理者用の `ADMIN_PASSWORD` を明示的に要求
+- 初期管理者の既定パスワードは `admin`（`ADMIN_PASSWORD` で変更可能）
 - 自動生成されたシークレットで `.env` ファイルを作成
 - データディレクトリを作成（バックアップ・移行が容易なローカルディレクトリを使用）
 - 設定した管理者認証情報を所有者のみ読み取り可能な `.env` に保存
@@ -234,7 +234,7 @@ TOTP_ENCRYPTION_KEY=your_totp_key_here
 
 # 初期管理者アカウント
 ADMIN_EMAIL=admin
-ADMIN_PASSWORD=強力なパスワードに置き換えてください
+ADMIN_PASSWORD=admin
 
 # オプション: カスタムポート
 SERVER_PORT=8080
@@ -487,7 +487,7 @@ URL バリデーションまたはレスポンスヘッダーフィルタリン�
 
 #### ⚠️ 重要：管理者アカウントの作成
 
-初期管理者アカウントは初回セットアップ時に作成されます。空のデータベースで `AUTO_SETUP=true` を使用する Docker デプロイでは、8-128 文字の `ADMIN_PASSWORD` を明示的に設定する必要があります。ソースデプロイではセットアップウィザードがパスワード入力を求めます。既存の管理者は上書きされません。`config.yaml` の `default.admin_email` / `default.admin_password` は管理者作成には使用されません。
+初期管理者アカウントは初回セットアップ時に作成されます。空のデータベースで `AUTO_SETUP=true` を使用する Docker デプロイでは、`ADMIN_PASSWORD` を設定しない場合 `admin / admin` が使用されます。ソースデプロイでも同じ既定値を使用します。既存の管理者は上書きされません。`ADMIN_PASSWORD` は初期管理者の作成時だけ使用されます。
 
 上記ステップ 5 で事前に `config.yaml` を作成しているため、**初回起動時にセットアップウィザードはスキップされます**。サーバーは既存の config を検出して通常モードで直接起動し、この時点では `users` テーブルが空のため、初回ログインは `invalid email or password` を返します。
 

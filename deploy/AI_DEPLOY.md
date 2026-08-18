@@ -37,7 +37,7 @@
 1. 先检查系统版本、CPU 架构、磁盘空间、DNS 解析、Docker/Compose 版本、已占用端口和防火墙状态。
 2. 不要删除现有数据，不要触碰未授权的服务。若发现端口或目录冲突，先报告并停止。
 3. 使用当前稳定 Release；若没有 Release，才使用仓库 Compose 文件。禁止从上游旧项目镜像拉取。
-4. 创建独立部署目录。复制 deploy/.env.example 为 .env，设置随机 JWT_SECRET、POSTGRES_PASSWORD、TOTP_ENCRYPTION_KEY，并明确设置 ADMIN_PASSWORD。不要使用 admin/admin 或任何公开默认密码。
+4. 创建独立部署目录。复制 deploy/.env.example 为 .env，设置随机 JWT_SECRET、POSTGRES_PASSWORD、TOTP_ENCRYPTION_KEY。若未设置 ADMIN_PASSWORD，初始管理员默认使用 admin/admin；首次登录后立即修改密码。
 5. 启动 PostgreSQL、Redis 和 Sub3API，设置自动重启，并等待健康检查通过。
 6. 配置 Caddy 或 Nginx，将 <DOMAIN> 的 HTTPS 流量转发到本机 Sub3API。只公开 80/443，数据库和 Redis 不得暴露到公网。
 7. 配置证书自动续期、防火墙、日志轮转、每日数据备份和备份保留策略。
@@ -55,7 +55,7 @@
 
 ## 部署后检查清单
 
-- [ ] 站长密码由部署者明确设置，不存在公开默认密码
+- [ ] 首次登录后已修改默认站长密码 admin/admin
 - [ ] 域名 HTTPS 正常，证书自动续期已验证
 - [ ] 仅 80/443 对公网开放
 - [ ] PostgreSQL、Redis 只在内网或 Compose 网络可访问

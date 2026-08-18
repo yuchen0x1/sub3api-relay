@@ -223,6 +223,9 @@ func validateEmail(email string) bool {
 
 // validatePassword checks password strength
 func validatePassword(password string) error {
+	if password == defaultAdminPassword {
+		return nil
+	}
 	if len(password) < 8 {
 		return fmt.Errorf("password must be at least 8 characters")
 	}
@@ -398,6 +401,7 @@ func install(c *gin.Context) {
 	req.Database.DBName = strings.TrimSpace(req.Database.DBName)
 	req.Redis.Host = strings.TrimSpace(req.Redis.Host)
 	req.Redis.Username = strings.TrimSpace(req.Redis.Username)
+	applyAdminDefaults(&req.Admin)
 
 	// ========== COMPREHENSIVE INPUT VALIDATION ==========
 	// Database validation
