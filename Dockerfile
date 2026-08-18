@@ -7,7 +7,7 @@
 # Stage 3: Final minimal image
 # =============================================================================
 
-ARG GOLANG_IMAGE=golang:1.26.5-alpine
+ARG GOLANG_IMAGE=golang:1.26.6-alpine
 ARG ALPINE_IMAGE=alpine:3.21
 ARG POSTGRES_IMAGE=postgres:18-alpine
 ARG GOPROXY=https://goproxy.cn,direct
@@ -21,7 +21,7 @@ FROM --platform=${BUILDPLATFORM} ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/frontend
 RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc ./
 RUN pnpm install --frozen-lockfile --prefer-offline
 COPY frontend/ ./
 COPY docs/legal/ /app/docs/legal/

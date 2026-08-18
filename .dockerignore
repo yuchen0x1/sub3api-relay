@@ -10,7 +10,9 @@
 # Documentation
 *.md
 !deploy/DOCKER.md
-docs/
+docs/*
+!docs/legal/
+!docs/legal/**
 # IDE
 .idea/
 .vscode/
@@ -24,6 +26,11 @@ Thumbs.db
 # Build artifacts
 dist/
 build/
+**/node_modules/
+
+# Local agent and audit artifacts
+.tmp/
+.uiaudit/
 
 # Go build cache (will be built in container)
 backend/vendor/
