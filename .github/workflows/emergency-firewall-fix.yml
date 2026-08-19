@@ -1,0 +1,66 @@
+name: Emergency firewall fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Restore SSH management exception
+        env:
+          HOST: ${{ secrets.EMERGENCY_SSH_HOST }}
+          USER: ${{ secrets.EMERGENCY_SSH_USER }}
+          SSHPASS: ${{ secrets.EMERGENCY_SSH_PASSWORD }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          sshpass -e ssh \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for name in ("/etc/ufw/before.rules", "/etc/ufw/before6.rules"):
+              path = Path(name)
+              text = path.read_text()
+              old = "--dport 22 -j RETURN"
+              new = "--dport 22 -j ACCEPT"
+              if old in text:
+                  text = text.replace(old, new, 1)
+              if new not in text:
+                  raise SystemExit(f"SSH exception missing in {name}")
+              path.write_text(text)
+
+          path = Path("/usr/local/sbin/sub3api-cn-block-disable")
+          text = path.read_text()
+          anchor = "systemctl disable --now sub3api-cn-block-update.timer 2>/dev/null || true\n"
+          addition = (
+              anchor
+              + "systemctl disable --now sub3api-cn-block-docker.service 2>/dev/null || true\n"
+              + "iptables -D DOCKER-USER -m set --match-set sub3api_cn4 src -j DROP 2>/dev/null || true\n"
+              + "ip6tables -D DOCKER-USER -m set --match-set sub3api_cn6 src -j DROP 2>/dev/null || true\n"
+          )
+          if "sub3api-cn-block-docker.service" not in text:
+              if anchor not in text:
+                  raise SystemExit("disable script anchor missing")
+              path.write_text(text.replace(anchor, addition, 1))
+          PY
+
+          chmod 755 /usr/local/sbin/sub3api-cn-block-disable
+          ufw reload
+          iptables -C ufw-before-input -m set --match-set sub3api_cn4 src -p tcp --dport 22 -j ACCEPT
+          iptables -C ufw-before-input -m set --match-set sub3api_cn4 src -j DROP
+          iptables -C DOCKER-USER -m set --match-set sub3api_cn4 src -j DROP
+          ip6tables -C ufw6-before-input -m set --match-set sub3api_cn6 src -p tcp --dport 22 -j ACCEPT
+          ip6tables -C ufw6-before-input -m set --match-set sub3api_cn6 src -j DROP
+          curl -fsS --max-time 15 --resolve lenmo.ccwu.cc:443:127.0.0.1 https://lenmo.ccwu.cc/health
+          REMOTE
