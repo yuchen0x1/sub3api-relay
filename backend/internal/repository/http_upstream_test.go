@@ -740,6 +740,54 @@ func (s *HTTPUpstreamSuite) TestNormalizeProxyURL_Canonicalizes() {
 	require.Equal(s.T(), key1, key2, "expected normalized proxy keys to match")
 }
 
+func (s *HTTPUpstreamSuite) TestNormalizeProxyURL_PreservesHysteria2DialOptions() {
+	key, parsed, err := normalizeProxyURL("hysteria2://token@HY.EXAMPLE:443?sni=edge.example.com&insecure=1")
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), parsed)
+	require.Equal(s.T(), "hy.example:443", parsed.Host)
+	require.Equal(s.T(), "1", parsed.Query().Get("insecure"))
+	require.Equal(s.T(), "edge.example.com", parsed.Query().Get("sni"))
+	require.Contains(s.T(), key, "insecure=1")
+	require.Contains(s.T(), key, "sni=edge.example.com")
+
+	transport, closer, err := buildUpstreamTransportManaged(defaultPoolSettings(nil), parsed, upstreamProtocolModeDefault)
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), closer)
+	require.Nil(s.T(), transport.Proxy)
+	require.NotNil(s.T(), transport.DialContext)
+	require.NoError(s.T(), closer.Close())
+}
+
+type countingCloser struct {
+	count atomic.Int64
+}
+
+func (c *countingCloser) Close() error {
+	c.count.Add(1)
+	return nil
+}
+
+func (s *HTTPUpstreamSuite) TestRetiredHysteria2ClientClosesAfterInflightRequestFinishes() {
+	closer := &countingCloser{}
+	entry := &upstreamClientEntry{
+		client:      &http.Client{Transport: &http.Transport{}},
+		proxyCloser: closer,
+		inFlight:    1,
+	}
+	svc := s.newService()
+	svc.clients["hy2"] = entry
+
+	svc.mu.Lock()
+	svc.removeClientLocked("hy2", entry)
+	svc.mu.Unlock()
+	require.Zero(s.T(), closer.count.Load(), "active Hysteria2 client must not be interrupted")
+
+	releaseUpstreamClientEntry(entry)
+	require.Equal(s.T(), int64(1), closer.count.Load())
+	entry.closeProxy()
+	require.Equal(s.T(), int64(1), closer.count.Load(), "proxy cleanup must be idempotent")
+}
+
 // TestAcquireClient_OverLimitReturnsError 测试连接池缓存上限保护
 // 验证超限且无可淘汰条目时返回错误
 func (s *HTTPUpstreamSuite) TestAcquireClient_OverLimitReturnsError() {

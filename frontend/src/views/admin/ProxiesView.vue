@@ -1004,6 +1004,7 @@ import { useTableSelection } from '@/composables/useTableSelection'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { formatDateTime } from '@/utils/format'
 import { proxyExpiryBadgeClass, proxyExpiryLabelKey } from '@/utils/proxyExpiry'
+import { sortProxiesByLatency } from '@/utils/proxyLatencySort'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -1017,7 +1018,7 @@ const columns = computed<Column[]>(() => [
   { key: 'auth', label: t('admin.proxies.columns.auth'), sortable: false },
   { key: 'location', label: t('admin.proxies.columns.location'), sortable: false },
   { key: 'account_count', label: t('admin.proxies.columns.accounts'), sortable: true },
-  { key: 'latency', label: t('admin.proxies.columns.latency'), sortable: false },
+  { key: 'latency', label: t('admin.proxies.columns.latency'), sortable: true },
   { key: 'expiry', label: t('admin.proxies.columns.expiry'), sortable: true },
   { key: 'created_at', label: t('admin.proxies.columns.createdAt'), sortable: true },
   { key: 'status', label: t('admin.proxies.columns.status'), sortable: true },
@@ -1056,6 +1057,8 @@ const editStatusOptions = computed(() => [
 ])
 
 const proxies = ref<Proxy[]>([])
+const latencySortRows = ref<Proxy[] | null>(null)
+const latencySortCacheKey = ref('')
 const visiblePasswordIds = reactive(new Set<number>())
 const copyMenuProxyId = ref<number | null>(null)
 const loading = ref(false)
@@ -1209,7 +1212,48 @@ const buildProxyQueryFilters = () => ({
   sort_order: sortState.sort_order
 })
 
-const loadProxies = async () => {
+const latencySortFilterKey = () => JSON.stringify({
+  protocol: filters.protocol,
+  status: filters.status,
+  search: searchQuery.value
+})
+
+const clearLatencySortCache = () => {
+  latencySortRows.value = null
+  latencySortCacheKey.value = ''
+}
+
+const applyLatencySortPage = () => {
+  if (!latencySortRows.value) return
+
+  const sorted = sortProxiesByLatency(latencySortRows.value, sortState.sort_order)
+  pagination.total = sorted.length
+  pagination.pages = Math.max(1, Math.ceil(sorted.length / pagination.page_size))
+  pagination.page = Math.min(pagination.page, pagination.pages)
+
+  const start = (pagination.page - 1) * pagination.page_size
+  proxies.value = sorted.slice(start, start + pagination.page_size)
+}
+
+const fetchAllProxiesForLatencySort = async (signal: AbortSignal) => {
+  const pageSize = 100
+  const query = {
+    ...buildProxyQueryFilters(),
+    sort_by: 'id',
+    sort_order: 'asc' as const
+  }
+  const firstPage = await adminAPI.proxies.list(1, pageSize, query, { signal })
+  if (signal.aborted || firstPage.pages <= 1) return firstPage.items
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.pages - 1 }, (_, index) =>
+      adminAPI.proxies.list(index + 2, pageSize, query, { signal })
+    )
+  )
+  return [firstPage, ...remainingPages].flatMap(response => response.items)
+}
+
+const loadProxiesWithOptions = async (reuseLatencyCache: boolean) => {
   if (abortController) {
     abortController.abort()
   }
@@ -1217,6 +1261,24 @@ const loadProxies = async () => {
   abortController = currentAbortController
   loading.value = true
   try {
+    if (sortState.sort_by === 'latency') {
+      const cacheKey = latencySortFilterKey()
+      const canReuseCache = reuseLatencyCache
+        && latencySortRows.value !== null
+        && latencySortCacheKey.value === cacheKey
+
+      if (!canReuseCache) {
+        latencySortRows.value = await fetchAllProxiesForLatencySort(currentAbortController.signal)
+        latencySortCacheKey.value = cacheKey
+      }
+      if (currentAbortController.signal.aborted || abortController !== currentAbortController) {
+        return
+      }
+      applyLatencySortPage()
+      return
+    }
+
+    clearLatencySortCache()
     const response = await adminAPI.proxies.list(
       pagination.page,
       pagination.page_size,
@@ -1243,6 +1305,8 @@ const loadProxies = async () => {
   }
 }
 
+const loadProxies = () => loadProxiesWithOptions(false)
+
 let searchTimeout: ReturnType<typeof setTimeout>
 const handleSearch = () => {
   clearTimeout(searchTimeout)
@@ -1254,20 +1318,20 @@ const handleSearch = () => {
 
 const handlePageChange = (page: number) => {
   pagination.page = page
-  loadProxies()
+  loadProxiesWithOptions(sortState.sort_by === 'latency')
 }
 
 const handlePageSizeChange = (pageSize: number) => {
   pagination.page_size = pageSize
   pagination.page = 1
-  loadProxies()
+  loadProxiesWithOptions(sortState.sort_by === 'latency')
 }
 
 const handleSort = (key: string, order: 'asc' | 'desc') => {
   sortState.sort_by = key
   sortState.sort_order = order
   pagination.page = 1
-  loadProxies()
+  loadProxiesWithOptions(key === 'latency')
 }
 
 const closeCreateModal = () => {
@@ -1542,7 +1606,8 @@ const applyLatencyResult = (
     city?: string
   }
 ) => {
-  const target = proxies.value.find((proxy) => proxy.id === proxyId)
+  const target = latencySortRows.value?.find((proxy) => proxy.id === proxyId)
+    ?? proxies.value.find((proxy) => proxy.id === proxyId)
   if (!target) return
   if (result.success) {
     target.latency_status = 'success'
@@ -1562,6 +1627,9 @@ const applyLatencyResult = (
     target.city = undefined
   }
   target.latency_message = result.message
+  if (sortState.sort_by === 'latency' && latencySortRows.value) {
+    applyLatencySortPage()
+  }
 }
 
 const summarizeQualityStatus = (result: ProxyQualityCheckResult): Proxy['quality_status'] => {
@@ -1572,7 +1640,8 @@ const summarizeQualityStatus = (result: ProxyQualityCheckResult): Proxy['quality
 }
 
 const applyQualityResult = (proxyId: number, result: ProxyQualityCheckResult) => {
-  const target = proxies.value.find((proxy) => proxy.id === proxyId)
+  const target = latencySortRows.value?.find((proxy) => proxy.id === proxyId)
+    ?? proxies.value.find((proxy) => proxy.id === proxyId)
   if (!target) return
   target.quality_status = summarizeQualityStatus(result)
   target.quality_score = result.score

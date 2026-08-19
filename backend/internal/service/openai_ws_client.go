@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,6 +14,8 @@ import (
 
 	coderws "github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyurl"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 	openaiwsv2 "github.com/yuchen0x1/sub3api-relay/internal/service/openai_ws_v2"
 )
 
@@ -93,7 +95,9 @@ func (e *openAIWSHandshakeError) Unwrap() error {
 
 type openAIWSProxyClientEntry struct {
 	client           *http.Client
+	proxyCloser      io.Closer
 	lastUsedUnixNano int64
+	inFlight         int64
 }
 
 func (d *coderOpenAIWSClientDialer) Dial(
@@ -111,16 +115,19 @@ func (d *coderOpenAIWSClientDialer) Dial(
 		HTTPHeader:      cloneHeader(headers),
 		CompressionMode: coderws.CompressionContextTakeover,
 	}
+	var proxyEntry *openAIWSProxyClientEntry
 	if proxy := strings.TrimSpace(proxyURL); proxy != "" {
-		proxyClient, err := d.proxyHTTPClient(proxy)
+		proxyClient, entry, err := d.acquireProxyHTTPClient(proxy)
 		if err != nil {
 			return nil, 0, nil, err
 		}
 		opts.HTTPClient = proxyClient
+		proxyEntry = entry
 	}
 
 	conn, resp, err := coderws.Dial(ctx, targetURL, opts)
 	if err != nil {
+		d.releaseProxyHTTPClient(proxyEntry)
 		status := 0
 		respHeaders := http.Header(nil)
 		if resp != nil {
@@ -141,20 +148,33 @@ func (d *coderOpenAIWSClientDialer) Dial(
 	if resp != nil {
 		respHeaders = cloneHeader(resp.Header)
 	}
-	return &coderOpenAIWSClientConn{conn: conn}, 0, respHeaders, nil
+	return &coderOpenAIWSClientConn{
+		conn: conn,
+		onClose: func() {
+			d.releaseProxyHTTPClient(proxyEntry)
+		},
+	}, 0, respHeaders, nil
 }
 
 func (d *coderOpenAIWSClientDialer) proxyHTTPClient(proxy string) (*http.Client, error) {
+	client, _, err := d.getProxyHTTPClient(proxy, false)
+	return client, err
+}
+
+func (d *coderOpenAIWSClientDialer) acquireProxyHTTPClient(proxy string) (*http.Client, *openAIWSProxyClientEntry, error) {
+	return d.getProxyHTTPClient(proxy, true)
+}
+
+func (d *coderOpenAIWSClientDialer) getProxyHTTPClient(proxy string, acquire bool) (*http.Client, *openAIWSProxyClientEntry, error) {
 	if d == nil {
-		return nil, errors.New("openai ws dialer is nil")
+		return nil, nil, errors.New("openai ws dialer is nil")
 	}
-	normalizedProxy := strings.TrimSpace(proxy)
-	if normalizedProxy == "" {
-		return nil, errors.New("proxy url is empty")
-	}
-	parsedProxyURL, err := url.Parse(normalizedProxy)
+	normalizedProxy, parsedProxyURL, err := proxyurl.Parse(proxy)
 	if err != nil {
-		return nil, fmt.Errorf("invalid proxy url: %w", err)
+		return nil, nil, err
+	}
+	if parsedProxyURL == nil {
+		return nil, nil, errors.New("proxy url is empty")
 	}
 	now := time.Now().UnixNano()
 
@@ -162,26 +182,53 @@ func (d *coderOpenAIWSClientDialer) proxyHTTPClient(proxy string) (*http.Client,
 	defer d.proxyMu.Unlock()
 	if entry, ok := d.proxyClients[normalizedProxy]; ok && entry != nil && entry.client != nil {
 		entry.lastUsedUnixNano = now
+		if acquire {
+			entry.inFlight++
+		}
 		d.proxyHits.Add(1)
-		return entry.client, nil
+		return entry.client, entry, nil
 	}
 	d.cleanupProxyClientsLocked(now)
 	transport := &http.Transport{
-		Proxy:               http.ProxyURL(parsedProxyURL),
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
 		MaxIdleConns:        openAIWSProxyTransportMaxIdleConns,
 		MaxIdleConnsPerHost: openAIWSProxyTransportMaxIdleConnsPerHost,
 		IdleConnTimeout:     openAIWSProxyTransportIdleConnTimeout,
 		TLSHandshakeTimeout: 10 * time.Second,
 		ForceAttemptHTTP2:   true,
 	}
+	proxyCloser, err := proxyutil.ConfigureTransportProxyWithCloser(transport, parsedProxyURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("configure openai ws proxy transport: %w", err)
+	}
 	client := &http.Client{Transport: transport}
-	d.proxyClients[normalizedProxy] = &openAIWSProxyClientEntry{
+	entry := &openAIWSProxyClientEntry{
 		client:           client,
+		proxyCloser:      proxyCloser,
 		lastUsedUnixNano: now,
 	}
+	if acquire {
+		entry.inFlight = 1
+	}
+	d.proxyClients[normalizedProxy] = entry
 	d.ensureProxyClientCapacityLocked()
 	d.proxyMisses.Add(1)
-	return client, nil
+	return client, entry, nil
+}
+
+func (d *coderOpenAIWSClientDialer) releaseProxyHTTPClient(entry *openAIWSProxyClientEntry) {
+	if d == nil || entry == nil {
+		return
+	}
+	d.proxyMu.Lock()
+	if entry.inFlight > 0 {
+		entry.inFlight--
+	}
+	entry.lastUsedUnixNano = time.Now().UnixNano()
+	d.proxyMu.Unlock()
 }
 
 func (d *coderOpenAIWSClientDialer) cleanupProxyClientsLocked(nowUnixNano int64) {
@@ -198,9 +245,12 @@ func (d *coderOpenAIWSClientDialer) cleanupProxyClientsLocked(nowUnixNano int64)
 			delete(d.proxyClients, key)
 			continue
 		}
+		if entry.inFlight > 0 {
+			continue
+		}
 		lastUsed := time.Unix(0, entry.lastUsedUnixNano)
 		if now.Sub(lastUsed) > idleTTL {
-			closeOpenAIWSProxyClient(entry.client)
+			closeOpenAIWSProxyClientEntry(entry)
 			delete(d.proxyClients, key)
 		}
 	}
@@ -219,6 +269,9 @@ func (d *coderOpenAIWSClientDialer) ensureProxyClientCapacityLocked() {
 		var oldestLastUsed int64
 		hasOldest := false
 		for key, entry := range d.proxyClients {
+			if entry != nil && entry.inFlight > 0 {
+				continue
+			}
 			lastUsed := int64(0)
 			if entry != nil {
 				lastUsed = entry.lastUsedUnixNano
@@ -233,7 +286,7 @@ func (d *coderOpenAIWSClientDialer) ensureProxyClientCapacityLocked() {
 			return
 		}
 		if entry := d.proxyClients[oldestKey]; entry != nil {
-			closeOpenAIWSProxyClient(entry.client)
+			closeOpenAIWSProxyClientEntry(entry)
 		}
 		delete(d.proxyClients, oldestKey)
 	}
@@ -245,6 +298,16 @@ func closeOpenAIWSProxyClient(client *http.Client) {
 	}
 	if transport, ok := client.Transport.(*http.Transport); ok && transport != nil {
 		transport.CloseIdleConnections()
+	}
+}
+
+func closeOpenAIWSProxyClientEntry(entry *openAIWSProxyClientEntry) {
+	if entry == nil {
+		return
+	}
+	closeOpenAIWSProxyClient(entry.client)
+	if entry.proxyCloser != nil {
+		_ = entry.proxyCloser.Close()
 	}
 }
 
@@ -267,7 +330,9 @@ func (d *coderOpenAIWSClientDialer) SnapshotTransportMetrics() OpenAIWSTransport
 }
 
 type coderOpenAIWSClientConn struct {
-	conn *coderws.Conn
+	conn      *coderws.Conn
+	onClose   func()
+	closeOnce sync.Once
 }
 
 var _ openaiwsv2.FrameConn = (*coderOpenAIWSClientConn)(nil)
@@ -345,11 +410,17 @@ func (*coderOpenAIWSClientConn) SupportsIdlePingWithoutReader() bool {
 }
 
 func (c *coderOpenAIWSClientConn) Close() error {
-	if c == nil || c.conn == nil {
+	if c == nil {
 		return nil
 	}
-	// Close 为幂等，忽略重复关闭错误。
-	_ = c.conn.Close(coderws.StatusNormalClosure, "")
-	_ = c.conn.CloseNow()
+	c.closeOnce.Do(func() {
+		if c.conn != nil {
+			_ = c.conn.Close(coderws.StatusNormalClosure, "")
+			_ = c.conn.CloseNow()
+		}
+		if c.onClose != nil {
+			c.onClose()
+		}
+	})
 	return nil
 }

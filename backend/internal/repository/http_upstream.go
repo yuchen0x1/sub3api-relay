@@ -125,11 +125,32 @@ type openAIHTTP2Settings struct {
 // 记录客户端实例及其元数据，用于连接池管理和淘汰策略
 type upstreamClientEntry struct {
 	client       *http.Client // HTTP 客户端实例
+	proxyCloser  io.Closer    // stateful proxy client (for example Hysteria2)
 	proxyKey     string       // 代理标识（用于检测代理变更）
 	poolKey      string       // 连接池配置标识（用于检测配置变更）
 	protocolMode string       // 协议模式（default/openai_h1/openai_h2/openai_h1_fallback）
 	lastUsed     int64        // 最后使用时间戳（纳秒），用于 LRU 淘汰
 	inFlight     int64        // 当前进行中的请求数，>0 时不可淘汰
+	retired      atomic.Bool
+	cleanupOnce  sync.Once
+}
+
+func (e *upstreamClientEntry) closeProxy() {
+	if e == nil || e.proxyCloser == nil {
+		return
+	}
+	e.cleanupOnce.Do(func() { _ = e.proxyCloser.Close() })
+}
+
+func releaseUpstreamClientEntry(entry *upstreamClientEntry) {
+	if entry == nil {
+		return
+	}
+	remaining := atomic.AddInt64(&entry.inFlight, -1)
+	atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
+	if remaining == 0 && entry.retired.Load() {
+		entry.closeProxy()
+	}
 }
 
 type openAIHTTP2FallbackState struct {
@@ -218,8 +239,7 @@ func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID i
 	if err != nil {
 		s.recordOpenAIHTTP2Failure(profile, entry.protocolMode, entry.proxyKey, err)
 		// 请求失败，立即减少计数
-		atomic.AddInt64(&entry.inFlight, -1)
-		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
+		releaseUpstreamClientEntry(entry)
 		return nil, err
 	}
 	s.recordOpenAIHTTP2Success(profile, entry.protocolMode, entry.proxyKey)
@@ -230,8 +250,7 @@ func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID i
 	// 包装响应体，在关闭时自动减少计数并更新时间戳
 	// 这确保了流式响应（如 SSE）在完全读取前不会被淘汰
 	resp.Body = wrapTrackedBody(resp.Body, func() {
-		atomic.AddInt64(&entry.inFlight, -1)
-		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
+		releaseUpstreamClientEntry(entry)
 	})
 
 	return resp, nil
@@ -280,8 +299,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	client = httpClientWithGrokAccessDeniedFallback(client)
 	resp, err := servertiming.Do(client, req)
 	if err != nil {
-		atomic.AddInt64(&entry.inFlight, -1)
-		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
+		releaseUpstreamClientEntry(entry)
 		slog.Debug("tls_fingerprint_request_failed", "account_id", accountID, "error", err)
 		return nil, err
 	}
@@ -289,8 +307,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	decompressResponseBody(resp)
 
 	resp.Body = wrapTrackedBody(resp.Body, func() {
-		atomic.AddInt64(&entry.inFlight, -1)
-		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
+		releaseUpstreamClientEntry(entry)
 	})
 
 	return resp, nil
@@ -542,7 +559,7 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 
 	// 创建带 TLS 指纹的 Transport
 	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyKey)
-	transport, err := buildUpstreamTransportWithTLSFingerprint(settings, parsedProxy, profile)
+	transport, proxyCloser, err := buildUpstreamTransportWithTLSFingerprintManaged(settings, parsedProxy, profile)
 	if err != nil {
 		s.mu.Unlock()
 		return nil, fmt.Errorf("build TLS fingerprint transport: %w", err)
@@ -554,9 +571,10 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	entry := &upstreamClientEntry{
-		client:   client,
-		proxyKey: proxyKey,
-		poolKey:  poolKey,
+		client:      client,
+		proxyCloser: proxyCloser,
+		proxyKey:    proxyKey,
+		poolKey:     poolKey,
 	}
 	atomic.StoreInt64(&entry.lastUsed, nowUnix)
 	if markInFlight {
@@ -695,7 +713,7 @@ func (s *httpUpstreamService) getClientEntry(proxyURL string, accountID int64, a
 	}
 
 	// 缓存未命中或需要重建，创建新客户端
-	transport, err := buildUpstreamTransport(settings, parsedProxy, protocolMode)
+	transport, proxyCloser, err := buildUpstreamTransportManaged(settings, parsedProxy, protocolMode)
 	if err != nil {
 		s.mu.Unlock()
 		return nil, fmt.Errorf("build transport: %w", err)
@@ -706,6 +724,7 @@ func (s *httpUpstreamService) getClientEntry(proxyURL string, accountID int64, a
 	}
 	entry := &upstreamClientEntry{
 		client:       client,
+		proxyCloser:  proxyCloser,
 		proxyKey:     proxyKey,
 		poolKey:      poolKey,
 		protocolMode: protocolMode,
@@ -747,9 +766,13 @@ func (s *httpUpstreamService) shouldReuseEntry(entry *upstreamClientEntry, isola
 func (s *httpUpstreamService) removeClientLocked(key string, entry *upstreamClientEntry) {
 	delete(s.clients, key)
 	if entry != nil && entry.client != nil {
+		entry.retired.Store(true)
 		// 关闭空闲连接，释放系统资源
 		// 注意：这不会中断活跃连接
 		entry.client.CloseIdleConnections()
+		if atomic.LoadInt64(&entry.inFlight) == 0 {
+			entry.closeProxy()
+		}
 	}
 }
 
@@ -1193,12 +1216,17 @@ func normalizeProxyURL(raw string) (string, *url.URL, error) {
 	if parsed == nil {
 		return directProxyKey, nil, nil
 	}
-	// 规范化：小写 scheme/host，去除路径和查询参数
+	// 规范化：小写 scheme/host，去除路径。Hysteria2 的 query 是拨号配置
+	//（insecure/SNI），必须同时保留在缓存键和实际拨号 URL 中。
 	parsed.Scheme = strings.ToLower(parsed.Scheme)
 	parsed.Host = strings.ToLower(parsed.Host)
 	parsed.Path = ""
 	parsed.RawPath = ""
-	parsed.RawQuery = ""
+	if parsed.Scheme != "hysteria2" {
+		parsed.RawQuery = ""
+	} else {
+		parsed.RawQuery = parsed.Query().Encode()
+	}
 	parsed.Fragment = ""
 	parsed.ForceQuery = false
 	if hostname := parsed.Hostname(); hostname != "" {
@@ -1289,6 +1317,11 @@ func newUpstreamDialer() *net.Dialer {
 //   - IdleConnTimeout: 空闲连接超时（超时后关闭）
 //   - ResponseHeaderTimeout: 等待响应头超时（不影响流式传输）
 func buildUpstreamTransport(settings poolSettings, proxyURL *url.URL, protocolMode string) (*http.Transport, error) {
+	transport, _, err := buildUpstreamTransportManaged(settings, proxyURL, protocolMode)
+	return transport, err
+}
+
+func buildUpstreamTransportManaged(settings poolSettings, proxyURL *url.URL, protocolMode string) (*http.Transport, io.Closer, error) {
 	transport := &http.Transport{
 		DialContext:           newUpstreamDialer().DialContext,
 		TLSHandshakeTimeout:   defaultUpstreamTLSHandshakeTimeout,
@@ -1304,7 +1337,7 @@ func buildUpstreamTransport(settings poolSettings, proxyURL *url.URL, protocolMo
 		// 显式配置 http2 并启用 PING 健康探测，剔除代理/NAT 静默掐断的死连接，
 		// 避免请求挂在死连接上直到 TCP 重传超时（分钟级）。
 		if _, err := enableOpenAIHTTP2KeepAlive(transport); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	case upstreamProtocolModeOpenAIH1:
 		transport.ForceAttemptHTTP2 = false
@@ -1314,10 +1347,11 @@ func buildUpstreamTransport(settings poolSettings, proxyURL *url.URL, protocolMo
 		transport.ForceAttemptHTTP2 = false
 		transport.TLSNextProto = make(map[string]func(string, *tls.Conn) http.RoundTripper)
 	}
-	if err := proxyutil.ConfigureTransportProxy(transport, proxyURL); err != nil {
-		return nil, err
+	proxyCloser, err := proxyutil.ConfigureTransportProxyWithCloser(transport, proxyURL)
+	if err != nil {
+		return nil, nil, err
 	}
-	return transport, nil
+	return transport, proxyCloser, nil
 }
 
 // enableOpenAIHTTP2KeepAlive 在 http.Transport 上显式配置 HTTP/2 并启用连接健康探测。
@@ -1353,6 +1387,11 @@ func enableOpenAIHTTP2KeepAlive(transport *http.Transport) (*http2.Transport, er
 //   - http/https: HTTP 代理，使用 HTTPProxyDialer（CONNECT 隧道 + utls 握手）
 //   - socks5: SOCKS5 代理，使用 SOCKS5ProxyDialer（SOCKS5 隧道 + utls 握手）
 func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *url.URL, profile *tlsfingerprint.Profile) (*http.Transport, error) {
+	transport, _, err := buildUpstreamTransportWithTLSFingerprintManaged(settings, proxyURL, profile)
+	return transport, err
+}
+
+func buildUpstreamTransportWithTLSFingerprintManaged(settings poolSettings, proxyURL *url.URL, profile *tlsfingerprint.Profile) (*http.Transport, io.Closer, error) {
 	transport := &http.Transport{
 		MaxIdleConns:          settings.maxIdleConns,
 		MaxIdleConnsPerHost:   settings.maxIdleConnsPerHost,
@@ -1380,7 +1419,7 @@ func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *u
 		case "https":
 			// The fingerprint dialer emits a plaintext CONNECT preface and cannot
 			// establish TLS to an HTTPS proxy. Keep proxy routing via net/http.
-			return buildUpstreamTransport(settings, proxyURL, upstreamProtocolModeDefault)
+			return buildUpstreamTransportManaged(settings, proxyURL, upstreamProtocolModeDefault)
 		case "http":
 			// HTTP/HTTPS 代理：使用 HTTPProxyDialer（CONNECT 隧道）
 			slog.Debug("tls_fingerprint_transport_http_connect", "proxy", proxyURL.Host)
@@ -1389,13 +1428,15 @@ func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *u
 		default:
 			// 未知代理类型，回退到普通代理配置（无 TLS 指纹）
 			slog.Debug("tls_fingerprint_transport_unknown_scheme_fallback", "scheme", scheme)
-			if err := proxyutil.ConfigureTransportProxy(transport, proxyURL); err != nil {
-				return nil, err
+			proxyCloser, err := proxyutil.ConfigureTransportProxyWithCloser(transport, proxyURL)
+			if err != nil {
+				return nil, nil, err
 			}
+			return transport, proxyCloser, nil
 		}
 	}
 
-	return transport, nil
+	return transport, nil, nil
 }
 
 // trackedBody 带跟踪功能的响应体包装器

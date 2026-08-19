@@ -111,6 +111,57 @@ func TestCoderOpenAIWSClientDialer_ProxyTransportTLSHandshakeTimeout(t *testing.
 	require.Equal(t, 10*time.Second, transport.TLSHandshakeTimeout)
 }
 
+func TestCoderOpenAIWSClientDialer_Hysteria2UsesDialContextAndReusesClient(t *testing.T) {
+	dialer := newDefaultOpenAIWSClientDialer()
+	impl, ok := dialer.(*coderOpenAIWSClientDialer)
+	require.True(t, ok)
+	proxyURL := "hysteria2://token@127.0.0.1:443?insecure=1&sni=edge.example.com"
+
+	first, err := impl.proxyHTTPClient(proxyURL)
+	require.NoError(t, err)
+	second, err := impl.proxyHTTPClient(proxyURL)
+	require.NoError(t, err)
+	require.Same(t, first, second)
+
+	transport, ok := first.Transport.(*http.Transport)
+	require.True(t, ok)
+	require.Nil(t, transport.Proxy, "Hysteria2 must not be passed to net/http ProxyURL")
+	require.NotNil(t, transport.DialContext)
+
+	impl.proxyMu.Lock()
+	entry := impl.proxyClients[proxyURL]
+	impl.proxyMu.Unlock()
+	require.NotNil(t, entry)
+	require.NotNil(t, entry.proxyCloser)
+	closeOpenAIWSProxyClientEntry(entry)
+}
+
+func TestCoderOpenAIWSClientDialer_DoesNotEvictActiveHysteria2Client(t *testing.T) {
+	dialer := newDefaultOpenAIWSClientDialer()
+	impl, ok := dialer.(*coderOpenAIWSClientDialer)
+	require.True(t, ok)
+	proxyURL := "hysteria2://token@127.0.0.1:443?insecure=1"
+
+	_, entry, err := impl.acquireProxyHTTPClient(proxyURL)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), entry.inFlight)
+
+	impl.proxyMu.Lock()
+	entry.lastUsedUnixNano = time.Now().Add(-openAIWSProxyClientCacheIdleTTL - time.Minute).UnixNano()
+	impl.cleanupProxyClientsLocked(time.Now().UnixNano())
+	_, stillCached := impl.proxyClients[proxyURL]
+	impl.proxyMu.Unlock()
+	require.True(t, stillCached, "active WebSocket proxy transport must stay alive")
+
+	impl.releaseProxyHTTPClient(entry)
+	impl.proxyMu.Lock()
+	entry.lastUsedUnixNano = time.Now().Add(-openAIWSProxyClientCacheIdleTTL - time.Minute).UnixNano()
+	impl.cleanupProxyClientsLocked(time.Now().UnixNano())
+	_, stillCached = impl.proxyClients[proxyURL]
+	impl.proxyMu.Unlock()
+	require.False(t, stillCached, "idle Hysteria2 proxy transport should be reclaimed")
+}
+
 func TestCoderOpenAIWSClientConn_DoesNotSupportIdlePingWithoutReader(t *testing.T) {
 	require.False(t, (&coderOpenAIWSClientConn{}).SupportsIdlePingWithoutReader())
 }

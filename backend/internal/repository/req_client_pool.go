@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyurl"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
 
 	"github.com/imroc/req/v3"
@@ -52,11 +53,17 @@ func getSharedReqClient(opts reqClientOptions) (*req.Client, error) {
 	if opts.Impersonate {
 		client = client.ImpersonateChrome()
 	}
-	trimmed, _, err := proxyurl.Parse(opts.ProxyURL)
+	trimmed, parsed, err := proxyurl.Parse(opts.ProxyURL)
 	if err != nil {
 		return nil, err
 	}
-	if trimmed != "" {
+	if parsed != nil && strings.EqualFold(parsed.Scheme, "hysteria2") {
+		bridge := &http.Transport{}
+		if _, err := proxyutil.ConfigureTransportProxyWithCloser(bridge, parsed); err != nil {
+			return nil, err
+		}
+		client.SetDial(bridge.DialContext)
+	} else if trimmed != "" {
 		client.SetProxyURL(trimmed)
 	}
 	client = instrumentReqClient(client)

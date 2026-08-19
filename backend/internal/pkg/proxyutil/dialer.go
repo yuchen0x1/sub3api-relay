@@ -12,6 +12,7 @@ package proxyutil
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -41,6 +42,8 @@ var socks5ForwardDialer = &net.Dialer{
 	KeepAlive: socks5DialKeepAlive,
 }
 
+var newHysteria2Client = hyclient.NewReconnectableClient
+
 // ConfigureTransportProxy 根据代理 URL 配置 Transport
 //
 // 支持的协议：
@@ -55,20 +58,28 @@ var socks5ForwardDialer = &net.Dialer{
 // 返回：
 //   - error: 代理配置错误（协议不支持或 dialer 创建失败）
 func ConfigureTransportProxy(transport *http.Transport, proxyURL *url.URL) error {
+	_, err := ConfigureTransportProxyWithCloser(transport, proxyURL)
+	return err
+}
+
+// ConfigureTransportProxyWithCloser configures transport like ConfigureTransportProxy
+// and returns the lifetime handle for stateful proxy clients. Callers that cache
+// transports should close the handle when the transport is retired.
+func ConfigureTransportProxyWithCloser(transport *http.Transport, proxyURL *url.URL) (io.Closer, error) {
 	if proxyURL == nil {
-		return nil
+		return nil, nil
 	}
 
 	scheme := strings.ToLower(proxyURL.Scheme)
 	switch scheme {
 	case "http", "https":
 		transport.Proxy = http.ProxyURL(proxyURL)
-		return nil
+		return nil, nil
 
 	case "socks5", "socks5h":
 		dialer, err := proxy.FromURL(proxyURL, socks5ForwardDialer)
 		if err != nil {
-			return fmt.Errorf("create socks5 dialer: %w", err)
+			return nil, fmt.Errorf("create socks5 dialer: %w", err)
 		}
 		// 优先使用支持 context 的 DialContext，以支持请求取消和超时
 		if contextDialer, ok := dialer.(proxy.ContextDialer); ok {
@@ -80,25 +91,25 @@ func ConfigureTransportProxy(transport *http.Transport, proxyURL *url.URL) error
 				return dialer.Dial(network, addr)
 			}
 		}
-		return nil
+		return nil, nil
 
 	case "hysteria2":
-		dialContext, err := newHysteria2DialContext(proxyURL)
+		dialContext, client, err := newHysteria2DialContext(proxyURL)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		transport.Proxy = nil
 		transport.DialContext = dialContext
-		return nil
+		return client, nil
 
 	default:
-		return fmt.Errorf("unsupported proxy scheme: %s", scheme)
+		return nil, fmt.Errorf("unsupported proxy scheme: %s", scheme)
 	}
 }
 
-func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, string) (net.Conn, error), error) {
+func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, string) (net.Conn, error), io.Closer, error) {
 	if proxyURL == nil || proxyURL.Hostname() == "" {
-		return nil, fmt.Errorf("hysteria2 proxy missing host")
+		return nil, nil, fmt.Errorf("hysteria2 proxy missing host")
 	}
 	port := proxyURL.Port()
 	if port == "" {
@@ -116,7 +127,7 @@ func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, s
 		switch key {
 		case "insecure", "sni":
 		default:
-			return nil, fmt.Errorf("unsupported hysteria2 option: %s", key)
+			return nil, nil, fmt.Errorf("unsupported hysteria2 option: %s", key)
 		}
 	}
 	insecure := false
@@ -124,7 +135,7 @@ func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, s
 		var err error
 		insecure, err = strconv.ParseBool(raw)
 		if err != nil {
-			return nil, fmt.Errorf("invalid hysteria2 insecure option")
+			return nil, nil, fmt.Errorf("invalid hysteria2 insecure option")
 		}
 	}
 	serverName := strings.TrimSpace(query.Get("sni"))
@@ -132,7 +143,7 @@ func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, s
 		serverName = proxyURL.Hostname()
 	}
 	serverAddress := net.JoinHostPort(proxyURL.Hostname(), port)
-	client, err := hyclient.NewReconnectableClient(func() (*hyclient.Config, error) {
+	client, err := newHysteria2Client(func() (*hyclient.Config, error) {
 		resolved, err := net.ResolveUDPAddr("udp", serverAddress)
 		if err != nil {
 			return nil, fmt.Errorf("resolve hysteria2 server: %w", err)
@@ -147,7 +158,7 @@ func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, s
 		}, nil
 	}, nil, true)
 	if err != nil {
-		return nil, fmt.Errorf("create hysteria2 client: %w", err)
+		return nil, nil, fmt.Errorf("create hysteria2 client: %w", err)
 	}
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		if network != "tcp" && network != "tcp4" && network != "tcp6" {
@@ -172,7 +183,10 @@ func newHysteria2DialContext(proxyURL *url.URL) (func(context.Context, string, s
 			}()
 			return nil, ctx.Err()
 		case result := <-resultCh:
-			return result.conn, result.err
+			if result.err != nil {
+				return nil, fmt.Errorf("hysteria2 dial %s: %w", addr, result.err)
+			}
+			return result.conn, nil
 		}
-	}, nil
+	}, client, nil
 }
