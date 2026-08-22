@@ -101,7 +101,7 @@ func (p *BarkAlertProvider) Send(ctx context.Context, msg AlertNotificationMessa
 	if err != nil {
 		return fmt.Errorf("bark: send: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("bark: unexpected status %d", resp.StatusCode)
 	}
@@ -185,7 +185,7 @@ func (p *WebhookAlertProvider) Send(ctx context.Context, msg AlertNotificationMe
 	if err != nil {
 		return fmt.Errorf("webhook: send: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("webhook: unexpected status %d", resp.StatusCode)
 	}

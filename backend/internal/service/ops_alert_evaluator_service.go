@@ -897,9 +897,6 @@ func buildOpsAlertEmailBody(rule *OpsAlertRule, event *OpsAlertEvent) string {
 	)
 }
 
-func shouldSendOpsAlertEmailByMinSeverity(minSeverity string, ruleSeverity string) bool {
-	return shouldSendOpsAlertByMinSeverity(minSeverity, ruleSeverity)
-}
 
 // shouldSendOpsAlertByMinSeverity 判断告警严重度是否达到渠道配置的最低等级。
 // 空 minSeverity 表示不限制；P0→critical、P1→warning、其余→info。
