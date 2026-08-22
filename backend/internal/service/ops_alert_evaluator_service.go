@@ -31,8 +31,18 @@ end
 return 0
 `)
 
+// opsAlertEvaluatorOpsService 是评估器对 OpsService 的最小依赖接口，
+// 便于单元测试注入轻量 stub，避免拉起完整 OpsService 依赖链。
+type opsAlertEvaluatorOpsService interface {
+	GetOpsAlertRuntimeSettings(ctx context.Context) (*OpsAlertRuntimeSettings, error)
+	IsMonitoringEnabled(ctx context.Context) bool
+	IsAlertSilenced(ctx context.Context, ruleID int64, platform string, groupID *int64, region *string, now time.Time) (bool, error)
+	GetEmailNotificationConfig(ctx context.Context) (*OpsEmailNotificationConfig, error)
+	GetAccountAvailability(ctx context.Context, platform string, groupID *int64) (*OpsAccountAvailability, error)
+}
+
 type OpsAlertEvaluatorService struct {
-	opsService   *OpsService
+	opsService   opsAlertEvaluatorOpsService
 	opsRepo      OpsRepository
 	emailService *EmailService
 	proxyRepo    ProxyRepository
@@ -50,6 +60,11 @@ type OpsAlertEvaluatorService struct {
 	ruleStates map[int64]*opsAlertRuleState
 
 	emailLimiter *slidingWindowLimiter
+	barkLimiter  *slidingWindowLimiter
+	webhookLmt   *slidingWindowLimiter
+
+	barkProvider    *BarkAlertProvider
+	webhookProvider *WebhookAlertProvider
 
 	skipLogMu sync.Mutex
 	skipLogAt time.Time
@@ -63,7 +78,7 @@ type opsAlertRuleState struct {
 }
 
 func NewOpsAlertEvaluatorService(
-	opsService *OpsService,
+	opsService opsAlertEvaluatorOpsService,
 	opsRepo OpsRepository,
 	emailService *EmailService,
 	redisClient *redis.Client,
@@ -80,6 +95,11 @@ func NewOpsAlertEvaluatorService(
 		instanceID:   uuid.NewString(),
 		ruleStates:   map[int64]*opsAlertRuleState{},
 		emailLimiter: newSlidingWindowLimiter(0, time.Hour),
+		barkLimiter:  newSlidingWindowLimiter(0, time.Hour),
+		webhookLmt:   newSlidingWindowLimiter(0, time.Hour),
+
+		barkProvider:    NewBarkAlertProvider(),
+		webhookProvider: NewWebhookAlertProvider(),
 	}
 }
 
@@ -292,7 +312,7 @@ func (s *OpsAlertEvaluatorService) evaluateOnce(interval time.Duration) {
 
 			eventsCreated++
 			if created != nil && created.ID > 0 {
-				if s.maybeSendAlertEmail(ctx, runtimeCfg, rule, created) {
+				if s.maybeDispatchAlert(ctx, runtimeCfg, rule, created) {
 					emailsSent++
 				}
 			}
@@ -675,26 +695,21 @@ func buildOpsAlertDescription(rule *OpsAlertRule, value float64, windowMinutes i
 	)
 }
 
-func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runtimeCfg *OpsAlertRuntimeSettings, rule *OpsAlertRule, event *OpsAlertEvent) bool {
-	if s == nil || s.emailService == nil || s.opsService == nil || event == nil || rule == nil {
+func (s *OpsAlertEvaluatorService) maybeDispatchAlert(ctx context.Context, runtimeCfg *OpsAlertRuntimeSettings, rule *OpsAlertRule, event *OpsAlertEvent) bool {
+	if s == nil || s.opsService == nil || event == nil || rule == nil {
 		return false
 	}
 	if event.EmailSent {
 		return false
 	}
-	if !rule.NotifyEmail {
-		return false
-	}
 
 	emailCfg, err := s.opsService.GetEmailNotificationConfig(ctx)
-	if err != nil || emailCfg == nil || !emailCfg.Alert.Enabled {
+	if err != nil || emailCfg == nil {
 		return false
 	}
-
-	if len(emailCfg.Alert.Recipients) == 0 {
-		return false
-	}
-	if !shouldSendOpsAlertEmailByMinSeverity(strings.TrimSpace(emailCfg.Alert.MinSeverity), strings.TrimSpace(rule.Severity)) {
+	// 邮件通知仍受规则开关控制；Bark / Webhook 作为补充渠道，
+	// 只要任一渠道启用即可分发（无需规则勾选邮件）。
+	if !rule.NotifyEmail && !emailCfg.Channels.Bark.Enabled && !emailCfg.Channels.Webhook.Enabled {
 		return false
 	}
 
@@ -702,6 +717,30 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 		if isOpsAlertSilenced(time.Now().UTC(), rule, event, runtimeCfg.Silencing) {
 			return false
 		}
+	}
+
+	now := time.Now().UTC()
+	msg := buildAlertNotificationMessage(rule, event)
+	anySent := s.sendAlertByEmail(ctx, emailCfg, rule, event, msg, now)
+	anySent = s.sendAlertByBark(ctx, emailCfg, rule, msg, now) || anySent
+	anySent = s.sendAlertByWebhook(ctx, emailCfg, rule, msg, now) || anySent
+
+	if anySent && s.opsRepo != nil {
+		_ = s.opsRepo.UpdateAlertEventEmailSent(context.Background(), event.ID, true)
+	}
+	return anySent
+}
+
+// sendAlertByEmail 按邮件渠道配置发送告警（保留原有行为与限流语义）。
+func (s *OpsAlertEvaluatorService) sendAlertByEmail(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, event *OpsAlertEvent, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Alert.Enabled {
+		return false
+	}
+	if len(emailCfg.Alert.Recipients) == 0 {
+		return false
+	}
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(emailCfg.Alert.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
 	}
 
 	// Apply/update rate limiter.
@@ -716,7 +755,7 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 		if addr == "" {
 			continue
 		}
-		if !s.emailLimiter.Allow(time.Now().UTC()) {
+		if !s.emailLimiter.Allow(now) {
 			continue
 		}
 		if s.emailService.notificationEmailService != nil {
@@ -740,11 +779,49 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 		}
 		anySent = true
 	}
-
-	if anySent {
-		_ = s.opsRepo.UpdateAlertEventEmailSent(context.Background(), event.ID, true)
-	}
 	return anySent
+}
+
+// sendAlertByBark 按 Bark 渠道配置发送告警。
+func (s *OpsAlertEvaluatorService) sendAlertByBark(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Channels.Bark.Enabled || s.barkProvider == nil {
+		return false
+	}
+	barkCfg := emailCfg.Channels.Bark
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(barkCfg.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
+	}
+	s.barkLimiter.SetLimit(barkCfg.RateLimitPerHour)
+	if !s.barkLimiter.Allow(now) {
+		return false
+	}
+	s.barkProvider.SetConfig(barkCfg)
+	if err := s.barkProvider.Send(ctx, msg); err != nil {
+		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] bark notify failed (rule=%d): %v", rule.ID, err)
+		return false
+	}
+	return true
+}
+
+// sendAlertByWebhook 按通用 Webhook 渠道配置发送告警。
+func (s *OpsAlertEvaluatorService) sendAlertByWebhook(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Channels.Webhook.Enabled || s.webhookProvider == nil {
+		return false
+	}
+	webhookCfg := emailCfg.Channels.Webhook
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(webhookCfg.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
+	}
+	s.webhookLmt.SetLimit(webhookCfg.RateLimitPerHour)
+	if !s.webhookLmt.Allow(now) {
+		return false
+	}
+	s.webhookProvider.SetConfig(webhookCfg)
+	if err := s.webhookProvider.Send(ctx, msg); err != nil {
+		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] webhook notify failed (rule=%d): %v", rule.ID, err)
+		return false
+	}
+	return true
 }
 
 func opsAlertEmailVariables(rule *OpsAlertRule, event *OpsAlertEvent) map[string]string {
@@ -821,6 +898,12 @@ func buildOpsAlertEmailBody(rule *OpsAlertRule, event *OpsAlertEvent) string {
 }
 
 func shouldSendOpsAlertEmailByMinSeverity(minSeverity string, ruleSeverity string) bool {
+	return shouldSendOpsAlertByMinSeverity(minSeverity, ruleSeverity)
+}
+
+// shouldSendOpsAlertByMinSeverity 判断告警严重度是否达到渠道配置的最低等级。
+// 空 minSeverity 表示不限制；P0→critical、P1→warning、其余→info。
+func shouldSendOpsAlertByMinSeverity(minSeverity string, ruleSeverity string) bool {
 	minSeverity = strings.ToLower(strings.TrimSpace(minSeverity))
 	if minSeverity == "" {
 		return true

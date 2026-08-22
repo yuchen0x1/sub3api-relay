@@ -49,6 +49,10 @@ async function saveConfig() {
   }
   saving.value = true
   try {
+    if (draft.value.channels?.webhook) {
+      const raw = (draft.value.channels.webhook as any).headers_raw || ''
+      draft.value.channels.webhook.headers = stringToHeaders(raw)
+    }
     config.value = await opsAPI.updateEmailNotificationConfig(draft.value)
     showEditor.value = false
     appStore.showSuccess(t('admin.ops.email.saveSuccess'))
@@ -60,9 +64,47 @@ async function saveConfig() {
   }
 }
 
+function normalizeChannelsDraft(draft: EmailNotificationConfig) {
+  if (!draft.channels) {
+    draft.channels = {
+      bark: { enabled: false, server_url: '', key: '', min_severity: '', rate_limit_per_hour: 0 },
+      webhook: { enabled: false, url: '', headers: {}, min_severity: '', rate_limit_per_hour: 0 }
+    }
+  }
+  if (!draft.channels.bark) {
+    draft.channels.bark = { enabled: false, server_url: '', key: '', min_severity: '', rate_limit_per_hour: 0 }
+  }
+  if (!draft.channels.webhook) {
+    draft.channels.webhook = { enabled: false, url: '', headers: {}, min_severity: '', rate_limit_per_hour: 0 }
+  }
+  if (!draft.channels.webhook.headers) {
+    draft.channels.webhook.headers = {}
+  }
+  ;(draft.channels.webhook as any).headers_raw = headersToString(draft.channels.webhook.headers)
+  return draft
+}
+
+function headersToString(headers: Record<string, string>): string {
+  return Object.entries(headers || {})
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n')
+}
+
+function stringToHeaders(raw: string): Record<string, string> {
+  const headers: Record<string, string> = {}
+  for (const line of (raw || '').split(/\r?\n/)) {
+    const idx = line.indexOf(':')
+    if (idx <= 0) continue
+    const key = line.slice(0, idx).trim()
+    const value = line.slice(idx + 1).trim()
+    if (key) headers[key] = value
+  }
+  return headers
+}
+
 function openEditor() {
   if (!config.value) return
-  draft.value = JSON.parse(JSON.stringify(config.value))
+  draft.value = normalizeChannelsDraft(JSON.parse(JSON.stringify(config.value)))
   alertRecipientInput.value = ''
   reportRecipientInput.value = ''
   alertRecipientError.value = ''
@@ -249,6 +291,24 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
+        <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.channelsTitle') }}</h4>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            Bark:
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+              {{ config.channels?.bark?.enabled ? t('common.enabled') : t('common.disabled') }}
+            </span>
+          </div>
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            Webhook:
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+              {{ config.channels?.webhook?.enabled ? t('common.enabled') : t('common.disabled') }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -427,6 +487,38 @@ onMounted(() => {
             <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.email.reportHint') }}</div>
           </div>
         </div>
+      </div>
+      <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
+        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.channelsTitle') }}</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Bark</div>
+            <label class="mb-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="draft.channels.bark.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300" />
+              <span>{{ draft.channels.bark.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+            </label>
+            <input v-model="draft.channels.bark.server_url" type="text" class="input mb-2" :placeholder="t('admin.ops.email.barkServerUrl')" />
+            <input v-model="draft.channels.bark.key" type="text" class="input mb-2" :placeholder="t('admin.ops.email.barkKey')" />
+            <div class="grid grid-cols-2 gap-2">
+              <Select v-model="draft.channels.bark.min_severity" :options="severityOptions" />
+              <input v-model.number="draft.channels.bark.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
+            </div>
+          </div>
+          <div>
+            <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Webhook</div>
+            <label class="mb-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="draft.channels.webhook.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300" />
+              <span>{{ draft.channels.webhook.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+            </label>
+            <input v-model="draft.channels.webhook.url" type="text" class="input mb-2" :placeholder="t('admin.ops.email.webhookUrl')" />
+            <input v-model="draft.channels.webhook.headers_raw" type="text" class="input mb-2" :placeholder="t('admin.ops.email.webhookHeaders')" />
+            <div class="grid grid-cols-2 gap-2">
+              <Select v-model="draft.channels.webhook.min_severity" :options="severityOptions" />
+              <input v-model.number="draft.channels.webhook.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
+            </div>
+          </div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.email.channelsHint') }}</p>
       </div>
     </div>
     <template #footer>

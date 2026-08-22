@@ -728,6 +728,22 @@ export interface AlertEvent {
 }
 
 export interface EmailNotificationConfig {
+  channels: {
+    bark: {
+      enabled: boolean
+      server_url: string
+      key: string
+      min_severity: AlertSeverity | ''
+      rate_limit_per_hour: number
+    }
+    webhook: {
+      enabled: boolean
+      url: string
+      headers: Record<string, string>
+      min_severity: AlertSeverity | ''
+      rate_limit_per_hour: number
+    }
+  }
   alert: {
     enabled: boolean
     recipients: string[]
@@ -789,6 +805,10 @@ export interface OpsOpenAIAccountQuotaAutoPauseSettings {
 
 export interface OpsAdvancedSettings {
   data_retention: OpsDataRetentionSettings
+  channel_monitor_auto_disable: {
+    enabled: boolean
+    consecutive_failures: number
+  }
   aggregation: OpsAggregationSettings
   openai_account_quota_auto_pause: OpsOpenAIAccountQuotaAutoPauseSettings
   ignore_count_tokens_errors: boolean

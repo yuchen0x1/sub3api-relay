@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 )
 
 const (
@@ -75,6 +77,10 @@ func (s *OpsService) UpdateEmailNotificationConfig(ctx context.Context, req *Ops
 		cfg.Alert.IncludeResolvedAlerts = req.Alert.IncludeResolvedAlerts
 	}
 
+	if req.Channels != nil {
+		cfg.Channels = *req.Channels
+	}
+
 	if req.Report != nil {
 		cfg.Report.Enabled = req.Report.Enabled
 		if req.Report.Recipients != nil {
@@ -117,6 +123,20 @@ func defaultOpsEmailNotificationConfig() *OpsEmailNotificationConfig {
 			BatchingWindowSeconds: 0,
 			IncludeResolvedAlerts: false,
 		},
+		Channels: OpsNotificationChannelsConfig{
+			Bark: OpsBarkNotificationConfig{
+				Enabled:     false,
+				ServerURL:   "",
+				Key:         "",
+				MinSeverity: "",
+			},
+			Webhook: OpsWebhookNotificationConfig{
+				Enabled:     false,
+				URL:         "",
+				Headers:     map[string]string{},
+				MinSeverity: "",
+			},
+		},
 		Report: OpsEmailReportConfig{
 			Enabled:                         false,
 			Recipients:                      []string{},
@@ -144,6 +164,8 @@ func normalizeOpsEmailNotificationConfig(cfg *OpsEmailNotificationConfig) {
 	if cfg.Report.Recipients == nil {
 		cfg.Report.Recipients = []string{}
 	}
+
+	normalizeOpsNotificationChannels(&cfg.Channels)
 
 	cfg.Alert.MinSeverity = strings.TrimSpace(cfg.Alert.MinSeverity)
 	cfg.Report.DailySummarySchedule = strings.TrimSpace(cfg.Report.DailySummarySchedule)
@@ -189,7 +211,68 @@ func validateOpsEmailNotificationConfig(cfg *OpsEmailNotificationConfig) error {
 	if cfg.Report.AccountHealthErrorRateThreshold < 0 || cfg.Report.AccountHealthErrorRateThreshold > 100 {
 		return errors.New("report.account_health_error_rate_threshold must be between 0 and 100")
 	}
+	if err := validateOpsNotificationChannels(&cfg.Channels); err != nil {
+		return err
+	}
 	return nil
+}
+
+// normalizeOpsNotificationChannels 归一化 Bark / Webhook 渠道配置。
+func normalizeOpsNotificationChannels(ch *OpsNotificationChannelsConfig) {
+	if ch == nil {
+		return
+	}
+	ch.Bark.ServerURL = strings.TrimSpace(ch.Bark.ServerURL)
+	ch.Bark.Key = strings.TrimSpace(ch.Bark.Key)
+	ch.Bark.MinSeverity = strings.TrimSpace(ch.Bark.MinSeverity)
+	ch.Webhook.URL = strings.TrimSpace(ch.Webhook.URL)
+	ch.Webhook.MinSeverity = strings.TrimSpace(ch.Webhook.MinSeverity)
+	if ch.Webhook.Headers == nil {
+		ch.Webhook.Headers = map[string]string{}
+	}
+}
+
+// validateOpsNotificationChannels 校验渠道配置：启用的渠道必须有完整的目标地址与合法 severity。
+func validateOpsNotificationChannels(ch *OpsNotificationChannelsConfig) error {
+	if ch == nil {
+		return nil
+	}
+	if ch.Bark.Enabled {
+		if strings.TrimSpace(ch.Bark.Key) == "" {
+			return errors.New("channels.bark.key is required when bark enabled")
+		}
+		if err := validateOpsNotificationMinSeverity(ch.Bark.MinSeverity, "channels.bark.min_severity"); err != nil {
+			return err
+		}
+		if ch.Bark.RateLimitPerHour < 0 {
+			return errors.New("channels.bark.rate_limit_per_hour must be >= 0")
+		}
+	}
+	if ch.Webhook.Enabled {
+		if strings.TrimSpace(ch.Webhook.URL) == "" {
+			return errors.New("channels.webhook.url is required when webhook enabled")
+		}
+		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(ch.Webhook.URL)), "http://") &&
+			!strings.HasPrefix(strings.ToLower(strings.TrimSpace(ch.Webhook.URL)), "https://") {
+			return errors.New("channels.webhook.url must start with http:// or https://")
+		}
+		if err := validateOpsNotificationMinSeverity(ch.Webhook.MinSeverity, "channels.webhook.min_severity"); err != nil {
+			return err
+		}
+		if ch.Webhook.RateLimitPerHour < 0 {
+			return errors.New("channels.webhook.rate_limit_per_hour must be >= 0")
+		}
+	}
+	return nil
+}
+
+func validateOpsNotificationMinSeverity(value string, field string) error {
+	switch strings.TrimSpace(value) {
+	case "", "critical", "warning", "info":
+		return nil
+	default:
+		return fmt.Errorf("%s must be one of: critical, warning, info, or empty", field)
+	}
 }
 
 // =========================
@@ -369,6 +452,10 @@ func defaultOpsAdvancedSettings() *OpsAdvancedSettings {
 		Aggregation: OpsAggregationSettings{
 			AggregationEnabled: false,
 		},
+		ChannelMonitorAutoDisable: OpsChannelMonitorAutoDisableSettings{
+			Enabled:             false,
+			ConsecutiveFailures: 3,
+		},
 		OpenAIAccountQuotaAutoPause:     OpsOpenAIAccountQuotaAutoPauseSettings{},
 		IgnoreCountTokensErrors:         true,  // count_tokens 404 是预期行为，默认忽略
 		IgnoreContextCanceled:           true,  // Default to true - client disconnects are not errors
@@ -390,6 +477,9 @@ func normalizeOpsAdvancedSettings(cfg *OpsAdvancedSettings) {
 	// request-error category. Keep the legacy field true for old clients but do
 	// not allow it to re-enable those rows.
 	cfg.IgnoreInvalidApiKeyErrors = true
+	if cfg.ChannelMonitorAutoDisable.ConsecutiveFailures < 1 {
+		cfg.ChannelMonitorAutoDisable.ConsecutiveFailures = 3
+	}
 	cfg.OpenAIAccountQuotaAutoPause.DefaultThreshold5h = clampOpsQuotaAutoPauseThreshold(cfg.OpenAIAccountQuotaAutoPause.DefaultThreshold5h)
 	cfg.OpenAIAccountQuotaAutoPause.DefaultThreshold7d = clampOpsQuotaAutoPauseThreshold(cfg.OpenAIAccountQuotaAutoPause.DefaultThreshold7d)
 	cfg.DataRetention.CleanupSchedule = strings.TrimSpace(cfg.DataRetention.CleanupSchedule)
@@ -440,6 +530,14 @@ func validateOpsAdvancedSettings(cfg *OpsAdvancedSettings) error {
 	if cfg.AutoRefreshIntervalSec < 15 || cfg.AutoRefreshIntervalSec > 300 {
 		return errors.New("auto_refresh_interval_seconds must be between 15 and 300")
 	}
+	if cfg.ChannelMonitorAutoDisable.Enabled {
+		if cfg.ChannelMonitorAutoDisable.ConsecutiveFailures < 1 {
+			return errors.New("channel_monitor_auto_disable.consecutive_failures must be >= 1 when enabled")
+		}
+		if cfg.ChannelMonitorAutoDisable.ConsecutiveFailures > 1000 {
+			return errors.New("channel_monitor_auto_disable.consecutive_failures must be <= 1000")
+		}
+	}
 	return nil
 }
 
@@ -447,6 +545,11 @@ func (s *OpsService) GetOpsAdvancedSettings(ctx context.Context) (*OpsAdvancedSe
 	_ = ctx
 	cfg := s.OpsAdvancedSettingsSnapshot()
 	return &cfg, nil
+}
+
+// ChannelMonitorAutoDisableSettings 返回渠道监控自动禁用配置（快照，热路径读取）。
+func (s *OpsService) ChannelMonitorAutoDisableSettings() OpsChannelMonitorAutoDisableSettings {
+	return s.OpsAdvancedSettingsSnapshot().ChannelMonitorAutoDisable
 }
 
 // OpsAdvancedSettingsSnapshot returns a value copy for request hot paths. It

@@ -54,6 +54,9 @@ async function loadAllSettings() {
     if (advancedSettings.value && !advancedSettings.value.openai_account_quota_auto_pause) {
       advancedSettings.value.openai_account_quota_auto_pause = { default_threshold_5h: 0, default_threshold_7d: 0 }
     }
+    if (advancedSettings.value && !advancedSettings.value.channel_monitor_auto_disable) {
+      advancedSettings.value.channel_monitor_auto_disable = { enabled: false, consecutive_failures: 3 }
+    }
     // 如果后端返回了阈值，使用后端的值；否则保持默认值
     if (thresholds && Object.keys(thresholds).length > 0) {
         metricThresholds.value = {
@@ -175,6 +178,11 @@ const validation = computed(() => {
     const { default_threshold_5h, default_threshold_7d } = advancedSettings.value.openai_account_quota_auto_pause
     if (default_threshold_5h < 0 || default_threshold_5h > 1 || default_threshold_7d < 0 || default_threshold_7d > 1) {
       errors.push(t('admin.ops.settings.validation.openaiQuotaAutoPauseRange'))
+    }
+
+    const autoDisable = advancedSettings.value.channel_monitor_auto_disable
+    if (autoDisable?.enabled && (!Number.isInteger(autoDisable.consecutive_failures) || autoDisable.consecutive_failures < 1 || autoDisable.consecutive_failures > 1000)) {
+      errors.push(t('admin.ops.settings.validation.channelAutoDisableRange'))
     }
   }
 
@@ -501,6 +509,28 @@ async function saveAllSettings() {
                 <p class="mt-1 text-xs text-gray-500">{{ t('admin.ops.settings.aggregationHint') }}</p>
               </div>
               <Toggle v-model="advancedSettings.aggregation.aggregation_enabled" />
+            </div>
+          </div>
+
+          <!-- 渠道监控自动禁用 -->
+          <div class="space-y-3">
+            <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.ops.settings.channelAutoDisable') }}</h5>
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.ops.settings.enableChannelAutoDisable') }}</label>
+                <p class="mt-1 text-xs text-gray-500">{{ t('admin.ops.settings.channelAutoDisableHint') }}</p>
+              </div>
+              <Toggle v-model="advancedSettings.channel_monitor_auto_disable.enabled" />
+            </div>
+            <div v-if="advancedSettings.channel_monitor_auto_disable.enabled">
+              <label class="input-label">{{ t('admin.ops.settings.channelAutoDisableThreshold') }}</label>
+              <input
+                v-model.number="advancedSettings.channel_monitor_auto_disable.consecutive_failures"
+                type="number"
+                min="1"
+                max="1000"
+                class="input"
+              />
             </div>
           </div>
 

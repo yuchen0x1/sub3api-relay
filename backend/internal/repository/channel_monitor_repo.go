@@ -208,6 +208,16 @@ func (r *channelMonitorRepository) ListEnabled(ctx context.Context) ([]*service.
 	return out, nil
 }
 
+func (r *channelMonitorRepository) SetEnabled(ctx context.Context, id int64, enabled bool) error {
+	client := clientFromContext(ctx, r.client)
+	if err := client.ChannelMonitor.UpdateOneID(id).
+		SetEnabled(enabled).
+		Exec(ctx); err != nil {
+		return translatePersistenceError(err, service.ErrChannelMonitorNotFound, nil)
+	}
+	return nil
+}
+
 func (r *channelMonitorRepository) MarkChecked(ctx context.Context, id int64, checkedAt time.Time) error {
 	client := clientFromContext(ctx, r.client)
 	if err := client.ChannelMonitor.UpdateOneID(id).

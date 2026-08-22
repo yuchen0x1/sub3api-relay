@@ -645,6 +645,12 @@ export default {
         accountHealthThreshold: '错误率阈值（%）',
         cronPlaceholder: 'Cron 表达式',
         reportHint: '发送时间使用 Cron 语法；留空将使用默认值。',
+        channelsTitle: '额外通知渠道',
+        channelsHint: '告警事件除邮件外还可推送到 Bark 或通用 Webhook；渠道启用后即使规则未勾选邮件也会收到通知。',
+        barkServerUrl: 'Bark 服务器地址（留空用官方 api.day.app）',
+        barkKey: 'Bark Key',
+        webhookUrl: 'Webhook URL',
+        webhookHeaders: '自定义请求头，每行一个：Key: Value',
         validation: {
           title: '请先修正以下问题',
           invalid: '邮件通知配置不合法',
@@ -700,6 +706,10 @@ export default {
         aggregation: '预聚合任务',
         enableAggregation: '启用预聚合任务',
         aggregationHint: '预聚合可提升长时间窗口查询性能',
+        channelAutoDisable: '渠道监控自动禁用',
+        enableChannelAutoDisable: '启用自动禁用',
+        channelAutoDisableHint: '健康检查连续 N 轮整体失败后自动把渠道置为 disabled（与冷却策略的区别见 docs/CHANNEL_MONITOR.md）。默认关闭。',
+        channelAutoDisableThreshold: '连续失败轮数',
         openaiQuotaAutoPause: 'OpenAI 账号配额自动暂停',
         openaiQuotaAutoPauseHint: '当 OpenAI 账号 5h / 7d 用量达到阈值时，调度会自动跳过该账号；窗口滚动后自动恢复。账号级阈值优先于此全局默认值。',
         openaiQuotaAutoPauseDefault5h: '默认 5h 用量阈值 (%)',
@@ -735,7 +745,8 @@ export default {
           ttftP99MaxRange: 'TTFT P99最大值必须大于等于0',
           requestErrorRateMaxRange: '请求错误率最大值必须在0-100之间',
           upstreamErrorRateMaxRange: '上游错误率最大值必须在0-100之间',
-          openaiQuotaAutoPauseRange: 'OpenAI 配额自动暂停阈值必须在 0-100 之间'
+          openaiQuotaAutoPauseRange: 'OpenAI 配额自动暂停阈值必须在 0-100 之间',
+          channelAutoDisableRange: '连续失败轮数必须为 1-1000 的整数'
         }
       },
       concurrency: {

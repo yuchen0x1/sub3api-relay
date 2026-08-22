@@ -5,6 +5,8 @@ package service
 type OpsEmailNotificationConfig struct {
 	Alert  OpsEmailAlertConfig  `json:"alert"`
 	Report OpsEmailReportConfig `json:"report"`
+	// Channels 额外通知渠道（Bark / 通用 Webhook），邮件仍由 Alert/Report 管理。
+	Channels OpsNotificationChannelsConfig `json:"channels"`
 }
 
 type OpsEmailAlertConfig struct {
@@ -36,6 +38,8 @@ type OpsEmailReportConfig struct {
 type OpsEmailNotificationConfigUpdateRequest struct {
 	Alert  *OpsEmailAlertConfig  `json:"alert"`
 	Report *OpsEmailReportConfig `json:"report"`
+	// Channels 允许部分更新额外通知渠道；为 nil 表示保持现状。
+	Channels *OpsNotificationChannelsConfig `json:"channels"`
 }
 
 type OpsDistributedLockSettings struct {
@@ -91,8 +95,15 @@ type OpsAlertRuntimeSettings struct {
 }
 
 // OpsAdvancedSettings stores advanced ops configuration (data retention, aggregation).
+// OpsChannelMonitorAutoDisableSettings 渠道健康检查连续失败自动禁用配置（默认关闭）。
+type OpsChannelMonitorAutoDisableSettings struct {
+	Enabled             bool `json:"enabled"`
+	ConsecutiveFailures int  `json:"consecutive_failures"`
+}
+
 type OpsAdvancedSettings struct {
 	DataRetention               OpsDataRetentionSettings               `json:"data_retention"`
+	ChannelMonitorAutoDisable   OpsChannelMonitorAutoDisableSettings   `json:"channel_monitor_auto_disable"`
 	Aggregation                 OpsAggregationSettings                 `json:"aggregation"`
 	OpenAIAccountQuotaAutoPause OpsOpenAIAccountQuotaAutoPauseSettings `json:"openai_account_quota_auto_pause"`
 	IgnoreCountTokensErrors     bool                                   `json:"ignore_count_tokens_errors"`
@@ -122,4 +133,29 @@ type OpsDataRetentionSettings struct {
 
 type OpsAggregationSettings struct {
 	AggregationEnabled bool `json:"aggregation_enabled"`
+}
+
+// OpsNotificationChannelsConfig 告警事件在邮件之外的补充通知渠道。
+type OpsNotificationChannelsConfig struct {
+	Bark    OpsBarkNotificationConfig    `json:"bark"`
+	Webhook OpsWebhookNotificationConfig `json:"webhook"`
+}
+
+// OpsBarkNotificationConfig Bark 推送配置（https://day.app）。
+// ServerURL 为空时使用官方 https://api.day.app。
+type OpsBarkNotificationConfig struct {
+	Enabled          bool   `json:"enabled"`
+	ServerURL        string `json:"server_url"`
+	Key              string `json:"key"`
+	MinSeverity      string `json:"min_severity"`
+	RateLimitPerHour int    `json:"rate_limit_per_hour"`
+}
+
+// OpsWebhookNotificationConfig 通用 Webhook 配置。
+type OpsWebhookNotificationConfig struct {
+	Enabled          bool              `json:"enabled"`
+	URL              string            `json:"url"`
+	Headers          map[string]string `json:"headers,omitempty"`
+	MinSeverity      string            `json:"min_severity"`
+	RateLimitPerHour int               `json:"rate_limit_per_hour"`
 }

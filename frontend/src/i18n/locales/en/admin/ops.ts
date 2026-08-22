@@ -645,6 +645,12 @@ export default {
         accountHealthThreshold: 'Error rate threshold (%)',
         cronPlaceholder: 'Cron expression',
         reportHint: 'Schedules use cron syntax; leave empty to use defaults.',
+        channelsTitle: 'Extra Notification Channels',
+        channelsHint: 'Alerts can also be pushed to Bark or a generic webhook; enabled channels receive alerts even when the rule does not opt into email.',
+        barkServerUrl: 'Bark server URL (empty = official api.day.app)',
+        barkKey: 'Bark Key',
+        webhookUrl: 'Webhook URL',
+        webhookHeaders: 'Custom headers, one per line: Key: Value',
         validation: {
           title: 'Please fix the following issues',
           invalid: 'Invalid email notification config',
@@ -700,6 +706,10 @@ export default {
         aggregation: 'Pre-aggregation Tasks',
         enableAggregation: 'Enable Pre-aggregation',
         aggregationHint: 'Pre-aggregation improves query performance for long time windows',
+        channelAutoDisable: 'Channel Monitor Auto-disable',
+        enableChannelAutoDisable: 'Enable auto-disable',
+        channelAutoDisableHint: 'Automatically set a channel to disabled after N consecutive fully-failed health check rounds (difference from cooldown: docs/CHANNEL_MONITOR.md). Disabled by default.',
+        channelAutoDisableThreshold: 'Consecutive failure rounds',
         openaiQuotaAutoPause: 'OpenAI Account Quota Auto-pause',
         openaiQuotaAutoPauseHint: 'When an OpenAI account reaches its 5h / 7d usage threshold, the scheduler skips it automatically and resumes once the window rolls over. Per-account thresholds take precedence over this global default.',
         openaiQuotaAutoPauseDefault5h: 'Default 5h usage threshold (%)',
@@ -734,7 +744,8 @@ export default {
           ttftP99MaxRange: 'TTFT P99 maximum must be a number ≥ 0',
           requestErrorRateMaxRange: 'Request error rate maximum must be between 0 and 100',
           upstreamErrorRateMaxRange: 'Upstream error rate maximum must be between 0 and 100',
-          openaiQuotaAutoPauseRange: 'OpenAI quota auto-pause threshold must be between 0 and 100'
+          openaiQuotaAutoPauseRange: 'OpenAI quota auto-pause threshold must be between 0 and 100',
+          channelAutoDisableRange: 'Consecutive failures must be an integer between 1 and 1000'
         }
       },
       concurrency: {

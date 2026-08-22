@@ -29,6 +29,8 @@ type ChannelMonitorRepository interface {
 	// 调度器辅助
 	ListEnabled(ctx context.Context) ([]*ChannelMonitor, error)
 	MarkChecked(ctx context.Context, id int64, checkedAt time.Time) error
+	// SetEnabled 仅翻转监控的启用状态（自动禁用使用，避免整行更新引入明文密钥回写风险）。
+	SetEnabled(ctx context.Context, id int64, enabled bool) error
 	InsertHistoryBatch(ctx context.Context, rows []*ChannelMonitorHistoryRow) error
 	DeleteHistoryBefore(ctx context.Context, before time.Time) (int64, error)
 
@@ -61,6 +63,11 @@ type ChannelMonitorRepository interface {
 	UpdateAggregationWatermark(ctx context.Context, date time.Time) error
 }
 
+// channelMonitorAutoDisableReader 提供渠道监控自动禁用配置（默认关闭）。
+type channelMonitorAutoDisableReader interface {
+	ChannelMonitorAutoDisableSettings() OpsChannelMonitorAutoDisableSettings
+}
+
 // ChannelMonitorService 渠道监控管理服务。
 type ChannelMonitorService struct {
 	repo      ChannelMonitorRepository
@@ -68,6 +75,11 @@ type ChannelMonitorService struct {
 	// scheduler 由 wire 通过 SetScheduler 注入；CRUD 后调用对应钩子即时同步任务。
 	// 测试或未注入场景下保持 nil，所有钩子调用变为 no-op。
 	scheduler MonitorScheduler
+	// autoDisableReader 为 nil 时自动禁用功能不生效（默认关闭）。
+	autoDisableReader channelMonitorAutoDisableReader
+
+	failMu           sync.Mutex
+	consecutiveFails map[int64]int
 }
 
 const maxChannelMonitorNameRunes = 100
@@ -80,7 +92,16 @@ const ChannelMonitorDuplicateOperationIDMetadataKey = "sub3api:duplicate_operati
 
 // NewChannelMonitorService 创建渠道监控服务实例。
 func NewChannelMonitorService(repo ChannelMonitorRepository, encryptor SecretEncryptor) *ChannelMonitorService {
-	return &ChannelMonitorService{repo: repo, encryptor: encryptor}
+	return &ChannelMonitorService{
+		repo:             repo,
+		encryptor:        encryptor,
+		consecutiveFails: map[int64]int{},
+	}
+}
+
+// SetAutoDisableReader 注入自动禁用配置读取器（wire 调用）。
+func (s *ChannelMonitorService) SetAutoDisableReader(reader channelMonitorAutoDisableReader) {
+	s.autoDisableReader = reader
 }
 
 // ---------- CRUD ----------
@@ -463,6 +484,75 @@ func (s *ChannelMonitorService) persistCheckResults(ctx context.Context, m *Chan
 		slog.Error("channel_monitor: mark checked failed",
 			"monitor_id", m.ID, "error", err)
 	}
+	s.maybeAutoDisable(ctx, m, results)
+}
+
+// maybeAutoDisable 在启用了 channel_monitor_auto_disable 时，统计连续失败轮次
+// （本轮所有模型均未达到 operational/degraded 计为一次失败），达到阈值后自动
+// 把渠道置为 disabled 并通知调度器取消任务。
+//
+// 与"冷却（cooldown）"策略的区别见 docs/CHANNEL_MONITOR.md：
+//   - 冷却：临时跳过 N 分钟，随后自动恢复，适合瞬时抖动
+//   - 自动禁用：持续失败后停用渠道，需要人工重新启用，适合长期故障
+//
+// 计数器为进程内状态，进程重启会清零（可选项默认关闭，接受该语义）。
+func (s *ChannelMonitorService) maybeAutoDisable(ctx context.Context, m *ChannelMonitor, results []*CheckResult) {
+	if s == nil || s.repo == nil || m == nil || m.ID <= 0 {
+		return
+	}
+	if s.autoDisableReader == nil {
+		return
+	}
+	cfg := s.autoDisableReader.ChannelMonitorAutoDisableSettings()
+	if !cfg.Enabled || cfg.ConsecutiveFailures < 1 {
+		return
+	}
+
+	roundFailed := monitorRoundFailed(results)
+	s.failMu.Lock()
+	if !roundFailed {
+		delete(s.consecutiveFails, m.ID)
+		s.failMu.Unlock()
+		return
+	}
+	count := s.consecutiveFails[m.ID] + 1
+	s.consecutiveFails[m.ID] = count
+	s.failMu.Unlock()
+
+	if count < cfg.ConsecutiveFailures {
+		return
+	}
+	if !m.Enabled {
+		return
+	}
+
+	if err := s.repo.SetEnabled(ctx, m.ID, false); err != nil {
+		slog.Error("channel_monitor: auto-disable failed",
+			"monitor_id", m.ID, "name", m.Name, "consecutive_failures", count, "error", err)
+		return
+	}
+	if s.scheduler != nil {
+		s.scheduler.Unschedule(m.ID)
+	}
+	slog.Warn("channel_monitor: auto-disabled after consecutive failures",
+		"monitor_id", m.ID, "name", m.Name, "consecutive_failures", count)
+}
+
+// monitorRoundFailed 返回本轮检测是否整体失败（所有模型均未达到可用状态）。
+func monitorRoundFailed(results []*CheckResult) bool {
+	if len(results) == 0 {
+		return false
+	}
+	for _, r := range results {
+		if r == nil {
+			continue
+		}
+		status := strings.TrimSpace(r.Status)
+		if status == "operational" || status == "degraded" {
+			return false
+		}
+	}
+	return true
 }
 
 // runChecksConcurrent 对 primary + extra 模型并发执行检测。
