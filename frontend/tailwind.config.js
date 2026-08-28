@@ -57,10 +57,10 @@ export default {
           'text-secondary': 'var(--color-text-secondary)',
           muted: 'var(--color-text-muted)',
           'text-inverse': 'var(--color-text-inverse)',
-          success: 'rgb(var(--color-success) / <alpha-value>)',
-          warning: 'rgb(var(--color-warning) / <alpha-value>)',
-          danger: 'rgb(var(--color-danger) / <alpha-value>)',
-          info: 'rgb(var(--color-info) / <alpha-value>)',
+          success: 'rgb(var(--color-success))',
+          warning: 'rgb(var(--color-warning))',
+          danger: 'rgb(var(--color-danger))',
+          info: 'rgb(var(--color-info))',
         }
       },
       fontFamily: {

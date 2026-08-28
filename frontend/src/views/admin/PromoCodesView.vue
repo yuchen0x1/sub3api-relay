@@ -671,7 +671,7 @@ const copyRegisterLink = async (code: PromoCode) => {
   try {
     await navigator.clipboard.writeText(registerLink)
     appStore.showSuccess(t('admin.promo.registerLinkCopied'))
-  } catch (error) {
+  } catch (_error) {
     // Fallback for older browsers
     const textArea = document.createElement('textarea')
     textArea.value = registerLink

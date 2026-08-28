@@ -2234,6 +2234,7 @@ const TempUnschedStatusModal = defineAsyncComponent(() => import('@/components/a
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .account-tools-menu-item {
   @apply flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-dark-700;
 }

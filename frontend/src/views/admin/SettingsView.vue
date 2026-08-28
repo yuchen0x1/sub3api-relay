@@ -5481,6 +5481,7 @@ watch(
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .default-sub-group-select :deep(.select-trigger) {
   @apply h-[42px];
 }

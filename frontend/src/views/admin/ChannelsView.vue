@@ -1284,7 +1284,7 @@ async function loadAllChannelsForConflict() {
   try {
     const response = await adminAPI.channels.list(1, 1000)
     allChannelsForConflict.value = response.items || []
-  } catch (error) {
+  } catch (_error) {
     // Fallback to current page data
     allChannelsForConflict.value = channels.value
   }
@@ -1625,6 +1625,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .channel-dialog-body {
   display: flex;
   flex-direction: column;

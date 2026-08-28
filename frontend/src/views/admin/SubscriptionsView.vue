@@ -1469,6 +1469,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .usage-row {
   @apply space-y-1;
 }

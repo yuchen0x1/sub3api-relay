@@ -1,6 +1,28 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.js';
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 供 theme() 变量语法访问的 primary 阶梯色（与 tailwind.config.js colors.primary 一致） */
+@theme {
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+}
+
+@utility card {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 48%),
+      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.10), transparent 38%),
+      var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    backdrop-filter: blur(22px) saturate(165%);
+    -webkit-backdrop-filter: blur(22px) saturate(165%);
+    isolation: isolate;
+    @apply transition-all duration-300;
+  }
 
 @layer base {
   * {
@@ -567,21 +589,7 @@
   }
 
   /* ============ 卡片样式 ============ */
-  .card {
-    position: relative;
-    overflow: hidden;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 48%),
-      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.10), transparent 38%),
-      var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.34);
-    backdrop-filter: blur(22px) saturate(165%);
-    -webkit-backdrop-filter: blur(22px) saturate(165%);
-    isolation: isolate;
-    @apply transition-all duration-300;
-  }
+
 
   .card:hover {
     transform: translateY(-2px);

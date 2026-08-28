@@ -183,6 +183,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .legal-document-content {
   line-height: 1.75;
   overflow-wrap: anywhere;

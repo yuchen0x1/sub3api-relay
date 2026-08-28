@@ -154,6 +154,7 @@ const filteredGroups = computed(() => {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .plaza-description {
   line-height: 1.7;
   overflow-wrap: anywhere;

@@ -3,7 +3,7 @@ import { useTableLoader } from '@/composables/useTableLoader'
 
 // Mock @vueuse/core 的 useDebounceFn
 vi.mock('@vueuse/core', () => ({
-  useDebounceFn: (fn: Function, ms: number) => {
+  useDebounceFn: (fn: (...args: unknown[]) => unknown, ms: number) => {
     let timer: ReturnType<typeof setTimeout> | null = null
     const debounced = (...args: any[]) => {
       if (timer) clearTimeout(timer)

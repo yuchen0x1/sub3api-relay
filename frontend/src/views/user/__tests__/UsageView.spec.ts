@@ -244,9 +244,9 @@ describe('user UsageView', () => {
     let exportedBlob: Blob | null = null
     let csvContent = ''
     const OriginalBlob = globalThis.Blob
-    vi.stubGlobal('Blob', vi.fn((parts: BlobPart[], options?: BlobPropertyBag) => {
+    vi.stubGlobal('Blob', vi.fn(function (this: Blob, parts: BlobPart[], options?: BlobPropertyBag) {
       csvContent = parts.map((part) => String(part)).join('')
-      return new OriginalBlob(parts, options)
+      return new (OriginalBlob as typeof Blob)(parts, options)
     }))
     const originalCreateObjectURL = window.URL.createObjectURL
     const originalRevokeObjectURL = window.URL.revokeObjectURL
@@ -317,9 +317,9 @@ describe('user UsageView', () => {
 
     let csvContent = ''
     const OriginalBlob = globalThis.Blob
-    vi.stubGlobal('Blob', vi.fn((parts: BlobPart[], options?: BlobPropertyBag) => {
+    vi.stubGlobal('Blob', vi.fn(function (this: Blob, parts: BlobPart[], options?: BlobPropertyBag) {
       csvContent = parts.map((part) => String(part)).join('')
-      return new OriginalBlob(parts, options)
+      return new (OriginalBlob as typeof Blob)(parts, options)
     }))
     const originalCreateObjectURL = window.URL.createObjectURL
     const originalRevokeObjectURL = window.URL.revokeObjectURL

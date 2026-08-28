@@ -740,6 +740,7 @@ export interface EmailNotificationConfig {
       enabled: boolean
       url: string
       headers: Record<string, string>
+      headers_raw?: string
       min_severity: AlertSeverity | ''
       rate_limit_per_hour: number
     }
