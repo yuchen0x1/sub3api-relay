@@ -546,8 +546,7 @@ func (h *GrokOAuthHandler) ResetQuota(c *gin.Context) {
 		return
 	}
 	result, err := h.quotaService.ResetQuota(c.Request.Context(), accountID)
-	if err != nil {
-		response.ErrorFrom(c, err)
+	if response.ErrorFrom(c, err) {
 		return
 	}
 	response.Success(c, result)

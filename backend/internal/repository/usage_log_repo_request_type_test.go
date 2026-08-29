@@ -793,7 +793,7 @@ func (s usageLogScannerStub) Scan(dest ...any) error {
 	}
 	for i := range dest {
 		dv := reflect.ValueOf(dest[i])
-		if dv.Kind() != reflect.Ptr {
+		if dv.Kind() != reflect.Ptr { //nolint:govet // The test intentionally validates pointer destinations via reflection.
 			return fmt.Errorf("dest[%d] is not pointer", i)
 		}
 		dv.Elem().Set(reflect.ValueOf(s.values[i]))

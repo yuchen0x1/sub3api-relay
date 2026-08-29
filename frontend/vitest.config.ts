@@ -1,12 +1,14 @@
 import { defineConfig } from 'vitest/config'
-import { resolve } from 'path'
+import { fileURLToPath } from 'node:url'
 import vue from '@vitejs/plugin-vue'
+
+const sourceDir = fileURLToPath(new URL('./src', import.meta.url))
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': sourceDir,
       'vue-i18n': 'vue-i18n/dist/vue-i18n.runtime.esm-bundler.js'
     }
   },

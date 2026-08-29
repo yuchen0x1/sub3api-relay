@@ -2,7 +2,9 @@ import { defineConfig, loadEnv, Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import checker from 'vite-plugin-checker'
-import { resolve } from 'path'
+import { fileURLToPath } from 'node:url'
+
+const sourceDir = fileURLToPath(new URL('./src', import.meta.url))
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -95,7 +97,7 @@ export default defineConfig(({ mode }) => {
     ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': sourceDir,
       // 使用 vue-i18n 运行时版本，避免 CSP unsafe-eval 问题
       'vue-i18n': 'vue-i18n/dist/vue-i18n.runtime.esm-bundler.js'
     }

@@ -1144,13 +1144,25 @@ func (k oidcJWK) publicKey() (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("decode ec y: %w", err)
 		}
-		if !curve.IsOnCurve(x, y) {
-			return nil, errors.New("ec point is not on curve")
-		}
-		return &ecdsa.PublicKey{Curve: curve, X: x, Y: y}, nil
+		return parseOIDCECPublicKey(curve, x, y)
 	default:
 		return nil, fmt.Errorf("unsupported jwk kty: %s", k.Kty)
 	}
+}
+
+func parseOIDCECPublicKey(curve elliptic.Curve, x, y *big.Int) (*ecdsa.PublicKey, error) {
+	if curve == nil || x == nil || y == nil {
+		return nil, errors.New("invalid ec public key")
+	}
+	byteLen := (curve.Params().BitSize + 7) / 8
+	if x.Sign() < 0 || y.Sign() < 0 || x.BitLen() > curve.Params().BitSize || y.BitLen() > curve.Params().BitSize {
+		return nil, errors.New("invalid ec public key coordinates")
+	}
+	point := make([]byte, 1+2*byteLen)
+	point[0] = 4
+	x.FillBytes(point[1 : 1+byteLen])
+	y.FillBytes(point[1+byteLen:])
+	return ecdsa.ParseUncompressedPublicKey(curve, point)
 }
 
 func decodeBase64URLBigInt(raw string) (*big.Int, error) {

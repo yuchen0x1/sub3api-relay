@@ -53,10 +53,10 @@ func Do(client *http.Client, req *http.Request) (*http.Response, error) {
 		client = http.DefaultClient
 	}
 	if req == nil || !Active(req.Context()) {
-		return client.Do(req)
+		return client.Do(req) //nolint:gosec // The caller supplies the already-configured outbound client and request.
 	}
 	startedAt := time.Now()
-	response, err := client.Do(req)
+	response, err := client.Do(req) //nolint:gosec // This helper instruments the caller's intentional outbound request.
 	RecordDependency(req.Context(), dependencyModule(req), startedAt, time.Now())
 	return response, err
 }
