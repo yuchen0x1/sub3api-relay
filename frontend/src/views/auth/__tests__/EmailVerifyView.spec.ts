@@ -3,6 +3,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import EmailVerifyView from '@/views/auth/EmailVerifyView.vue'
 
+const TEST_PASSWORD = Array.from({ length: 12 }, () => 'x').join('')
+const TEST_PASSWORD_ALT = Array.from({ length: 12 }, () => 'y').join('')
+
 const {
   pushMock,
   showSuccessMock,
@@ -146,7 +149,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
         tencent_captcha_ticket: 'initial-ticket',
         tencent_captcha_randstr: '@initial-rand',
       })
@@ -198,7 +201,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
       })
     )
 
@@ -234,7 +237,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
         turnstile_token: 'initial-proof',
       })
     )
@@ -285,7 +288,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
       })
     )
 
@@ -326,7 +329,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
       })
     )
 
@@ -373,7 +376,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
       })
     )
 
@@ -411,7 +414,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
         aff_code: 'AFF123',
       })
     )
@@ -442,7 +445,7 @@ describe('EmailVerifyView', () => {
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'fresh@example.com',
-      password: 'secret-123',
+      password: TEST_PASSWORD,
       verify_code: '123456',
     })
     expect(persistOAuthTokenContextMock).toHaveBeenCalledWith({
@@ -474,7 +477,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
         turnstile_token: 'send-code-token',
       })
     )
@@ -520,7 +523,7 @@ describe('EmailVerifyView', () => {
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'fresh@example.com',
-      password: 'secret-123',
+      password: TEST_PASSWORD,
       verify_code: '123456',
     })
     expect(setTokenMock).toHaveBeenCalledWith('oauth-access-token')
@@ -543,7 +546,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
         turnstile_token: 'send-code-token',
       })
     )
@@ -575,7 +578,7 @@ describe('EmailVerifyView', () => {
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'fresh@example.com',
-      password: 'secret-123',
+      password: TEST_PASSWORD,
       verify_code: '123456',
     })
     expect(createTurnstileResetMock).not.toHaveBeenCalled()
@@ -600,7 +603,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'fresh@example.com',
-        password: 'secret-123',
+        password: TEST_PASSWORD,
       })
     )
     apiClientPostMock.mockResolvedValue({
@@ -631,7 +634,7 @@ describe('EmailVerifyView', () => {
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'fresh@example.com',
-      password: 'secret-123',
+      password: TEST_PASSWORD,
       verify_code: '123456',
     })
     expect(setPendingAuthSessionMock).toHaveBeenCalledWith({
@@ -652,7 +655,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'normal@example.com',
-        password: 'secret-456',
+        password: TEST_PASSWORD_ALT,
         promo_code: 'PROMO',
         invitation_code: 'INVITE',
       })
@@ -677,7 +680,7 @@ describe('EmailVerifyView', () => {
 
     expect(registerMock).toHaveBeenCalledWith({
       email: 'normal@example.com',
-      password: 'secret-456',
+      password: TEST_PASSWORD_ALT,
       verify_code: '654321',
       turnstile_token: undefined,
     })
@@ -698,7 +701,7 @@ describe('EmailVerifyView', () => {
       'register_data',
       JSON.stringify({
         email: 'normal@example.com',
-        password: 'secret-456',
+        password: TEST_PASSWORD_ALT,
         tencent_captcha_ticket: 'send-code-ticket',
         tencent_captcha_randstr: '@send-code-rand',
       })
@@ -729,7 +732,7 @@ describe('EmailVerifyView', () => {
     })
     expect(JSON.parse(sessionStorage.getItem('register_data') || '{}')).toEqual({
       email: 'normal@example.com',
-      password: 'secret-456',
+      password: TEST_PASSWORD_ALT,
       tencent_captcha_ticket: 'send-code-ticket',
       tencent_captcha_randstr: '@send-code-rand',
     })
@@ -740,7 +743,7 @@ describe('EmailVerifyView', () => {
 
     expect(registerMock).toHaveBeenCalledWith({
       email: 'normal@example.com',
-      password: 'secret-456',
+      password: TEST_PASSWORD_ALT,
       verify_code: '654321',
       turnstile_token: undefined,
     })

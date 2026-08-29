@@ -32,6 +32,15 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 - 图片任务：支持同步图片接口，也提供异步图片任务和批量图片任务入口；异步任务需要对象存储配置。
 - 安全控制：包含 CSP、CORS、可信代理、URL allowlist、响应头过滤、幂等、面板限流、API Key ACL 和审计日志等机制。
 
+## 生态项目
+
+围绕 Sub3API 的社区扩展与集成项目，当前均处于正常更新状态：
+
+| 项目 | 说明 | 功能 | 更新状态 |
+| --- | --- | --- | --- |
+| [Sub3ApiPay](https://github.com/touwaeriol/sub3apipay) | 自助支付系统 | 支付能力扩展与集成工具；Sub3API 同时提供内置支付功能，详见 [支付配置指南](docs/PAYMENT_CN.md) | 正常更新 |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | 移动端管理控制台 | 支持用户管理、账号管理、监控看板和多后端切换的跨平台应用 | 正常更新 |
+
 ## 技术栈
 
 | 模块 | 技术 |
@@ -71,7 +80,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 ### Docker Compose
 
 ```bash
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 cp .env.example .env
 chmod 600 .env
@@ -96,7 +105,7 @@ docker compose -f docker-compose.local.yml up -d
 `deploy/docker-deploy.sh` 会从 GitHub Release 下载经过 SHA-256 校验的部署包，生成 `JWT_SECRET`、`TOTP_ENCRYPTION_KEY`、`POSTGRES_PASSWORD`，并创建本地数据目录。
 
 ```bash
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/latest/download/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/latest/download/docker-deploy.sh | bash
 docker compose up -d
 ```
 

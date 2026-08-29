@@ -60,18 +60,18 @@ Sub3API は、個人利用と内部運用向けに、認証、上流アカウン
 - **スマートスケジューリング** - スティッキーセッション付きのインテリジェントなアカウント選択
 - **同時実行制御** - ユーザーごと・アカウントごとの同時実行数制限
 - **レート制限** - 設定可能なリクエスト数およびトークンレート制限
-- **内蔵決済システム** - 個人版では既定で無効。旧デプロイとの互換用にコードのみ保持
+- **内蔵決済システム** - 決済設定、注文処理、残高チャージを提供
 - **管理ダッシュボード** - 監視・管理のための Web インターフェース
 - **外部システム連携** - 外部システム（チケット管理など）を iframe 経由で管理ダッシュボードに埋め込み可能
 
 ## エコシステム
 
-Sub3API を拡張・統合するコミュニティプロジェクト:
+Sub3API を拡張・統合するコミュニティプロジェクト（現在はいずれも通常更新中）:
 
-| プロジェクト | 説明 | 機能 |
-|---------|-------------|----------|
-| ~~[Sub3ApiPay](https://github.com/touwaeriol/sub3apipay)~~ | ~~セルフサービス決済システム~~ | **内蔵済み** — 決済機能は Sub3API に統合されました。別途デプロイは不要です。[決済設定ガイド](docs/PAYMENT.md)をご参照ください |
-| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | モバイル管理コンソール | ユーザー管理、アカウント管理、監視ダッシュボード、マルチバックエンド切り替えが可能なクロスプラットフォームアプリ（iOS/Android/Web）。Expo + React Native で構築 |
+| プロジェクト | 説明 | 機能 | 更新状態 |
+|---------|-------------|----------|----------|
+| [Sub3ApiPay](https://github.com/touwaeriol/sub3apipay) | セルフサービス決済システム | 決済機能の拡張・統合ツール。Sub3API には内蔵決済機能もあります。[決済設定ガイド](docs/PAYMENT.md)をご参照ください | 通常更新 |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | モバイル管理コンソール | ユーザー管理、アカウント管理、監視ダッシュボード、マルチバックエンド切り替えが可能なクロスプラットフォームアプリ（iOS/Android/Web）。Expo + React Native で構築 | 通常更新 |
 
 ## 技術スタック
 
@@ -186,7 +186,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.187/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/download/v0.1.187/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -209,7 +209,7 @@ docker compose logs -f sub3api
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 
 # 2. 環境設定ファイルをコピー
@@ -337,7 +337,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple シリコン搭載 Mac と macOS 26 では、Apple `container` 1.1.0 以降を使用して Sub3API、PostgreSQL、Redis の完全なスタックを実行できます:
 
 ```bash
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -364,7 +364,7 @@ cd sub3api-relay/deploy
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay
 
 # 2. フロントエンド資産をインストールしてビルド

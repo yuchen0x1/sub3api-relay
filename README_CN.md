@@ -61,18 +61,18 @@ Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和�
 - **智能调度** - 智能账号选择，支持粘性会话
 - **并发控制** - 用户级和账号级并发限制
 - **速率限制** - 可配置的请求和 Token 速率限制
-- **内置支付系统** - 个人版默认关闭，保留代码仅用于兼容旧部署
+- **内置支付系统** - 提供支付配置、订单处理与余额充值功能
 - **管理 API** - 通过后端 API 进行监控和管理
 - **外部系统集成** - 支持通过 iframe 嵌入外部系统（如工单等），扩展管理后台功能
 
 ## 生态项目
 
-围绕 Sub3API 的社区扩展与集成项目：
+围绕 Sub3API 的社区扩展与集成项目，当前均处于正常更新状态：
 
-| 项目 | 说明 | 功能 |
-|------|------|------|
-| ~~[Sub3ApiPay](https://github.com/touwaeriol/sub3apipay)~~ | ~~自助支付系统~~ | **已内置** — 支付功能已集成到 Sub3API 中，无需独立部署。详见 [支付配置指南](docs/PAYMENT_CN.md) |
-| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | 移动端管理控制台 | 跨平台应用（iOS/Android/Web），支持用户管理、账号管理、监控看板、多后端切换；基于 Expo + React Native 构建 |
+| 项目 | 说明 | 功能 | 更新状态 |
+|------|------|------|------|
+| [Sub3ApiPay](https://github.com/touwaeriol/sub3apipay) | 自助支付系统 | 支付能力扩展与集成工具；Sub3API 同时提供内置支付功能，详见 [支付配置指南](docs/PAYMENT_CN.md) | 正常更新 |
+| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | 移动端管理控制台 | 跨平台应用（iOS/Android/Web），支持用户管理、账号管理、监控看板、多后端切换；基于 Expo + React Native 构建 | 正常更新 |
 
 ## 技术栈
 
@@ -187,7 +187,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/de
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -fsSL https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.1.187/docker-deploy.sh | bash
+curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/download/v0.1.187/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -210,7 +210,7 @@ docker compose logs -f sub3api
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 
 # 2. 复制环境配置文件
@@ -350,7 +350,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 Sub3API、PostgreSQL 和 Redis：
 
 ```bash
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -377,7 +377,7 @@ cd sub3api-relay/deploy
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/sub3api-relay.git
+git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay
 
 # 2. 安装并编译前端资源
