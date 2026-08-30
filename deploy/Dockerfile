@@ -18,9 +18,11 @@ ARG NODE_IMAGE=node:24-alpine
 FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/frontend
-RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate && \
+    pnpm config set store-dir /pnpm/store
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prefer-offline
+RUN --mount=type=cache,id=sub3api-pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
 COPY frontend/ ./
 COPY docs/legal/ /app/docs/legal/
 RUN pnpm run build
@@ -47,7 +49,8 @@ WORKDIR /app/backend
 
 # Copy go mod files first (better caching)
 COPY backend/go.mod backend/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,id=sub3api-gomod,target=/go/pkg/mod \
+    go mod download
 
 # Copy backend source first
 COPY backend/ ./
@@ -55,7 +58,9 @@ COPY --from=frontend-builder /app/backend/internal/web/dist ./internal/web/dist
 
 # Build the binary as a Docker deployment so in-container self-update stays disabled.
 # Version precedence: build arg VERSION > exact git tag > cmd/server/VERSION
-RUN VERSION_VALUE="${VERSION}" && \
+RUN --mount=type=cache,id=sub3api-gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=sub3api-gobuild,target=/root/.cache/go-build \
+    VERSION_VALUE="${VERSION}" && \
     if [ -z "${VERSION_VALUE}" ]; then VERSION_VALUE="$(./scripts/resolve-version.sh)"; fi && \
     DATE_VALUE="${DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" && \
     CGO_ENABLED=0 GOOS=linux go build -tags embed \

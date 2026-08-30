@@ -31,9 +31,18 @@ build/
 # Local agent and audit artifacts
 .tmp/
 .uiaudit/
+.mimosa/
+**/.mimosa/
+.codex/
+
+# Repository-only material (not required to build or run the image)
+openspec/
+skills/
 
 # Go build cache (will be built in container)
 backend/vendor/
+backend/bin/
+backend/.gocache/
 
 # Test files
 *_test.go

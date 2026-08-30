@@ -143,8 +143,13 @@ func decideAdminBootstrap(totalUsers, adminUsers int64) adminBootstrapDecision {
 		}
 	}
 	if totalUsers > 0 {
+		// Existing non-admin users do not provide a usable way to administer the
+		// installation.  Bootstrap the configured administrator instead of
+		// leaving a completed installation with no administrator account.  This
+		// is safe because the adminUsers == 0 branch guarantees that no existing
+		// administrator password can be overwritten.
 		return adminBootstrapDecision{
-			shouldCreate: false,
+			shouldCreate: true,
 			reason:       adminBootstrapReasonUsersExistWithoutAdmin,
 		}
 	}
@@ -395,7 +400,8 @@ func Install(cfg *SetupConfig) error {
 		return fmt.Errorf("database initialization failed: %w", err)
 	}
 
-	// Create admin user (only when database is empty and no admin exists).
+	// Create the configured admin when no administrator exists. Existing
+	// non-admin users are preserved; the bootstrap insert only adds access.
 	if _, _, err := createAdminUser(cfg); err != nil {
 		return fmt.Errorf("admin user creation failed: %w", err)
 	}
@@ -739,7 +745,7 @@ func AutoSetupFromEnv() error {
 		case adminBootstrapReasonAdminExists:
 			logger.LegacyPrintf("setup", "%s", "Admin user already exists, skipping admin bootstrap")
 		case adminBootstrapReasonUsersExistWithoutAdmin:
-			logger.LegacyPrintf("setup", "%s", "Database already has user data; skipping auto admin bootstrap to avoid password overwrite")
+			logger.LegacyPrintf("setup", "%s", "Existing users found without an administrator; configured admin bootstrap completed")
 		default:
 			logger.LegacyPrintf("setup", "%s", "Admin bootstrap skipped")
 		}

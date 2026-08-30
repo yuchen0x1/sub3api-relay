@@ -83,8 +83,9 @@ docker compose up -d
 # View logs
 docker compose -f docker-compose.local.yml logs -f sub3api
 
-# The first startup uses ADMIN_EMAIL and ADMIN_PASSWORD from .env.
-# Default login: admin / admin. Change the password after first login.
+# The first startup automatically initializes the database and administrator
+# from ADMIN_EMAIL and ADMIN_PASSWORD in .env; no setup wizard is shown.
+# Log in at http://localhost:8080/login and change the password after first login.
 
 # Access Web UI
 # http://localhost:8080
@@ -145,7 +146,9 @@ When using Docker Compose with `AUTO_SETUP=true`:
 
 2. No manual Setup Wizard is needed for Docker - configure `.env` and start
 
-3. Log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` configured in `.env`; there is no public default password.
+3. Open `/login` and log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` configured in `.env`.
+   If `ADMIN_PASSWORD` is omitted, the documented fallback is `admin`; change it immediately after login.
+   If the database already contains users but no administrator, the first startup adds the configured administrator without changing existing users.
 
 ### Database Migration Notes (PostgreSQL)
 

@@ -149,6 +149,7 @@ frontend/public/home/stampede-reference-*.webp
 
 # UI 审计工作目录（含 playwright node_modules 与截图产物），本地临时文件，严禁提交
 .uiaudit/
+.playwright-cli/
 .mimosa/
 
 # ===================

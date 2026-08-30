@@ -104,6 +104,17 @@ func (c *githubReleaseClient) newAPIRequest(ctx context.Context, url string) (*h
 	return req, nil
 }
 
+func (c *githubReleaseClient) newGiteeAPIRequest(ctx context.Context, url string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	// Gitee API v5 不使用 UPDATE_GITHUB_TOKEN（该令牌仅用于 api.github.com）
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "Sub3API-Updater")
+	return req, nil
+}
+
 func (c *githubReleaseClientError) FetchLatestRelease(ctx context.Context, repo string) (*service.GitHubRelease, error) {
 	return nil, c.err
 }
@@ -120,7 +131,31 @@ func (c *githubReleaseClientError) FetchChecksumFile(ctx context.Context, url st
 	return nil, c.err
 }
 
+// FetchLatestRelease 获取最新 release。
+// 双通道：仅针对本项目自更新仓库（GitHubUpdateRepo）按 IP 归属地选择 Gitee/GitHub；
+// 其他仓库（如 openai/codex 版本同步）保持纯 GitHub，不受通道影响。
+// Gitee 获取失败时自动回退 GitHub。
 func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo string) (*service.GitHubRelease, error) {
+	if repo != service.GitHubUpdateRepo {
+		return c.fetchLatestReleaseFromGitHub(ctx, repo)
+	}
+
+	channel, err := service.ResolveUpdateChannel(ctx)
+	if err != nil || channel == service.UpdateChannelGitHub {
+		return c.fetchLatestReleaseFromGitHub(ctx, repo)
+	}
+
+	release, giteeErr := c.fetchLatestReleaseFromGitee(ctx)
+	if giteeErr != nil {
+		slog.Warn("update_channel: gitee latest release fetch failed, falling back to github",
+			"channel", string(channel), "error", giteeErr)
+		return c.fetchLatestReleaseFromGitHub(ctx, repo)
+	}
+	slog.Info("update_channel: latest release fetched from gitee", "channel", string(channel), "tag", release.TagName)
+	return release, nil
+}
+
+func (c *githubReleaseClient) fetchLatestReleaseFromGitHub(ctx context.Context, repo string) (*service.GitHubRelease, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 
 	req, err := c.newAPIRequest(ctx, url)
@@ -146,6 +181,42 @@ func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo strin
 	return &release, nil
 }
 
+// fetchLatestReleaseFromGitee 走 Gitee API v5（响应结构与 GitHub 兼容：
+// tag_name / assets[].browser_download_url，可直接复用 GitHubRelease 结构体）
+func (c *githubReleaseClient) fetchLatestReleaseFromGitee(ctx context.Context) (*service.GitHubRelease, error) {
+	url := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/releases/latest", service.GiteeUpdateRepo)
+
+	req, err := c.newGiteeAPIRequest(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Gitee API returned %d", resp.StatusCode)
+	}
+
+	var release service.GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, err
+	}
+
+	// Gitee 偶发返回无资产的占位 release；缺少 tag 或资产时视为不可用，
+	// 由调用方回退 GitHub，避免后续下载阶段才发现无可用资产。
+	if strings.TrimSpace(release.TagName) == "" || len(release.Assets) == 0 {
+		return nil, fmt.Errorf("Gitee release response missing tag_name or assets")
+	}
+
+	return &release, nil
+}
+
+// FetchRecentReleases 获取最近的 release 列表（用于回滚版本列表）。
+// 通道选择逻辑与 FetchLatestRelease 一致，仅作用于本项目自更新仓库。
 func (c *githubReleaseClient) FetchRecentReleases(ctx context.Context, repo string, perPage int) ([]*service.GitHubRelease, error) {
 	if perPage <= 0 {
 		perPage = 10
@@ -153,6 +224,26 @@ func (c *githubReleaseClient) FetchRecentReleases(ctx context.Context, repo stri
 	if perPage > 100 {
 		perPage = 100 // GitHub API hard limit
 	}
+
+	if repo != service.GitHubUpdateRepo {
+		return c.fetchRecentReleasesFromGitHub(ctx, repo, perPage)
+	}
+
+	channel, err := service.ResolveUpdateChannel(ctx)
+	if err != nil || channel == service.UpdateChannelGitHub {
+		return c.fetchRecentReleasesFromGitHub(ctx, repo, perPage)
+	}
+
+	releases, giteeErr := c.fetchRecentReleasesFromGitee(ctx, perPage)
+	if giteeErr != nil || len(releases) == 0 {
+		slog.Warn("update_channel: gitee recent releases fetch failed, falling back to github",
+			"channel", string(channel), "error", giteeErr)
+		return c.fetchRecentReleasesFromGitHub(ctx, repo, perPage)
+	}
+	return releases, nil
+}
+
+func (c *githubReleaseClient) fetchRecentReleasesFromGitHub(ctx context.Context, repo string, perPage int) ([]*service.GitHubRelease, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=%d", repo, perPage)
 
 	req, err := c.newAPIRequest(ctx, url)
@@ -168,6 +259,33 @@ func (c *githubReleaseClient) FetchRecentReleases(ctx context.Context, repo stri
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned %d", resp.StatusCode)
+	}
+
+	var releases []*service.GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return nil, err
+	}
+
+	return releases, nil
+}
+
+// fetchRecentReleasesFromGitee 走 Gitee API v5 列出最近 release（新→旧）
+func (c *githubReleaseClient) fetchRecentReleasesFromGitee(ctx context.Context, perPage int) ([]*service.GitHubRelease, error) {
+	url := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/releases?page=1&per_page=%d&direction=desc", service.GiteeUpdateRepo, perPage)
+
+	req, err := c.newGiteeAPIRequest(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Gitee API returned %d", resp.StatusCode)
 	}
 
 	var releases []*service.GitHubRelease

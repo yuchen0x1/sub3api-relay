@@ -32,11 +32,15 @@ var (
 const (
 	updateCacheKey = "update_check_cache"
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "yuchen0x1/sub3api-relay"
+	// githubRepo 自更新使用的 GitHub 仓库（Gitee 侧仓库名不同，见 update_channel.go）
+	githubRepo = GitHubUpdateRepo
 
 	// Security: allowed download domains for updates
-	allowedDownloadHost = "github.com"
-	allowedAssetHost    = "objects.githubusercontent.com"
+	// GitHub 资产位于 github.com / objects.githubusercontent.com；
+	// Gitee 通道资产位于 gitee.com（含 release 附件直链）。
+	allowedDownloadHost      = "github.com"
+	allowedAssetHost         = "objects.githubusercontent.com"
+	allowedDownloadHostGitee = "gitee.com"
 
 	// Security: max download size (500MB)
 	maxDownloadSize = 500 * 1024 * 1024
@@ -474,11 +478,14 @@ func validateDownloadURL(rawURL string) error {
 
 	// Check against allowed hosts
 	host := parsedURL.Host
-	// GitHub release URLs can be from github.com or objects.githubusercontent.com
+	// GitHub release URLs can be from github.com or objects.githubusercontent.com;
+	// Gitee channel asset URLs are served from gitee.com (direct release download links).
 	if host != allowedDownloadHost &&
 		!strings.HasSuffix(host, "."+allowedDownloadHost) &&
 		host != allowedAssetHost &&
-		!strings.HasSuffix(host, "."+allowedAssetHost) {
+		!strings.HasSuffix(host, "."+allowedAssetHost) &&
+		host != allowedDownloadHostGitee &&
+		!strings.HasSuffix(host, "."+allowedDownloadHostGitee) {
 		return fmt.Errorf("download from untrusted host: %s", host)
 	}
 

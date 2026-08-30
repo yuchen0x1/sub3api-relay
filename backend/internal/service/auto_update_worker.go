@@ -137,16 +137,21 @@ func (w *AutoUpdateWorker) checkAndUpdate() {
 	ctx, cancel := context.WithTimeout(context.Background(), autoUpdateCheckTimeout)
 	defer cancel()
 
+	// 下载/检查前先解析更新通道（国内 IP → Gitee，国外 → GitHub），并贯穿本轮日志
+	channel := w.resolveChannel(ctx)
+	slog.Info("auto_update: checking for updates", "channel", string(channel))
+
 	info, err := w.updateSvc.CheckUpdate(ctx, true)
 	if err != nil {
-		slog.Warn("auto_update: check update failed", "error", err)
+		slog.Warn("auto_update: check update failed", "channel", string(channel), "error", err)
 		return
 	}
 	if info == nil || !info.HasUpdate {
 		return
 	}
 	if info.BuildType != "release" {
-		slog.Info("auto_update: update available but build type is not release, skip", "latest_version", info.LatestVersion)
+		slog.Info("auto_update: update available but build type is not release, skip",
+			"channel", string(channel), "latest_version", info.LatestVersion)
 		return
 	}
 
@@ -157,19 +162,29 @@ func (w *AutoUpdateWorker) checkAndUpdate() {
 	}
 
 	slog.Info("auto_update: new release detected, applying update",
-		"current_version", info.CurrentVersion, "latest_version", info.LatestVersion)
+		"channel", string(channel), "current_version", info.CurrentVersion, "latest_version", info.LatestVersion)
 	if err := w.updateSvc.PerformUpdate(ctx); err != nil {
 		if errors.Is(err, ErrNoUpdateAvailable) {
 			_ = w.lockSvc.Release(context.Background(), lock, true, "")
 			return
 		}
 		_ = w.lockSvc.Release(context.Background(), lock, false, "AUTO_UPDATE_FAILED")
-		slog.Error("auto_update: apply update failed", "error", err)
+		slog.Error("auto_update: apply update failed", "channel", string(channel), "error", err)
 		return
 	}
 
 	// 先释放锁再重启，避免重启后 TTL 内手动操作被误判为 busy
 	_ = w.lockSvc.Release(context.Background(), lock, true, "")
-	slog.Info("auto_update: update applied, restarting service", "latest_version", info.LatestVersion)
+	slog.Info("auto_update: update applied, restarting service",
+		"channel", string(channel), "latest_version", info.LatestVersion)
 	sysutil.RestartServiceAsync()
+}
+
+// resolveChannel 解析本轮更新使用的通道，任何异常均兜底为 github
+func (w *AutoUpdateWorker) resolveChannel(ctx context.Context) UpdateChannel {
+	channel, err := ResolveUpdateChannel(ctx)
+	if err != nil || channel == "" {
+		return UpdateChannelGitHub
+	}
+	return channel
 }

@@ -50,35 +50,45 @@ generate_secret() {
 }
 
 read_admin_password() {
-    local password="${ADMIN_PASSWORD:-admin}"
+    # Keep an explicitly supplied password, but do not silently turn an
+    # interactive install into admin/admin.  Prompt on a TTY so every fresh
+    # deployment has an intentional administrator credential.
+    local password="${ADMIN_PASSWORD-}"
     local confirmation
     local input_device="/dev/stdin"
 
-    if [ -z "$password" ]; then
+    if [ -z "$password" ] && [ "${DOCKER_DEPLOY_PROMPT:-0}" = "1" ]; then
         if [ -t 0 ]; then
             input_device="/dev/stdin"
         elif [ -r /dev/tty ] && (: < /dev/tty) 2>/dev/null; then
             input_device="/dev/tty"
         else
-            print_error "ADMIN_PASSWORD is required when no terminal is available." >&2
-            exit 1
+            # Preserve the documented non-interactive default for automation.
+            password="admin"
         fi
-        while true; do
-            read -r -s -p "Initial administrator password (default: admin): " password < "$input_device"
-            echo >&2
-            read -r -s -p "Confirm administrator password: " confirmation < "$input_device"
-            echo >&2
-            if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
-                print_error "Administrator password must be admin or 8-128 characters." >&2
-                continue
-            fi
-            if [ "$password" != "$confirmation" ]; then
-                print_error "Administrator passwords do not match." >&2
-                continue
-            fi
-            break
-        done
+        if [ -t 0 ] || [ "$input_device" = "/dev/tty" ]; then
+            while true; do
+                read -r -s -p "Initial administrator password (default: admin): " password < "$input_device"
+                echo >&2
+                password="${password:-admin}"
+                read -r -s -p "Confirm administrator password: " confirmation < "$input_device"
+                echo >&2
+                if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
+                    print_error "Administrator password must be admin or 8-128 characters." >&2
+                    password=""
+                    continue
+                fi
+                if [ "$password" != "$confirmation" ]; then
+                    print_error "Administrator passwords do not match." >&2
+                    password=""
+                    continue
+                fi
+                break
+            done
+        fi
     fi
+
+    password="${password:-admin}"
 
     if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
         print_error "ADMIN_PASSWORD must be admin or 8-128 characters." >&2
@@ -228,6 +238,10 @@ main() {
     JWT_SECRET=$(generate_secret)
     TOTP_ENCRYPTION_KEY=$(generate_secret)
     POSTGRES_PASSWORD=$(generate_secret)
+    # Enable the interactive prompt only for the real deployment command. This
+    # keeps read_admin_password deterministic for automation/tests that source
+    # the helper directly.
+    DOCKER_DEPLOY_PROMPT=1
     ADMIN_PASSWORD=$(read_admin_password)
     # Create .env from .env.example
     cp .env.example .env
@@ -254,8 +268,8 @@ main() {
     echo "=========================================="
     echo ""
     echo "Generated credentials were written to the owner-readable .env file."
-    echo "  ADMIN_EMAIL:           admin"
-    echo "  ADMIN_PASSWORD:        admin (change after first login)"
+    echo "  ADMIN_EMAIL:           ${ADMIN_EMAIL:-admin}"
+    echo "  ADMIN_PASSWORD:        saved in .env (change after first login)"
     echo ""
     print_warning "These credentials have been saved to .env file."
     print_warning "Please keep them secure and do not share publicly!"
@@ -279,7 +293,8 @@ main() {
     echo "  4. Access Web UI:"
     echo "     http://localhost:8080"
     echo ""
-    print_warning "Initial administrator login: admin"
+    print_warning "AUTO_SETUP completes initialization on first start; no setup wizard is shown."
+    print_warning "Log in at http://localhost:8080/login with the account above."
     print_warning "The administrator password is stored only in the owner-readable .env file."
     echo ""
 }

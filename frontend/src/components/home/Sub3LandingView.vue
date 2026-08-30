@@ -80,7 +80,7 @@ const publicCardStyles = [
 
 const landingMessages = {
   zh: {
-    nav: ['服务状态', 'QQ群'],
+    nav: ['服务状态', '管理登录', 'QQ群'],
     eyebrow: 'Sub3API · Private Gateway',
     description: '一个 <b>API Key</b>，统一调度所有已接入的 AI 模型。智能路由、自动容灾、按量计费，为个人与小型团队提供 <b>稳定 · 透明 · 安全</b> 的私有网关服务。',
     docs: '仓库下载',
@@ -109,7 +109,7 @@ const landingMessages = {
     footer: ['服务状态', 'QQ群'],
   },
   en: {
-    nav: ['Service Status', 'QQ Group'],
+    nav: ['Service Status', 'Admin Login', 'QQ Group'],
     eyebrow: 'Sub3API · Private Gateway',
     description: 'One <b>API key</b> connects every available AI model through unified routing, automatic failover, and usage-based billing. A <b>stable · transparent · secure</b> private gateway for individuals and small teams.',
     docs: 'Repository Download',

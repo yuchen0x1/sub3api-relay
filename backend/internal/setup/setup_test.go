@@ -186,10 +186,10 @@ func TestDecideAdminBootstrap(t *testing.T) {
 			reason:     adminBootstrapReasonAdminExists,
 		},
 		{
-			name:       "users exist without admin should skip",
+			name:       "users exist without admin should create admin",
 			totalUsers: 5,
 			adminUsers: 0,
-			should:     false,
+			should:     true,
 			reason:     adminBootstrapReasonUsersExistWithoutAdmin,
 		},
 	}

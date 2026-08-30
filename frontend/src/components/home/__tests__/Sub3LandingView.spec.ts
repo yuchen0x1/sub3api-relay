@@ -50,19 +50,19 @@ describe('Sub3LandingView navigation', () => {
     i18nMock.setLocale.mockClear()
   })
 
-  it('does not expose login or authenticated dashboard links', async () => {
+  it('exposes a login entry without exposing authenticated dashboard links', async () => {
     const { wrapper } = await mountLanding()
 
     const internalLinks = wrapper
       .findAll('a[href^="/"]')
       .map((link) => link.attributes('href'))
 
-    expect(new Set(internalLinks)).toEqual(new Set(['/', '/monitor']))
-    for (const path of ['/login', '/keys', '/usage', '/available-channels', '/admin']) {
+    expect(new Set(internalLinks)).toEqual(new Set(['/', '/monitor', '/login']))
+    for (const path of ['/keys', '/usage', '/available-channels', '/admin']) {
       expect(wrapper.find(`a[href="${path}"]`).exists()).toBe(false)
     }
     expect(wrapper.text()).not.toContain('立即开始')
-    expect(wrapper.text()).not.toContain('登录')
+    expect(wrapper.text()).toContain('管理登录')
     expect(wrapper.text()).not.toContain('Get Started')
     expect(wrapper.text()).not.toContain('Sign in')
   })

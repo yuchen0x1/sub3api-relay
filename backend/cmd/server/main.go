@@ -21,6 +21,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/setup"
+	"github.com/yuchen0x1/sub3api-relay/internal/web"
 
 	"github.com/gin-gonic/gin"
 )
@@ -125,6 +126,11 @@ func runSetupServer() {
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(config.CORSConfig{}))
 	r.Use(middleware.SecurityHeaders(config.CSPConfig{Enabled: true, Policy: config.DefaultCSPPolicy}, nil))
+	// The setup API intentionally bypasses the frontend middleware, while
+	// ordinary paths (/, /setup, and static assets) must still render the
+	// embedded wizard. Without this middleware the binary installer advertises
+	// a web wizard but serves 404 for its HTML entry point.
+	r.Use(web.ServeEmbeddedFrontend())
 
 	// Register setup routes
 	setup.RegisterRoutes(r)
