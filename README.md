@@ -1,4 +1,4 @@
-<div align="center">
+
 
 # Sub3API · AI API 网关与管理平台
 
@@ -11,8 +11,6 @@
 [![Redis](https://img.shields.io/badge/Redis-8--alpine-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-</div>
-
 ## 项目简介
 
 Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将多个上游 AI 账号统一调度到 OpenAI、Anthropic/Claude、Gemini、Grok、Manus、Antigravity 等兼容入口，并提供用户、分组、API Key、代理、用量、余额、运维监控、备份、审计、风控和系统配置管理。
@@ -21,25 +19,16 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 
 ## 核心功能
 
-- 多平台网关：支持 Anthropic/Claude 风格 `/v1/messages`、OpenAI 风格 `/v1/responses`、`/v1/chat/completions`、`/v1/images/*`，以及 Gemini 原生 `/v1beta/models/*`。
-- 多账号调度：支持按平台、分组、模型路由、账号状态、代理和并发容量进行调度。
-- API Key 分发：用户可创建和管理自己的 API Key；管理员可调整 Key 所属分组。
-- 用量与计费：记录请求、Token、模型、费用、余额和聚合统计，支持按用户、Key、分组查看。
-- 管理台：内置 Vue Web UI，发行版和 Docker 镜像会把前端构建产物嵌入后端服务。
-- 安全登录：支持用户名密码、TOTP、Passkey，以及 LinuxDo、GitHub、Google、WeChat、OIDC、DingTalk 等可配置登录入口。
-- 运维能力：提供健康检查、实时流量、并发、错误日志、上游错误、系统日志、告警和仪表盘接口。
-- 数据与备份：支持数据库备份、S3 目标配置、数据管理代理联动和 PostgreSQL SQL 迁移。
-- 图片任务：支持同步图片接口，也提供异步图片任务和批量图片任务入口；异步任务需要对象存储配置。
-- 安全控制：包含 CSP、CORS、可信代理、URL allowlist、响应头过滤、幂等、面板限流、API Key ACL 和审计日志等机制。
-
-## 生态项目
-
-围绕 Sub3API 的社区扩展与集成项目，当前均处于正常更新状态：
-
-| 项目 | 说明 | 功能 | 更新状态 |
-| --- | --- | --- | --- |
-| [Sub3ApiPay](https://github.com/touwaeriol/sub3apipay) | 自助支付系统 | 支付能力扩展与集成工具；Sub3API 同时提供内置支付功能，详见 [支付配置指南](docs/PAYMENT_CN.md) | 正常更新 |
-| [sub3api-mobile](https://github.com/ckken/sub3api-mobile) | 移动端管理控制台 | 支持用户管理、账号管理、监控看板和多后端切换的跨平台应用 | 正常更新 |
+- **多平台网关**：支持 Anthropic/Claude 风格 `/v1/messages`、OpenAI 风格 `/v1/responses`、`/v1/chat/completions`、`/v1/images/*`，以及 Gemini 原生 `/v1beta/models/*`。
+- **多账号调度**：支持按平台、分组、模型路由、账号状态、代理和并发容量进行调度。
+- **API Key 分发**：用户可创建和管理自己的 API Key；管理员可调整 Key 所属分组。
+- **用量与计费**：记录请求、Token、模型、费用、余额和聚合统计，支持按用户、Key、分组查看。
+- **管理台**：内置 Vue Web UI，发行版和 Docker 镜像会把前端构建产物嵌入后端服务。
+- **安全登录**：支持用户名密码、TOTP、Passkey，以及 LinuxDo、GitHub、Google、WeChat、OIDC、DingTalk 等可配置登录入口。
+- **运维能力**：提供健康检查、实时流量、并发、错误日志、上游错误、系统日志、告警和仪表盘接口。
+- **数据与备份**：支持数据库备份、S3 目标配置、数据管理代理联动和 PostgreSQL SQL 迁移。
+- **图片任务**：支持同步图片接口，也提供异步图片任务和批量图片任务入口；异步任务需要对象存储配置。
+- **安全控制**：包含 CSP、CORS、可信代理、URL allowlist、响应头过滤、幂等、面板限流、API Key ACL 和审计日志等机制。
 
 ## 技术栈
 
@@ -80,8 +69,8 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 ### Docker Compose
 
 ```bash
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
-cd sub3api-relay/deploy
+git clone https://gitee.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+cd sub3api/deploy
 cp .env.example .env
 chmod 600 .env
 # 编辑 .env，至少修改 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY、ADMIN_PASSWORD
@@ -90,15 +79,6 @@ docker compose logs -f sub3api
 ```
 
 默认访问地址：`http://127.0.0.1:8080`。
-
-`deploy/docker-compose.yml` 使用 Docker named volumes 保存数据。若更看重迁移和备份便利性，可使用本地目录版本：
-
-```bash
-cd deploy
-cp .env.example .env
-mkdir -p data postgres_data redis_data
-docker compose -f docker-compose.local.yml up -d
-```
 
 ### 一键准备 Docker 部署文件
 
@@ -115,7 +95,7 @@ docker compose up -d
 curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
-二进制安装会注册 systemd 服务。首次运行如果没有配置文件，会启动安装向导；远程服务器建议通过 SSH 隧道访问安装向导，不要把未完成初始化的向导暴露到公网。
+二进制安装会注册 systemd 服务。首次运行如果没有配置文件，会启动安装向导；远程服务器建议通过 SSH 隧道访问安装向导。
 
 ```bash
 ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP
@@ -149,13 +129,6 @@ Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环
 | `TOTP_ENCRYPTION_KEY` | 空 | 建议固定为 `openssl rand -hex 32`，否则已绑定 TOTP 可能失效 |
 | `RUN_MODE` | `standard` | `standard` 启用完整计费/余额逻辑；`simple` 隐藏部分 SaaS 功能并跳过余额校验 |
 | `TZ` | `Asia/Shanghai` | 时区，影响日志、统计和过期时间 |
-| `SECURITY_URL_ALLOWLIST_ENABLED` | `false` | 是否启用上游 URL allowlist |
-| `SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP` | `true` | allowlist 关闭时是否允许 `http://` URL，生产建议设为 `false` |
-| `SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS` | `true` | 是否允许本地/私有地址作为上游、定价或 CRS 目标，生产建议谨慎关闭 |
-| `GEMINI_OAUTH_CLIENT_ID` / `GEMINI_OAUTH_CLIENT_SECRET` | 空 | Gemini AI Studio OAuth 自建客户端配置 |
-| `GEMINI_CLI_OAUTH_CLIENT_SECRET` | 空 | Gemini CLI 内置 OAuth Client Secret，需要时由运行环境注入 |
-
-完整配置项以 `deploy/.env.example` 和 `deploy/config.example.yaml` 为准。
 
 ## API 入口速查
 
@@ -166,14 +139,11 @@ Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环
 | `/`、`/home`、`/login`、`/admin/*` | 嵌入式 Vue 管理台页面 |
 | `/setup` | 首次初始化向导 |
 | `/health` | 健康检查 |
-| `/setup/status` | 初始化状态 |
 | `/api/v1/auth/*` | 登录、刷新、OAuth 回调、当前用户 |
 | `/api/v1/user/*` | 用户资料、密码、TOTP、Passkey、通知邮箱 |
 | `/api/v1/keys/*` | 用户 API Key 管理 |
 | `/api/v1/usage/*` | 用户用量和错误记录 |
 | `/api/v1/admin/*` | 管理员 API，包括账号、分组、代理、设置、备份、运维、审计、风控、提示词审计等 |
-| `/api/v1/settings/public` | 前端公开配置 |
-| `/api/v1/channel-monitors/*` | 公开渠道状态接口 |
 
 ### AI 网关 API
 
@@ -186,22 +156,15 @@ curl http://127.0.0.1:8080/v1/models \
 
 | 入口 | 说明 |
 | --- | --- |
-| `/v1/messages` | Anthropic/Claude Messages 兼容入口，也会按分组平台自动路由到对应处理器 |
+| `/v1/messages` | Anthropic/Claude Messages 兼容入口 |
 | `/v1/messages/count_tokens` | Token 计数入口 |
 | `/v1/models` | 模型列表入口 |
-| `/v1/responses` | OpenAI Responses 兼容入口；也支持 WebSocket 升级 |
+| `/v1/responses` | OpenAI Responses 兼容入口 |
 | `/v1/chat/completions` | OpenAI Chat Completions 兼容入口 |
-| `/v1/embeddings` | OpenAI embeddings 入口，仅 OpenAI 平台分组可用 |
-| `/v1/images/generations`、`/v1/images/edits` | OpenAI/Grok 图片入口 |
-| `/v1/images/generations/async`、`/v1/images/tasks/{task_id}` | 异步图片任务入口，需要对象存储配置 |
-| `/v1/images/batches/*` | 批量图片任务入口 |
-| `/v1/videos/*` | Grok 视频生成、编辑、扩展和查询入口 |
+| `/v1/embeddings` | OpenAI embeddings 入口 |
+| `/v1/images/*` | 图片生成入口 |
 | `/v1beta/models/*` | Gemini 原生 API 兼容入口 |
-| `/responses`、`/models`、`/chat/completions` 等无前缀路径 | 部分 OpenAI/Responses 兼容别名 |
-| `/backend-api/codex/*` | Codex 兼容入口 |
-| `/antigravity/*` | Antigravity 专用入口 |
-
-更完整的行为以 `backend/internal/server/routes/gateway.go` 和相关专题文档为准。
+| `/v1/videos/*` | Grok 视频生成、编辑、扩展和查询入口 |
 
 ## 本地开发
 
@@ -214,8 +177,6 @@ make build
 ./bin/server -version
 ./bin/server -setup
 ```
-
-根目录 `make build` 等价于 `make -C backend build`，只构建后端二进制。`backend/Makefile` 使用 `-tags embed`，如果没有先构建前端到 `backend/internal/web/dist`，服务仍可作为后端启动，但不会包含最新前端产物。
 
 ### 前端
 
@@ -240,76 +201,6 @@ docker compose -f docker-compose.dev.yml up --build
 
 根目录 `Dockerfile` 会先构建前端，再构建带嵌入式前端的 Go 后端，最终生成运行镜像。
 
-## 构建、测试与发布
-
-| 场景 | 命令 |
-| --- | --- |
-| 后端构建 | `make -C backend build` |
-| 后端全部测试和 lint | `make -C backend test` |
-| 后端单元测试 | `make -C backend test-unit` |
-| 后端集成测试 | `make -C backend test-integration` |
-| 后端 E2E 测试 | `make -C backend test-e2e` |
-| 前端类型检查 | `pnpm --dir frontend typecheck` |
-| 前端 lint | `pnpm --dir frontend lint:check` |
-| 前端测试 | `pnpm --dir frontend test:run` |
-| 前端构建 | `pnpm --dir frontend build` |
-| 本地完整镜像构建 | `docker build -t sub3api:local .` |
-
-Release 工作流要求 tag 格式为 `vX.Y.Z`，并校验 `backend/cmd/server/VERSION` 与 `frontend/package.json` 版本一致。发布细节见 `docs/RELEASING.md` 和 `.github/workflows/release.yml`。
-
-## 项目目录
-
-```text
-.
-├── backend/                  # Go 后端、Ent 模型、HTTP 路由、服务层、迁移和后端命令
-│   ├── cmd/server/            # 主服务入口
-│   ├── cmd/jwtgen/            # JWT 生成辅助命令
-│   ├── cmd/profit-preview/    # 收益预览辅助命令
-│   ├── ent/                   # Ent schema 和生成代码
-│   ├── internal/              # 后端业务实现
-│   ├── migrations/            # PostgreSQL SQL 迁移
-│   └── resources/             # 内置资源，例如模型定价数据
-├── frontend/                  # Vue 管理台源码
-│   ├── public/
-│   └── src/                   # 路由、页面、组件、API client、状态管理
-├── deploy/                    # Docker Compose、systemd、安装/升级脚本和部署文档
-├── docs/                      # 支付、异步图片、发布等专题文档
-├── assets/                    # 项目静态资产
-├── openspec/                  # 变更规格说明
-├── skills/                    # 项目相关技能/提示资产
-├── Dockerfile                 # 完整镜像构建：前端构建 + 后端嵌入 + runtime
-├── Dockerfile.goreleaser      # GoReleaser 镜像构建文件
-├── Makefile                   # 根构建入口，当前委托到 backend
-└── LICENSE                    # LGPL-3.0 License
-```
-
-## 部署与运维文档
-
-| 文档 | 内容 |
-| --- | --- |
-| `deploy/README.md` | Docker、Apple container、二进制安装和常用运维命令 |
-| `deploy/DOCKER.md` | Docker 镜像和容器部署说明 |
-| `deploy/BINARY_UPGRADE.md` | 二进制升级、验证和回滚 |
-| `deploy/APPLE_CONTAINER.md` | Apple container 部署方式 |
-| `deploy/EDGE_SECURITY.md` | 反向代理、CDN/WAF、可信代理和边缘安全 |
-| `deploy/DATAMANAGEMENTD_CN.md` | 数据管理代理部署与联动 |
-| `docs/ASYNC_IMAGE_TASKS.md` | 异步图片任务配置、接口和排障 |
-| `docs/PAYMENT.md`、`docs/PAYMENT_CN.md` | 支付模块说明；当前可用入口请以实际路由挂载为准 |
-| `docs/ADMIN_PAYMENT_INTEGRATION_API.md` | 管理侧支付集成接口说明 |
-| `docs/RELEASING.md` | 发布流程说明 |
-| `backend/migrations/README.md` | 数据库迁移规则 |
-| `backend/cmd/cleanup-ingress-reject-logs/README.md` | ingress rejection 日志清理命令 |
-
-## 安全注意事项
-
-- 生产环境必须修改 `POSTGRES_PASSWORD`、`ADMIN_PASSWORD`，并固定 `JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY`。
-- 默认 Compose 只把服务绑定到 `127.0.0.1`；如改为 `0.0.0.0`，请先配置防火墙、HTTPS 和反向代理。
-- 二进制安装的首次初始化向导建议只通过本机或 SSH 隧道访问，不要暴露到公网。
-- 通过 Nginx 反向代理时，如果依赖带下划线的请求头，例如 `session_id`，需要在 `http` 块设置 `underscores_in_headers on;`。
-- 如需严格限制上游请求目标，启用 `SECURITY_URL_ALLOWLIST_ENABLED=true`，并配置允许的上游主机；生产环境建议关闭不必要的 HTTP 和私有地址访问。
-- 账号、代理、备份、S3、审计等敏感操作涉及凭证或数据导出，应启用 TOTP/Passkey 等二次验证能力。
-- 不要把 OAuth `client_secret`、上游账号 Cookie、API Key、数据库密码提交到仓库。
-
 ## 常见问题
 
 ### `docker compose up` 提示 `POSTGRES_PASSWORD is required`
@@ -326,7 +217,7 @@ docker compose up -d
 
 ### 登录后修改 `.env` 的 `ADMIN_PASSWORD` 不生效
 
-`ADMIN_PASSWORD` 只在首次创建管理员账号时使用。已有账号需要在管理台修改密码，或使用项目提供的重置/维护流程处理。
+`ADMIN_PASSWORD` 只在首次创建管理员账号时使用。已有账号需要在管理台修改密码。
 
 ### 前端开发服务器连不上后端
 
@@ -338,7 +229,7 @@ VITE_DEV_PROXY_TARGET=http://127.0.0.1:8080 pnpm --dir frontend dev
 
 ### 异步图片接口返回 404
 
-异步图片任务依赖对象存储。需要启用并完整配置 `image_storage`，或在管理台配置异步图片对象存储。详见 `docs/ASYNC_IMAGE_TASKS.md`。
+异步图片任务依赖对象存储。需要启用并完整配置 `image_storage`，或在管理台配置异步图片对象存储。
 
 ### 反向代理后粘性会话异常
 
