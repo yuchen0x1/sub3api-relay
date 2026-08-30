@@ -6,7 +6,7 @@ matching Gitee Release. GitHub is not used as this project's publishing source.
 ## Prepare
 
 1. Choose a semantic version tag in the exact form `vX.Y.Z`.
-2. Create `RELEASE_NOTES_vX.Y.Z.md` at the repository root.
+2. Create `docs/release-notes/RELEASE_NOTES_vX.Y.Z.md`.
 3. Summarize user-visible changes, compatibility fixes, upgrade notes, and known limitations.
 4. Update the README changelog links when the highlighted release changes.
 5. Run the relevant backend and frontend tests before tagging.

@@ -104,7 +104,7 @@ jobs:
       - name: Load required release notes
         run: |
           set -euo pipefail
-          NOTES_FILE="RELEASE_NOTES_${RELEASE_TAG}.md"
+          NOTES_FILE="docs/release-notes/RELEASE_NOTES_${RELEASE_TAG}.md"
 
           if [ ! -f "$NOTES_FILE" ]; then
             echo "Missing required release notes: $NOTES_FILE" >&2
