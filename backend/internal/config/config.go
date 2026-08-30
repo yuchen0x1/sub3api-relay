@@ -157,12 +157,12 @@ type GeminiTierQuotaConfig struct {
 }
 
 type UpdateConfig struct {
-	// ProxyURL 用于访问 GitHub 的代理地址
+	// ProxyURL 用于访问 Gitee 更新源和其他外部更新源的代理地址
 	// 支持 http/https/socks5/socks5h 协议
 	// 例如: "http://127.0.0.1:7890", "socks5://127.0.0.1:1080"
 	ProxyURL string `mapstructure:"proxy_url"`
 
-	// AutoEnabled 启用自动更新：定期检测 GitHub Release，发现新版本后
+	// AutoEnabled 启用自动更新：定期检测 Gitee Release，发现新版本后
 	// 自动下载替换二进制并重启服务（仅 release 构建生效，source 构建跳过）
 	AutoEnabled bool `mapstructure:"auto_enabled"`
 	// AutoIntervalHours 自动检查更新的间隔（小时），默认 12；填 0 或负数使用默认值

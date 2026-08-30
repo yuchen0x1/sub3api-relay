@@ -69,6 +69,12 @@ func TestUpdateServicePerformUpdateNoUpdateReturnsSentinel(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoUpdateAvailable)
 }
 
+func TestResolveUpdateChannelUsesGitee(t *testing.T) {
+	channel, err := ResolveUpdateChannel(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, UpdateChannelGitee, channel)
+}
+
 func TestUpdateServiceRejectsInPlaceUpdateOutsideStandaloneRelease(t *testing.T) {
 	for _, buildType := range []string{"source", "docker"} {
 		t.Run(buildType, func(t *testing.T) {
@@ -100,7 +106,7 @@ func TestUpdateServiceListRollbackVersionsFiltersAndCaps(t *testing.T) {
 		{TagName: "v0.1.148", PublishedAt: "2026-07-09T00:00:00Z"},                       // newer than current: excluded
 		{TagName: "v0.1.147", PublishedAt: "2026-07-08T00:00:00Z"},                       // current: excluded
 		{TagName: "v0.1.146-rc1", PublishedAt: "2026-07-07T12:00:00Z", Prerelease: true}, // prerelease: excluded
-		{TagName: "v0.1.146'$(touch /tmp/nope)'", PublishedAt: "2026-07-07T06:00:00Z"},     // invalid: excluded
+		{TagName: "v0.1.146'$(touch /tmp/nope)'", PublishedAt: "2026-07-07T06:00:00Z"},   // invalid: excluded
 		{TagName: "v0.1.146", PublishedAt: "2026-07-07T00:00:00Z"},
 		{TagName: "v0.1.145", PublishedAt: "2026-07-06T00:00:00Z", Draft: true}, // draft: excluded
 		{TagName: "v0.1.144", PublishedAt: "2026-07-05T00:00:00Z"},

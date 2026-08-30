@@ -13,7 +13,7 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.195.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](RELEASE_NOTES_v0.1.196.md)
 
 </div>
 
@@ -35,7 +35,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.195 更新说明](RELEASE_NOTES_v0.1.195.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.1.196 更新说明](RELEASE_NOTES_v0.1.196.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒

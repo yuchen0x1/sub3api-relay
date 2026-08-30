@@ -1,6 +1,7 @@
 # Release Process
 
-Every published version must include a reviewed release-notes file. The GitHub Actions workflow rejects malformed tags and releases without notes.
+Every published version must include a reviewed release-notes file and a
+matching Gitee Release. GitHub is not used as this project's publishing source.
 
 ## Prepare
 
@@ -13,12 +14,13 @@ Every published version must include a reviewed release-notes file. The GitHub A
 ## Publish
 
 1. Commit the release notes and all release changes.
-2. Create and push the `vX.Y.Z` tag, or run the Release workflow manually with that existing tag.
-3. Confirm that the workflow loads the matching release-notes file and publishes all expected assets.
-4. Verify the GitHub Release body, checksums, container tags, and frontend bundle.
+2. Create and push the `vX.Y.Z` tag to the Gitee remote.
+3. Create the matching Gitee Release and attach the platform archives,
+   `checksums.txt`, frontend bundle, and deployment bundle.
+4. Verify the Gitee Release body, checksums, container tags, and frontend bundle.
 
 ## Verify Updates
 
-- For binary deployments, open the administrator version panel, refresh version information, and test **Update Now** only after release assets are available.
+- For binary deployments, open the administrator version panel, refresh version information, and test **Update Now** only after Gitee release assets are available.
 - For Docker deployments, pull the published image and recreate the container; do not rely on replacing the binary inside a running container.
 - Confirm the running version and health endpoint after the service restarts.

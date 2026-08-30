@@ -89,7 +89,7 @@
                   <span v-else class="text-2xl font-bold text-gray-400 dark:text-dark-500">--</span>
                   <!-- Show check mark when up to date -->
                   <span
-                    v-if="!hasUpdate"
+                    v-if="!hasUpdate && !versionWarning"
                     class="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
                   >
                     <svg
@@ -105,12 +105,15 @@
                     </svg>
                   </span>
                 </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">
-                  {{
-                    hasUpdate
-                      ? t('version.latestVersion') + ': v' + latestVersion
-                      : t('version.upToDate')
-                  }}
+                <p
+                  v-if="versionWarning"
+                  class="mt-1 break-words text-xs text-amber-600 dark:text-amber-400"
+                  data-testid="version-warning"
+                >
+                  {{ t('version.updateCheckWarning') }}: {{ versionWarning }}
+                </p>
+                <p v-else class="mt-1 text-xs text-gray-500 dark:text-dark-400">
+                  {{ hasUpdate ? t('version.latestVersion') + ': v' + latestVersion : t('version.upToDate') }}
                 </p>
               </div>
 
@@ -771,8 +774,9 @@ import {
 import { useClipboard } from '@/composables/useClipboard'
 import Icon from '@/components/icons/Icon.vue'
 
-const GITHUB_REPO = 'yuchen0x1/sub3api-relay'
-const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`
+const GITEE_REPO = 'yuchen0x1/personal-ai-api-gateway-sub3api'
+const GITEE_REPO_URL = `https://gitee.com/${GITEE_REPO}`
+const GITEE_RELEASES_URL = `${GITEE_REPO_URL}/releases`
 // Docker image published by the project's CI (tags carry no "v" prefix).
 const DOCKER_IMAGE = 'ghcr.io/yuchen0x1/sub3api-relay'
 const STRICT_RELEASE_VERSION = /^\d+\.\d+\.\d+$/
@@ -798,6 +802,7 @@ const currentVersion = computed(() => appStore.currentVersion || props.version |
 const latestVersion = computed(() => appStore.latestVersion)
 const hasUpdate = computed(() => appStore.hasUpdate)
 const releaseInfo = computed(() => appStore.releaseInfo)
+const versionWarning = computed(() => appStore.versionWarning)
 const buildType = computed(() => appStore.buildType)
 const releaseNotesOpen = ref(false)
 const sanitizedReleaseNotes = computed(() => {
@@ -809,11 +814,12 @@ const sanitizedReleaseNotes = computed(() => {
   })
 })
 const releasePageUrl = computed(() => {
+  if (releaseInfo.value?.html_url) return releaseInfo.value.html_url
   const version = latestVersion.value.trim()
-  if (!version) return GITHUB_RELEASES_URL
+  if (!version) return GITEE_RELEASES_URL
 
   const tag = version.startsWith('v') ? version : `v${version}`
-  return `${GITHUB_RELEASES_URL}/tag/${encodeURIComponent(tag)}`
+  return `${GITEE_REPO_URL}/tree/${encodeURIComponent(tag)}`
 })
 
 // Update process states (local to this component)
@@ -853,7 +859,7 @@ const manualTabs = computed(() =>
 const scriptRollbackCommand = computed(() => {
   if (!STRICT_RELEASE_VERSION.test(selectedRollbackVersion.value)) return ''
   const tag = `v${selectedRollbackVersion.value}`
-  return `curl -sSL https://raw.githubusercontent.com/${GITHUB_REPO}/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
+  return `curl -sSL https://gitee.com/${GITEE_REPO}/raw/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
 })
 
 const dockerRollbackCommand = computed(() => {

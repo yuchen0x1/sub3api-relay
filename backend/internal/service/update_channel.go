@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,13 +15,13 @@ import (
 	"time"
 )
 
-// UpdateChannel 自更新通道：国内 IP 优先走 Gitee，国外走 GitHub
+// UpdateChannel 自更新通道。项目自身发布只使用 Gitee。
 type UpdateChannel string
 
 const (
-	// UpdateChannelGitHub GitHub 通道（默认/兜底）
+	// UpdateChannelGitHub 保留用于其他仅支持 GitHub 的上游同步任务。
 	UpdateChannelGitHub UpdateChannel = "github"
-	// UpdateChannelGitee Gitee 通道（国内直连更快更稳）
+	// UpdateChannelGitee 项目自身发布的唯一通道。
 	UpdateChannelGitee UpdateChannel = "gitee"
 )
 
@@ -218,35 +217,12 @@ var (
 
 // ResolveUpdateChannel 解析当前应使用的更新通道。
 //
-// 探测顺序：
-//  1. 百度千帆 geo（3s 超时）：响应含 "中国"/"China" → gitee；成功但非中国 → github
-//  2. ip.sb geoip（3s 超时）：country_code === "CN" → gitee；成功但非 CN → github
-//  3. 两个 geo 源都失败：竞速 Gitee 与 GitHub releases/latest，先成功者胜
-//  4. 全部失败：github 兜底
-//
-// 结果带 TTL 进程内缓存；除环境变量强制指定外，本函数不会返回 error（兜底保证必有通道）。
+// 项目自身的版本发布只在 Gitee 维护。这里不再根据 IP、DNS 或外部
+// 可达性在 Gitee/GitHub 之间切换，避免 GitHub 不可达或没有 Release 时
+// 把真实的 Gitee 新版本误报为“已是最新版本”。
 func ResolveUpdateChannel(ctx context.Context) (UpdateChannel, error) {
-	if ch := channelFromEnv(); ch != "" {
-		return ch, nil
-	}
-
-	updateChannelMu.Lock()
-	if time.Now().Before(updateChannelExpAt) {
-		ch := updateChannelCache
-		updateChannelMu.Unlock()
-		return ch, nil
-	}
-	updateChannelMu.Unlock()
-
-	ch := detectUpdateChannel(ctx)
-
-	updateChannelMu.Lock()
-	updateChannelCache = ch
-	updateChannelExpAt = time.Now().Add(updateChannelCacheTTL)
-	updateChannelMu.Unlock()
-
-	slog.Info("update channel resolved", "channel", string(ch))
-	return ch, nil
+	_ = ctx
+	return UpdateChannelGitee, nil
 }
 
 // channelFromEnv 读取 UPDATE_CHANNEL 环境变量强制指定的通道
