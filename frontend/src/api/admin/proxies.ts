@@ -202,7 +202,6 @@ export async function batchCreate(
     username?: string
     password?: string
     options?: Record<string, string>
-    tls_insecure?: boolean
   }>
 ): Promise<{
   created: number
@@ -219,7 +218,7 @@ export async function parseSubscription(url: string): Promise<{
   count: number
   proxies: Array<{
     name: string
-    protocol: 'hysteria2' | 'vless'
+    protocol: 'vless'
     host: string
     port: number
     username: string
@@ -232,7 +231,7 @@ export async function parseSubscription(url: string): Promise<{
     count: number
     proxies: Array<{
       name: string
-      protocol: 'hysteria2' | 'vless'
+      protocol: 'vless'
       host: string
       port: number
       username: string

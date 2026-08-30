@@ -1438,7 +1438,10 @@ func (s *GatewayService) hydrateSelectedAccount(ctx context.Context, account *Ac
 	if account == nil || s.schedulerSnapshot == nil {
 		return account, nil
 	}
-	hydrated, err := s.schedulerSnapshot.GetAccount(ctx, account.ID)
+	// Scheduler snapshots deliberately contain only routing metadata. Fetch the
+	// complete record from the primary repository after selection so credentials
+	// never reside in Redis.
+	hydrated, err := s.accountRepo.GetByID(ctx, account.ID)
 	if err != nil {
 		return nil, err
 	}

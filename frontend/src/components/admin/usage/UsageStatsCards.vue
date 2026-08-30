@@ -1,27 +1,26 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-    <div class="card p-4 flex items-center gap-3">
-      <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30 text-blue-600">
+  <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="card flex min-w-0 items-start gap-3 p-4">
+      <div class="shrink-0 rounded-lg bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30">
         <Icon name="document" size="md" />
       </div>
-      <div>
+      <div class="min-w-0 flex-1">
         <p class="text-xs font-medium text-gray-500">{{ t('usage.totalRequests') }}</p>
-        <p class="text-xl font-bold">{{ stats?.total_requests?.toLocaleString() || '0' }}</p>
+        <p class="text-xl font-bold tabular-nums">{{ stats?.total_requests?.toLocaleString() || '0' }}</p>
         <p class="text-xs text-gray-400">{{ t('usage.inSelectedRange') }}</p>
       </div>
     </div>
-    <div class="card p-4 flex items-center gap-3">
-      <div class="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30 text-amber-600"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg></div>
-      <div>
+    <div class="card flex min-w-0 items-start gap-3 p-4">
+      <div class="shrink-0 rounded-lg bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/30"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg></div>
+      <div class="min-w-0 flex-1">
         <p class="text-xs font-medium text-gray-500">{{ t('usage.totalTokens') }}</p>
-        <p class="text-xl font-bold">{{ formatTokens(stats?.total_tokens || 0) }}</p>
-        <p class="flex flex-wrap items-center gap-x-1 text-xs text-gray-500">
-          <span>{{ t('usage.in') }}: {{ formatTokens(stats?.total_input_tokens || 0) }}</span>
-          <span>/</span>
-          <span>{{ t('usage.out') }}: {{ formatTokens(stats?.total_output_tokens || 0) }}</span>
-          <span>/</span>
-          <span class="group relative inline-flex cursor-help items-center gap-0.5" tabindex="0">
-            <span>{{ cacheLabel() }}: {{ formatTokens(stats?.total_cache_tokens || 0) }}</span>
+        <p class="text-xl font-bold tabular-nums">{{ formatTokens(stats?.total_tokens || 0) }}</p>
+        <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+          <span class="whitespace-nowrap tabular-nums">{{ t('usage.in') }}: {{ formatTokens(stats?.total_input_tokens || 0) }}</span>
+          <span class="whitespace-nowrap tabular-nums">{{ t('usage.out') }}: {{ formatTokens(stats?.total_output_tokens || 0) }}</span>
+          <span class="group relative inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 cursor-help tabular-nums" tabindex="0" :aria-label="`${cacheLabel()}: ${formatTokens(stats?.total_cache_tokens || 0)}, ${cacheShareLabel}`">
+            <span class="whitespace-nowrap">{{ cacheLabel() }}: {{ formatTokens(stats?.total_cache_tokens || 0) }}</span>
+            <span class="whitespace-nowrap font-medium text-sky-600 dark:text-sky-300">({{ cacheShareLabel }})</span>
             <svg
               class="h-3.5 w-3.5 text-gray-400"
               fill="none"
@@ -55,11 +54,11 @@
               </span>
             </span>
           </span>
-        </p>
+        </div>
       </div>
     </div>
-    <div class="card p-4 flex items-center gap-3">
-      <div class="rounded-lg bg-green-100 p-2 dark:bg-green-900/30 text-green-600">
+    <div class="card flex min-w-0 items-start gap-3 p-4">
+      <div class="shrink-0 rounded-lg bg-green-100 p-2 text-green-600 dark:bg-green-900/30">
         <Icon name="dollar" size="md" />
       </div>
       <div class="min-w-0 flex-1">
@@ -79,11 +78,14 @@
         </p>
       </div>
     </div>
-    <div class="card p-4 flex items-center gap-3">
-      <div class="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/30 text-purple-600">
+    <div class="card flex min-w-0 items-start gap-3 p-4">
+      <div class="shrink-0 rounded-lg bg-purple-100 p-2 text-purple-600 dark:bg-purple-900/30">
         <Icon name="clock" size="md" />
       </div>
-      <div><p class="text-xs font-medium text-gray-500">{{ t('usage.avgDuration') }}</p><p class="text-xl font-bold">{{ formatDuration(stats?.average_duration_ms || 0) }}</p></div>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium text-gray-500">{{ t('usage.avgDuration') }}</p>
+        <p class="text-xl font-bold tabular-nums">{{ formatDuration(stats?.average_duration_ms || 0) }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -125,4 +127,13 @@ const formatTokens = (value: number) => {
 
 const cacheLabel = () => t('usage.cacheTotal')
 const cacheDetailLabel = () => t('usage.cacheBreakdown')
+
+const cacheSharePercent = computed(() => {
+  const totalTokens = Number(props.stats?.total_tokens) || 0
+  const cacheTokens = Number(props.stats?.total_cache_tokens) || 0
+  if (totalTokens <= 0 || cacheTokens <= 0) return 0
+  return Math.min(100, Math.max(0, (cacheTokens / totalTokens) * 100))
+})
+
+const cacheShareLabel = computed(() => `${cacheSharePercent.value.toFixed(1)}%`)
 </script>

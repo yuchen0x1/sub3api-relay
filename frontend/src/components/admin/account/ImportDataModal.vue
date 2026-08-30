@@ -45,7 +45,7 @@
               {{ selectedFilesLabel || t('admin.accounts.dataImportSelectFile') }}
             </div>
             <div class="text-xs text-gray-500 dark:text-dark-400">
-              JSON (.json)
+              JSON / JSONL / TXT / token files
               <span v-if="files.length > 1"> · {{ fileListTitle }}</span>
             </div>
           </div>
@@ -57,7 +57,7 @@
           ref="fileInput"
           type="file"
           class="hidden"
-          accept="application/json,.json"
+          accept="application/json,application/jsonl,text/plain,.json,.jsonl,.ndjson,.txt,.tokens,.at-txt,.at_txt,.rt-txt,.rt_txt"
           multiple
           @change="handleFileChange"
         />
@@ -115,6 +115,10 @@ import Toggle from '@/components/common/Toggle.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
 import type { AdminDataImportResult, AdminDataPayload } from '@/types'
+import {
+  normalizeAccountDataPayload,
+  parseAccountDataText
+} from '@/utils/accountDataImport'
 
 interface Props {
   show: boolean
@@ -184,15 +188,18 @@ const handleClose = () => {
   emit('close')
 }
 
-const isJsonFile = (sourceFile: File) => {
-  const name = sourceFile.name.toLowerCase()
-  return name.endsWith('.json') || sourceFile.type === 'application/json'
-}
-
 const setSelectedFiles = (sourceFiles: FileList | File[] | null | undefined) => {
   if (importing.value) return
   const incoming = Array.from(sourceFiles || [])
-  const picked = incoming.filter(isJsonFile)
+  const picked = incoming.filter((sourceFile) => {
+    const name = sourceFile.name.toLowerCase()
+    return (
+      /\.(json|jsonl|ndjson|txt|tokens|at[-_]?txt|rt[-_]?txt)$/.test(name) ||
+      sourceFile.type === 'application/json' ||
+      sourceFile.type === 'application/jsonl' ||
+      sourceFile.type === 'text/plain'
+    )
+  })
   if (!picked.length) {
     appStore.showError(t('admin.accounts.dataImportSelectFile'))
     return
@@ -293,18 +300,25 @@ const handleImport = async () => {
     for (const sourceFile of files.value) {
       let parsed: unknown
       try {
-        parsed = JSON.parse(await readFileAsText(sourceFile))
+        parsed = parseAccountDataText(await readFileAsText(sourceFile), sourceFile.name)
       } catch {
         appStore.showError(
           t('admin.accounts.dataImportParseFailedFile', { name: sourceFile.name })
         )
         return
       }
-      if (!isValidDataPayload(parsed)) {
+      let normalizedPayload: AdminDataPayload
+      try {
+        normalizedPayload = normalizeAccountDataPayload(parsed, sourceFile.name)
+      } catch {
         appStore.showError(t('admin.accounts.dataImportInvalidFile', { name: sourceFile.name }))
         return
       }
-      dataPayloads.push(parsed)
+      if (!isValidDataPayload(normalizedPayload)) {
+        appStore.showError(t('admin.accounts.dataImportInvalidFile', { name: sourceFile.name }))
+        return
+      }
+      dataPayloads.push(normalizedPayload)
     }
     const dataPayload = mergeDataPayloads(dataPayloads)
 

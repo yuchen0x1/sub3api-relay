@@ -28,7 +28,7 @@ func NewProxyHandler(adminService service.AdminService) *ProxyHandler {
 // CreateProxyRequest represents create proxy request
 type CreateProxyRequest struct {
 	Name           string            `json:"name" binding:"required"`
-	Protocol       string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2 vless"`
+	Protocol       string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h vless"`
 	Host           string            `json:"host" binding:"required"`
 	Port           int               `json:"port" binding:"required,min=1,max=65535"`
 	Username       string            `json:"username"`
@@ -44,7 +44,7 @@ type CreateProxyRequest struct {
 // UpdateProxyRequest represents update proxy request
 type UpdateProxyRequest struct {
 	Name           string            `json:"name"`
-	Protocol       string            `json:"protocol" binding:"omitempty,oneof=http https socks5 socks5h hysteria2 vless"`
+	Protocol       string            `json:"protocol" binding:"omitempty,oneof=http https socks5 socks5h vless"`
 	Host           string            `json:"host"`
 	Port           int               `json:"port" binding:"omitempty,min=1,max=65535"`
 	Username       string            `json:"username"`
@@ -369,7 +369,7 @@ func (h *ProxyHandler) GetProxyAccounts(c *gin.Context) {
 // BatchCreateProxyItem represents a single proxy in batch create request
 type BatchCreateProxyItem struct {
 	Name        string            `json:"name"`
-	Protocol    string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2 vless"`
+	Protocol    string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h vless"`
 	Host        string            `json:"host" binding:"required"`
 	Port        int               `json:"port" binding:"required,min=1,max=65535"`
 	Username    string            `json:"username"`
@@ -426,18 +426,6 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 		duplicateUsername := username
 		duplicatePassword := password
 		vlessKey := buildProxyKeyWithOptions(protocol, host, item.Port, username, password, options, item.TLSInsecure)
-		if protocol == "hysteria2" {
-			persistenceProxy := &service.Proxy{
-				Protocol:    protocol,
-				Host:        host,
-				Port:        item.Port,
-				Password:    password,
-				TLSInsecure: item.TLSInsecure,
-			}
-			duplicateUsername = persistenceProxy.PersistenceUsername()
-			duplicatePassword = persistenceProxy.PersistencePassword()
-		}
-
 		// Check for duplicates. VLESS nodes need transport options in their
 		// identity because one endpoint can legitimately expose several WS
 		// paths/SNI values; the legacy host/port/auth check would collapse them.

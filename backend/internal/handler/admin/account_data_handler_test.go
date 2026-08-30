@@ -360,3 +360,61 @@ func TestImportDataSkipsAccountsWhenHealthCheckFails(t *testing.T) {
 	require.Contains(t, response.Data.Errors[0].Message, "health check")
 	require.Empty(t, adminSvc.createdAccounts)
 }
+
+func TestImportDataSkipsDuplicateCredentialIdentity(t *testing.T) {
+	router, adminSvc := setupAccountDataRouter()
+	adminSvc.accounts = []service.Account{{
+		ID:          41,
+		Name:        "existing",
+		Platform:    service.PlatformOpenAI,
+		Type:        service.AccountTypeOAuth,
+		Credentials: map[string]any{"refresh_token": "existing-refresh-token"},
+	}}
+
+	payload := map[string]any{"data": map[string]any{
+		"type": dataType, "version": dataVersion,
+		"proxies": []map[string]any{},
+		"accounts": []map[string]any{{
+			"name": "duplicate", "platform": service.PlatformOpenAI, "type": service.AccountTypeOAuth,
+			"credentials": map[string]any{"refresh_token": "existing-refresh-token"},
+		}},
+	}, "validate_accounts": false}
+	body, err := json.Marshal(payload)
+	require.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/data", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, request)
+	require.Equal(t, http.StatusOK, recorder.Code)
+
+	var response struct {
+		Code int              `json:"code"`
+		Data DataImportResult `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+	require.Equal(t, 1, response.Data.AccountSkipped)
+	require.Empty(t, adminSvc.createdAccounts)
+	require.Contains(t, response.Data.Errors[0].Message, "account_id=41")
+	require.NotContains(t, response.Data.Errors[0].Message, "existing-refresh-token")
+}
+
+func TestValidateDataAccountAcceptsAllCreatableCredentialTypes(t *testing.T) {
+	for _, accountType := range []string{
+		service.AccountTypeOAuth,
+		service.AccountTypeSetupToken,
+		service.AccountTypeAPIKey,
+		service.AccountTypeUpstream,
+		service.AccountTypeBedrock,
+		service.AccountTypeServiceAccount,
+	} {
+		t.Run(accountType, func(t *testing.T) {
+			err := validateDataAccount(DataAccount{
+				Name:        "imported-account",
+				Platform:    service.PlatformGemini,
+				Type:        accountType,
+				Credentials: map[string]any{"secret": "value"},
+			})
+			require.NoError(t, err)
+		})
+	}
+}

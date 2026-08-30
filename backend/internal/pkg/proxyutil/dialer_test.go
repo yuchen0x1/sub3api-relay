@@ -1,17 +1,11 @@
 package proxyutil
 
 import (
-	"context"
-	"errors"
-	"net"
-	"net/http"
-	"net/url"
-	"sync"
-	"testing"
-
-	hyclient "github.com/apernet/hysteria/core/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"net/http"
+	"net/url"
+	"testing"
 )
 
 func TestConfigureTransportProxy_Nil(t *testing.T) {
@@ -67,133 +61,14 @@ func TestConfigureTransportProxy_SOCKS5H(t *testing.T) {
 	assert.NotNil(t, transport.DialContext, "SOCKS5H proxy should set DialContext")
 }
 
-func TestConfigureTransportProxy_Hysteria2(t *testing.T) {
+func TestConfigureTransportProxy_RejectsHysteria2(t *testing.T) {
 	transport := &http.Transport{}
 	proxyURL, _ := url.Parse("hysteria2://token@127.0.0.1:443?insecure=1")
 
 	err := ConfigureTransportProxy(transport, proxyURL)
 
-	require.NoError(t, err)
-	assert.Nil(t, transport.Proxy)
-	assert.NotNil(t, transport.DialContext)
-}
-
-type fakeHysteria2Client struct {
-	mu      sync.Mutex
-	targets []string
-	err     error
-	closed  bool
-}
-
-func (f *fakeHysteria2Client) TCP(addr string) (net.Conn, error) {
-	f.mu.Lock()
-	f.targets = append(f.targets, addr)
-	err := f.err
-	f.mu.Unlock()
-	if err != nil {
-		return nil, err
-	}
-	client, peer := net.Pipe()
-	_ = peer.Close()
-	return client, nil
-}
-
-func (f *fakeHysteria2Client) UDP() (hyclient.HyUDPConn, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (f *fakeHysteria2Client) Close() error {
-	f.mu.Lock()
-	f.closed = true
-	f.mu.Unlock()
-	return nil
-}
-
-func TestHysteria2DialContextPreservesAuthTLSOptionsAndReusesClient(t *testing.T) {
-	original := newHysteria2Client
-	t.Cleanup(func() { newHysteria2Client = original })
-
-	fake := &fakeHysteria2Client{}
-	var captured *hyclient.Config
-	newHysteria2Client = func(configFunc func() (*hyclient.Config, error), _ func(hyclient.Client, *hyclient.HandshakeInfo, int), lazy bool) (hyclient.Client, error) {
-		require.True(t, lazy)
-		cfg, err := configFunc()
-		require.NoError(t, err)
-		captured = cfg
-		return fake, nil
-	}
-
-	proxyURL, err := url.Parse("hysteria2://user:pass@127.0.0.1:8443?insecure=1&sni=edge.example.com")
-	require.NoError(t, err)
-	dialContext, closer, err := newHysteria2DialContext(proxyURL)
-	require.NoError(t, err)
-	require.Same(t, fake, closer)
-	require.NotNil(t, captured)
-	require.Equal(t, "user:pass", captured.Auth)
-	require.Equal(t, "edge.example.com", captured.TLSConfig.ServerName)
-	require.True(t, captured.TLSConfig.InsecureSkipVerify)
-	require.Equal(t, "127.0.0.1:8443", captured.ServerAddr.String())
-
-	const concurrentDials = 8
-	var wg sync.WaitGroup
-	errCh := make(chan error, concurrentDials)
-	wg.Add(concurrentDials)
-	for i := 0; i < concurrentDials; i++ {
-		go func() {
-			defer wg.Done()
-			conn, dialErr := dialContext(context.Background(), "tcp", "upstream.example:443")
-			if dialErr != nil {
-				errCh <- dialErr
-				return
-			}
-			if conn != nil {
-				_ = conn.Close()
-			}
-		}()
-	}
-	wg.Wait()
-	close(errCh)
-	for dialErr := range errCh {
-		require.NoError(t, dialErr)
-	}
-
-	fake.mu.Lock()
-	require.Len(t, fake.targets, concurrentDials)
-	fake.mu.Unlock()
-	require.NoError(t, closer.Close())
-	fake.mu.Lock()
-	require.True(t, fake.closed)
-	fake.mu.Unlock()
-}
-
-func TestHysteria2DialContextPropagatesTargetError(t *testing.T) {
-	original := newHysteria2Client
-	t.Cleanup(func() { newHysteria2Client = original })
-
-	fake := &fakeHysteria2Client{err: errors.New("upstream rejected stream")}
-	newHysteria2Client = func(func() (*hyclient.Config, error), func(hyclient.Client, *hyclient.HandshakeInfo, int), bool) (hyclient.Client, error) {
-		return fake, nil
-	}
-	proxyURL, err := url.Parse("hysteria2://token@127.0.0.1:443?insecure=1")
-	require.NoError(t, err)
-	dialContext, closer, err := newHysteria2DialContext(proxyURL)
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = closer.Close() })
-
-	_, err = dialContext(context.Background(), "tcp", "api.example.com:443")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "hysteria2 dial api.example.com:443")
-	require.ErrorContains(t, err, "upstream rejected stream")
-}
-
-func TestConfigureTransportProxy_Hysteria2RejectsUnsupportedOptions(t *testing.T) {
-	transport := &http.Transport{}
-	proxyURL, _ := url.Parse("hysteria2://token@127.0.0.1:443?obfs=salamander")
-
-	err := ConfigureTransportProxy(transport, proxyURL)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported hysteria2 option")
+	assert.Contains(t, err.Error(), "unsupported proxy scheme")
 }
 
 func TestConfigureTransportProxy_CaseInsensitive(t *testing.T) {

@@ -49,7 +49,7 @@ func (r *proxyRepository) Create(ctx context.Context, proxyIn *service.Proxy) er
 	if username := proxyIn.PersistenceUsername(); username != "" {
 		builder.SetUsername(username)
 	}
-	if proxyIn.Password != "" || proxyIn.Protocol == "hysteria2" {
+	if proxyIn.Password != "" {
 		builder.SetPassword(proxyIn.PersistencePassword())
 	}
 	if proxyIn.ExpiresAt != nil {
@@ -170,7 +170,7 @@ func updateProxyAndInvalidateProbeSnapshots(ctx context.Context, client *dbent.C
 	} else {
 		builder.ClearUsername()
 	}
-	if proxyIn.Password != "" || proxyIn.Protocol == "hysteria2" {
+	if proxyIn.Password != "" {
 		builder.SetPassword(proxyIn.PersistencePassword())
 	} else {
 		builder.ClearPassword()

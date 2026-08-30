@@ -58,6 +58,7 @@ describe('UsageStatsCards', () => {
 
     const text = wrapper.text()
     expect(text).toContain('Cache: 34')
+    expect(text).toContain('(18.5%)')
     expect(text).toContain('Cache Token Breakdown')
     expect(text).toContain('Cache Creation')
     expect(text).toContain('12')

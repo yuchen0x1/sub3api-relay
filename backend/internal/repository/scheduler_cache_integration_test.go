@@ -99,10 +99,11 @@ func TestSchedulerCacheSnapshotUsesSlimMetadataButKeepsFullAccount(t *testing.T)
 	full, err := cache.GetAccount(ctx, account.ID)
 	require.NoError(t, err)
 	require.NotNil(t, full)
-	require.Equal(t, "secret-access-token", full.GetCredential("access_token"))
-	require.Equal(t, strings.Repeat("x", 4096), full.GetCredential("huge_blob"))
+	require.Empty(t, full.GetCredential("api_key"))
+	require.Empty(t, full.GetCredential("access_token"))
+	require.Empty(t, full.GetCredential("huge_blob"))
 	require.Len(t, full.AccountGroups, 1)
-	require.NotNil(t, full.AccountGroups[0].Group)
+	require.Nil(t, full.AccountGroups[0].Group)
 }
 
 func TestSchedulerCacheRetireAndReopenFencesOldEpochIntegration(t *testing.T) {

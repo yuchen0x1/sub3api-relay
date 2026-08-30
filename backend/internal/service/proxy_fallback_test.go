@@ -45,6 +45,15 @@ func TestResolveFallbackTarget(t *testing.T) {
 		require.NotNil(t, target)
 		require.Equal(t, int64(2), *target)
 	})
+	t.Run("inactive backup is never selected", func(t *testing.T) {
+		b := mkProxy(2, FallbackModeNone, nil, di(30), now)
+		b.Status = "inactive"
+		a := mkProxy(1, FallbackModeProxy, i64(2), di(-1), now)
+		by := map[int64]Proxy{1: a, 2: b}
+		target, change := ResolveProxyFallbackTarget(a, by, now)
+		require.False(t, change)
+		require.Nil(t, target)
+	})
 	t.Run("chain A->B(expired)->C(healthy)", func(t *testing.T) {
 		c := mkProxy(3, FallbackModeNone, nil, di(30), now)
 		b := mkProxy(2, FallbackModeProxy, i64(3), di(-1), now)

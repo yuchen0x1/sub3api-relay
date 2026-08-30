@@ -433,7 +433,9 @@ func (s *GeminiMessagesCompatService) hydrateSelectedAccount(ctx context.Context
 	if account == nil || s.schedulerSnapshot == nil {
 		return account, nil
 	}
-	hydrated, err := s.schedulerSnapshot.GetAccount(ctx, account.ID)
+	// The scheduler cache is metadata-only; credentials are loaded from the
+	// repository only after account selection succeeds.
+	hydrated, err := s.accountRepo.GetByID(ctx, account.ID)
 	if err != nil {
 		return nil, err
 	}

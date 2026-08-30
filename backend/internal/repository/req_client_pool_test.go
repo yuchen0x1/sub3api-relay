@@ -110,24 +110,12 @@ func TestGetSharedReqClient_ProxyURLMissingHost(t *testing.T) {
 	require.Contains(t, err.Error(), "proxy URL missing host")
 }
 
-func TestGetSharedReqClient_Hysteria2UsesCustomDialer(t *testing.T) {
-	opts := reqClientOptions{
-		ProxyURL: "hysteria2://token@127.0.0.1:443?insecure=1&sni=edge.example.com",
-		Timeout:  30 * time.Second,
-	}
-	client, err := getSharedReqClient(opts)
-	require.NoError(t, err)
-	require.NotNil(t, client)
-	require.NotNil(t, client.GetTransport().DialContext)
-}
-
-func TestGetSharedReqClient_Hysteria2RejectsUnsupportedOptions(t *testing.T) {
+func TestGetSharedReqClientRejectsHysteria2(t *testing.T) {
 	_, err := getSharedReqClient(reqClientOptions{
-		ProxyURL: "hysteria2://token@127.0.0.1:443?obfs=salamander",
+		ProxyURL: "hysteria2://token@127.0.0.1:443?insecure=1",
 		Timeout:  30 * time.Second,
 	})
-	require.Error(t, err)
-	require.ErrorContains(t, err, "unsupported hysteria2 option")
+	require.ErrorContains(t, err, "unsupported proxy scheme")
 }
 
 func TestCreateOpenAIReqClient_Timeout120Seconds(t *testing.T) {

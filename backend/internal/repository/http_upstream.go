@@ -1216,13 +1216,13 @@ func normalizeProxyURL(raw string) (string, *url.URL, error) {
 	if parsed == nil {
 		return directProxyKey, nil, nil
 	}
-	// 规范化：小写 scheme/host，去除路径。Hysteria2 的 query 是拨号配置
-	//（insecure/SNI），必须同时保留在缓存键和实际拨号 URL 中。
+	// 规范化：小写 scheme/host，去除路径。VLESS 的 query 是拨号配置，
+	// 必须同时保留在缓存键和实际拨号 URL 中。
 	parsed.Scheme = strings.ToLower(parsed.Scheme)
 	parsed.Host = strings.ToLower(parsed.Host)
 	parsed.Path = ""
 	parsed.RawPath = ""
-	if parsed.Scheme != "hysteria2" && parsed.Scheme != "vless" {
+	if parsed.Scheme != "vless" {
 		parsed.RawQuery = ""
 	} else {
 		parsed.RawQuery = parsed.Query().Encode()

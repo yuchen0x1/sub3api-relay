@@ -79,7 +79,6 @@ export default {
       allProtocols: 'All Protocols',
       allStatus: 'All Status',
 	protocols: {
-		hysteria2: 'Hysteria2',
 		vless: 'VLESS (WS/TLS)',
         http: 'HTTP',
         https: 'HTTPS',
@@ -164,7 +163,7 @@ export default {
       batchInputPlaceholder:
         "Enter one proxy per line in the following formats:\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
       batchInputHint:
-        'Supports HTTP, HTTPS, SOCKS5, VLESS (WS/TLS), and Hysteria2; subscription URLs are parsed automatically.',
+        'Supports HTTP, HTTPS, SOCKS5, and VLESS (WS/TLS); subscription URLs are parsed automatically.',
       parsedCount: '{count} valid',
       invalidCount: '{count} invalid',
       duplicateCount: '{count} duplicate',
@@ -173,9 +172,6 @@ export default {
       batchImportSuccess: 'Successfully imported {created} proxies, skipped {skipped} duplicates',
       batchImportAllSkipped: 'All {skipped} proxies already exist, skipped import',
       failedToImport: 'Failed to batch import',
-      authToken: 'Authentication Token',
-      authTokenPlaceholder: 'Enter the Hysteria2 authentication token',
-      tlsInsecure: 'Skip TLS certificate verification (trusted nodes only)',
       subscriptionDetected: 'HTTPS subscription detected. Parse the nodes first, then confirm the import.',
       parseSubscription: 'Parse Subscription',
       subscriptionParsed: 'Parsed {count} nodes. Review and import them when ready.',

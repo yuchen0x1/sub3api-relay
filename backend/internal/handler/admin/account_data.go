@@ -2,6 +2,8 @@ package admin
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -103,11 +105,7 @@ func buildProxyKey(protocol, host string, port int, username, password string) s
 }
 
 func buildProxyKeyWithTLS(protocol, host string, port int, username, password string, tlsInsecure bool) string {
-	key := buildProxyKey(protocol, host, port, username, password)
-	if protocol == "hysteria2" && tlsInsecure {
-		return key + "|tls-insecure"
-	}
-	return key
+	return buildProxyKey(protocol, host, port, username, password)
 }
 
 func buildProxyKeyWithOptions(protocol, host string, port int, username, password string, options map[string]string, tlsInsecure bool) string {
@@ -303,6 +301,17 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		}
 	}
 
+	existingAccounts, err := h.listAccountsFiltered(ctx, "", "", "", "", 0, "", "id", "asc")
+	if err != nil {
+		return result, err
+	}
+	accountIdentityIndex := make(map[string]int64, len(existingAccounts))
+	for i := range existingAccounts {
+		for _, key := range dataAccountIdentityKeys(existingAccounts[i].Platform, existingAccounts[i].Type, existingAccounts[i].Credentials) {
+			accountIdentityIndex[key] = existingAccounts[i].ID
+		}
+	}
+
 	for i := range dataPayload.Proxies {
 		item := dataPayload.Proxies[i]
 		key := item.ProxyKey
@@ -468,6 +477,16 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		}
 
 		enrichCredentialsFromIDToken(&item)
+		identityKeys := dataAccountIdentityKeys(item.Platform, item.Type, item.Credentials)
+		if existingID, duplicate := firstExistingAccountIdentity(accountIdentityIndex, identityKeys); duplicate {
+			result.AccountSkipped++
+			result.Errors = append(result.Errors, DataImportError{
+				Kind:    "account",
+				Name:    item.Name,
+				Message: fmt.Sprintf("duplicate account identity already exists (account_id=%d)", existingID),
+			})
+			continue
+		}
 
 		var probeProxy *service.Proxy
 		if validateAccounts && proxyID != nil {
@@ -526,6 +545,9 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		if created.Platform == service.PlatformAntigravity && created.Type == service.AccountTypeOAuth {
 			privacyAccounts = append(privacyAccounts, created)
 		}
+		for _, key := range identityKeys {
+			accountIdentityIndex[key] = created.ID
+		}
 		h.scheduleGrokImportProbe(created)
 		result.AccountCreated++
 	}
@@ -548,6 +570,88 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 	}
 
 	return result, nil
+}
+
+// dataAccountIdentityKeys derives stable, one-way identity keys for import
+// de-duplication. They never leave this handler and are intentionally based on
+// credentials that identify the account rather than short-lived access tokens.
+func dataAccountIdentityKeys(platform, accountType string, credentials map[string]any) []string {
+	prefix := strings.ToLower(strings.TrimSpace(platform)) + "|" + strings.ToLower(strings.TrimSpace(accountType))
+	keys := make([]string, 0, 3)
+	seen := make(map[string]struct{}, 3)
+	add := func(field, value string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		digest := sha256.Sum256([]byte(value))
+		key := prefix + "|" + field + "|" + hex.EncodeToString(digest[:])
+		if _, exists := seen[key]; exists {
+			return
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	credential := func(name string) string {
+		if credentials == nil {
+			return ""
+		}
+		value, ok := credentials[name]
+		if !ok || value == nil {
+			return ""
+		}
+		if text, ok := value.(string); ok {
+			return strings.TrimSpace(text)
+		}
+		return ""
+	}
+
+	switch strings.ToLower(strings.TrimSpace(accountType)) {
+	case service.AccountTypeOAuth:
+		for _, field := range []string{"chatgpt_user_id", "user_id", "chatgpt_account_id", "account_id", "email", "refresh_token"} {
+			add(field, credential(field))
+		}
+	case service.AccountTypeSetupToken:
+		for _, field := range []string{"setup_token", "session_token", "token"} {
+			add(field, credential(field))
+		}
+	case service.AccountTypeAPIKey, service.AccountTypeUpstream:
+		apiKey := credential("api_key")
+		baseURL := strings.TrimRight(strings.ToLower(credential("base_url")), "/")
+		if apiKey != "" {
+			add("api_key_base_url", apiKey+"\x00"+baseURL)
+		}
+	case service.AccountTypeBedrock:
+		add("aws_access_key_id", credential("aws_access_key_id"))
+	case service.AccountTypeServiceAccount:
+		clientEmail := credential("client_email")
+		if clientEmail == "" {
+			var serviceAccount struct {
+				ClientEmail string `json:"client_email"`
+			}
+			if raw := credential("service_account_json"); raw != "" {
+				_ = json.Unmarshal([]byte(raw), &serviceAccount)
+				clientEmail = serviceAccount.ClientEmail
+			}
+		}
+		add("client_email", clientEmail)
+	}
+
+	if len(keys) == 0 && len(credentials) > 0 {
+		if canonical, err := json.Marshal(credentials); err == nil {
+			add("credentials", string(canonical))
+		}
+	}
+	return keys
+}
+
+func firstExistingAccountIdentity(index map[string]int64, keys []string) (int64, bool) {
+	for _, key := range keys {
+		if id, exists := index[key]; exists {
+			return id, true
+		}
+	}
+	return 0, false
 }
 
 func (h *AccountHandler) validateImportedAccount(ctx context.Context, input *service.CreateAccountInput, proxy *service.Proxy) error {
@@ -764,7 +868,7 @@ func validateDataProxy(item DataProxy) error {
 		return errors.New("proxy port is invalid")
 	}
 	switch item.Protocol {
-	case "http", "https", "socks5", "socks5h", "hysteria2", "vless":
+	case "http", "https", "socks5", "socks5h", "vless":
 	default:
 		return fmt.Errorf("proxy protocol is invalid: %s", item.Protocol)
 	}
@@ -791,7 +895,7 @@ func validateDataAccount(item DataAccount) error {
 		return errors.New("account credentials is required")
 	}
 	switch item.Type {
-	case service.AccountTypeOAuth, service.AccountTypeSetupToken, service.AccountTypeAPIKey, service.AccountTypeUpstream:
+	case service.AccountTypeOAuth, service.AccountTypeSetupToken, service.AccountTypeAPIKey, service.AccountTypeUpstream, service.AccountTypeBedrock, service.AccountTypeServiceAccount:
 	default:
 		return fmt.Errorf("account type is invalid: %s", item.Type)
 	}

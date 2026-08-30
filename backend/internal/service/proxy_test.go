@@ -56,17 +56,6 @@ func TestProxyURL(t *testing.T) {
 			},
 			want: "http://first%20last%40corp:p%40%20ss%3A%23word@proxy.example.com:3128",
 		},
-		{
-			name: "hysteria2 token and insecure",
-			proxy: Proxy{
-				Protocol:    "hysteria2",
-				Host:        "hy.example.com",
-				Port:        443,
-				Password:    "secret-token",
-				TLSInsecure: true,
-			},
-			want: "hysteria2://secret-token@hy.example.com:443?insecure=1",
-		},
 	}
 
 	for _, tc := range tests {
@@ -77,16 +66,6 @@ func TestProxyURL(t *testing.T) {
 				t.Fatalf("Proxy.URL() mismatch: got=%q want=%q", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestProxyHysteria2PersistenceAuthRoundTrip(t *testing.T) {
-	original := Proxy{Protocol: "hysteria2", Password: "user:pass", TLSInsecure: true}
-	var restored Proxy
-	restored.Protocol = original.Protocol
-	restored.ApplyPersistenceAuth(original.PersistenceUsername(), original.PersistencePassword())
-	if restored.Username != "" || restored.Password != original.Password || !restored.TLSInsecure {
-		t.Fatalf("persistence round trip mismatch: %#v", restored)
 	}
 }
 

@@ -827,15 +827,15 @@ func (c *schedulerCache) writeAccountIDs(ctx context.Context, accounts []service
 }
 
 func marshalSchedulerCacheAccount(account service.Account) ([]byte, []byte, error) {
-	fullPayload, err := json.Marshal(account)
-	if err != nil {
-		return nil, nil, fmt.Errorf("marshal account: %w", err)
-	}
+	// Redis participates only in scheduling. Persisting a full account here
+	// duplicates OAuth refresh tokens, API keys, and proxy credentials outside
+	// the primary account store. The gateway hydrates the selected account from
+	// the repository immediately before forwarding.
 	metaPayload, err := json.Marshal(buildSchedulerMetadataAccount(account))
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal account metadata: %w", err)
 	}
-	return fullPayload, metaPayload, nil
+	return metaPayload, metaPayload, nil
 }
 
 func (c *schedulerCache) mgetChunked(ctx context.Context, keys []string) ([]any, error) {
@@ -954,7 +954,9 @@ func filterSchedulerCredentials(credentials map[string]any) map[string]any {
 	if len(credentials) == 0 {
 		return nil
 	}
-	keys := []string{"model_mapping", "compact_model_mapping", "api_key", "project_id", "oauth_type", "plan_type"}
+	// Only scheduling hints belong in the cache. In particular, `api_key` must
+	// never be copied into Redis even when model mappings are cached.
+	keys := []string{"model_mapping", "compact_model_mapping", "project_id", "oauth_type", "plan_type"}
 	filtered := make(map[string]any)
 	for _, key := range keys {
 		if value, ok := credentials[key]; ok && value != nil {

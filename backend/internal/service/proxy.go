@@ -9,10 +9,9 @@ import (
 )
 
 const (
-	FallbackModeNone             = "none"
-	FallbackModeProxy            = "proxy"
-	FallbackModeDirect           = "direct"
-	hysteria2TLSInsecureUsername = "__sub3api_hy2_insecure__"
+	FallbackModeNone   = "none"
+	FallbackModeProxy  = "proxy"
+	FallbackModeDirect = "direct"
 )
 
 type Proxy struct {
@@ -64,20 +63,6 @@ func (p *Proxy) URL() string {
 			}
 			u.RawQuery = query.Encode()
 		}
-	} else if p.Protocol == "hysteria2" {
-		if p.Password != "" {
-			parts := strings.SplitN(p.Password, ":", 2)
-			if len(parts) == 2 {
-				u.User = url.UserPassword(parts[0], parts[1])
-			} else {
-				u.User = url.User(p.Password)
-			}
-		}
-		if p.TLSInsecure {
-			query := u.Query()
-			query.Set("insecure", "1")
-			u.RawQuery = query.Encode()
-		}
 	} else if p.Username != "" && p.Password != "" {
 		u.User = url.UserPassword(p.Username, p.Password)
 	}
@@ -89,24 +74,12 @@ func (p *Proxy) PersistencePassword() string {
 }
 
 func (p *Proxy) PersistenceUsername() string {
-	if p.Protocol == "hysteria2" {
-		if p.TLSInsecure {
-			return hysteria2TLSInsecureUsername
-		}
-		return ""
-	}
 	return p.Username
 }
 
 func (p *Proxy) ApplyPersistenceAuth(username, password string) {
-	if p.Protocol != "hysteria2" {
-		p.Username = username
-		p.Password = password
-		return
-	}
-	p.Username = ""
+	p.Username = username
 	p.Password = password
-	p.TLSInsecure = username == hysteria2TLSInsecureUsername
 }
 
 type ProxyWithAccountCount struct {

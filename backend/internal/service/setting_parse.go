@@ -44,8 +44,13 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		return err
 	}
 	forwardedClientIPHeaders := []string{}
+	forwardedIPTrust := "false"
 	if s != nil && s.cfg != nil {
-		forwardedClientIPHeaders = s.cfg.ForwardedClientIPSettings().Headers
+		runtimeSettings := s.cfg.ForwardedClientIPSettings()
+		forwardedClientIPHeaders = runtimeSettings.Headers
+		if runtimeSettings.TrustForwardedIP {
+			forwardedIPTrust = "true"
+		}
 	}
 	forwardedClientIPHeadersJSON, err := json.Marshal(forwardedClientIPHeaders)
 	if err != nil {
@@ -54,15 +59,18 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 
 	// 初始化默认设置
 	defaults := map[string]string{
-		SettingKeyRegistrationEnabled:                       "false",
-		SettingKeyEmailVerifyEnabled:                        "false",
-		SettingKeyRegistrationEmailSuffixWhitelist:          "[]",
-		SettingKeyPromoCodeEnabled:                          "false",
-		SettingKeyLoginAgreementEnabled:                     "false",
-		SettingKeyLoginAgreementMode:                        defaultLoginAgreementMode,
-		SettingKeyLoginAgreementUpdatedAt:                   defaultLoginAgreementDate,
-		SettingKeyLoginAgreementDocuments:                   loginAgreementDocumentsJSON,
-		SettingKeyAPIKeyACLTrustForwardedIP:                 "true",
+		SettingKeyRegistrationEnabled:              "false",
+		SettingKeyEmailVerifyEnabled:               "false",
+		SettingKeyRegistrationEmailSuffixWhitelist: "[]",
+		SettingKeyPromoCodeEnabled:                 "false",
+		SettingKeyLoginAgreementEnabled:            "false",
+		SettingKeyLoginAgreementMode:               defaultLoginAgreementMode,
+		SettingKeyLoginAgreementUpdatedAt:          defaultLoginAgreementDate,
+		SettingKeyLoginAgreementDocuments:          loginAgreementDocumentsJSON,
+		// Do not silently turn raw forwarding-header trust back on after the
+		// config layer has disabled it. A reverse proxy must be configured
+		// explicitly before an operator opts into this legacy compatibility mode.
+		SettingKeyAPIKeyACLTrustForwardedIP:                 forwardedIPTrust,
 		SettingKeyForwardedClientIPHeaders:                  string(forwardedClientIPHeadersJSON),
 		settingKeyForwardedClientIPModeV2:                   "true",
 		SettingKeySiteName:                                  "Sub3API",

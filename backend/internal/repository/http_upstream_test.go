@@ -740,22 +740,9 @@ func (s *HTTPUpstreamSuite) TestNormalizeProxyURL_Canonicalizes() {
 	require.Equal(s.T(), key1, key2, "expected normalized proxy keys to match")
 }
 
-func (s *HTTPUpstreamSuite) TestNormalizeProxyURL_PreservesHysteria2DialOptions() {
-	key, parsed, err := normalizeProxyURL("hysteria2://token@HY.EXAMPLE:443?sni=edge.example.com&insecure=1")
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), parsed)
-	require.Equal(s.T(), "hy.example:443", parsed.Host)
-	require.Equal(s.T(), "1", parsed.Query().Get("insecure"))
-	require.Equal(s.T(), "edge.example.com", parsed.Query().Get("sni"))
-	require.Contains(s.T(), key, "insecure=1")
-	require.Contains(s.T(), key, "sni=edge.example.com")
-
-	transport, closer, err := buildUpstreamTransportManaged(defaultPoolSettings(nil), parsed, upstreamProtocolModeDefault)
-	require.NoError(s.T(), err)
-	require.NotNil(s.T(), closer)
-	require.Nil(s.T(), transport.Proxy)
-	require.NotNil(s.T(), transport.DialContext)
-	require.NoError(s.T(), closer.Close())
+func (s *HTTPUpstreamSuite) TestNormalizeProxyURLRejectsHysteria2() {
+	_, _, err := normalizeProxyURL("hysteria2://token@HY.EXAMPLE:443?sni=edge.example.com&insecure=1")
+	require.ErrorContains(s.T(), err, "unsupported proxy scheme")
 }
 
 type countingCloser struct {

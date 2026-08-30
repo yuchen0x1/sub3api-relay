@@ -464,7 +464,7 @@
             />
           </div>
         </div>
-        <div v-if="createForm.protocol !== 'hysteria2'">
+        <div>
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input
             v-model="createForm.username"
@@ -474,15 +474,13 @@
           />
         </div>
         <div v-if="createForm.protocol !== 'vless'">
-          <label class="input-label">
-            {{ createForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
-          </label>
+          <label class="input-label">{{ t('admin.proxies.password') }}</label>
           <div class="relative">
             <input
               v-model="createForm.password"
               :type="createPasswordVisible ? 'text' : 'password'"
               class="input pr-10"
-              :placeholder="createForm.protocol === 'hysteria2' ? t('admin.proxies.authTokenPlaceholder') : t('admin.proxies.optionalAuth')"
+              :placeholder="t('admin.proxies.optionalAuth')"
             />
             <button :aria-label="t('common.togglePassword')"
               type="button"
@@ -503,10 +501,6 @@
           ></textarea>
           <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
-        <label v-if="createForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input v-model="createForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-          {{ t('admin.proxies.tlsInsecure') }}
-        </label>
         <div>
           <label class="input-label">{{ t('admin.proxies.expiresAt') }}</label>
           <div class="mb-2 flex flex-wrap gap-2">
@@ -719,14 +713,12 @@
             />
           </div>
         </div>
-        <div v-if="editForm.protocol !== 'hysteria2'">
+        <div>
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input v-model="editForm.username" type="text" class="input" />
         </div>
         <div v-if="editForm.protocol !== 'vless'">
-          <label class="input-label">
-            {{ editForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
-          </label>
+          <label class="input-label">{{ t('admin.proxies.password') }}</label>
           <div class="relative">
             <input
               v-model="editForm.password"
@@ -754,10 +746,6 @@
           ></textarea>
           <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
-        <label v-if="editForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input v-model="editForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-          {{ t('admin.proxies.tlsInsecure') }}
-        </label>
         <div>
           <label class="input-label">{{ t('admin.proxies.status') }}</label>
           <Select v-model="editForm.status" :options="editStatusOptions" />
@@ -1052,7 +1040,6 @@ const protocolOptions = computed(() => [
   { value: 'https', label: 'HTTPS' },
   { value: 'socks5', label: 'SOCKS5' },
   { value: 'socks5h', label: 'SOCKS5H' },
-  { value: 'hysteria2', label: 'Hysteria2' },
   { value: 'vless', label: 'VLESS (WS/TLS)' }
 ])
 
@@ -1069,7 +1056,6 @@ const protocolSelectOptions = computed(() => [
   { value: 'https', label: t('admin.proxies.protocols.https') },
   { value: 'socks5', label: t('admin.proxies.protocols.socks5') },
   { value: 'socks5h', label: t('admin.proxies.protocols.socks5h') },
-  { value: 'hysteria2', label: t('admin.proxies.protocols.hysteria2') },
   { value: 'vless', label: t('admin.proxies.protocols.vless') }
 ])
 
@@ -1163,7 +1149,6 @@ const batchParseResult = reactive({
     password: string
 	name?: string
 	options?: Record<string, string>
-	tls_insecure?: boolean
   }>
 })
 
@@ -1175,7 +1160,6 @@ const createForm = reactive({
   username: '',
   password: '',
 	options_text: '',
-	tls_insecure: false,
   expires_at: '' as string,
   fallback_mode: 'none' as 'none' | 'proxy' | 'direct',
   backup_proxy_id: null as number | null,
@@ -1190,7 +1174,6 @@ const editForm = reactive({
   username: '',
   password: '',
 	options_text: '',
-	tls_insecure: false,
   status: 'active' as 'active' | 'inactive' | 'expired',
   expires_at: '' as string,
   fallback_mode: 'none' as 'none' | 'proxy' | 'direct',
@@ -1369,7 +1352,6 @@ const closeCreateModal = () => {
   createForm.username = ''
 	createForm.password = ''
 	createForm.options_text = ''
-	createForm.tls_insecure = false
   createForm.expires_at = ''
   createForm.fallback_mode = 'none'
   createForm.backup_proxy_id = null
@@ -1575,7 +1557,6 @@ const handleCreateProxy = async () => {
       username: createForm.username.trim() || null,
       password: createForm.password.trim() || null,
 		options: options || undefined,
-		tls_insecure: createForm.protocol === 'hysteria2' && createForm.tls_insecure,
       expires_at: createForm.expires_at ? Math.floor(new Date(createForm.expires_at).getTime() / 1000) : null,
       fallback_mode: createForm.fallback_mode,
       backup_proxy_id: createForm.fallback_mode === 'proxy' ? createForm.backup_proxy_id : null,
@@ -1601,7 +1582,6 @@ const handleEdit = (proxy: Proxy) => {
 	editForm.username = proxy.username || ''
 	editForm.password = proxy.password || ''
 	editForm.options_text = proxy.options ? JSON.stringify(proxy.options, null, 2) : ''
-	editForm.tls_insecure = proxy.tls_insecure || false
   editForm.status = proxy.status === 'expired' ? 'inactive' : proxy.status
   editForm.expires_at = proxy.expires_at ? proxy.expires_at.slice(0, 10) : ''
   editForm.fallback_mode = proxy.fallback_mode || 'none'
@@ -1653,7 +1633,6 @@ const handleUpdateProxy = async () => {
       fallback_mode: editForm.fallback_mode,
       backup_proxy_id: editForm.fallback_mode === 'proxy' ? editForm.backup_proxy_id : null,
       expiry_warn_days: editForm.expiry_warn_days,
-	  tls_insecure: editForm.protocol === 'hysteria2' && editForm.tls_insecure,
     }
 
     // Only include password if user actually modified the field

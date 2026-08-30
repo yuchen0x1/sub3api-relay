@@ -403,7 +403,7 @@ export interface ProxyNode {
   id: number
   subscription_id: number
   name: string
-  type: 'ss' | 'ssr' | 'vmess' | 'vless' | 'trojan' | 'hysteria' | 'hysteria2'
+  type: 'ss' | 'ssr' | 'vmess' | 'vless' | 'trojan'
   server: string
   port: number
   config: Record<string, unknown> // JSON configuration specific to proxy type
@@ -858,7 +858,7 @@ export interface UpdateGroupRequest {
 export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
-export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'hysteria2' | 'vless'
+export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'vless'
 
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {

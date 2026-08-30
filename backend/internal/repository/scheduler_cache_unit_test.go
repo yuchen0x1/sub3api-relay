@@ -108,7 +108,7 @@ func TestSchedulerCacheSnapshotAccountIDReusePreservesPayloadAndMembers(t *testi
 	require.NoError(t, err)
 	require.Equal(t, []int64{701, 702, 701}, accountIDs, "应保留可编码账号的原顺序和重复项")
 
-	wantFull, err := json.Marshal(validOne)
+	wantFull, err := json.Marshal(buildSchedulerMetadataAccount(validOne))
 	require.NoError(t, err)
 	wantMeta, err := json.Marshal(buildSchedulerMetadataAccount(validOne))
 	require.NoError(t, err)
@@ -288,7 +288,7 @@ func TestMarshalSchedulerCacheAccountKeepsEncodingJSONWireFormat(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			full, meta, err := marshalSchedulerCacheAccount(tc.account)
 			require.NoError(t, err)
-			wantFull, err := json.Marshal(tc.account)
+			wantFull, err := json.Marshal(buildSchedulerMetadataAccount(tc.account))
 			require.NoError(t, err)
 			wantMeta, err := json.Marshal(buildSchedulerMetadataAccount(tc.account))
 			require.NoError(t, err)

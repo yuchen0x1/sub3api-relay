@@ -206,16 +206,14 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) 
 		nodes = append(nodes, node)
 	}
 	if len(nodes) == 0 {
-		return nil, errors.New("subscription contains no supported VLESS or Hysteria2 nodes")
+		return nil, errors.New("subscription contains no supported VLESS nodes")
 	}
 	return nodes, nil
 }
 
 func containsSupportedProxyURI(text string) bool {
 	lower := strings.ToLower(text)
-	return strings.Contains(lower, "vless://") ||
-		strings.Contains(lower, "hysteria2://") ||
-		strings.Contains(lower, "hy2://")
+	return strings.Contains(lower, "vless://")
 }
 
 func decodeProxySubscriptionBase64(raw string) (string, error) {
@@ -230,68 +228,12 @@ func decodeProxySubscriptionBase64(raw string) (string, error) {
 	return "", errors.New("invalid base64 subscription")
 }
 
-func parseHysteria2SubscriptionURI(raw string) (parsedProxySubscription, error) {
-	parsed, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return parsedProxySubscription{}, err
-	}
-	scheme := strings.ToLower(parsed.Scheme)
-	if scheme != "hysteria2" && scheme != "hy2" {
-		return parsedProxySubscription{}, errors.New("unsupported proxy scheme")
-	}
-	host := parsed.Hostname()
-	if host == "" {
-		return parsedProxySubscription{}, errors.New("missing proxy host")
-	}
-	port := 443
-	if rawPort := parsed.Port(); rawPort != "" {
-		port, err = strconv.Atoi(rawPort)
-		if err != nil || port < 1 || port > 65535 {
-			return parsedProxySubscription{}, errors.New("invalid proxy port")
-		}
-	}
-	auth := ""
-	if parsed.User != nil {
-		auth = parsed.User.Username()
-		if password, ok := parsed.User.Password(); ok {
-			auth += ":" + password
-		}
-	}
-	query := parsed.Query()
-	for key := range query {
-		if key != "insecure" {
-			return parsedProxySubscription{}, fmt.Errorf("unsupported Hysteria2 option: %s", key)
-		}
-	}
-	insecure := false
-	if rawInsecure := strings.TrimSpace(query.Get("insecure")); rawInsecure != "" {
-		insecure, err = strconv.ParseBool(rawInsecure)
-		if err != nil {
-			return parsedProxySubscription{}, errors.New("invalid Hysteria2 insecure option")
-		}
-	}
-	name := strings.TrimSpace(parsed.Fragment)
-	if name == "" {
-		name = net.JoinHostPort(host, strconv.Itoa(port))
-	}
-	return parsedProxySubscription{
-		Name:        name,
-		Protocol:    "hysteria2",
-		Host:        host,
-		Port:        port,
-		Password:    auth,
-		TLSInsecure: insecure,
-	}, nil
-}
-
 func parseProxySubscriptionURI(raw string) (parsedProxySubscription, error) {
 	parsed, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
 		return parsedProxySubscription{}, err
 	}
 	switch strings.ToLower(parsed.Scheme) {
-	case "hysteria2", "hy2":
-		return parseHysteria2SubscriptionURI(raw)
 	case "vless":
 		return parseVLESSSubscriptionURI(parsed)
 	default:

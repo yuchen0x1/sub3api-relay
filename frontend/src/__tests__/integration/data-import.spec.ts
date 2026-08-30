@@ -119,7 +119,7 @@ describe('ImportDataModal', () => {
     setInputFiles(input.element, [valid])
     await input.trigger('change')
 
-    setInputFiles(input.element, [new File(['hello'], 'notes.txt', { type: 'text/plain' })])
+    setInputFiles(input.element, [new File(['hello'], 'notes.csv', { type: 'text/csv' })])
     await input.trigger('change')
     expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportSelectFile')
 
