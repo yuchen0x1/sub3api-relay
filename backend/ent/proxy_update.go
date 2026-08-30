@@ -158,6 +158,12 @@ func (_u *ProxyUpdate) ClearPassword() *ProxyUpdate {
 	return _u
 }
 
+// SetOptions sets the "options" field.
+func (_u *ProxyUpdate) SetOptions(v map[string]string) *ProxyUpdate {
+	_u.mutation.SetOptions(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ProxyUpdate) SetStatus(v string) *ProxyUpdate {
 	_u.mutation.SetStatus(v)
@@ -429,6 +435,9 @@ func (_u *ProxyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.PasswordCleared() {
 		_spec.ClearField(proxy.FieldPassword, field.TypeString)
 	}
+	if value, ok := _u.mutation.Options(); ok {
+		_spec.SetField(proxy.FieldOptions, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(proxy.FieldStatus, field.TypeString, value)
 	}
@@ -667,6 +676,12 @@ func (_u *ProxyUpdateOne) SetNillablePassword(v *string) *ProxyUpdateOne {
 // ClearPassword clears the value of the "password" field.
 func (_u *ProxyUpdateOne) ClearPassword() *ProxyUpdateOne {
 	_u.mutation.ClearPassword()
+	return _u
+}
+
+// SetOptions sets the "options" field.
+func (_u *ProxyUpdateOne) SetOptions(v map[string]string) *ProxyUpdateOne {
+	_u.mutation.SetOptions(v)
 	return _u
 }
 
@@ -970,6 +985,9 @@ func (_u *ProxyUpdateOne) sqlSave(ctx context.Context) (_node *Proxy, err error)
 	}
 	if _u.mutation.PasswordCleared() {
 		_spec.ClearField(proxy.FieldPassword, field.TypeString)
+	}
+	if value, ok := _u.mutation.Options(); ok {
+		_spec.SetField(proxy.FieldOptions, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(proxy.FieldStatus, field.TypeString, value)

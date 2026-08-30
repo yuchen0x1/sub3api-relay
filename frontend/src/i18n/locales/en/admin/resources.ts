@@ -78,8 +78,9 @@ export default {
       searchProxies: 'Search proxies...',
       allProtocols: 'All Protocols',
       allStatus: 'All Status',
-      protocols: {
+	protocols: {
 		hysteria2: 'Hysteria2',
+		vless: 'VLESS (WS/TLS)',
         http: 'HTTP',
         https: 'HTTPS',
         socks5: 'SOCKS5',
@@ -163,7 +164,7 @@ export default {
       batchInputPlaceholder:
         "Enter one proxy per line in the following formats:\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
       batchInputHint:
-        "Supports http, https, socks5 protocols. Format: protocol://[user:pass{'@'}]host:port",
+        'Supports HTTP, HTTPS, SOCKS5, VLESS (WS/TLS), and Hysteria2; subscription URLs are parsed automatically.',
       parsedCount: '{count} valid',
       invalidCount: '{count} invalid',
       duplicateCount: '{count} duplicate',
@@ -179,6 +180,10 @@ export default {
       parseSubscription: 'Parse Subscription',
       subscriptionParsed: 'Parsed {count} nodes. Review and import them when ready.',
       subscriptionParseFailed: 'Failed to parse subscription',
+		vlessOptions: 'VLESS transport options (JSON, optional)',
+		vlessOptionsPlaceholder: '{"security":"tls","type":"ws","sni":"...","host":"...","path":"/"}',
+		vlessOptionsHint: 'TLS/WS only; subscription imports fill these options automatically.',
+		vlessOptionsInvalid: 'VLESS transport options must be a JSON object with string values.',
       // Other messages
       saving: 'Saving...',
       testing: 'Testing...',

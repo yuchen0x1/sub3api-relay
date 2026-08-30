@@ -30,6 +30,24 @@ func TestParseProxySubscriptionRejectsUnsupportedHysteriaOptions(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestParseProxySubscriptionBodyBase64VLESSWebSocket(t *testing.T) {
+	content := "vless://d9428888-122b-11ed-861d-0242ac120002@edge.example.com:443?encryption=none&security=tls&type=ws&sni=cdn.example.com&host=cdn.example.com&path=%2Fnewlogin%2Flogin.do&fp=safari#Japan\n"
+	nodes, err := parseProxySubscriptionBody([]byte(base64.StdEncoding.EncodeToString([]byte(content))))
+	require.NoError(t, err)
+	require.Len(t, nodes, 1)
+	require.Equal(t, "vless", nodes[0].Protocol)
+	require.Equal(t, "d9428888-122b-11ed-861d-0242ac120002", nodes[0].Username)
+	require.Empty(t, nodes[0].Password)
+	require.Equal(t, "/newlogin/login.do", nodes[0].Options["path"])
+	require.Equal(t, "cdn.example.com", nodes[0].Options["sni"])
+	require.Equal(t, "Japan", nodes[0].Name)
+}
+
+func TestParseVLESSSubscriptionRejectsUnsupportedTransport(t *testing.T) {
+	_, err := parseProxySubscriptionBody([]byte("vless://d9428888-122b-11ed-861d-0242ac120002@example.com:443?security=reality&type=tcp"))
+	require.Error(t, err)
+}
+
 func TestBlockedSubscriptionIP(t *testing.T) {
 	blocked := []string{
 		"0.0.0.0",

@@ -76,6 +76,7 @@ func (s *adminServiceImpl) CreateProxy(ctx context.Context, input *CreateProxyIn
 		Port:           input.Port,
 		Username:       input.Username,
 		Password:       input.Password,
+		Options:        cloneProxyOptions(input.Options),
 		TLSInsecure:    input.TLSInsecure,
 		Status:         StatusActive,
 		ExpiresAt:      input.ExpiresAt,
@@ -132,6 +133,9 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 	if input.Password != "" {
 		proxy.Password = input.Password
 	}
+	if input.Options != nil {
+		proxy.Options = cloneProxyOptions(input.Options)
+	}
 	if input.Status != "" {
 		proxy.Status = input.Status
 	}
@@ -146,6 +150,17 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 		return nil, err
 	}
 	return proxy, nil
+}
+
+func cloneProxyOptions(options map[string]string) map[string]string {
+	if len(options) == 0 {
+		return map[string]string{}
+	}
+	clone := make(map[string]string, len(options))
+	for key, value := range options {
+		clone[key] = value
+	}
+	return clone
 }
 
 func (s *adminServiceImpl) DeleteProxy(ctx context.Context, id int64) error {

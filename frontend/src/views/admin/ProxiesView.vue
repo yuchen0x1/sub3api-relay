@@ -473,7 +473,7 @@
             :placeholder="t('admin.proxies.optionalAuth')"
           />
         </div>
-        <div>
+        <div v-if="createForm.protocol !== 'vless'">
           <label class="input-label">
             {{ createForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
           </label>
@@ -492,6 +492,16 @@
               <Icon :name="createPasswordVisible ? 'eyeOff' : 'eye'" size="md" />
             </button>
           </div>
+        </div>
+        <div v-if="createForm.protocol === 'vless'">
+          <label class="input-label">{{ t('admin.proxies.vlessOptions') }}</label>
+          <textarea
+            v-model="createForm.options_text"
+            rows="3"
+            class="input font-mono text-xs"
+            :placeholder="t('admin.proxies.vlessOptionsPlaceholder')"
+          ></textarea>
+          <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
         <label v-if="createForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input v-model="createForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
@@ -713,7 +723,7 @@
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input v-model="editForm.username" type="text" class="input" />
         </div>
-        <div>
+        <div v-if="editForm.protocol !== 'vless'">
           <label class="input-label">
             {{ editForm.protocol === 'hysteria2' ? t('admin.proxies.authToken') : t('admin.proxies.password') }}
           </label>
@@ -733,6 +743,16 @@
               <Icon :name="editPasswordVisible ? 'eyeOff' : 'eye'" size="md" />
             </button>
           </div>
+        </div>
+        <div v-if="editForm.protocol === 'vless'">
+          <label class="input-label">{{ t('admin.proxies.vlessOptions') }}</label>
+          <textarea
+            v-model="editForm.options_text"
+            rows="3"
+            class="input font-mono text-xs"
+            :placeholder="t('admin.proxies.vlessOptionsPlaceholder')"
+          ></textarea>
+          <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
         <label v-if="editForm.protocol === 'hysteria2'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input v-model="editForm.tls_insecure" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
@@ -1032,7 +1052,8 @@ const protocolOptions = computed(() => [
   { value: 'https', label: 'HTTPS' },
   { value: 'socks5', label: 'SOCKS5' },
   { value: 'socks5h', label: 'SOCKS5H' },
-  { value: 'hysteria2', label: 'Hysteria2' }
+  { value: 'hysteria2', label: 'Hysteria2' },
+  { value: 'vless', label: 'VLESS (WS/TLS)' }
 ])
 
 const statusOptions = computed(() => [
@@ -1048,7 +1069,8 @@ const protocolSelectOptions = computed(() => [
   { value: 'https', label: t('admin.proxies.protocols.https') },
   { value: 'socks5', label: t('admin.proxies.protocols.socks5') },
   { value: 'socks5h', label: t('admin.proxies.protocols.socks5h') },
-  { value: 'hysteria2', label: t('admin.proxies.protocols.hysteria2') }
+  { value: 'hysteria2', label: t('admin.proxies.protocols.hysteria2') },
+  { value: 'vless', label: t('admin.proxies.protocols.vless') }
 ])
 
 const editStatusOptions = computed(() => [
@@ -1140,6 +1162,7 @@ const batchParseResult = reactive({
     username: string
     password: string
 	name?: string
+	options?: Record<string, string>
 	tls_insecure?: boolean
   }>
 })
@@ -1151,6 +1174,7 @@ const createForm = reactive({
   port: 8080,
   username: '',
   password: '',
+	options_text: '',
 	tls_insecure: false,
   expires_at: '' as string,
   fallback_mode: 'none' as 'none' | 'proxy' | 'direct',
@@ -1165,6 +1189,7 @@ const editForm = reactive({
   port: 8080,
   username: '',
   password: '',
+	options_text: '',
 	tls_insecure: false,
   status: 'active' as 'active' | 'inactive' | 'expired',
   expires_at: '' as string,
@@ -1342,7 +1367,8 @@ const closeCreateModal = () => {
   createForm.host = ''
   createForm.port = 8080
   createForm.username = ''
-  createForm.password = ''
+	createForm.password = ''
+	createForm.options_text = ''
 	createForm.tls_insecure = false
   createForm.expires_at = ''
   createForm.fallback_mode = 'none'
@@ -1371,9 +1397,33 @@ const parseProxyUrl = (
   port: number
   username: string
   password: string
+  options?: Record<string, string>
+  name?: string
 } | null => {
   const trimmed = line.trim()
   if (!trimmed) return null
+
+  if (/^vless:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed)
+      if (!parsed.hostname || !parsed.username) return null
+      const options: Record<string, string> = {}
+      for (const [key, value] of parsed.searchParams.entries()) {
+        if (value) options[key] = value
+      }
+      return {
+        protocol: 'vless',
+        host: parsed.hostname,
+        port: Number(parsed.port || 443),
+        username: decodeURIComponent(parsed.username),
+        password: '',
+        options,
+        name: decodeURIComponent(parsed.hash.replace(/^#/, '')) || undefined
+      }
+    } catch {
+      return null
+    }
+  }
 
   // Regex to parse proxy URL (supports http, https, socks5, socks5h)
   const regex = /^(https?|socks5h?):\/\/(?:([^:@]+):([^@]+)@)?([^:]+):(\d+)$/i
@@ -1480,6 +1530,23 @@ const handleBatchCreate = async () => {
   }
 }
 
+const parseProxyOptionsText = (raw: string): Record<string, string> | null => {
+	const text = raw.trim()
+	if (!text) return {}
+	try {
+		const parsed = JSON.parse(text) as unknown
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+		const options: Record<string, string> = {}
+		for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+			if (typeof value !== 'string') return null
+			options[key] = value
+		}
+		return options
+	} catch {
+		return null
+	}
+}
+
 const handleCreateProxy = async () => {
   if (!createForm.name.trim()) {
     appStore.showError(t('admin.proxies.nameRequired'))
@@ -1493,6 +1560,11 @@ const handleCreateProxy = async () => {
     appStore.showError(t('admin.proxies.portInvalid'))
     return
   }
+	const options = parseProxyOptionsText(createForm.options_text)
+	if (createForm.protocol === 'vless' && options === null) {
+		appStore.showError(t('admin.proxies.vlessOptionsInvalid'))
+		return
+	}
   submitting.value = true
   try {
     await adminAPI.proxies.create({
@@ -1502,7 +1574,8 @@ const handleCreateProxy = async () => {
       port: createForm.port,
       username: createForm.username.trim() || null,
       password: createForm.password.trim() || null,
-	  tls_insecure: createForm.protocol === 'hysteria2' && createForm.tls_insecure,
+		options: options || undefined,
+		tls_insecure: createForm.protocol === 'hysteria2' && createForm.tls_insecure,
       expires_at: createForm.expires_at ? Math.floor(new Date(createForm.expires_at).getTime() / 1000) : null,
       fallback_mode: createForm.fallback_mode,
       backup_proxy_id: createForm.fallback_mode === 'proxy' ? createForm.backup_proxy_id : null,
@@ -1525,8 +1598,9 @@ const handleEdit = (proxy: Proxy) => {
   editForm.protocol = proxy.protocol
   editForm.host = proxy.host
   editForm.port = proxy.port
-  editForm.username = proxy.username || ''
-  editForm.password = proxy.password || ''
+	editForm.username = proxy.username || ''
+	editForm.password = proxy.password || ''
+	editForm.options_text = proxy.options ? JSON.stringify(proxy.options, null, 2) : ''
 	editForm.tls_insecure = proxy.tls_insecure || false
   editForm.status = proxy.status === 'expired' ? 'inactive' : proxy.status
   editForm.expires_at = proxy.expires_at ? proxy.expires_at.slice(0, 10) : ''
@@ -1559,10 +1633,15 @@ const handleUpdateProxy = async () => {
     appStore.showError(t('admin.proxies.portInvalid'))
     return
   }
+	const options = editForm.protocol === 'vless' ? parseProxyOptionsText(editForm.options_text) : undefined
+	if (editForm.protocol === 'vless' && options === null) {
+		appStore.showError(t('admin.proxies.vlessOptionsInvalid'))
+		return
+	}
 
   submitting.value = true
   try {
-    const updateData: any = {
+	const updateData: any = {
       name: editForm.name.trim(),
       protocol: editForm.protocol,
       host: editForm.host.trim(),
@@ -1570,6 +1649,7 @@ const handleUpdateProxy = async () => {
       username: editForm.username.trim() || null,
       status: editForm.status,
       expires_at: editForm.expires_at ? Math.floor(new Date(editForm.expires_at).getTime() / 1000) : null,
+		options,
       fallback_mode: editForm.fallback_mode,
       backup_proxy_id: editForm.fallback_mode === 'proxy' ? editForm.backup_proxy_id : null,
       expiry_warn_days: editForm.expiry_warn_days,
@@ -2144,7 +2224,15 @@ function buildAuthPart(row: any): string {
 }
 
 function buildProxyUrl(row: any): string {
-  return `${row.protocol}://${buildAuthPart(row)}${row.host}:${row.port}`
+	const base = `${row.protocol}://${buildAuthPart(row)}${row.host}:${row.port}`
+	if (row.protocol !== 'vless' || !row.options || typeof row.options !== 'object') {
+		return base
+	}
+	const parsed = new URL(base)
+	for (const [key, value] of Object.entries(row.options as Record<string, unknown>)) {
+		if (typeof value === 'string' && value) parsed.searchParams.set(key, value)
+	}
+	return parsed.toString()
 }
 
 function getCopyFormats(row: any) {

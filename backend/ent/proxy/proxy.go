@@ -33,6 +33,8 @@ const (
 	FieldUsername = "username"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
+	// FieldOptions holds the string denoting the options field in the database.
+	FieldOptions = "options"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
@@ -74,6 +76,7 @@ var Columns = []string{
 	FieldPort,
 	FieldUsername,
 	FieldPassword,
+	FieldOptions,
 	FieldStatus,
 	FieldExpiresAt,
 	FieldFallbackMode,
@@ -115,6 +118,8 @@ var (
 	UsernameValidator func(string) error
 	// PasswordValidator is a validator for the "password" field. It is called by the builders before save.
 	PasswordValidator func(string) error
+	// DefaultOptions holds the default value on creation for the "options" field.
+	DefaultOptions func() map[string]string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.

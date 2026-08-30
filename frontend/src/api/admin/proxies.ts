@@ -201,6 +201,7 @@ export async function batchCreate(
     port: number
     username?: string
     password?: string
+    options?: Record<string, string>
     tls_insecure?: boolean
   }>
 ): Promise<{
@@ -218,11 +219,12 @@ export async function parseSubscription(url: string): Promise<{
   count: number
   proxies: Array<{
     name: string
-    protocol: 'hysteria2'
+    protocol: 'hysteria2' | 'vless'
     host: string
     port: number
     username: string
     password: string
+    options?: Record<string, string>
     tls_insecure: boolean
   }>
 }> {
@@ -230,11 +232,12 @@ export async function parseSubscription(url: string): Promise<{
     count: number
     proxies: Array<{
       name: string
-      protocol: 'hysteria2'
+      protocol: 'hysteria2' | 'vless'
       host: string
       port: number
       username: string
       password: string
+      options?: Record<string, string>
       tls_insecure: boolean
     }>
   }>('/admin/proxies/subscription/parse', { url })

@@ -27,33 +27,35 @@ func NewProxyHandler(adminService service.AdminService) *ProxyHandler {
 
 // CreateProxyRequest represents create proxy request
 type CreateProxyRequest struct {
-	Name           string `json:"name" binding:"required"`
-	Protocol       string `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2"`
-	Host           string `json:"host" binding:"required"`
-	Port           int    `json:"port" binding:"required,min=1,max=65535"`
-	Username       string `json:"username"`
-	Password       string `json:"password"`
-	TLSInsecure    bool   `json:"tls_insecure"`
-	ExpiresAt      *int64 `json:"expires_at"`
-	FallbackMode   string `json:"fallback_mode" binding:"omitempty,oneof=none proxy direct"`
-	BackupProxyID  *int64 `json:"backup_proxy_id"`
-	ExpiryWarnDays int    `json:"expiry_warn_days" binding:"omitempty,min=0"`
+	Name           string            `json:"name" binding:"required"`
+	Protocol       string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2 vless"`
+	Host           string            `json:"host" binding:"required"`
+	Port           int               `json:"port" binding:"required,min=1,max=65535"`
+	Username       string            `json:"username"`
+	Password       string            `json:"password"`
+	Options        map[string]string `json:"options"`
+	TLSInsecure    bool              `json:"tls_insecure"`
+	ExpiresAt      *int64            `json:"expires_at"`
+	FallbackMode   string            `json:"fallback_mode" binding:"omitempty,oneof=none proxy direct"`
+	BackupProxyID  *int64            `json:"backup_proxy_id"`
+	ExpiryWarnDays int               `json:"expiry_warn_days" binding:"omitempty,min=0"`
 }
 
 // UpdateProxyRequest represents update proxy request
 type UpdateProxyRequest struct {
-	Name           string `json:"name"`
-	Protocol       string `json:"protocol" binding:"omitempty,oneof=http https socks5 socks5h hysteria2"`
-	Host           string `json:"host"`
-	Port           int    `json:"port" binding:"omitempty,min=1,max=65535"`
-	Username       string `json:"username"`
-	Password       string `json:"password"`
-	TLSInsecure    bool   `json:"tls_insecure"`
-	Status         string `json:"status" binding:"omitempty,oneof=active inactive"`
-	ExpiresAt      *int64 `json:"expires_at"`
-	FallbackMode   string `json:"fallback_mode" binding:"omitempty,oneof=none proxy direct"`
-	BackupProxyID  *int64 `json:"backup_proxy_id"`
-	ExpiryWarnDays int    `json:"expiry_warn_days" binding:"omitempty,min=0"`
+	Name           string            `json:"name"`
+	Protocol       string            `json:"protocol" binding:"omitempty,oneof=http https socks5 socks5h hysteria2 vless"`
+	Host           string            `json:"host"`
+	Port           int               `json:"port" binding:"omitempty,min=1,max=65535"`
+	Username       string            `json:"username"`
+	Password       string            `json:"password"`
+	Options        map[string]string `json:"options"`
+	TLSInsecure    bool              `json:"tls_insecure"`
+	Status         string            `json:"status" binding:"omitempty,oneof=active inactive"`
+	ExpiresAt      *int64            `json:"expires_at"`
+	FallbackMode   string            `json:"fallback_mode" binding:"omitempty,oneof=none proxy direct"`
+	BackupProxyID  *int64            `json:"backup_proxy_id"`
+	ExpiryWarnDays int               `json:"expiry_warn_days" binding:"omitempty,min=0"`
 }
 
 // List handles listing all proxies with pagination
@@ -157,6 +159,7 @@ func (h *ProxyHandler) Create(c *gin.Context) {
 			Port:           req.Port,
 			Username:       strings.TrimSpace(req.Username),
 			Password:       strings.TrimSpace(req.Password),
+			Options:        req.Options,
 			TLSInsecure:    req.TLSInsecure,
 			ExpiresAt:      expiresAt,
 			FallbackMode:   strings.TrimSpace(req.FallbackMode),
@@ -197,6 +200,7 @@ func (h *ProxyHandler) Update(c *gin.Context) {
 		Port:           req.Port,
 		Username:       strings.TrimSpace(req.Username),
 		Password:       strings.TrimSpace(req.Password),
+		Options:        req.Options,
 		TLSInsecure:    req.TLSInsecure,
 		Status:         strings.TrimSpace(req.Status),
 		ExpiresAt:      expiresAt,
@@ -364,13 +368,14 @@ func (h *ProxyHandler) GetProxyAccounts(c *gin.Context) {
 
 // BatchCreateProxyItem represents a single proxy in batch create request
 type BatchCreateProxyItem struct {
-	Name        string `json:"name"`
-	Protocol    string `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2"`
-	Host        string `json:"host" binding:"required"`
-	Port        int    `json:"port" binding:"required,min=1,max=65535"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	TLSInsecure bool   `json:"tls_insecure"`
+	Name        string            `json:"name"`
+	Protocol    string            `json:"protocol" binding:"required,oneof=http https socks5 socks5h hysteria2 vless"`
+	Host        string            `json:"host" binding:"required"`
+	Port        int               `json:"port" binding:"required,min=1,max=65535"`
+	Username    string            `json:"username"`
+	Password    string            `json:"password"`
+	Options     map[string]string `json:"options"`
+	TLSInsecure bool              `json:"tls_insecure"`
 }
 
 // BatchCreateRequest represents batch create proxies request
@@ -389,6 +394,27 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 
 	created := 0
 	skipped := 0
+	vlessKeys := make(map[string]struct{})
+	needsVLESSDedup := false
+	for _, item := range req.Proxies {
+		if strings.EqualFold(strings.TrimSpace(item.Protocol), "vless") {
+			needsVLESSDedup = true
+			break
+		}
+	}
+	if needsVLESSDedup {
+		existing, err := h.adminService.GetAllProxies(c.Request.Context())
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		for i := range existing {
+			if existing[i].Protocol == "vless" {
+				key := buildProxyKeyWithOptions(existing[i].Protocol, existing[i].Host, existing[i].Port, existing[i].PersistenceUsername(), existing[i].PersistencePassword(), existing[i].Options, existing[i].TLSInsecure)
+				vlessKeys[key] = struct{}{}
+			}
+		}
+	}
 
 	for _, item := range req.Proxies {
 		// Trim all string fields
@@ -396,8 +422,10 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 		protocol := strings.TrimSpace(item.Protocol)
 		username := strings.TrimSpace(item.Username)
 		password := strings.TrimSpace(item.Password)
+		options := item.Options
 		duplicateUsername := username
 		duplicatePassword := password
+		vlessKey := buildProxyKeyWithOptions(protocol, host, item.Port, username, password, options, item.TLSInsecure)
 		if protocol == "hysteria2" {
 			persistenceProxy := &service.Proxy{
 				Protocol:    protocol,
@@ -410,8 +438,16 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 			duplicatePassword = persistenceProxy.PersistencePassword()
 		}
 
-		// Check for duplicates (same host, port, username, password)
-		exists, err := h.adminService.CheckProxyExists(c.Request.Context(), host, item.Port, duplicateUsername, duplicatePassword)
+		// Check for duplicates. VLESS nodes need transport options in their
+		// identity because one endpoint can legitimately expose several WS
+		// paths/SNI values; the legacy host/port/auth check would collapse them.
+		exists := false
+		var err error
+		if protocol == "vless" {
+			_, exists = vlessKeys[vlessKey]
+		} else {
+			exists, err = h.adminService.CheckProxyExists(c.Request.Context(), host, item.Port, duplicateUsername, duplicatePassword)
+		}
 		if err != nil {
 			response.ErrorFrom(c, err)
 			return
@@ -434,6 +470,7 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 			Port:        item.Port,
 			Username:    username,
 			Password:    password,
+			Options:     options,
 			TLSInsecure: item.TLSInsecure,
 		})
 		if err != nil {
@@ -443,6 +480,9 @@ func (h *ProxyHandler) BatchCreate(c *gin.Context) {
 		}
 
 		created++
+		if protocol == "vless" {
+			vlessKeys[vlessKey] = struct{}{}
+		}
 	}
 
 	response.Success(c, gin.H{

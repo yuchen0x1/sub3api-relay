@@ -57,7 +57,7 @@ func getSharedReqClient(opts reqClientOptions) (*req.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if parsed != nil && strings.EqualFold(parsed.Scheme, "hysteria2") {
+	if parsed != nil && (strings.EqualFold(parsed.Scheme, "hysteria2") || strings.EqualFold(parsed.Scheme, "vless")) {
 		bridge := &http.Transport{}
 		if _, err := proxyutil.ConfigureTransportProxyWithCloser(bridge, parsed); err != nil {
 			return nil, err

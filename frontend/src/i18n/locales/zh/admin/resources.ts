@@ -112,8 +112,9 @@ export default {
       allProtocols: '全部协议',
       allStatus: '全部状态',
       searchProxies: '搜索代理...',
-      protocols: {
+	protocols: {
 		hysteria2: 'Hysteria2',
+		vless: 'VLESS (WS/TLS)',
         http: 'HTTP',
         https: 'HTTPS',
         socks5: 'SOCKS5',
@@ -163,7 +164,7 @@ export default {
       batchInput: '代理列表',
       batchInputPlaceholder:
         "每行输入一个代理，支持以下格式：\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
-      batchInputHint: "支持 http、https、socks5 协议，格式：协议://[用户名:密码{'@'}]主机:端口",
+	batchInputHint: "支持 http、https、socks5、VLESS (WS/TLS) 和 Hysteria2；订阅地址会自动解析节点。",
       parsedCount: '有效 {count} 个',
       invalidCount: '无效 {count} 个',
       duplicateCount: '重复 {count} 个',
@@ -178,7 +179,11 @@ export default {
       subscriptionDetected: '检测到 HTTPS 订阅地址，请先解析节点，再确认导入。',
       parseSubscription: '解析订阅',
       subscriptionParsed: '已解析 {count} 个节点，请确认后导入',
-      subscriptionParseFailed: '订阅解析失败',
+		subscriptionParseFailed: '订阅解析失败',
+		vlessOptions: 'VLESS 传输参数（JSON，可选）',
+		vlessOptionsPlaceholder: '{"security":"tls","type":"ws","sni":"...","host":"...","path":"/"}',
+		vlessOptionsHint: '仅支持 TLS/WS；订阅导入会自动填充这些参数。',
+		vlessOptionsInvalid: 'VLESS 传输参数必须是字符串键值 JSON。',
       // Other messages
       saving: '保存中...',
       testing: '测试中...',

@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 )
@@ -31,13 +33,14 @@ type parseProxySubscriptionRequest struct {
 }
 
 type parsedProxySubscription struct {
-	Name        string `json:"name"`
-	Protocol    string `json:"protocol"`
-	Host        string `json:"host"`
-	Port        int    `json:"port"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	TLSInsecure bool   `json:"tls_insecure"`
+	Name        string            `json:"name"`
+	Protocol    string            `json:"protocol"`
+	Host        string            `json:"host"`
+	Port        int               `json:"port"`
+	Username    string            `json:"username"`
+	Password    string            `json:"password"`
+	Options     map[string]string `json:"options,omitempty"`
+	TLSInsecure bool              `json:"tls_insecure"`
 }
 
 func (h *ProxyHandler) ParseSubscription(c *gin.Context) {
@@ -176,7 +179,7 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) 
 	if text == "" {
 		return nil, errors.New("subscription is empty")
 	}
-	if !strings.Contains(strings.ToLower(text), "hysteria2://") && !strings.Contains(strings.ToLower(text), "hy2://") {
+	if !containsSupportedProxyURI(text) {
 		decoded, err := decodeProxySubscriptionBase64(text)
 		if err != nil {
 			return nil, errors.New("subscription is not a supported proxy list")
@@ -190,11 +193,12 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) 
 		if len(nodes) >= proxySubscriptionMaxNodes {
 			return nil, fmt.Errorf("subscription contains more than %d nodes", proxySubscriptionMaxNodes)
 		}
-		node, err := parseHysteria2SubscriptionURI(line)
+		node, err := parseProxySubscriptionURI(line)
 		if err != nil {
 			continue
 		}
-		key := fmt.Sprintf("%s:%d:%s:%t", node.Host, node.Port, node.Password, node.TLSInsecure)
+		optionsKey, _ := json.Marshal(node.Options)
+		key := fmt.Sprintf("%s:%s:%d:%s:%s:%s:%t", node.Protocol, node.Host, node.Port, node.Username, node.Password, optionsKey, node.TLSInsecure)
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -202,9 +206,16 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) 
 		nodes = append(nodes, node)
 	}
 	if len(nodes) == 0 {
-		return nil, errors.New("subscription contains no supported Hysteria2 nodes")
+		return nil, errors.New("subscription contains no supported VLESS or Hysteria2 nodes")
 	}
 	return nodes, nil
+}
+
+func containsSupportedProxyURI(text string) bool {
+	lower := strings.ToLower(text)
+	return strings.Contains(lower, "vless://") ||
+		strings.Contains(lower, "hysteria2://") ||
+		strings.Contains(lower, "hy2://")
 }
 
 func decodeProxySubscriptionBase64(raw string) (string, error) {
@@ -271,4 +282,146 @@ func parseHysteria2SubscriptionURI(raw string) (parsedProxySubscription, error) 
 		Password:    auth,
 		TLSInsecure: insecure,
 	}, nil
+}
+
+func parseProxySubscriptionURI(raw string) (parsedProxySubscription, error) {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return parsedProxySubscription{}, err
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "hysteria2", "hy2":
+		return parseHysteria2SubscriptionURI(raw)
+	case "vless":
+		return parseVLESSSubscriptionURI(parsed)
+	default:
+		return parsedProxySubscription{}, errors.New("unsupported proxy scheme")
+	}
+}
+
+// parseVLESSSubscriptionURI accepts the VLESS transport used by common
+// CDN-backed subscriptions. The gateway intentionally supports the portable
+// TLS/WS form only; Reality, XTLS flow and other transports require a full
+// Xray/Sing-box runtime and cannot be represented by an HTTP dialer.
+func parseVLESSSubscriptionURI(parsed *url.URL) (parsedProxySubscription, error) {
+	if parsed == nil || parsed.User == nil {
+		return parsedProxySubscription{}, errors.New("VLESS proxy is missing UUID")
+	}
+	if _, ok := parsed.User.Password(); ok {
+		return parsedProxySubscription{}, errors.New("VLESS password authentication is not supported")
+	}
+	uuidValue, err := uuid.Parse(parsed.User.Username())
+	if err != nil {
+		return parsedProxySubscription{}, errors.New("VLESS UUID is invalid")
+	}
+	host := parsed.Hostname()
+	if host == "" {
+		return parsedProxySubscription{}, errors.New("VLESS proxy is missing host")
+	}
+	port := 443
+	if rawPort := parsed.Port(); rawPort != "" {
+		port, err = strconv.Atoi(rawPort)
+		if err != nil || port < 1 || port > 65535 {
+			return parsedProxySubscription{}, errors.New("invalid VLESS proxy port")
+		}
+	}
+	options, err := normalizeVLESSSubscriptionOptions(parsed.Query(), host)
+	if err != nil {
+		return parsedProxySubscription{}, err
+	}
+	name := strings.TrimSpace(parsed.Fragment)
+	if name == "" {
+		name = net.JoinHostPort(host, strconv.Itoa(port))
+	}
+	return parsedProxySubscription{
+		Name:     name,
+		Protocol: "vless",
+		Host:     host,
+		Port:     port,
+		Username: uuidValue.String(),
+		Options:  options,
+	}, nil
+}
+
+func normalizeVLESSSubscriptionOptions(query url.Values, serverHost string) (map[string]string, error) {
+	allowed := map[string]bool{
+		"encryption": true,
+		"security":   true,
+		"type":       true,
+		"mode":       true,
+		"sni":        true,
+		"host":       true,
+		"path":       true,
+		"fp":         true,
+		"alpn":       true,
+		"flow":       true,
+		"insecure":   true,
+	}
+	for key := range query {
+		if !allowed[strings.ToLower(key)] {
+			return nil, fmt.Errorf("unsupported VLESS option: %s", key)
+		}
+	}
+	security := strings.ToLower(strings.TrimSpace(query.Get("security")))
+	if security == "" {
+		security = "tls"
+	}
+	if security != "tls" && security != "none" {
+		return nil, fmt.Errorf("unsupported VLESS security: %s", security)
+	}
+	transportType := strings.ToLower(strings.TrimSpace(query.Get("type")))
+	if transportType == "" {
+		transportType = "ws"
+	}
+	if transportType != "ws" {
+		return nil, fmt.Errorf("unsupported VLESS transport: %s", transportType)
+	}
+	encryption := strings.ToLower(strings.TrimSpace(query.Get("encryption")))
+	if encryption == "" {
+		encryption = "none"
+	}
+	if encryption != "none" {
+		return nil, fmt.Errorf("unsupported VLESS encryption: %s", encryption)
+	}
+	if flow := strings.TrimSpace(query.Get("flow")); flow != "" {
+		return nil, fmt.Errorf("unsupported VLESS flow: %s", flow)
+	}
+	path := query.Get("path")
+	if path == "" {
+		path = "/"
+	}
+	if !strings.HasPrefix(path, "/") || strings.ContainsAny(path, "\r\n") {
+		return nil, errors.New("invalid VLESS WebSocket path")
+	}
+	sni := strings.TrimSpace(query.Get("sni"))
+	if sni == "" {
+		sni = serverHost
+	}
+	hostHeader := strings.TrimSpace(query.Get("host"))
+	if hostHeader == "" {
+		hostHeader = sni
+	}
+	options := map[string]string{
+		"security":   security,
+		"type":       transportType,
+		"encryption": encryption,
+		"sni":        sni,
+		"host":       hostHeader,
+		"path":       path,
+	}
+	for _, key := range []string{"mode", "fp", "alpn"} {
+		if value := strings.TrimSpace(query.Get(key)); value != "" {
+			options[key] = value
+		}
+	}
+	if rawInsecure := strings.TrimSpace(query.Get("insecure")); rawInsecure != "" {
+		insecure, err := strconv.ParseBool(rawInsecure)
+		if err != nil {
+			return nil, errors.New("invalid VLESS insecure option")
+		}
+		if insecure {
+			options["insecure"] = "true"
+		}
+	}
+	return options, nil
 }

@@ -102,6 +102,15 @@ func ConfigureTransportProxyWithCloser(transport *http.Transport, proxyURL *url.
 		transport.DialContext = dialContext
 		return client, nil
 
+	case "vless":
+		dialContext, err := newVLESSDialContext(proxyURL)
+		if err != nil {
+			return nil, err
+		}
+		transport.Proxy = nil
+		transport.DialContext = dialContext
+		return nil, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported proxy scheme: %s", scheme)
 	}

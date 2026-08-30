@@ -55,7 +55,7 @@ func (h *ProxyHandler) ExportData(c *gin.Context) {
 	dataProxies := make([]DataProxy, 0, len(proxies))
 	for i := range proxies {
 		p := proxies[i]
-		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
+		key := buildProxyKeyWithOptions(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.Options, p.TLSInsecure)
 
 		var expiresAt *int64
 		if p.ExpiresAt != nil {
@@ -74,6 +74,7 @@ func (h *ProxyHandler) ExportData(c *gin.Context) {
 			Port:            p.Port,
 			Username:        p.Username,
 			Password:        p.Password,
+			Options:         p.Options,
 			TLSInsecure:     p.TLSInsecure,
 			Status:          p.Status,
 			ExpiresAt:       expiresAt,
@@ -123,7 +124,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 	proxyNameToID := make(map[string]int64, len(existingProxies))
 	for i := range existingProxies {
 		p := existingProxies[i]
-		key := buildProxyKeyWithTLS(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.TLSInsecure)
+		key := buildProxyKeyWithOptions(p.Protocol, p.Host, p.Port, p.Username, p.Password, p.Options, p.TLSInsecure)
 		proxyByKey[key] = p
 		if p.Name != "" {
 			proxyNameToID[p.Name] = p.ID
@@ -135,7 +136,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 		item := req.Data.Proxies[i]
 		key := item.ProxyKey
 		if key == "" {
-			key = buildProxyKeyWithTLS(item.Protocol, item.Host, item.Port, item.Username, item.Password, item.TLSInsecure)
+			key = buildProxyKeyWithOptions(item.Protocol, item.Host, item.Port, item.Username, item.Password, item.Options, item.TLSInsecure)
 		}
 
 		if err := validateDataProxy(item); err != nil {
@@ -183,6 +184,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 					Port:        existing.Port,
 					Username:    existing.Username,
 					Password:    existing.Password,
+					Options:     existing.Options,
 					TLSInsecure: existing.TLSInsecure,
 				}
 				if _, err := h.adminService.UpdateProxy(ctx, existing.ID, updateInput); err != nil {
@@ -230,6 +232,7 @@ func (h *ProxyHandler) ImportData(c *gin.Context) {
 			Port:           item.Port,
 			Username:       item.Username,
 			Password:       item.Password,
+			Options:        item.Options,
 			TLSInsecure:    item.TLSInsecure,
 			ExpiresAt:      expiresAt,
 			FallbackMode:   fallbackMode,

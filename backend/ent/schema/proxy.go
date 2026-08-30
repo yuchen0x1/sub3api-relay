@@ -4,6 +4,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/schema/mixins"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -49,6 +50,12 @@ func (Proxy) Fields() []ent.Field {
 			MaxLen(100).
 			Optional().
 			Nillable(),
+		// options stores transport-specific settings for protocols such as
+		// VLESS (for example WebSocket path/SNI/Host). HTTP and SOCKS proxies
+		// keep this as an empty JSON object for schema compatibility.
+		field.JSON("options", map[string]string{}).
+			Default(func() map[string]string { return map[string]string{} }).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.String("status").
 			MaxLen(20).
 			Default("active"),

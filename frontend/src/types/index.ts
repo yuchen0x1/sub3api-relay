@@ -858,7 +858,7 @@ export interface UpdateGroupRequest {
 export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
-export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'hysteria2'
+export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'hysteria2' | 'vless'
 
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {
@@ -876,6 +876,7 @@ export interface Proxy {
   port: number
   username: string | null
   password?: string | null
+  options?: Record<string, string>
   tls_insecure: boolean
   status: 'active' | 'inactive' | 'expired'
   account_count?: number // Number of accounts using this proxy
@@ -1436,6 +1437,7 @@ export interface CreateProxyRequest {
   port: number
   username?: string | null
   password?: string | null
+  options?: Record<string, string>
   tls_insecure?: boolean
   expires_at?: number | null   // unix 秒；null/0 = 永不过期
   fallback_mode?: 'none' | 'proxy' | 'direct'
@@ -1450,6 +1452,7 @@ export interface UpdateProxyRequest {
   port?: number
   username?: string | null
   password?: string | null
+  options?: Record<string, string>
   tls_insecure?: boolean
   status?: 'active' | 'inactive'
   expires_at?: number | null   // unix 秒；null/0 = 永不过期
@@ -1476,6 +1479,7 @@ export interface AdminDataProxy {
   port: number
   username?: string | null
   password?: string | null
+  options?: Record<string, string>
   tls_insecure?: boolean
   status: 'active' | 'inactive'
 }

@@ -16,13 +16,17 @@ const (
 )
 
 type Proxy struct {
-	ID             int64
-	Name           string
-	Protocol       string
-	Host           string
-	Port           int
-	Username       string
-	Password       string
+	ID       int64
+	Name     string
+	Protocol string
+	Host     string
+	Port     int
+	Username string
+	Password string
+	// Options contains transport-specific settings. VLESS subscriptions use
+	// this map for WebSocket path/SNI/Host and TLS options; other protocols
+	// normally leave it empty.
+	Options        map[string]string
 	TLSInsecure    bool
 	Status         string
 	CreatedAt      time.Time
@@ -47,7 +51,20 @@ func (p *Proxy) URL() string {
 		Scheme: p.Protocol,
 		Host:   net.JoinHostPort(p.Host, strconv.Itoa(p.Port)),
 	}
-	if p.Protocol == "hysteria2" {
+	if p.Protocol == "vless" {
+		if p.Username != "" {
+			u.User = url.User(p.Username)
+		}
+		if len(p.Options) > 0 {
+			query := u.Query()
+			for key, value := range p.Options {
+				if strings.TrimSpace(key) != "" && value != "" {
+					query.Set(key, value)
+				}
+			}
+			u.RawQuery = query.Encode()
+		}
+	} else if p.Protocol == "hysteria2" {
 		if p.Password != "" {
 			parts := strings.SplitN(p.Password, ":", 2)
 			if len(parts) == 2 {

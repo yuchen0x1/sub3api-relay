@@ -3,6 +3,8 @@ package service
 import (
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestProxyURL(t *testing.T) {
@@ -86,6 +88,28 @@ func TestProxyHysteria2PersistenceAuthRoundTrip(t *testing.T) {
 	if restored.Username != "" || restored.Password != original.Password || !restored.TLSInsecure {
 		t.Fatalf("persistence round trip mismatch: %#v", restored)
 	}
+}
+
+func TestProxyVLESSURLPreservesWebSocketOptions(t *testing.T) {
+	proxy := Proxy{
+		Protocol: "vless",
+		Host:     "edge.example.com",
+		Port:     443,
+		Username: "d9428888-122b-11ed-861d-0242ac120002",
+		Options: map[string]string{
+			"security": "tls",
+			"type":     "ws",
+			"sni":      "cdn.example.com",
+			"host":     "cdn.example.com",
+			"path":     "/newlogin/login.do",
+		},
+	}
+	got := proxy.URL()
+	require.Contains(t, got, "vless://d9428888-122b-11ed-861d-0242ac120002@edge.example.com:443?")
+	require.Contains(t, got, "security=tls")
+	require.Contains(t, got, "type=ws")
+	require.Contains(t, got, "sni=cdn.example.com")
+	require.Contains(t, got, "path=%2Fnewlogin%2Flogin.do")
 }
 
 func TestProxyURL_SpecialCharactersRoundTrip(t *testing.T) {

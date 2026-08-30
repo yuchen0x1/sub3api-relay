@@ -1222,7 +1222,7 @@ func normalizeProxyURL(raw string) (string, *url.URL, error) {
 	parsed.Host = strings.ToLower(parsed.Host)
 	parsed.Path = ""
 	parsed.RawPath = ""
-	if parsed.Scheme != "hysteria2" {
+	if parsed.Scheme != "hysteria2" && parsed.Scheme != "vless" {
 		parsed.RawQuery = ""
 	} else {
 		parsed.RawQuery = parsed.Query().Encode()

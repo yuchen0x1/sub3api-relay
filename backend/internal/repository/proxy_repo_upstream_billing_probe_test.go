@@ -26,8 +26,8 @@ func TestProxyUpdateInvalidatesBoundProbeSnapshotsAndEnqueuesOutboxAtomically(t 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`(?s)` + regexp.QuoteMeta("SELECT protocol, host, port") + `.*` + regexp.QuoteMeta("FOR NO KEY UPDATE")).
 		WithArgs(int64(9)).
-		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "status"}).
-			AddRow("http", "old.example", 8080, "user", "pass", service.StatusActive))
+		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "options", "status"}).
+			AddRow("http", "old.example", 8080, "user", "pass", "{}", service.StatusActive))
 	mock.ExpectExec(`(?s)UPDATE "proxies" SET`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "proxies" SET "backup_proxy_id" = NULL WHERE "backup_proxy_id" = \$1`).
 		WithArgs(int64(9)).
@@ -69,8 +69,8 @@ func TestProxyUpdateRollsBackWhenProbeInvalidationOutboxFails(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery(`(?s)` + regexp.QuoteMeta("SELECT protocol, host, port") + `.*` + regexp.QuoteMeta("FOR NO KEY UPDATE")).
 		WithArgs(int64(9)).
-		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "status"}).
-			AddRow("http", "old.example", 8080, "", "", service.StatusActive))
+		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "options", "status"}).
+			AddRow("http", "old.example", 8080, "", "", "{}", service.StatusActive))
 	mock.ExpectExec(`(?s)UPDATE "proxies" SET`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "proxies" SET "backup_proxy_id" = NULL WHERE "backup_proxy_id" = \$1`).
 		WithArgs(int64(9)).
@@ -102,8 +102,8 @@ func TestProxyUpdateSkipsProbeInvalidationForNonIdentityChange(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery(`(?s)` + regexp.QuoteMeta("SELECT protocol, host, port") + `.*` + regexp.QuoteMeta("FOR NO KEY UPDATE")).
 		WithArgs(int64(9)).
-		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "status"}).
-			AddRow("http", "same.example", 8080, "", "", service.StatusActive))
+		WillReturnRows(sqlmock.NewRows([]string{"protocol", "host", "port", "username", "password", "options", "status"}).
+			AddRow("http", "same.example", 8080, "", "", "{}", service.StatusActive))
 	mock.ExpectExec(`(?s)UPDATE "proxies" SET`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "proxies" SET "backup_proxy_id" = NULL WHERE "backup_proxy_id" = \$1`).
 		WithArgs(int64(9)).
@@ -126,10 +126,10 @@ func expectProxyUpdateReload(mock sqlmock.Sqlmock, id int64, host, username, pas
 		WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "created_at", "updated_at", "deleted_at", "name", "protocol", "host", "port",
-			"username", "password", "status", "expires_at", "fallback_mode", "backup_proxy_id", "expiry_warn_days",
+			"username", "password", "options", "status", "expires_at", "fallback_mode", "backup_proxy_id", "expiry_warn_days",
 		}).AddRow(
 			id, now, now, nil, "proxy", "http", host, 8080,
-			username, password, service.StatusActive, nil, service.FallbackModeNone, nil, 0,
+			username, password, "{}", service.StatusActive, nil, service.FallbackModeNone, nil, 0,
 		))
 }
 

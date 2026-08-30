@@ -117,6 +117,12 @@ func (_c *ProxyCreate) SetNillablePassword(v *string) *ProxyCreate {
 	return _c
 }
 
+// SetOptions sets the "options" field.
+func (_c *ProxyCreate) SetOptions(v map[string]string) *ProxyCreate {
+	_c.mutation.SetOptions(v)
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *ProxyCreate) SetStatus(v string) *ProxyCreate {
 	_c.mutation.SetStatus(v)
@@ -258,6 +264,13 @@ func (_c *ProxyCreate) defaults() error {
 		v := proxy.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Options(); !ok {
+		if proxy.DefaultOptions == nil {
+			return fmt.Errorf("ent: uninitialized proxy.DefaultOptions (forgotten import ent/runtime?)")
+		}
+		v := proxy.DefaultOptions()
+		_c.mutation.SetOptions(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := proxy.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -317,6 +330,9 @@ func (_c *ProxyCreate) check() error {
 		if err := proxy.PasswordValidator(v); err != nil {
 			return &ValidationError{Name: "password", err: fmt.Errorf(`ent: validator failed for field "Proxy.password": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Options(); !ok {
+		return &ValidationError{Name: "options", err: errors.New(`ent: missing required field "Proxy.options"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Proxy.status"`)}
@@ -399,6 +415,10 @@ func (_c *ProxyCreate) createSpec() (*Proxy, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Password(); ok {
 		_spec.SetField(proxy.FieldPassword, field.TypeString, value)
 		_node.Password = &value
+	}
+	if value, ok := _c.mutation.Options(); ok {
+		_spec.SetField(proxy.FieldOptions, field.TypeJSON, value)
+		_node.Options = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(proxy.FieldStatus, field.TypeString, value)
@@ -618,6 +638,18 @@ func (u *ProxyUpsert) UpdatePassword() *ProxyUpsert {
 // ClearPassword clears the value of the "password" field.
 func (u *ProxyUpsert) ClearPassword() *ProxyUpsert {
 	u.SetNull(proxy.FieldPassword)
+	return u
+}
+
+// SetOptions sets the "options" field.
+func (u *ProxyUpsert) SetOptions(v map[string]string) *ProxyUpsert {
+	u.Set(proxy.FieldOptions, v)
+	return u
+}
+
+// UpdateOptions sets the "options" field to the value that was provided on create.
+func (u *ProxyUpsert) UpdateOptions() *ProxyUpsert {
+	u.SetExcluded(proxy.FieldOptions)
 	return u
 }
 
@@ -881,6 +913,20 @@ func (u *ProxyUpsertOne) UpdatePassword() *ProxyUpsertOne {
 func (u *ProxyUpsertOne) ClearPassword() *ProxyUpsertOne {
 	return u.Update(func(s *ProxyUpsert) {
 		s.ClearPassword()
+	})
+}
+
+// SetOptions sets the "options" field.
+func (u *ProxyUpsertOne) SetOptions(v map[string]string) *ProxyUpsertOne {
+	return u.Update(func(s *ProxyUpsert) {
+		s.SetOptions(v)
+	})
+}
+
+// UpdateOptions sets the "options" field to the value that was provided on create.
+func (u *ProxyUpsertOne) UpdateOptions() *ProxyUpsertOne {
+	return u.Update(func(s *ProxyUpsert) {
+		s.UpdateOptions()
 	})
 }
 
@@ -1323,6 +1369,20 @@ func (u *ProxyUpsertBulk) UpdatePassword() *ProxyUpsertBulk {
 func (u *ProxyUpsertBulk) ClearPassword() *ProxyUpsertBulk {
 	return u.Update(func(s *ProxyUpsert) {
 		s.ClearPassword()
+	})
+}
+
+// SetOptions sets the "options" field.
+func (u *ProxyUpsertBulk) SetOptions(v map[string]string) *ProxyUpsertBulk {
+	return u.Update(func(s *ProxyUpsert) {
+		s.SetOptions(v)
+	})
+}
+
+// UpdateOptions sets the "options" field to the value that was provided on create.
+func (u *ProxyUpsertBulk) UpdateOptions() *ProxyUpsertBulk {
+	return u.Update(func(s *ProxyUpsert) {
+		s.UpdateOptions()
 	})
 }
 

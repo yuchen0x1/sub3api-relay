@@ -36284,6 +36284,7 @@ type ProxyMutation struct {
 	addport             *int
 	username            *string
 	password            *string
+	options             *map[string]string
 	status              *string
 	expires_at          *time.Time
 	fallback_mode       *string
@@ -36781,6 +36782,42 @@ func (m *ProxyMutation) ResetPassword() {
 	delete(m.clearedFields, proxy.FieldPassword)
 }
 
+// SetOptions sets the "options" field.
+func (m *ProxyMutation) SetOptions(value map[string]string) {
+	m.options = &value
+}
+
+// Options returns the value of the "options" field in the mutation.
+func (m *ProxyMutation) Options() (r map[string]string, exists bool) {
+	v := m.options
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOptions returns the old "options" field's value of the Proxy entity.
+// If the Proxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProxyMutation) OldOptions(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOptions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOptions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOptions: %w", err)
+	}
+	return oldValue.Options, nil
+}
+
+// ResetOptions resets all changes to the "options" field.
+func (m *ProxyMutation) ResetOptions() {
+	m.options = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *ProxyMutation) SetStatus(s string) {
 	m.status = &s
@@ -37122,7 +37159,7 @@ func (m *ProxyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProxyMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, proxy.FieldCreatedAt)
 	}
@@ -37149,6 +37186,9 @@ func (m *ProxyMutation) Fields() []string {
 	}
 	if m.password != nil {
 		fields = append(fields, proxy.FieldPassword)
+	}
+	if m.options != nil {
+		fields = append(fields, proxy.FieldOptions)
 	}
 	if m.status != nil {
 		fields = append(fields, proxy.FieldStatus)
@@ -37191,6 +37231,8 @@ func (m *ProxyMutation) Field(name string) (ent.Value, bool) {
 		return m.Username()
 	case proxy.FieldPassword:
 		return m.Password()
+	case proxy.FieldOptions:
+		return m.Options()
 	case proxy.FieldStatus:
 		return m.Status()
 	case proxy.FieldExpiresAt:
@@ -37228,6 +37270,8 @@ func (m *ProxyMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldUsername(ctx)
 	case proxy.FieldPassword:
 		return m.OldPassword(ctx)
+	case proxy.FieldOptions:
+		return m.OldOptions(ctx)
 	case proxy.FieldStatus:
 		return m.OldStatus(ctx)
 	case proxy.FieldExpiresAt:
@@ -37309,6 +37353,13 @@ func (m *ProxyMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPassword(v)
+		return nil
+	case proxy.FieldOptions:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOptions(v)
 		return nil
 	case proxy.FieldStatus:
 		v, ok := value.(string)
@@ -37480,6 +37531,9 @@ func (m *ProxyMutation) ResetField(name string) error {
 		return nil
 	case proxy.FieldPassword:
 		m.ResetPassword()
+		return nil
+	case proxy.FieldOptions:
+		m.ResetOptions()
 		return nil
 	case proxy.FieldStatus:
 		m.ResetStatus()

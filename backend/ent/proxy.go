@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -35,6 +36,8 @@ type Proxy struct {
 	Username *string `json:"username,omitempty"`
 	// Password holds the value of the "password" field.
 	Password *string `json:"password,omitempty"`
+	// Options holds the value of the "options" field.
+	Options map[string]string `json:"options,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
 	// Proxy expiration time (NULL means never expires).
@@ -87,6 +90,8 @@ func (*Proxy) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case proxy.FieldOptions:
+			values[i] = new([]byte)
 		case proxy.FieldID, proxy.FieldPort, proxy.FieldBackupProxyID, proxy.FieldExpiryWarnDays:
 			values[i] = new(sql.NullInt64)
 		case proxy.FieldName, proxy.FieldProtocol, proxy.FieldHost, proxy.FieldUsername, proxy.FieldPassword, proxy.FieldStatus, proxy.FieldFallbackMode:
@@ -170,6 +175,14 @@ func (_m *Proxy) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Password = new(string)
 				*_m.Password = value.String
+			}
+		case proxy.FieldOptions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field options", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Options); err != nil {
+					return fmt.Errorf("unmarshal field options: %w", err)
+				}
 			}
 		case proxy.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -281,6 +294,9 @@ func (_m *Proxy) String() string {
 		builder.WriteString("password=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("options=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Options))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)

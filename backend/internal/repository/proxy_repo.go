@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"sort"
 	"strings"
 	"time"
@@ -42,6 +43,9 @@ func (r *proxyRepository) Create(ctx context.Context, proxyIn *service.Proxy) er
 		SetStatus(proxyIn.Status).
 		SetFallbackMode(proxyIn.FallbackMode).
 		SetExpiryWarnDays(proxyIn.ExpiryWarnDays)
+	if proxyIn.Options != nil {
+		builder.SetOptions(proxyIn.Options)
+	}
 	if username := proxyIn.PersistenceUsername(); username != "" {
 		builder.SetUsername(username)
 	}
@@ -129,6 +133,7 @@ type proxyProbeIdentity struct {
 	port     int
 	username string
 	password string
+	options  string
 	status   string
 }
 
@@ -139,6 +144,7 @@ func proxyProbeIdentityFromService(proxyIn *service.Proxy) proxyProbeIdentity {
 		port:     proxyIn.Port,
 		username: proxyIn.PersistenceUsername(),
 		password: proxyIn.PersistencePassword(),
+		options:  proxyOptionsKey(proxyIn.Options),
 		status:   proxyIn.Status,
 	}
 }
@@ -156,6 +162,9 @@ func updateProxyAndInvalidateProbeSnapshots(ctx context.Context, client *dbent.C
 		SetStatus(proxyIn.Status).
 		SetFallbackMode(proxyIn.FallbackMode).
 		SetExpiryWarnDays(proxyIn.ExpiryWarnDays)
+	if proxyIn.Options != nil {
+		builder.SetOptions(proxyIn.Options)
+	}
 	if username := proxyIn.PersistenceUsername(); username != "" {
 		builder.SetUsername(username)
 	} else {
@@ -199,7 +208,7 @@ func updateProxyAndInvalidateProbeSnapshots(ctx context.Context, client *dbent.C
 
 func lockProxyProbeIdentity(ctx context.Context, client *dbent.Client, proxyID int64) (proxyProbeIdentity, error) {
 	rows, err := client.QueryContext(ctx, `
-		SELECT protocol, host, port, COALESCE(username, ''), COALESCE(password, ''), status
+		SELECT protocol, host, port, COALESCE(username, ''), COALESCE(password, ''), COALESCE(options, '{}'), status
 		FROM proxies
 		WHERE id = $1 AND deleted_at IS NULL
 		FOR NO KEY UPDATE
@@ -215,7 +224,7 @@ func lockProxyProbeIdentity(ctx context.Context, client *dbent.Client, proxyID i
 		return proxyProbeIdentity{}, service.ErrProxyNotFound
 	}
 	var identity proxyProbeIdentity
-	if err := rows.Scan(&identity.protocol, &identity.host, &identity.port, &identity.username, &identity.password, &identity.status); err != nil {
+	if err := rows.Scan(&identity.protocol, &identity.host, &identity.port, &identity.username, &identity.password, &identity.options, &identity.status); err != nil {
 		return proxyProbeIdentity{}, err
 	}
 	return identity, rows.Err()
@@ -598,6 +607,7 @@ func proxyEntityToService(m *dbent.Proxy) *service.Proxy {
 		FallbackMode:   m.FallbackMode,
 		BackupProxyID:  m.BackupProxyID,
 		ExpiryWarnDays: m.ExpiryWarnDays,
+		Options:        m.Options,
 	}
 	username := ""
 	if m.Username != nil {
@@ -609,6 +619,17 @@ func proxyEntityToService(m *dbent.Proxy) *service.Proxy {
 	}
 	out.ApplyPersistenceAuth(username, password)
 	return out
+}
+
+func proxyOptionsKey(options map[string]string) string {
+	if len(options) == 0 {
+		return "{}"
+	}
+	data, err := json.Marshal(options)
+	if err != nil {
+		return "{}"
+	}
+	return string(data)
 }
 
 func applyProxyEntityToService(dst *service.Proxy, src *dbent.Proxy) {
