@@ -21,13 +21,14 @@ describe('Stripe lazy-loading contract', () => {
     expect(source).not.toMatch(/await import\(['"]@stripe\/stripe-js['"]\)/)
   })
 
-  it('keeps Stripe out of the shared vendor chunk', () => {
+  it('keeps Stripe out of hand-written vendor buckets', () => {
+    // The hand-written vendor chunks were removed (they caused a circular
+    // vendor-misc -> api/client dependency); Stripe stays out of the entry
+    // chunk solely via the side-effect-free dynamic imports asserted above.
+    // If the config ever pins Stripe into a shared chunk again, lazy loading
+    // would silently regress, so guard against any Stripe reference here.
     const viteConfig = readFrontendFile('vite.config.ts')
-    const stripeRule = viteConfig.indexOf("id.includes('/@stripe/stripe-js/')")
-    const miscFallback = viteConfig.indexOf("return 'vendor-misc'")
 
-    expect(stripeRule).toBeGreaterThan(-1)
-    expect(viteConfig.slice(stripeRule, miscFallback)).toContain("return 'vendor-stripe'")
-    expect(stripeRule).toBeLessThan(miscFallback)
+    expect(viteConfig).not.toContain('@stripe/stripe-js')
   })
 })

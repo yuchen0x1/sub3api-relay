@@ -177,7 +177,7 @@ export default {
       subscriptionParsed: '已解析 {count} 个节点，请确认后导入',
 		subscriptionParseFailed: '订阅解析失败',
 		vlessOptions: 'VLESS 传输参数（JSON，可选）',
-		vlessOptionsPlaceholder: '{"security":"tls","type":"ws","sni":"...","host":"...","path":"/"}',
+		vlessOptionsPlaceholder: "{'{'}\"security\":\"tls\",\"type\":\"ws\",\"sni\":\"...\",\"host\":\"...\",\"path\":\"/\"{'}'}",
 		vlessOptionsHint: '仅支持 TLS/WS；订阅导入会自动填充这些参数。',
 		vlessOptionsInvalid: 'VLESS 传输参数必须是字符串键值 JSON。',
       // Other messages

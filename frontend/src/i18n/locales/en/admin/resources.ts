@@ -177,7 +177,7 @@ export default {
       subscriptionParsed: 'Parsed {count} nodes. Review and import them when ready.',
       subscriptionParseFailed: 'Failed to parse subscription',
 		vlessOptions: 'VLESS transport options (JSON, optional)',
-		vlessOptionsPlaceholder: '{"security":"tls","type":"ws","sni":"...","host":"...","path":"/"}',
+		vlessOptionsPlaceholder: "{'{'}\"security\":\"tls\",\"type\":\"ws\",\"sni\":\"...\",\"host\":\"...\",\"path\":\"/\"{'}'}",
 		vlessOptionsHint: 'TLS/WS only; subscription imports fill these options automatically.',
 		vlessOptionsInvalid: 'VLESS transport options must be a JSON object with string values.',
       // Other messages

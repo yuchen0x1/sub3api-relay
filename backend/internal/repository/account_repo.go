@@ -2720,7 +2720,7 @@ func lockAndMatchProbeProxyIdentity(ctx context.Context, client *dbent.Client, a
 		return true, nil
 	}
 	rows, err := client.QueryContext(ctx, `
-		SELECT protocol, host, port, COALESCE(username, ''), COALESCE(password, ''), status
+		SELECT protocol, host, port, COALESCE(username, ''), COALESCE(password, ''), COALESCE(options, '{}'), status
 		FROM proxies
 		WHERE id = $1 AND deleted_at IS NULL
 		FOR SHARE
@@ -2739,7 +2739,7 @@ func lockAndMatchProbeProxyIdentity(ctx context.Context, client *dbent.Client, a
 		return false, nil
 	}
 	var current proxyProbeIdentity
-	if err := rows.Scan(&current.protocol, &current.host, &current.port, &current.username, &current.password, &current.status); err != nil {
+	if err := rows.Scan(&current.protocol, &current.host, &current.port, &current.username, &current.password, &current.options, &current.status); err != nil {
 		return false, err
 	}
 	return current == proxyProbeIdentityFromService(account.Proxy), rows.Err()

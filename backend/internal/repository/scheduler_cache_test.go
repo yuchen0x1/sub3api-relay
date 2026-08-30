@@ -90,9 +90,11 @@ func TestSchedulerMetadataAccountProjectsUpstreamBillingProbe(t *testing.T) {
 	require.NotContains(t, filteredData, "effective_rate_multiplier")
 	require.NotContains(t, filteredData, "remote_diagnostic")
 	require.NotContains(t, metadata.Extra, "unused_large_field")
-	require.Contains(t, string(fullPayload), lastError)
+	// Redis only ever receives the projected metadata payload; there is no
+	// separate full-fidelity payload anymore.
+	require.Equal(t, string(metaPayload), string(fullPayload))
 	require.NotContains(t, string(metaPayload), "last_error")
-	require.Less(t, len(metaPayload)*4, len(fullPayload))
+	require.NotContains(t, string(metaPayload), lastError)
 }
 
 func TestSchedulerMetadataAccountDropsInvalidUpstreamBillingProbe(t *testing.T) {
