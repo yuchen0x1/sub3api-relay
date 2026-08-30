@@ -60,7 +60,7 @@
       <!-- Step Content -->
       <div class="rounded-2xl bg-white p-8 shadow-xl dark:bg-dark-800">
         <!-- Step 1: Database -->
-        <div v-if="currentStep === 0" class="space-y-6">
+        <div v-if="!ownerSetupMode && currentStep === 0" class="space-y-6">
           <div class="mb-6 text-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               {{ t('setup.database.title') }}
@@ -185,7 +185,7 @@
         </div>
 
         <!-- Step 2: Redis -->
-        <div v-if="currentStep === 1" class="space-y-6">
+        <div v-if="!ownerSetupMode && currentStep === 1" class="space-y-6">
           <div class="mb-6 text-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               {{ t('setup.redis.title') }}
@@ -301,7 +301,7 @@
         </div>
 
         <!-- Step 3: Admin -->
-        <div v-if="currentStep === 2" class="space-y-6">
+        <div v-if="(ownerSetupMode && currentStep === 0) || (!ownerSetupMode && currentStep === 2)" class="space-y-6">
           <div class="mb-6 text-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               {{ t('setup.admin.title') }}
@@ -311,13 +311,24 @@
             </p>
           </div>
 
+          <div
+            v-if="ownerSetupMode"
+            class="rounded-xl border border-primary-200 bg-primary-50 p-4 text-sm text-primary-800 dark:border-primary-800/50 dark:bg-primary-900/20 dark:text-primary-200"
+          >
+            {{ t('setup.admin.ownerSetupHint') }}
+            <p v-if="tokenRequired" class="mt-2 text-xs opacity-80">
+              {{ t('setup.admin.remoteTokenHint') }}
+            </p>
+          </div>
+
           <div>
-            <label class="input-label">{{ t('setup.admin.email') }}</label>
+            <label class="input-label">{{ t('setup.admin.login') }}</label>
             <input
               v-model="formData.admin.email"
               type="text"
               class="input"
               placeholder="admin"
+              autocomplete="username"
             />
           </div>
 
@@ -355,7 +366,7 @@
         </div>
 
         <!-- Step 4: Complete -->
-        <div v-if="currentStep === 3" class="space-y-6">
+        <div v-if="(ownerSetupMode && currentStep === 1) || (!ownerSetupMode && currentStep === 3)" class="space-y-6">
           <div class="mb-6 text-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               {{ t('setup.ready.title') }}
@@ -366,7 +377,7 @@
           </div>
 
           <div class="space-y-4">
-            <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
+            <div v-if="!ownerSetupMode" class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
               <h3 class="mb-2 text-sm font-medium text-gray-500 dark:text-dark-400">
                 {{ t('setup.ready.database') }}
               </h3>
@@ -377,7 +388,7 @@
               </p>
             </div>
 
-            <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
+            <div v-if="!ownerSetupMode" class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
               <h3 class="mb-2 text-sm font-medium text-gray-500 dark:text-dark-400">
                 {{ t('setup.ready.redis') }}
               </h3>
@@ -388,7 +399,7 @@
 
             <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
               <h3 class="mb-2 text-sm font-medium text-gray-500 dark:text-dark-400">
-                {{ t('setup.ready.adminEmail') }}
+                {{ t('setup.admin.login') }}
               </h3>
               <p class="text-gray-900 dark:text-white">{{ formData.admin.email }}</p>
             </div>
@@ -461,7 +472,7 @@
           <div v-else></div>
 
           <button
-            v-if="currentStep < 3"
+            v-if="currentStep < steps.length - 1"
             @click="nextStep"
             :disabled="!canProceed"
             class="btn btn-primary"
@@ -505,9 +516,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { testDatabase, testRedis, install, type InstallRequest } from '@/api/setup'
+import {
+  completeAdminSetup,
+  getSetupStatus,
+  testDatabase,
+  testRedis,
+  install,
+  type InstallRequest
+} from '@/api/setup'
 import { buildGatewayUrl } from '@/api/client'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
@@ -515,10 +533,16 @@ import Icon from '@/components/icons/Icon.vue'
 
 const { t } = useI18n()
 
+const ownerSetupMode = ref(false)
+const tokenRequired = ref(false)
+
 const steps = computed(() => [
-  { id: 'database', title: t('setup.database.title') },
-  { id: 'redis', title: t('setup.redis.title') },
-  { id: 'admin', title: t('setup.admin.title') },
+  ...(ownerSetupMode.value
+    ? [{ id: 'admin', title: t('setup.admin.title') }]
+    : [
+        { id: 'database', title: t('setup.database.title') },
+        { id: 'redis', title: t('setup.redis.title') },
+      ]),
   { id: 'complete', title: t('setup.ready.title') }
 ])
 
@@ -534,6 +558,16 @@ const redisConnected = ref(false)
 const installing = ref(false)
 const confirmPassword = ref('')
 const serviceReady = ref(false)
+
+onMounted(async () => {
+  try {
+    const status = await getSetupStatus()
+    ownerSetupMode.value = status.owner_setup === true || status.mode === 'owner'
+    tokenRequired.value = status.token_required === true
+  } catch (error) {
+    console.warn('Failed to load setup status:', error)
+  }
+})
 
 // Default server port
 const getCurrentPort = (): number => {
@@ -575,7 +609,22 @@ const formData = reactive<InstallRequest>({
   }
 })
 
+const adminLoginPattern = /^(?:[A-Za-z0-9][A-Za-z0-9._-]{0,63}|[^\s@]+@[^\s@]+\.[^\s@]+)$/
+
 const canProceed = computed(() => {
+  if (ownerSetupMode.value) {
+    if (currentStep.value === 0) {
+      return (
+        adminLoginPattern.test(formData.admin.email.trim()) &&
+        formData.admin.password.length >= 8 &&
+        formData.admin.password.length <= 128 &&
+        formData.admin.password !== 'admin' &&
+        formData.admin.password === confirmPassword.value
+      )
+    }
+    return true
+  }
+
   switch (currentStep.value) {
     case 0:
       return dbConnected.value
@@ -586,6 +635,7 @@ const canProceed = computed(() => {
         formData.admin.email &&
         formData.admin.password.length >= 8 &&
         formData.admin.password.length <= 128 &&
+        formData.admin.password !== 'admin' &&
         formData.admin.password === confirmPassword.value
       )
     default:
@@ -639,7 +689,11 @@ async function performInstall() {
   errorMessage.value = ''
 
   try {
-    await install(formData)
+    if (ownerSetupMode.value) {
+      await completeAdminSetup(formData.admin)
+    } else {
+      await install(formData)
+    }
     installSuccess.value = true
     // Start polling for service restart
     waitForServiceRestart()

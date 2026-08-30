@@ -198,11 +198,11 @@ docker compose logs -f sub3api
 
 **脚本功能：**
 - 下载 `docker-compose.local.yml`（本地保存为 `docker-compose.yml`）和 `.env.example`
-- 自动生成安全凭证（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）
-- 初始管理员默认使用 `admin / admin`，可通过 `ADMIN_PASSWORD` 覆盖
+- 自动生成安全凭证（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD、SETUP_REMOTE_TOKEN）
+- 不写入默认管理员密码；首次启动进入 `/setup`，由站长自行设置账号和密码
 - 创建 `.env` 文件并填充自动生成的密钥
 - 创建数据目录（使用本地目录，便于备份和迁移）
-- 将配置的管理员凭证保存在仅所有者可读的 `.env` 文件中
+- 将基础设施密钥和一次性初始化令牌保存在仅所有者可读的 `.env` 文件中
 
 #### 手动部署
 
@@ -233,9 +233,7 @@ JWT_SECRET=your_jwt_secret_here
 # TOTP 加密密钥（推荐 - 重启后保留双因素认证）
 TOTP_ENCRYPTION_KEY=your_totp_key_here
 
-# 初始管理员账号
-ADMIN_EMAIL=admin
-ADMIN_PASSWORD=admin
+# 首次启动后在 /setup 页面设置站长账号和密码
 
 # 可选：自定义端口
 SERVER_PORT=8080
@@ -296,7 +294,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 访问反向代理发布的 HTTPS 地址。Compose 默认只绑定 `127.0.0.1:8080`，在配置可信 TLS 反向代理或 SSH 隧道前不会直接暴露到公网。
 
-默认登录账号为 `admin`，默认密码为 `admin`。登录后请立即修改密码；也可以通过 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 自定义初始管理员凭证。
+首次启动完成基础设施准备后，访问 `/setup` 设置站长账号和密码；随后访问 `/login` 登录。新部署不会生成 `admin/admin` 默认凭证。
 
 #### 升级
 
@@ -529,13 +527,11 @@ Invalid base URL: invalid url scheme: http
 
 #### ⚠️ 重要：创建管理员账号
 
-初始管理员账号会在首次初始化时创建。Docker 使用 `AUTO_SETUP=true` 且数据库为空时，如果没有设置 `ADMIN_PASSWORD`，默认创建 `admin / admin`；源码部署也使用相同默认值。已有管理员不会被覆盖。`ADMIN_PASSWORD` 仅用于首次创建管理员。
-
-由于上面第 5 步预先创建了 `config.yaml`，**setup 向导在首次启动时会被跳过**：服务检测到 config 已存在，会直接进入正常模式，此时 `users` 表为空，首次登录会返回 `invalid email or password`。
+初始管理员账号会在首次初始化时创建。Docker 使用 `AUTO_SETUP=true` 和 `AUTO_SETUP_OWNER_SETUP=true` 时，服务先准备数据库、Redis、迁移和配置，然后停在 `/setup` 等待站长设置账号和密码；不会生成 `admin/admin`。已有管理员不会被覆盖。
 
 **创建管理员的两种方式：**
 
-1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./sub3api`，访问 `http://localhost:8080`，向导会完成数据库和 Redis 配置，并要求使用强密码创建初始管理员，然后自动写出 `config.yaml`。
+1. **Docker/自动部署：** 启动后访问 `/setup`，只填写站长账号、密码和确认密码；数据库与 Redis 凭证由服务器环境保留，不会发送到浏览器。
 
 2. **如果你已经创建了 `config.yaml`：** 首次启动前先把它临时移走以触发向导，完成后再恢复：
    ```bash

@@ -53,7 +53,7 @@ git clone https://gitee.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
 cd sub3api-relay/deploy
 cp .env.example .env
 chmod 600 .env
-# 编辑 .env，至少修改 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY、ADMIN_PASSWORD
+# 编辑 .env，至少修改 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY；首次启动后在 /setup 设置站长账号和密码
 docker compose up -d
 docker compose logs -f sub3api
 ```
@@ -110,8 +110,8 @@ ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP
 - `POSTGRES_DB`：默认 `sub3api`，PostgreSQL 数据库名
 - `SERVER_PORT`：默认 `8080`，宿主机访问端口；容器内服务仍监听 `8080`
 - `BIND_HOST`：默认 `127.0.0.1`，Docker Compose 端口绑定地址
-- `ADMIN_EMAIL`：默认 `admin`，首次初始化管理员账号
-- `ADMIN_PASSWORD`：默认 `admin`，首次初始化管理员密码，生产环境必须修改
+- `AUTO_SETUP_OWNER_SETUP`：Docker 默认开启，首次启动先准备基础设施，再由 `/setup` 设置唯一站长账号和密码
+- `SETUP_ALLOW_REMOTE` / `SETUP_REMOTE_TOKEN`：通过反向代理远程初始化时使用；令牌至少 32 位
 - `JWT_SECRET`：默认空，建议固定为 `openssl rand -hex 32`，否则重启可能导致会话失效
 - `TOTP_ENCRYPTION_KEY`：默认空，建议固定为 `openssl rand -hex 32`，否则已绑定的 TOTP 可能失效
 - `RUN_MODE`：默认 `standard`；`standard` 启用完整计费/余额逻辑，`simple` 隐藏部分 SaaS 功能并跳过余额校验
@@ -254,7 +254,7 @@ docker compose -f docker-compose.dev.yml up --build
 
 ## 上线前安全清单
 
-- [ ] 修改 `POSTGRES_PASSWORD` 和 `ADMIN_PASSWORD`，并固定 `JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY`。
+- [ ] 修改 `POSTGRES_PASSWORD`，固定 `JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY`，并在 `/setup` 设置唯一站长账号和强密码。
 - [ ] 默认 Compose 只把服务绑定到 `127.0.0.1`；如改为 `0.0.0.0`，请先配置防火墙、HTTPS 和反向代理。
 - [ ] 二进制安装的首次初始化向导只通过本机或 SSH 隧道访问，不要暴露到公网。
 - [ ] Nginx 反向代理如果依赖带下划线的请求头（例如 `session_id`），需要在 `http` 块设置 `underscores_in_headers on;`。
@@ -276,9 +276,9 @@ chmod 600 .env
 docker compose up -d
 ```
 
-**登录后修改 `.env` 的 `ADMIN_PASSWORD` 不生效**
+**修改 `.env` 中的站长密码不生效**
 
-`ADMIN_PASSWORD` 只在首次创建管理员账号时使用。已有账号需要在管理台修改密码，或使用项目提供的重置/维护流程处理。
+新部署的站长密码只在 `/setup` 提交时写入数据库；已有账号需要在管理台修改密码，或使用项目提供的重置/维护流程处理。
 
 **前端开发服务器连不上后端**
 

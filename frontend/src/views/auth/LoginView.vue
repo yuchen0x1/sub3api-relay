@@ -318,6 +318,10 @@ const formData = reactive({
   password: ''
 })
 
+// The users table historically calls this column "email", but the private
+// site-owner mode also supports a simple username (for example, owner01).
+const loginIdentifierPattern = /^(?:[A-Za-z0-9][A-Za-z0-9._-]{0,63}|[^\s@]+@[^\s@]+\.[^\s@]+)$/
+
 const errors = reactive({
   email: '',
   password: '',
@@ -511,10 +515,7 @@ function validateForm(): boolean {
   if (!formData.email.trim()) {
     errors.email = t('auth.loginIdentifierRequired')
     isValid = false
-  } else if (
-    formData.email.trim() !== 'admin' &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-  ) {
+  } else if (!loginIdentifierPattern.test(formData.email.trim())) {
     errors.email = t('auth.invalidLoginIdentifier')
     isValid = false
   }

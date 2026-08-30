@@ -6,8 +6,8 @@ This directory contains the official Sub3API deployment files for Linux servers 
 
 | Method | Best For | Setup Wizard |
 |--------|----------|--------------|
-| **Docker Compose** | Quick setup, all-in-one | Not needed (auto-setup) |
-| **Apple container** | Native local stack on macOS 26 | Not needed (auto-setup) |
+| **Docker Compose** | Quick setup, all-in-one | Infrastructure auto-setup + owner credentials |
+| **Apple container** | Native local stack on macOS 26 | Infrastructure auto-setup + owner credentials |
 | **Binary Install** | Production servers, systemd | Web-based wizard |
 
 ## Files
@@ -69,11 +69,11 @@ chmod +x docker-deploy.sh
 **What the script does:**
 - Resolves a fixed GitHub Release and verifies the deployment bundle with SHA-256
 - Downloads the release's `docker-compose.yml` and `sub3api.env.example`
-- Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-- Uses `admin` as the default password for the first site-owner account
+- Automatically generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD, SETUP_REMOTE_TOKEN)
+- Does not create a default administrator; the first-run `/setup` page asks the site owner to choose credentials
 - Creates `.env` with generated secrets and a release-pinned `SUB3API_IMAGE`
 - Creates necessary data directories (data/, postgres_data/, redis_data/)
-- Stores the generated secrets and the site-owner password in the owner-readable `.env` file
+- Stores infrastructure secrets and the one-time setup token in the owner-readable `.env` file
 
 **After running the script:**
 ```bash
@@ -83,9 +83,9 @@ docker compose up -d
 # View logs
 docker compose -f docker-compose.local.yml logs -f sub3api
 
-# The first startup automatically initializes the database and administrator
-# from ADMIN_EMAIL and ADMIN_PASSWORD in .env; no setup wizard is shown.
-# Log in at http://localhost:8080/login and change the password after first login.
+# The first startup prepares the database/Redis and keeps the owner setup page open.
+# Choose the site-owner account and password at:
+# http://localhost:8080/setup
 
 # Access Web UI
 # http://localhost:8080
@@ -135,20 +135,19 @@ docker compose logs -f sub3api
 
 ### How Auto-Setup Works
 
-When using Docker Compose with `AUTO_SETUP=true`:
+When using Docker Compose with `AUTO_SETUP=true` and `AUTO_SETUP_OWNER_SETUP=true`:
 
 1. On first run, the system automatically:
    - Connects to PostgreSQL and Redis
    - Applies database migrations (SQL files in `backend/migrations/*.sql`) and records them in `schema_migrations`
    - Generates JWT secret (if not provided)
-   - Creates the initial site-owner account with `ADMIN_EMAIL` and `ADMIN_PASSWORD`
    - Writes config.yaml
+   - Creates a pending owner-setup marker; no administrator password is generated
 
-2. No manual Setup Wizard is needed for Docker - configure `.env` and start
+2. Open `/setup` and choose the single site-owner login account and password.
 
-3. Open `/login` and log in with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` configured in `.env`.
-   If `ADMIN_PASSWORD` is omitted, the documented fallback is `admin`; change it immediately after login.
-   If the database already contains users but no administrator, the first startup adds the configured administrator without changing existing users.
+3. After submission the service restarts and `/login` becomes available. Only the administrator can enter the backend; public registration remains disabled.
+   If the database already contains users but no administrator, the owner setup adds one without changing existing users.
 
 ### Database Migration Notes (PostgreSQL)
 
@@ -241,8 +240,9 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin` | Initial administrator login |
-| `ADMIN_PASSWORD` | No | `admin` | Initial administrator password; change it after first login |
+| `AUTO_SETUP_OWNER_SETUP` | No | `true` in Docker Compose | Defer administrator creation to the web owner setup page |
+| `SETUP_ALLOW_REMOTE` | No | `false` | Allow setup writes from a non-loopback request (use an SSH tunnel when possible) |
+| `SETUP_REMOTE_TOKEN` | When remote setup is enabled | *(empty)* | One-time setup token, at least 32 random characters |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -252,13 +252,13 @@ docker compose down -v
 
 See `.env.example` for all available options.
 
-> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `POSTGRES_PASSWORD`. If `ADMIN_PASSWORD` is not set, the first administrator uses `admin`; change it after first login.
+> **Note:** The `docker-deploy.sh` script automatically generates `JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, and `SETUP_REMOTE_TOKEN`. It never writes an administrator password. Choose that password once on `/setup`.
 
-> **Existing data:** `ADMIN_PASSWORD` is used only when the admin account is created during the first setup. Changing it in `.env` does not change an existing admin password; use the account password-change or reset flow instead.
+> **Existing data:** Existing administrators are never overwritten. The owner setup page is only available while the durable pending marker is present.
 
 > **Network exposure:** Published application ports bind to `127.0.0.1` by default. Put Caddy, Nginx, or another trusted TLS reverse proxy in front of Sub3API. Set `BIND_HOST=0.0.0.0` only when you intentionally need direct network access and have configured the host firewall.
 
-> **Remote setup:** Binary installs keep the unauthenticated first-run wizard on loopback; an SSH tunnel is the supported and recommended access method. Do not expose the setup wizard through a public reverse proxy. If an operator accepts the risk and enables `SETUP_ALLOW_REMOTE=true`, `SETUP_REMOTE_TOKEN` must contain at least 32 random characters and access must first be restricted by an independent control such as mTLS, VPN, or an IP allowlist. The proxy must discard any client-supplied `X-Setup-Token` before setting its own value. `SETUP_ALLOW_PRIVATE_TARGETS=true` further expands the setup wizard's network reach and should remain disabled unless strictly required.
+> **Remote setup:** Binary installs keep the first-run wizard on loopback; an SSH tunnel is recommended. If Docker is behind a reverse proxy, enable `SETUP_ALLOW_REMOTE=true`, read the one-time `SETUP_REMOTE_TOKEN` from `.env`, and append it as a `#setup_token=...` URL fragment (the frontend removes it from the address bar and never stores it). The proxy must preserve the `X-Setup-Token` header sent by the setup page and must not log or inject a token for other clients. `SETUP_ALLOW_PRIVATE_TARGETS=true` further expands the setup wizard's network reach and should remain disabled unless strictly required.
 
 ### Easy Migration (Local Directory Version)
 
