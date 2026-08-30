@@ -13,7 +13,7 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.191.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](RELEASE_NOTES_v0.1.195.md)
 
 </div>
 
@@ -35,7 +35,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.187 更新内容](RELEASE_NOTES_v0.1.191.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.1.195 更新内容](RELEASE_NOTES_v0.1.195.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
