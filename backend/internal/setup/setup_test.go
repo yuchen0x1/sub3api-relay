@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -13,6 +14,38 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSetupStatusReportsOwnerMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataDir := t.TempDir()
+	t.Setenv("DATA_DIR", dataDir)
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("AUTO_SETUP_OWNER_SETUP", "true")
+	if err := markAdminSetupPending(); err != nil {
+		t.Fatalf("markAdminSetupPending() error = %v", err)
+	}
+
+	router := gin.New()
+	RegisterRoutes(router)
+	request := httptest.NewRequest(http.MethodGet, "/setup/status", nil)
+	request.RemoteAddr = "127.0.0.1:12345"
+	request.Host = "localhost:8080"
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	var payload struct {
+		Data SetupStatus `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode status response: %v", err)
+	}
+	if !payload.Data.NeedsSetup || !payload.Data.OwnerSetup || payload.Data.Mode != "owner" || payload.Data.Step != "admin" {
+		t.Fatalf("unexpected owner setup status: %+v", payload.Data)
+	}
+}
 
 func TestSetupGuardRejectsRemoteRequestsByDefault(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -91,6 +124,55 @@ func TestSetupGuardRequiresRemoteToken(t *testing.T) {
 			require.Equal(t, tc.want, recorder.Code)
 		})
 	}
+}
+
+func TestSetupGuardOnlyAllowsOwnerCompletionWhilePending(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	if err := markAdminSetupPending(); err != nil {
+		t.Fatalf("markAdminSetupPending() error = %v", err)
+	}
+
+	router := gin.New()
+	router.POST("/setup/install", setupGuard(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+	router.POST("/setup/admin", setupGuard(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	for _, path := range []string{"/setup/install", "/setup/admin"} {
+		t.Run(path, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, path, nil)
+			request.RemoteAddr = "127.0.0.1:12345"
+			request.Host = "localhost:8080"
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			if path == "/setup/install" {
+				require.Equal(t, http.StatusConflict, recorder.Code)
+				return
+			}
+			require.Equal(t, http.StatusNoContent, recorder.Code)
+		})
+	}
+}
+
+func TestCompleteAdminSetupRejectsWithoutPendingMarker(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+
+	router := gin.New()
+	RegisterRoutes(router)
+	request := httptest.NewRequest(http.MethodPost, "/setup/admin", strings.NewReader(`{"email":"owner01","password":"strong-password"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.RemoteAddr = "127.0.0.1:12345"
+	request.Host = "localhost:8080"
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusConflict, recorder.Code)
 }
 
 func TestIsLocalSetupRequest(t *testing.T) {
@@ -265,6 +347,84 @@ func TestValidateInitialAdminAcceptsStrongPassword(t *testing.T) {
 	}
 }
 
+func TestValidateInitialAdminAcceptsOwnerUsername(t *testing.T) {
+	admin := AdminConfig{Email: "owner_01", Password: "strong-password"}
+	if err := validateOwnerAdmin(admin); err != nil {
+		t.Fatalf("validateOwnerAdmin() error = %v", err)
+	}
+}
+
+func TestValidateOwnerAdminRejectsDefaultPassword(t *testing.T) {
+	admin := AdminConfig{Email: "owner_01", Password: defaultAdminPassword}
+	if err := validateOwnerAdmin(admin); err == nil {
+		t.Fatal("validateOwnerAdmin() accepted the public default password")
+	}
+}
+
+func TestAutoSetupOwnerSetupEnabled(t *testing.T) {
+	t.Setenv("AUTO_SETUP_OWNER_SETUP", "true")
+	t.Setenv("SETUP_MODE", "")
+	if !AutoSetupOwnerSetupEnabled() {
+		t.Fatal("owner setup mode was not enabled")
+	}
+	t.Setenv("AUTO_SETUP_OWNER_SETUP", "")
+	t.Setenv("SETUP_MODE", "docker-admin")
+	if !AutoSetupOwnerSetupEnabled() {
+		t.Fatal("SETUP_MODE=docker-admin was not recognized")
+	}
+}
+
+func TestAutoSetupConfigFromEnvUsesPersistedInfrastructure(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("DATA_DIR", dataDir)
+	for _, key := range []string{
+		"DATABASE_HOST", "DATABASE_PORT", "DATABASE_USER", "DATABASE_PASSWORD", "DATABASE_DBNAME", "DATABASE_SSLMODE",
+		"REDIS_HOST", "REDIS_PORT", "REDIS_USERNAME", "REDIS_PASSWORD", "REDIS_DB", "REDIS_ENABLE_TLS",
+		"SERVER_HOST", "SERVER_PORT", "SERVER_MODE", "JWT_SECRET", "JWT_EXPIRE_HOUR", "TZ", "TIMEZONE",
+		"ADMIN_EMAIL", "ADMIN_PASSWORD", "SETUP_MIGRATION_TIMEOUT_SECONDS",
+	} {
+		t.Setenv(key, "")
+	}
+	// Environment values must not redirect a pending owner setup away from the
+	// infrastructure coordinates persisted in config.yaml.
+	t.Setenv("DATABASE_HOST", "env-override.example")
+	t.Setenv("JWT_SECRET", "env-jwt-which-must-not-win")
+	configYAML := "database:\n" +
+		"  host: db.internal\n" +
+		"  port: 55432\n" +
+		"  user: app\n" +
+		"  password: db-secret\n" +
+		"  dbname: gateway\n" +
+		"  sslmode: require\n" +
+		"redis:\n" +
+		"  host: redis.internal\n" +
+		"  port: 56379\n" +
+		"  username: redis-user\n" +
+		"  password: redis-secret\n" +
+		"  db: 4\n" +
+		"  enable_tls: true\n" +
+		"server:\n" +
+		"  host: 127.0.0.1\n" +
+		"  port: 18080\n" +
+		"  mode: debug\n" +
+		"jwt:\n" +
+		"  secret: persisted-jwt\n" +
+		"  expire_hour: 12\n" +
+		"timezone: UTC\n"
+	require.NoError(t, os.WriteFile(GetConfigFilePath(), []byte(configYAML), 0o600))
+
+	cfg := autoSetupConfigFromEnv()
+	require.Equal(t, "db.internal", cfg.Database.Host)
+	require.Equal(t, 55432, cfg.Database.Port)
+	require.Equal(t, "db-secret", cfg.Database.Password)
+	require.Equal(t, "redis.internal", cfg.Redis.Host)
+	require.Equal(t, 4, cfg.Redis.DB)
+	require.True(t, cfg.Redis.EnableTLS)
+	require.Equal(t, "persisted-jwt", cfg.JWT.Secret)
+	require.Equal(t, 12, cfg.JWT.ExpireHour)
+	require.Equal(t, "UTC", cfg.Timezone)
+}
+
 func TestNeedsSetupSkipsWhenSkipSetupIsEnabled(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -318,7 +478,10 @@ func TestNeedsSetupFallsBackToFileDetectionWhenSkipSetupIsDisabled(t *testing.T)
 			skipSetupSet: true,
 			skipSetup:    "false",
 			markerFile:   ConfigFileName,
-			want:         false,
+			// Config without the completion lock can be an interrupted
+			// installation; keep the setup route available so it can be
+			// completed safely.
+			want: true,
 		},
 		{
 			name:         "install lock file exists",
@@ -360,6 +523,71 @@ func TestNeedsSetupFallsBackToFileDetectionWhenSkipSetupIsDisabled(t *testing.T)
 			}
 		})
 	}
+}
+
+func TestAdminSetupPendingKeepsSetupOpenUntilOwnerCompletes(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("DATA_DIR", dataDir)
+	t.Setenv("SKIP_SETUP", "")
+	if err := markAdminSetupPending(); err != nil {
+		t.Fatalf("markAdminSetupPending() error = %v", err)
+	}
+	if !AdminSetupPending() || !NeedsSetup() {
+		t.Fatal("pending owner setup was not reported as required")
+	}
+	if err := clearAdminSetupPending(); err != nil {
+		t.Fatalf("clearAdminSetupPending() error = %v", err)
+	}
+	if AdminSetupPending() {
+		t.Fatal("owner setup marker was not removed")
+	}
+}
+
+func TestNeedsSetupPendingOverridesSkipSetup(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "true")
+	if err := markAdminSetupPending(); err != nil {
+		t.Fatalf("markAdminSetupPending() error = %v", err)
+	}
+	if !NeedsSetup() {
+		t.Fatal("NeedsSetup() = false, want true while owner setup is pending")
+	}
+}
+
+func TestCreateInstallLockIsIdempotentAndRejectsInvalidExistingLock(t *testing.T) {
+	t.Run("valid lock is preserved", func(t *testing.T) {
+		t.Setenv("DATA_DIR", t.TempDir())
+		if err := createInstallLock(); err != nil {
+			t.Fatalf("first createInstallLock() error = %v", err)
+		}
+		before, err := os.ReadFile(GetInstallLockPath())
+		if err != nil {
+			t.Fatalf("ReadFile() error = %v", err)
+		}
+		if !validInstallLock(before) {
+			t.Fatalf("created lock is invalid: %q", before)
+		}
+		if err := createInstallLock(); err != nil {
+			t.Fatalf("retry createInstallLock() error = %v", err)
+		}
+		after, err := os.ReadFile(GetInstallLockPath())
+		if err != nil {
+			t.Fatalf("ReadFile() after retry error = %v", err)
+		}
+		if string(after) != string(before) {
+			t.Fatalf("retry changed immutable install lock: before=%q after=%q", before, after)
+		}
+	})
+
+	t.Run("invalid lock is rejected", func(t *testing.T) {
+		t.Setenv("DATA_DIR", t.TempDir())
+		if err := os.WriteFile(GetInstallLockPath(), []byte("partial\n"), 0o400); err != nil {
+			t.Fatalf("WriteFile() error = %v", err)
+		}
+		if err := createInstallLock(); err == nil {
+			t.Fatal("createInstallLock() accepted an invalid existing lock")
+		}
+	})
 }
 
 func TestSetupMigrationTimeout(t *testing.T) {

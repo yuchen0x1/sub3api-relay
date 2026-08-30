@@ -32,6 +32,7 @@ services:
       # Auto Setup
       # =======================================================================
       - AUTO_SETUP=true
+      - AUTO_SETUP_OWNER_SETUP=true
       - SUB3API_DEPLOYMENT_TYPE=docker
 
       # =======================================================================
@@ -71,11 +72,6 @@ services:
       - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
 
       # =======================================================================
-      # Admin Account (auto-created on first run)
-      # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-
       # =======================================================================
       # JWT Configuration
       # =======================================================================
@@ -86,6 +82,8 @@ services:
       # Setup Configuration
       # =======================================================================
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
+      - SETUP_ALLOW_REMOTE=${SETUP_ALLOW_REMOTE:-false}
+      - SETUP_REMOTE_TOKEN=${SETUP_REMOTE_TOKEN:-}
 
       # =======================================================================
       # Timezone Configuration

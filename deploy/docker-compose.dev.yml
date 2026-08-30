@@ -25,6 +25,7 @@ services:
       - ./data:/app/data:Z
     environment:
       - AUTO_SETUP=true
+      - AUTO_SETUP_OWNER_SETUP=true
       - SUB3API_DEPLOYMENT_TYPE=docker
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
@@ -42,9 +43,9 @@ services:
       - REDIS_USERNAME=${REDIS_USERNAME:-}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - JWT_SECRET=${JWT_SECRET:-}
+      - SETUP_ALLOW_REMOTE=${SETUP_ALLOW_REMOTE:-false}
+      - SETUP_REMOTE_TOKEN=${SETUP_REMOTE_TOKEN:-}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
       - TZ=${TZ:-Asia/Shanghai}

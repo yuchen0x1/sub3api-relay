@@ -239,11 +239,14 @@ export default {
     },
     admin: {
       title: 'Admin Account',
-      description: 'The default login and password are both admin; change the password after login',
+      description: 'Choose the single site-owner login account and password for future access',
+      ownerSetupHint: 'The server environment is ready. Only the site-owner account and password are needed here; database and Redis credentials stay on the server.',
+      remoteTokenHint: 'Remote initialization requires the one-time token from the deployment .env file.',
+      login: 'Site-owner login',
       email: 'Administrator Login',
       password: 'Password',
       confirmPassword: 'Confirm Password',
-      passwordPlaceholder: 'Default: admin',
+      passwordPlaceholder: 'At least 8 characters',
       confirmPasswordPlaceholder: 'Confirm password',
       passwordMismatch: 'Passwords do not match'
     },

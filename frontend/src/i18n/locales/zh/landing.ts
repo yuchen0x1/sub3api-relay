@@ -239,11 +239,14 @@ export default {
     },
     admin: {
       title: '站长账户',
-      description: '默认账号和密码均为 admin，登录后请立即修改密码',
+      description: '请设置唯一站长的登录账号和密码，后续仅使用该账号进入后台',
+      ownerSetupHint: '服务器环境已经准备完成。这里仅需设置站长账号和密码，不会要求填写数据库或 Redis 密码。',
+      remoteTokenHint: '远程初始化需要使用部署目录 .env 中保存的一次性口令。',
+      login: '站长登录账号',
       email: '站长账号',
       password: '密码',
       confirmPassword: '确认密码',
-      passwordPlaceholder: '默认 admin',
+      passwordPlaceholder: '至少 8 个字符',
       confirmPasswordPlaceholder: '确认密码',
       passwordMismatch: '密码不匹配'
     },

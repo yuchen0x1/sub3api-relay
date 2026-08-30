@@ -231,7 +231,7 @@ export default {
     emailRequired: 'Email is required',
     invalidEmail: 'Please enter a valid email address',
     loginIdentifierRequired: 'Account or email is required',
-    invalidLoginIdentifier: 'Enter admin or a valid email address',
+    invalidLoginIdentifier: 'Enter a valid username (letters, numbers, ._-), or email address',
     passwordRequired: 'Password is required',
     passwordMinLength: 'Password must be at least 6 characters',
     loginFailed: 'Login failed. Please check your credentials and try again.',

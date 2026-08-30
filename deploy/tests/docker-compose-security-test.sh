@@ -32,16 +32,16 @@ check_application_security_opt() {
   fi
 }
 
-check_default_admin_credentials() {
+check_owner_setup_mode() {
   file=$1
-  grep -Fq '      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin}' "$file" || {
-    printf '%s must default ADMIN_EMAIL to admin\n' "$file" >&2
+  grep -Fq '      - AUTO_SETUP_OWNER_SETUP=true' "$file" || {
+    printf '%s must enable the two-stage site-owner setup\n' "$file" >&2
     exit 1
   }
-  grep -Fq '      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}' "$file" || {
-    printf '%s must default ADMIN_PASSWORD to admin\n' "$file" >&2
+  if grep -Eq '^[[:space:]]*- ADMIN_(EMAIL|PASSWORD)=' "$file"; then
+    printf '%s must not inject a default administrator credential\n' "$file" >&2
     exit 1
-  }
+  fi
 }
 
 check_loopback_binding() {
@@ -59,12 +59,15 @@ for compose_file in \
   deploy/docker-compose.dev.yml
 do
   check_application_security_opt "$compose_file"
-  check_default_admin_credentials "$compose_file"
+  check_owner_setup_mode "$compose_file"
   check_loopback_binding "$compose_file"
 done
 
-grep -Fxq 'ADMIN_EMAIL=admin' deploy/.env.example
-grep -Fxq 'ADMIN_PASSWORD=admin' deploy/.env.example
+grep -Fxq 'AUTO_SETUP_OWNER_SETUP=true' deploy/.env.example
+if grep -Eq '^ADMIN_(EMAIL|PASSWORD)=' deploy/.env.example; then
+  echo 'deploy/.env.example must not ship default administrator credentials' >&2
+  exit 1
+fi
 grep -Fxq 'BIND_HOST=127.0.0.1' deploy/.env.example
 
 printf 'docker compose security test passed\n'

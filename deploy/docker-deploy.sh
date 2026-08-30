@@ -5,8 +5,9 @@
 # This script prepares deployment files for Sub3API:
 #   - Downloads a version-pinned deployment bundle from GitHub Releases
 #   - Verifies the deployment bundle with SHA-256 before writing files
-#   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
-#   - Uses admin/admin as the initial administrator credential unless overridden
+#   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD,
+#     SETUP_REMOTE_TOKEN)
+#   - Defers administrator creation to the first-run owner setup page
 #   - Creates necessary data directories
 #
 # After running this script, you can start services with:
@@ -47,60 +48,6 @@ print_error() {
 # Generate random secret
 generate_secret() {
     openssl rand -hex 32
-}
-
-read_admin_password() {
-    # Keep an explicitly supplied password, but do not silently turn an
-    # interactive install into admin/admin.  Prompt on a TTY so every fresh
-    # deployment has an intentional administrator credential.
-    local password="${ADMIN_PASSWORD-}"
-    local confirmation
-    local input_device="/dev/stdin"
-
-    if [ -z "$password" ] && [ "${DOCKER_DEPLOY_PROMPT:-0}" = "1" ]; then
-        if [ -t 0 ]; then
-            input_device="/dev/stdin"
-        elif [ -r /dev/tty ] && (: < /dev/tty) 2>/dev/null; then
-            input_device="/dev/tty"
-        else
-            # Preserve the documented non-interactive default for automation.
-            password="admin"
-        fi
-        if [ -t 0 ] || [ "$input_device" = "/dev/tty" ]; then
-            while true; do
-                read -r -s -p "Initial administrator password (default: admin): " password < "$input_device"
-                echo >&2
-                password="${password:-admin}"
-                read -r -s -p "Confirm administrator password: " confirmation < "$input_device"
-                echo >&2
-                if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
-                    print_error "Administrator password must be admin or 8-128 characters." >&2
-                    password=""
-                    continue
-                fi
-                if [ "$password" != "$confirmation" ]; then
-                    print_error "Administrator passwords do not match." >&2
-                    password=""
-                    continue
-                fi
-                break
-            done
-        fi
-    fi
-
-    password="${password:-admin}"
-
-    if [ "$password" != "admin" ] && { [ "${#password}" -lt 8 ] || [ "${#password}" -gt 128 ]; }; then
-        print_error "ADMIN_PASSWORD must be admin or 8-128 characters." >&2
-        exit 1
-    fi
-    case "$password" in
-        *$'\r'*|*$'\n'*)
-            print_error "ADMIN_PASSWORD must not contain line breaks." >&2
-            exit 1
-            ;;
-    esac
-    printf '%s' "$password"
 }
 
 dotenv_quote() {
@@ -238,11 +185,7 @@ main() {
     JWT_SECRET=$(generate_secret)
     TOTP_ENCRYPTION_KEY=$(generate_secret)
     POSTGRES_PASSWORD=$(generate_secret)
-    # Enable the interactive prompt only for the real deployment command. This
-    # keeps read_admin_password deterministic for automation/tests that source
-    # the helper directly.
-    DOCKER_DEPLOY_PROMPT=1
-    ADMIN_PASSWORD=$(read_admin_password)
+    SETUP_REMOTE_TOKEN=$(generate_secret)
     # Create .env from .env.example
     cp .env.example .env
 
@@ -250,7 +193,9 @@ main() {
     set_env_value JWT_SECRET "$JWT_SECRET"
     set_env_value TOTP_ENCRYPTION_KEY "$TOTP_ENCRYPTION_KEY"
     set_env_value POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
-    set_env_value ADMIN_PASSWORD "$ADMIN_PASSWORD"
+    set_env_value AUTO_SETUP_OWNER_SETUP "true"
+    set_env_value SETUP_ALLOW_REMOTE "true"
+    set_env_value SETUP_REMOTE_TOKEN "$SETUP_REMOTE_TOKEN"
     set_env_value SUB3API_IMAGE "ghcr.io/${GITHUB_REPO}:${release_tag#v}"
 
     # Create data directories
@@ -267,12 +212,12 @@ main() {
     echo "  Preparation Complete!"
     echo "=========================================="
     echo ""
-    echo "Generated credentials were written to the owner-readable .env file."
-    echo "  ADMIN_EMAIL:           ${ADMIN_EMAIL:-admin}"
-    echo "  ADMIN_PASSWORD:        saved in .env (change after first login)"
+    echo "Infrastructure secrets and a one-time setup token were written to the owner-readable .env file."
+    echo "  Site-owner account:     choose it on the /setup page"
+    echo "  Site-owner password:    choose it on the /setup page"
     echo ""
-    print_warning "These credentials have been saved to .env file."
-    print_warning "Please keep them secure and do not share publicly!"
+    print_warning "Infrastructure secrets and the one-time setup token are saved in .env."
+    print_warning "Keep .env secure and do not share it publicly!"
     echo ""
     echo "Directory structure:"
     echo "  docker-compose.yml        - Docker Compose configuration"
@@ -293,9 +238,12 @@ main() {
     echo "  4. Access Web UI:"
     echo "     http://localhost:8080"
     echo ""
-    print_warning "AUTO_SETUP completes initialization on first start; no setup wizard is shown."
-    print_warning "Log in at http://localhost:8080/login with the account above."
-    print_warning "The administrator password is stored only in the owner-readable .env file."
+    print_warning "First start prepares PostgreSQL/Redis and then opens the owner setup page."
+    print_warning "Open http://localhost:8080/setup (or your reverse-proxy /setup URL) and choose the site-owner credentials."
+    print_warning "Remote /setup writes require the one-time token stored in .env."
+    echo "  Read it only when needed: grep '^SETUP_REMOTE_TOKEN=' .env"
+    echo "  Then open: https://YOUR_DOMAIN/setup#setup_token=<token>"
+    print_warning "Prefer an SSH tunnel when possible, and do not paste the setup link into tickets or chat."
     echo ""
 }
 

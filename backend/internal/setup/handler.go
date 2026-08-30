@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -24,6 +25,8 @@ import (
 // installMutex prevents concurrent installation attempts (TOCTOU protection)
 var installMutex sync.Mutex
 
+const setupTokenCookieName = "sub3api_setup_token"
+
 // RegisterRoutes registers setup wizard routes
 func RegisterRoutes(r *gin.Engine) {
 	setup := r.Group("/setup")
@@ -38,21 +41,35 @@ func RegisterRoutes(r *gin.Engine) {
 			protected.POST("/test-db", testDatabase)
 			protected.POST("/test-redis", testRedis)
 			protected.POST("/install", install)
+			protected.POST("/admin", completeAdminSetup)
 		}
 	}
 }
 
 // SetupStatus represents the current setup state
 type SetupStatus struct {
-	NeedsSetup bool   `json:"needs_setup"`
-	Step       string `json:"step"`
+	NeedsSetup    bool   `json:"needs_setup"`
+	Step          string `json:"step"`
+	OwnerSetup    bool   `json:"owner_setup"`
+	TokenRequired bool   `json:"token_required"`
+	Mode          string `json:"mode"`
 }
 
 // getStatus returns the current setup status
 func getStatus(c *gin.Context) {
+	ownerSetup := AdminSetupPending()
+	mode := "wizard"
+	step := "welcome"
+	if ownerSetup {
+		mode = "owner"
+		step = "admin"
+	}
 	response.Success(c, SetupStatus{
-		NeedsSetup: NeedsSetup(),
-		Step:       "welcome",
+		NeedsSetup:    NeedsSetup(),
+		Step:          step,
+		OwnerSetup:    ownerSetup,
+		TokenRequired: !isLocalSetupRequest(c.Request) && remoteSetupEnabled(),
+		Mode:          mode,
 	})
 }
 
@@ -69,8 +86,19 @@ func setupGuard() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if !isLocalSetupRequest(c.Request) && !validRemoteSetupToken(c.GetHeader("X-Setup-Token")) {
+		providedToken := strings.TrimSpace(c.GetHeader("X-Setup-Token"))
+		if providedToken == "" {
+			if cookie, err := c.Request.Cookie(setupTokenCookieName); err == nil {
+				providedToken = strings.TrimSpace(cookie.Value)
+			}
+		}
+		if !isLocalSetupRequest(c.Request) && !validRemoteSetupToken(providedToken) {
 			response.Error(c, http.StatusForbidden, "Remote setup requires a valid setup token")
+			c.Abort()
+			return
+		}
+		if AdminSetupPending() && c.Request.URL.Path != "/setup/admin" {
+			response.Error(c, http.StatusConflict, "Infrastructure is ready; complete site owner setup first")
 			c.Abort()
 			return
 		}
@@ -219,6 +247,24 @@ func validateEmail(email string) bool {
 	}
 	_, err := mail.ParseAddress(email)
 	return err == nil && len(email) <= 254
+}
+
+// validateAdminIdentifier accepts the historical admin/email login values as
+// well as a private site-owner username. The value is stored in the existing
+// users.email column for compatibility, but it is never required to be a
+// deliverable email address for the single-owner deployment mode.
+func validateAdminIdentifier(identifier string) bool {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" || len(identifier) > 255 || strings.ContainsAny(identifier, "\r\n\t ") {
+		return false
+	}
+	if identifier == defaultAdminLogin {
+		return true
+	}
+	if _, err := mail.ParseAddress(identifier); err == nil {
+		return true
+	}
+	return regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`).MatchString(identifier)
 }
 
 // validatePassword checks password strength
@@ -401,7 +447,6 @@ func install(c *gin.Context) {
 	req.Database.DBName = strings.TrimSpace(req.Database.DBName)
 	req.Redis.Host = strings.TrimSpace(req.Redis.Host)
 	req.Redis.Username = strings.TrimSpace(req.Redis.Username)
-	applyAdminDefaults(&req.Admin)
 
 	// ========== COMPREHENSIVE INPUT VALIDATION ==========
 	// Database validation
@@ -446,7 +491,7 @@ func install(c *gin.Context) {
 	}
 
 	// Admin validation
-	if err := validateInitialAdmin(req.Admin); err != nil {
+	if err := validateOwnerAdmin(req.Admin); err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -506,6 +551,67 @@ func install(c *gin.Context) {
 
 	response.Success(c, gin.H{
 		"message": "Installation completed successfully. Service will restart automatically.",
+		"restart": true,
+	})
+}
+
+// AdminSetupRequest is intentionally limited to the site-owner credentials.
+// Database, Redis and JWT values remain server-side environment/configuration
+// data and are never accepted from the browser in automatic owner-setup mode.
+type AdminSetupRequest struct {
+	Email    string       `json:"email"`
+	Password string       `json:"password"`
+	Admin    *AdminConfig `json:"admin,omitempty"`
+}
+
+func completeAdminSetup(c *gin.Context) {
+	installMutex.Lock()
+	defer installMutex.Unlock()
+
+	if !AdminSetupPending() {
+		response.Error(c, http.StatusConflict, "Site owner setup is not pending")
+		return
+	}
+
+	var req AdminSetupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request: "+err.Error())
+		return
+	}
+	admin := AdminConfig{Email: req.Email, Password: req.Password}
+	if req.Admin != nil {
+		if admin.Email == "" {
+			admin.Email = req.Admin.Email
+		}
+		if admin.Password == "" {
+			admin.Password = req.Admin.Password
+		}
+	}
+	admin.Email = strings.TrimSpace(admin.Email)
+	if err := validateOwnerAdmin(admin); err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := CompleteAdminSetup(admin); err != nil {
+		log.Printf("owner setup failed")
+		if errors.Is(err, ErrAdminLoginAlreadyExists) {
+			response.Error(c, http.StatusConflict, "That site-owner login is already in use; choose another login")
+			return
+		}
+		response.Error(c, http.StatusInternalServerError, "Owner setup failed; check the server logs for details")
+		return
+	}
+
+	// The setup server is a short-lived bootstrap process. On Linux the
+	// supervisor/container restarts it into normal application mode.
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		sysutil.RestartServiceAsync()
+	}()
+
+	response.Success(c, gin.H{
+		"message": "Site owner setup completed successfully. Service will restart automatically.",
 		"restart": true,
 	})
 }

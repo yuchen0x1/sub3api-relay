@@ -7,8 +7,8 @@
 #   3. Check logs: docker-compose logs -f sub3api
 #   4. Access: http://localhost:8080
 #
-# All configuration is done via environment variables.
-# No Setup Wizard needed - the system auto-initializes on first run.
+# Infrastructure is prepared automatically on first run. The web setup page
+# then asks the site owner to choose the single administrator account.
 # =============================================================================
 
 services:
@@ -42,6 +42,7 @@ services:
       # Auto Setup (REQUIRED for Docker deployment)
       # =======================================================================
       - AUTO_SETUP=true
+      - AUTO_SETUP_OWNER_SETUP=true
       - SUB3API_DEPLOYMENT_TYPE=docker
 
       # =======================================================================
@@ -82,11 +83,6 @@ services:
       - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
 
       # =======================================================================
-      # Admin Account (auto-created on first run)
-      # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-
       # =======================================================================
       # JWT Configuration
       # =======================================================================
@@ -101,6 +97,10 @@ services:
       # Setup Configuration
       # =======================================================================
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
+      # Remote setup is opt-in. When enabled, every write requires the
+      # one-time SETUP_REMOTE_TOKEN (use an SSH tunnel when possible).
+      - SETUP_ALLOW_REMOTE=${SETUP_ALLOW_REMOTE:-false}
+      - SETUP_REMOTE_TOKEN=${SETUP_REMOTE_TOKEN:-}
 
       # =======================================================================
       # TOTP (2FA) Configuration

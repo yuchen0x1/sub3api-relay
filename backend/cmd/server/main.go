@@ -104,13 +104,20 @@ func main() {
 	// Check if setup is needed
 	if setup.NeedsSetup() {
 		// Check if auto-setup is enabled (for Docker deployment)
-		if setup.AutoSetupEnabled() {
+		// A pending owner setup is already fully prepared; do not rerun
+		// migrations or regenerate secrets on every container restart.
+		if setup.AutoSetupEnabled() && !setup.AdminSetupPending() {
 			log.Println("Auto setup mode enabled...")
 			if err := setup.AutoSetupFromEnv(); err != nil {
 				log.Fatalf("Auto setup failed: %v", err)
 			}
-			// Continue to main server after auto-setup
-		} else {
+		}
+		if setup.AdminSetupPending() {
+			log.Println("Infrastructure setup complete; waiting for site owner credentials...")
+			runSetupServer()
+			return
+		}
+		if !setup.AutoSetupEnabled() {
 			log.Println("First run detected, starting setup wizard...")
 			runSetupServer()
 			return
@@ -131,6 +138,12 @@ func runSetupServer() {
 	// embedded wizard. Without this middleware the binary installer advertises
 	// a web wizard but serves 404 for its HTML entry point.
 	r.Use(web.ServeEmbeddedFrontend())
+	// Keep the container healthy while the owner setup page is waiting. This
+	// route is intentionally registered after the frontend middleware, which
+	// bypasses /health and lets the handler return a real 200 response.
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "setup": true})
+	})
 
 	// Register setup routes
 	setup.RegisterRoutes(r)

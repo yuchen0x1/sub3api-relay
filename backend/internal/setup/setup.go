@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -29,12 +30,19 @@ import (
 const (
 	ConfigFileName             = "config.yaml"
 	InstallLockFile            = ".installed"
+	AdminSetupPendingFile      = ".admin-setup-pending"
 	defaultUserConcurrency     = 0
 	simpleModeAdminConcurrency = 0
 	defaultMigrationTimeout    = 60 * time.Second
 	defaultAdminLogin          = "admin"
 	defaultAdminPassword       = "admin"
 )
+
+// usableAdminWhereClause is shared by every bootstrap path. An administrator
+// that is disabled, soft-deleted, or missing a password cannot complete the
+// setup/login contract and must not suppress creation of the first usable
+// site-owner account.
+const usableAdminWhereClause = "role = $1 AND status = $2 AND deleted_at IS NULL AND password_hash <> ''"
 
 func setupDefaultAdminConcurrency() int {
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("RUN_MODE")), config.RunModeSimple) {
@@ -75,6 +83,70 @@ func GetConfigFilePath() string {
 // GetInstallLockPath returns the full path to .installed lock file
 func GetInstallLockPath() string {
 	return GetDataDir() + "/" + InstallLockFile
+}
+
+// GetAdminSetupPendingPath returns the marker used by automatic deployments
+// that have initialized their infrastructure but still need the site owner to
+// choose the first administrator credentials in the web setup page.
+func GetAdminSetupPendingPath() string {
+	return GetDataDir() + "/" + AdminSetupPendingFile
+}
+
+// AdminSetupPending reports whether automatic setup is waiting for the site
+// owner to create the first administrator account.
+func AdminSetupPending() bool {
+	_, err := os.Stat(GetAdminSetupPendingPath())
+	return err == nil
+}
+
+// AutoSetupOwnerSetupEnabled switches automatic deployments to the two-stage
+// bootstrap flow.  Infrastructure (database, Redis, migrations and config)
+// is prepared automatically, but the first administrator is created only
+// after the site owner submits the web setup form.
+func AutoSetupOwnerSetupEnabled() bool {
+	for _, key := range []string{"AUTO_SETUP_OWNER_SETUP", "SETUP_MODE"} {
+		value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+		switch value {
+		case "true", "1", "yes", "owner", "owner_setup", "docker-admin", "pending_admin":
+			return true
+		}
+	}
+	return false
+}
+
+func markAdminSetupPending() error {
+	content := fmt.Sprintf("created_at=%s\n", time.Now().UTC().Format(time.RFC3339))
+	file, err := os.OpenFile(GetAdminSetupPendingPath(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		if os.IsExist(err) {
+			// Re-running automatic setup is expected after a restart. Preserve the
+			// original marker timestamp and treat that case as success.
+			return nil
+		}
+		return err
+	}
+	complete := false
+	defer func() {
+		_ = file.Close()
+		if !complete {
+			_ = os.Remove(GetAdminSetupPendingPath())
+		}
+	}()
+	if _, err := file.WriteString(content); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	complete = true
+	return nil
+}
+
+func clearAdminSetupPending() error {
+	if err := os.Remove(GetAdminSetupPendingPath()); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // SetupConfig holds the setup configuration
@@ -128,7 +200,14 @@ const (
 	adminBootstrapReasonEmptyDatabase          = "empty_database"
 	adminBootstrapReasonAdminExists            = "admin_exists"
 	adminBootstrapReasonUsersExistWithoutAdmin = "users_exist_without_admin"
+	adminBootstrapReasonLoginExists            = "login_exists"
 )
+
+// ErrAdminLoginAlreadyExists lets the setup handler turn a database unique
+// constraint into an actionable response. This commonly occurs when an older
+// deployment has a disabled (or soft-deleted on a pre-016 schema) user that
+// still owns the requested login identifier.
+var ErrAdminLoginAlreadyExists = errors.New("administrator login already exists")
 
 type adminBootstrapDecision struct {
 	shouldCreate bool
@@ -171,22 +250,53 @@ func skipSetupEnabled() bool {
 // NeedsSetup checks if the system needs initial setup
 // Uses multiple checks to prevent attackers from forcing re-setup by deleting config
 func NeedsSetup() bool {
+	// Automatic deployments may persist the generated config before the owner
+	// chooses credentials. Keep the setup server available until that step is
+	// completed, even though config.yaml already exists.
+	if AdminSetupPending() {
+		return true
+	}
 	if skipSetupEnabled() {
 		logger.L().Debug("setup.needs_setup_bypassed", zap.String("reason", "skip_setup_enabled"))
 		return false
 	}
 
-	// Check 1: Config file must not exist
-	if _, err := os.Stat(GetConfigFilePath()); !os.IsNotExist(err) {
-		return false // Config exists, no setup needed
+	// Recover installations created by older releases that wrote the
+	// completion lock before inserting an administrator. In owner-setup Docker
+	// mode, a lock is considered complete only when the database also contains
+	// an administrator. If the health check cannot reach PostgreSQL, leave the
+	// normal startup path in charge so a transient database outage is not
+	// mistaken for a credential setup request.
+	if AutoSetupEnabled() && AutoSetupOwnerSetupEnabled() {
+		if _, err := os.Stat(GetInstallLockPath()); err == nil {
+			if missing, err := ownerAdminMissingFromDatabase(); err == nil && missing {
+				return true
+			}
+		}
 	}
 
-	// Check 2: Installation lock file (harder to bypass)
+	// The installation lock is the authoritative completion marker. A config
+	// file without the lock means setup was interrupted between writing config
+	// and completing installation; keep the setup page available so the
+	// operator can finish instead of silently starting an unbootstrapped app.
 	if _, err := os.Stat(GetInstallLockPath()); !os.IsNotExist(err) {
 		return false // Lock file exists, already installed
 	}
-
 	return true
+}
+
+func ownerAdminMissingFromDatabase() (bool, error) {
+	cfg, _, err := loadAutoSetupConfig()
+	if err != nil {
+		logger.LegacyPrintf("setup", "unable to load generated config during startup: %v", err)
+		return false, err
+	}
+	exists, err := adminUserExists(cfg)
+	if err != nil {
+		logger.LegacyPrintf("setup", "unable to verify existing administrator during startup: %v", err)
+		return false, err
+	}
+	return !exists, nil
 }
 
 func buildPostgresDSN(cfg *DatabaseConfig, dbName string) string {
@@ -371,9 +481,15 @@ func TestRedisConnection(cfg *RedisConfig) error {
 
 // Install performs the installation with the given configuration
 func Install(cfg *SetupConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("setup config is nil")
+	}
 	// Security check: prevent re-installation if already installed
 	if !NeedsSetup() {
 		return fmt.Errorf("system is already installed, re-installation is not allowed")
+	}
+	if err := validateOwnerAdmin(cfg.Admin); err != nil {
+		return fmt.Errorf("invalid initial administrator: %w", err)
 	}
 
 	// Generate JWT secret if not provided
@@ -422,7 +538,52 @@ func Install(cfg *SetupConfig) error {
 // createInstallLock creates a lock file to prevent re-installation attacks
 func createInstallLock() error {
 	content := fmt.Sprintf("installed_at=%s\n", time.Now().UTC().Format(time.RFC3339))
-	return os.WriteFile(GetInstallLockPath(), []byte(content), 0400) // Read-only for owner
+	path := GetInstallLockPath()
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
+	if err != nil {
+		if os.IsExist(err) {
+			// A previous process may have completed the final step already. The
+			// lock is intentionally immutable, so do not truncate or rewrite it.
+			existing, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return readErr
+			}
+			if validInstallLock(existing) {
+				return nil
+			}
+			return fmt.Errorf("installation lock already exists but is invalid")
+		}
+		return err
+	}
+	complete := false
+	defer func() {
+		_ = file.Close()
+		if !complete {
+			_ = os.Remove(path)
+		}
+	}()
+	if _, err := file.WriteString(content); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	complete = true
+	return nil
+}
+
+func validInstallLock(content []byte) bool {
+	line := strings.TrimSpace(string(content))
+	const prefix = "installed_at="
+	if !strings.HasPrefix(line, prefix) {
+		return false
+	}
+	value := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+	if value == "" {
+		return false
+	}
+	_, err := time.Parse(time.RFC3339, value)
+	return err == nil
 }
 
 func initializeDatabase(cfg *SetupConfig) error {
@@ -456,7 +617,17 @@ func (cfg *SetupConfig) migrationTimeout() time.Duration {
 }
 
 func createAdminUser(cfg *SetupConfig) (bool, string, error) {
+	if cfg == nil {
+		return false, "", fmt.Errorf("setup config is nil")
+	}
 	applyAdminDefaults(&cfg.Admin)
+	return createAdminUserWithConfiguredCredentials(cfg)
+}
+
+func createAdminUserWithConfiguredCredentials(cfg *SetupConfig) (bool, string, error) {
+	if cfg == nil {
+		return false, "", fmt.Errorf("setup config is nil")
+	}
 
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -479,12 +650,26 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// The setup HTTP handler is process-serialized, but automatic deployments
+	// can be restarted or accidentally launched more than once.  Serialize the
+	// bootstrap decision in PostgreSQL as well so two instances cannot both see
+	// an empty users table and create different administrators.
+	const initialAdminAdvisoryLockKey int64 = 8675309
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, "", err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock($1)", initialAdminAdvisoryLockKey); err != nil {
+		return false, "", err
+	}
+
 	var totalUsers int64
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM users").Scan(&totalUsers); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(1) FROM users WHERE deleted_at IS NULL").Scan(&totalUsers); err != nil {
 		return false, "", err
 	}
 	var adminUsers int64
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM users WHERE role = $1", service.RoleAdmin).Scan(&adminUsers); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(1) FROM users WHERE "+usableAdminWhereClause, service.RoleAdmin, service.StatusActive).Scan(&adminUsers); err != nil {
 		return false, "", err
 	}
 	decision := decideAdminBootstrap(totalUsers, adminUsers)
@@ -493,6 +678,17 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 	}
 	if err := validateInitialAdmin(cfg.Admin); err != nil {
 		return false, "", err
+	}
+	// Do not silently overwrite or collide with an existing user when the
+	// deployment has no usable administrator. Older schemas may keep a unique
+	// constraint even for soft-deleted rows, so inspect all rows here rather
+	// than relying only on the current partial unique index.
+	var loginUsers int64
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(1) FROM users WHERE email = $1", cfg.Admin.Email).Scan(&loginUsers); err != nil {
+		return false, "", err
+	}
+	if loginUsers > 0 {
+		return false, adminBootstrapReasonLoginExists, fmt.Errorf("%w: %s", ErrAdminLoginAlreadyExists, cfg.Admin.Email)
 	}
 
 	admin := &service.User{
@@ -509,10 +705,10 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 		return false, "", err
 	}
 
-	_, err = db.ExecContext(
+	if _, err = tx.ExecContext(
 		ctx,
 		`INSERT INTO users (email, password_hash, role, balance, concurrency, status, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		admin.Email,
 		admin.PasswordHash,
 		admin.Role,
@@ -521,8 +717,14 @@ func createAdminUser(cfg *SetupConfig) (bool, string, error) {
 		admin.Status,
 		admin.CreatedAt,
 		admin.UpdatedAt,
-	)
-	if err != nil {
+	); err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return false, adminBootstrapReasonLoginExists, fmt.Errorf("%w: %s", ErrAdminLoginAlreadyExists, cfg.Admin.Email)
+		}
+		return false, "", err
+	}
+	if err := tx.Commit(); err != nil {
 		return false, "", err
 	}
 	return true, decision.reason, nil
@@ -542,8 +744,8 @@ func applyAdminDefaults(admin *AdminConfig) {
 }
 
 func validateInitialAdmin(admin AdminConfig) error {
-	if !validateEmail(admin.Email) {
-		return fmt.Errorf("invalid admin email format")
+	if !validateAdminIdentifier(admin.Email) {
+		return fmt.Errorf("invalid admin login format")
 	}
 	if err := validatePassword(admin.Password); err != nil {
 		return fmt.Errorf("invalid initial admin password: %w", err)
@@ -551,7 +753,23 @@ func validateInitialAdmin(admin AdminConfig) error {
 	return nil
 }
 
-func writeConfigFile(cfg *SetupConfig) error {
+// validateOwnerAdmin is stricter than the legacy bootstrap validator: a new
+// web deployment must not silently create the publicly known admin/admin
+// credential pair.
+func validateOwnerAdmin(admin AdminConfig) error {
+	if err := validateInitialAdmin(admin); err != nil {
+		return err
+	}
+	if admin.Password == defaultAdminPassword {
+		return fmt.Errorf("choose a password other than the default admin password")
+	}
+	return nil
+}
+
+func marshalConfigFile(cfg *SetupConfig) ([]byte, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("setup config is nil")
+	}
 	// Ensure timezone has a default value
 	tz := cfg.Timezone
 	if tz == "" {
@@ -612,10 +830,50 @@ func writeConfigFile(cfg *SetupConfig) error {
 
 	data, err := yaml.Marshal(&yamlConfig)
 	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func writeConfigFile(cfg *SetupConfig) error {
+	data, err := marshalConfigFile(cfg)
+	if err != nil {
 		return err
 	}
-
 	return os.WriteFile(GetConfigFilePath(), data, 0600)
+}
+
+// createConfigFileIfMissing publishes a generated config atomically. It is
+// used by automatic setup so two app processes racing on first start cannot
+// overwrite one another's JWT secret or database coordinates.
+func createConfigFileIfMissing(cfg *SetupConfig) (bool, error) {
+	data, err := marshalConfigFile(cfg)
+	if err != nil {
+		return false, err
+	}
+	path := GetConfigFilePath()
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		if os.IsExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	complete := false
+	defer func() {
+		_ = file.Close()
+		if !complete {
+			_ = os.Remove(path)
+		}
+	}()
+	if _, err := file.Write(data); err != nil {
+		return false, err
+	}
+	if err := file.Sync(); err != nil {
+		return false, err
+	}
+	complete = true
+	return true, nil
 }
 
 func generateSecret(length int) (string, error) {
@@ -654,20 +912,15 @@ func getEnvIntOrDefault(key string, defaultValue int) int {
 	return defaultValue
 }
 
-// AutoSetupFromEnv performs automatic setup using environment variables
-// This is designed for Docker deployment where all config is passed via env vars
-func AutoSetupFromEnv() error {
-	logger.LegacyPrintf("setup", "%s", "Auto setup enabled, configuring from environment variables...")
-	logger.LegacyPrintf("setup", "Data directory: %s", GetDataDir())
-
-	// Get timezone from TZ or TIMEZONE env var (TZ is standard for Docker)
+// autoSetupConfigFromEnvironment builds the infrastructure configuration used
+// by a fresh automatic deployment. Administrator credentials are intentionally
+// not defaulted here: owner-setup deployments collect them from the web wizard.
+func autoSetupConfigFromEnvironment() *SetupConfig {
 	tz := getEnvOrDefault("TZ", "")
 	if tz == "" {
 		tz = getEnvOrDefault("TIMEZONE", "Asia/Shanghai")
 	}
-
-	// Build config from environment variables
-	cfg := &SetupConfig{
+	return &SetupConfig{
 		Database: DatabaseConfig{
 			Host:     getEnvOrDefault("DATABASE_HOST", "localhost"),
 			Port:     getEnvIntOrDefault("DATABASE_PORT", 5432),
@@ -682,11 +935,11 @@ func AutoSetupFromEnv() error {
 			Username:  getEnvOrDefault("REDIS_USERNAME", ""),
 			Password:  getEnvOrDefault("REDIS_PASSWORD", ""),
 			DB:        getEnvIntOrDefault("REDIS_DB", 0),
-			EnableTLS: getEnvOrDefault("REDIS_ENABLE_TLS", "false") == "true",
+			EnableTLS: strings.EqualFold(getEnvOrDefault("REDIS_ENABLE_TLS", "false"), "true"),
 		},
 		Admin: AdminConfig{
-			Email:    getEnvOrDefault("ADMIN_EMAIL", defaultAdminLogin),
-			Password: getEnvOrDefault("ADMIN_PASSWORD", defaultAdminPassword),
+			Email:    strings.TrimSpace(os.Getenv("ADMIN_EMAIL")),
+			Password: os.Getenv("ADMIN_PASSWORD"),
 		},
 		Server: ServerConfig{
 			Host: getEnvOrDefault("SERVER_HOST", "0.0.0.0"),
@@ -700,12 +953,142 @@ func AutoSetupFromEnv() error {
 		Timezone:                tz,
 		MigrationTimeoutSeconds: getEnvIntOrDefault("SETUP_MIGRATION_TIMEOUT_SECONDS", 0),
 	}
+}
+
+// autoSetupConfigFromEnv is retained for callers/tests that need a best-effort
+// view of the effective setup configuration. Startup paths use
+// loadAutoSetupConfig instead so malformed persisted state is reported rather
+// than silently replaced with environment values.
+func autoSetupConfigFromEnv() *SetupConfig {
+	if cfg, _, err := loadAutoSetupConfig(); err == nil {
+		return cfg
+	}
+	return autoSetupConfigFromEnvironment()
+}
+
+// loadAutoSetupConfig returns the persisted infrastructure configuration when
+// one exists. Once automatic setup has written config.yaml, that file is the
+// source of truth for owner completion; environment changes must not redirect
+// the request to a different database or regenerate the JWT secret.
+func loadAutoSetupConfig() (*SetupConfig, bool, error) {
+	data, err := os.ReadFile(GetConfigFilePath())
+	if os.IsNotExist(err) {
+		return autoSetupConfigFromEnvironment(), false, nil
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("read generated config: %w", err)
+	}
+	var cfg SetupConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, true, fmt.Errorf("parse generated config: %w", err)
+	}
+	if strings.TrimSpace(cfg.Database.Host) == "" || cfg.Database.Port <= 0 ||
+		strings.TrimSpace(cfg.Database.User) == "" || strings.TrimSpace(cfg.Database.DBName) == "" ||
+		strings.TrimSpace(cfg.Redis.Host) == "" || cfg.Redis.Port <= 0 {
+		return nil, true, fmt.Errorf("generated config is incomplete")
+	}
+	return &cfg, true, nil
+}
+
+// adminUserExists reports whether the configured database already contains a
+// usable administrator. It deliberately does not inspect or return passwords.
+func adminUserExists(cfg *SetupConfig) (bool, error) {
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Database.Host, cfg.Database.Port, cfg.Database.User,
+		cfg.Database.Password, cfg.Database.DBName, cfg.Database.SSLMode,
+	)
+	db, err := openSetupPostgres(dsn, cfg.Database.resolvedAddresses)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var count int64
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM users WHERE "+usableAdminWhereClause, service.RoleAdmin, service.StatusActive).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// CompleteAdminSetup creates the one initial site-owner account for an
+// automatic deployment. The caller must hold installMutex and the pending
+// marker must still exist. It is intentionally separate from Install so the
+// browser never receives database or Redis credentials.
+func CompleteAdminSetup(admin AdminConfig) error {
+	if !AdminSetupPending() {
+		return fmt.Errorf("owner setup is not pending")
+	}
+
+	admin.Email = strings.TrimSpace(admin.Email)
+	if err := validateOwnerAdmin(admin); err != nil {
+		return err
+	}
+
+	cfg, configPersisted, err := loadAutoSetupConfig()
+	if err != nil {
+		return err
+	}
+	if !configPersisted {
+		// A crash may have happened after the pending marker was created but
+		// before config.yaml was written. Recreate it from the same env config.
+		if cfg.JWT.Secret == "" {
+			secret, generateErr := generateSecret(32)
+			if generateErr != nil {
+				return fmt.Errorf("generate jwt secret: %w", generateErr)
+			}
+			cfg.JWT.Secret = secret
+		}
+		created, writeErr := createConfigFileIfMissing(cfg)
+		if writeErr != nil {
+			return fmt.Errorf("write generated config: %w", writeErr)
+		}
+		if !created {
+			cfg, _, err = loadAutoSetupConfig()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	cfg.Admin = admin
+
+	created, reason, err := createAdminUserWithConfiguredCredentials(cfg)
+	if err != nil {
+		return fmt.Errorf("admin user creation failed: %w", err)
+	}
+	if !created && reason != adminBootstrapReasonAdminExists {
+		return fmt.Errorf("admin setup was not completed: %s", reason)
+	}
+	if err := createInstallLock(); err != nil {
+		return fmt.Errorf("create install lock: %w", err)
+	}
+	if err := clearAdminSetupPending(); err != nil {
+		return fmt.Errorf("clear owner setup marker: %w", err)
+	}
+	return nil
+}
+
+// AutoSetupFromEnv performs automatic setup using environment variables.
+// This is designed for Docker deployment where all infrastructure config is
+// passed via env vars. In owner-setup mode it stops before creating an admin
+// and leaves a durable pending marker for the web wizard.
+func AutoSetupFromEnv() error {
+	logger.LegacyPrintf("setup", "%s", "Auto setup enabled, configuring from environment variables...")
+	logger.LegacyPrintf("setup", "Data directory: %s", GetDataDir())
+	cfg, configPersisted, err := loadAutoSetupConfig()
+	if err != nil {
+		return err
+	}
 
 	// Generate JWT secret if not provided
 	if cfg.JWT.Secret == "" {
-		secret, err := generateSecret(32)
-		if err != nil {
-			return fmt.Errorf("failed to generate jwt secret: %w", err)
+		secret, generateErr := generateSecret(32)
+		if generateErr != nil {
+			return fmt.Errorf("failed to generate jwt secret: %w", generateErr)
 		}
 		cfg.JWT.Secret = secret
 		logger.LegacyPrintf("setup", "%s", "Warning: JWT secret auto-generated. Consider setting a fixed secret for production.")
@@ -732,7 +1115,63 @@ func AutoSetupFromEnv() error {
 	}
 	logger.LegacyPrintf("setup", "%s", "Database initialized successfully")
 
-	// Create admin user
+	ownerSetup := AutoSetupOwnerSetupEnabled()
+	var adminExists bool
+	if ownerSetup {
+		// Do not consume ADMIN_EMAIL/ADMIN_PASSWORD in owner mode. Existing
+		// users are preserved and the site owner chooses the sole bootstrap
+		// administrator in the browser.
+		var err error
+		adminExists, err = adminUserExists(cfg)
+		if err != nil {
+			return fmt.Errorf("check existing administrator: %w", err)
+		}
+	}
+
+	// Persist generated infrastructure configuration once. A config file that
+	// already exists is authoritative and must not be overwritten during a
+	// retry, because it contains the original database coordinates and JWT key.
+	if !configPersisted {
+		logger.LegacyPrintf("setup", "%s", "Writing configuration file...")
+		created, err := createConfigFileIfMissing(cfg)
+		if err != nil {
+			return fmt.Errorf("config file creation failed: %w", err)
+		}
+		if created {
+			logger.LegacyPrintf("setup", "%s", "Configuration file created")
+		} else {
+			logger.LegacyPrintf("setup", "%s", "Configuration file was created by another setup process; preserving it")
+		}
+	} else {
+		logger.LegacyPrintf("setup", "%s", "Existing configuration file preserved")
+	}
+
+	if ownerSetup {
+		if adminExists {
+			logger.LegacyPrintf("setup", "%s", "Administrator already exists; completing automatic setup")
+			if err := createInstallLock(); err != nil {
+				return fmt.Errorf("failed to create install lock: %w", err)
+			}
+			_ = clearAdminSetupPending()
+			return nil
+		}
+		if err := markAdminSetupPending(); err != nil {
+			return fmt.Errorf("failed to create owner setup marker: %w", err)
+		}
+		logger.LegacyPrintf("setup", "%s", "Infrastructure is ready; waiting for site owner credentials at /setup")
+		return nil
+	}
+
+	// Legacy automatic mode keeps its backwards-compatible env bootstrap.
+	// It is retained only for explicitly configured legacy deployments. Never
+	// synthesize the publicly known admin/admin pair when an operator omitted
+	// credentials; new Compose deployments use owner-setup mode instead.
+	if strings.TrimSpace(cfg.Admin.Email) == "" || cfg.Admin.Password == "" {
+		return fmt.Errorf("ADMIN_EMAIL and ADMIN_PASSWORD are required when AUTO_SETUP_OWNER_SETUP is disabled")
+	}
+	if err := validateOwnerAdmin(cfg.Admin); err != nil {
+		return fmt.Errorf("invalid configured administrator: %w", err)
+	}
 	logger.LegacyPrintf("setup", "%s", "Creating admin user...")
 	created, reason, err := createAdminUser(cfg)
 	if err != nil {
@@ -750,13 +1189,6 @@ func AutoSetupFromEnv() error {
 			logger.LegacyPrintf("setup", "%s", "Admin bootstrap skipped")
 		}
 	}
-
-	// Write config file
-	logger.LegacyPrintf("setup", "%s", "Writing configuration file...")
-	if err := writeConfigFile(cfg); err != nil {
-		return fmt.Errorf("config file creation failed: %w", err)
-	}
-	logger.LegacyPrintf("setup", "%s", "Configuration file created")
 
 	// Create installation lock file
 	if err := createInstallLock(); err != nil {

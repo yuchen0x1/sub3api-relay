@@ -332,36 +332,8 @@ generate_secret() {
     openssl rand -hex 32
 }
 
-read_admin_password() {
-    local password=${ADMIN_PASSWORD:-admin}
-    local confirmation
-
-    if [[ -z "${password}" ]]; then
-        [[ -t 0 ]] || die "ADMIN_PASSWORD is required for non-interactive first-time initialization."
-        while true; do
-            read -r -s -p "Initial administrator password (default: admin): " password
-            printf '\n'
-            read -r -s -p "Confirm administrator password: " confirmation
-            printf '\n'
-            if [[ "${password}" != "admin" ]] && (( ${#password} < 8 || ${#password} > 128 )); then
-                warn "Administrator password must be admin or 8-128 characters." >&2
-                continue
-            fi
-            if [[ "${password}" != "${confirmation}" ]]; then
-                warn "Administrator passwords do not match." >&2
-                continue
-            fi
-            break
-        done
-    fi
-
-    [[ "${password}" == "admin" || ( ${#password} -ge 8 && ${#password} -le 128 ) ]] || \
-        die "ADMIN_PASSWORD must be admin or 8-128 characters."
-    printf '%s' "${password}"
-}
-
 cmd_init() {
-    local env_dir temp_file postgres_secret jwt_secret totp_secret admin_password
+    local env_dir temp_file postgres_secret jwt_secret totp_secret setup_remote_token
 
     require_command openssl
 
@@ -372,8 +344,8 @@ cmd_init() {
     postgres_secret="$(generate_secret)" || die "Failed to generate PostgreSQL password."
     jwt_secret="$(generate_secret)" || die "Failed to generate JWT secret."
     totp_secret="$(generate_secret)" || die "Failed to generate TOTP encryption key."
-    admin_password="$(read_admin_password)" || die "Failed to read initial administrator password."
-    [[ -n "${postgres_secret}" && -n "${jwt_secret}" && -n "${totp_secret}" ]] || \
+    setup_remote_token="$(generate_secret)" || die "Failed to generate setup token."
+    [[ -n "${postgres_secret}" && -n "${jwt_secret}" && -n "${totp_secret}" && -n "${setup_remote_token}" ]] || \
         die "Secret generation returned an empty value."
 
     env_dir="$(dirname "${ENV_FILE}")"
@@ -384,7 +356,8 @@ cmd_init() {
     replace_env_value POSTGRES_PASSWORD "${postgres_secret}" "${temp_file}"
     replace_env_value JWT_SECRET "${jwt_secret}" "${temp_file}"
     replace_env_value TOTP_ENCRYPTION_KEY "${totp_secret}" "${temp_file}"
-    replace_env_value ADMIN_PASSWORD "${admin_password}" "${temp_file}"
+    replace_env_value AUTO_SETUP_OWNER_SETUP "true" "${temp_file}"
+    replace_env_value SETUP_REMOTE_TOKEN "${setup_remote_token}" "${temp_file}"
     mv "${temp_file}" "${ENV_FILE}"
 
     info "Created ${ENV_FILE} with generated secrets."
@@ -496,6 +469,7 @@ prepare_app_environment() {
     cat >>"${APP_ENV_FILE}" <<EOF
 
 AUTO_SETUP=true
+AUTO_SETUP_OWNER_SETUP=true
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
 DATABASE_HOST=${POSTGRES_ADDRESS}

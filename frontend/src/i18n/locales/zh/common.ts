@@ -231,7 +231,7 @@ export default {
     emailRequired: '请输入邮箱',
     invalidEmail: '请输入有效的邮箱地址',
     loginIdentifierRequired: '请输入账号或邮箱',
-    invalidLoginIdentifier: '请输入 admin 或有效的邮箱地址',
+    invalidLoginIdentifier: '请输入有效的账号（字母、数字、._-）或邮箱地址',
     passwordRequired: '请输入密码',
     passwordMinLength: '密码至少需要 6 个字符',
     loginFailed: '登录失败，请检查您的凭据后重试。',

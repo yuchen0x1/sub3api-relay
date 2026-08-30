@@ -12,36 +12,16 @@ if grep -Eq 'echo .*\$\{?(POSTGRES_PASSWORD|JWT_SECRET|TOTP_ENCRYPTION_KEY)\}?' 
   exit 1
 fi
 
-grep -Fq 'input_device="/dev/tty"' "$script"
-grep -Fq 'Uses admin/admin as the initial administrator credential unless overridden' "$script"
-grep -Fq 'Generated credentials were written to the owner-readable .env file.' "$script"
+if grep -Eq 'admin/admin|ADMIN_PASSWORD|ADMIN_EMAIL' "$script"; then
+  echo "docker deploy script must not provision a default administrator" >&2
+  exit 1
+fi
+grep -Fq 'Defers administrator creation to the first-run owner setup page' "$script"
+grep -Fq 'Infrastructure secrets and a one-time setup token were written' "$script"
 grep -Fq 'deploy-checksums.txt' "$script"
 grep -Fq 'verify_deployment_asset' "$script"
 if grep -Fq 'raw.githubusercontent.com/yuchen0x1/sub3api-relay/main' "$script"; then
   echo "docker deploy script downloads mutable main-branch deployment files" >&2
-  exit 1
-fi
-
-password=$(ADMIN_PASSWORD='correct-horse-battery-staple' bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script")
-if [ "$password" != 'correct-horse-battery-staple' ]; then
-  echo "read_admin_password emitted output besides the password" >&2
-  exit 1
-fi
-
-if ADMIN_PASSWORD=$'valid-password\nINJECTED=true' bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script" >/dev/null 2>&1; then
-  echo "read_admin_password accepted a line break" >&2
-  exit 1
-fi
-
-safe_password=$(ADMIN_PASSWORD='Safe-Pass_123@prod' bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script")
-if [ "$safe_password" != 'Safe-Pass_123@prod' ]; then
-  echo "read_admin_password changed a safe password" >&2
-  exit 1
-fi
-
-default_password=$(env -u ADMIN_PASSWORD bash -c 'source <(head -n -1 "$1"); read_admin_password' bash "$script")
-if [ "$default_password" != 'admin' ]; then
-  echo "read_admin_password did not use the admin default" >&2
   exit 1
 fi
 
@@ -54,21 +34,21 @@ compose_config() {
     cmd.exe /c docker compose "$@"
     return
   fi
-  echo "Docker Compose is required for password round-trip checks" >&2
+  echo "Docker Compose is required for setup-token round-trip checks" >&2
   return 1
 }
 
-test_dir=$(mktemp -d "$repo_root/.docker-deploy-password-test.XXXXXX")
+test_dir=$(mktemp -d "$repo_root/.docker-deploy-token-test.XXXXXX")
 trap 'rm -rf "$test_dir"' EXIT
 cat > "$test_dir/compose.yml" <<'YAML'
 services:
   probe:
     image: alpine:3.20
     environment:
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SETUP_REMOTE_TOKEN: ${SETUP_REMOTE_TOKEN}
 YAML
 
-for password in \
+for token in \
   'password with spaces' \
   'password$HOME' \
   'password${HOME}' \
@@ -78,17 +58,17 @@ for password in \
   'password"quote' \
   "password'quote" \
   'mix $HOME # "double" '\''single'\'' \\ tail'; do
-  printf 'ADMIN_PASSWORD=placeholder\n' > "$test_dir/.env"
+  printf 'SETUP_REMOTE_TOKEN=placeholder\n' > "$test_dir/.env"
   (
     cd "$test_dir"
     source <(head -n -1 "$script")
-    set_env_value ADMIN_PASSWORD "$password"
-    unset ADMIN_PASSWORD
-    compose_config --env-file .env -f compose.yml run --rm --no-deps probe sh -c 'printf %s "$ADMIN_PASSWORD"' > actual
-    printf '%s' "$password" > expected
+    set_env_value SETUP_REMOTE_TOKEN "$token"
+    unset SETUP_REMOTE_TOKEN
+    compose_config --env-file .env -f compose.yml run --rm --no-deps probe sh -c 'printf %s "$SETUP_REMOTE_TOKEN"' > actual
+    printf '%s' "$token" > expected
     cmp -s expected actual
   ) || {
-    echo "ADMIN_PASSWORD did not round-trip through Compose: $password" >&2
+    echo "SETUP_REMOTE_TOKEN did not round-trip through Compose: $token" >&2
     exit 1
   }
 done

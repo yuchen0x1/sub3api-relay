@@ -158,24 +158,18 @@ func RunCLI() error {
 	fmt.Println("── Admin Account ──")
 	for {
 		cfg.Admin.Email = promptString(reader, "Admin Login", defaultAdminLogin)
-		if validateEmail(cfg.Admin.Email) {
+		if validateAdminIdentifier(cfg.Admin.Email) {
 			break
 		}
-		fmt.Println("  Invalid admin login. Use 'admin' or a valid email address.")
+		fmt.Println("  Invalid admin login. Use letters, numbers, ._-, or an email address.")
 	}
 	for {
-		cfg.Admin.Password = promptPassword("Admin Password (default: admin; otherwise minimum 8 characters)")
-		if cfg.Admin.Password == "" {
-			cfg.Admin.Password = defaultAdminPassword
-		}
-		if err := validatePassword(cfg.Admin.Password); err != nil {
+		cfg.Admin.Password = promptPassword("Admin Password (minimum 8 characters)")
+		if err := validateOwnerAdmin(cfg.Admin); err != nil {
 			fmt.Printf("  Invalid password: %v.\n", err)
 			continue
 		}
 		if confirmation := promptPassword("Confirm Admin Password"); confirmation != cfg.Admin.Password {
-			if confirmation == "" && cfg.Admin.Password == defaultAdminPassword {
-				break
-			}
 			fmt.Println("  Passwords do not match.")
 			continue
 		}
