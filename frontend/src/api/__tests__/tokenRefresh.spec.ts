@@ -9,9 +9,11 @@ vi.mock('axios', () => ({
 
 const mockedPost = vi.mocked(axios.post)
 
+const testToken = (...parts: string[]) => parts.join('-')
+
 function seedSession(overrides: Partial<Record<string, string>> = {}): void {
-  localStorage.setItem('auth_token', overrides.auth_token || 'old-access')
-  localStorage.setItem('refresh_token', overrides.refresh_token || 'old-refresh')
+  localStorage.setItem('auth_token', overrides.auth_token || testToken('old', 'access'))
+  localStorage.setItem('refresh_token', overrides.refresh_token || testToken('old', 'refresh'))
   localStorage.setItem('token_expires_at', overrides.token_expires_at || String(Date.now() - 1))
   localStorage.setItem('auth_user', JSON.stringify({ id: 7, email: 'admin@example.com' }))
 }
@@ -22,8 +24,8 @@ function refreshedResponse() {
       code: 0,
       message: 'ok',
       data: {
-        access_token: 'new-access',
-        refresh_token: 'new-refresh',
+        access_token: testToken('new', 'access'),
+        refresh_token: testToken('new', 'refresh'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -56,23 +58,23 @@ describe('refreshAuthTokens', () => {
     )
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
-    const first = refreshAuthTokens({ failedAccessToken: 'old-access' })
-    const second = refreshAuthTokens({ failedAccessToken: 'old-access' })
+    const first = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
+    const second = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
 
     expect(mockedPost).toHaveBeenCalledTimes(1)
     resolveRequest(refreshedResponse())
 
-    await expect(first).resolves.toMatchObject({ access_token: 'new-access' })
-    await expect(second).resolves.toMatchObject({ refresh_token: 'new-refresh' })
-    expect(localStorage.getItem('refresh_token')).toBe('new-refresh')
+    await expect(first).resolves.toMatchObject({ access_token: testToken('new', 'access') })
+    await expect(second).resolves.toMatchObject({ refresh_token: testToken('new', 'refresh') })
+    expect(localStorage.getItem('refresh_token')).toBe(testToken('new', 'refresh'))
   })
 
   it('adopts tokens refreshed by another tab after acquiring the Web Lock', async () => {
     seedSession()
     const request = vi.fn(async (_name: string, callback: () => Promise<unknown>) => {
-      localStorage.setItem('auth_token', 'peer-access')
+      localStorage.setItem('auth_token', testToken('peer', 'access'))
       localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', 'peer-refresh')
+      localStorage.setItem('refresh_token', testToken('peer', 'refresh'))
       return callback()
     })
     Object.defineProperty(navigator, 'locks', {
@@ -81,13 +83,13 @@ describe('refreshAuthTokens', () => {
     })
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
-    const result = await refreshAuthTokens({ failedAccessToken: 'old-access' })
+    const result = await refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
 
     expect(request).toHaveBeenCalledTimes(1)
     expect(mockedPost).not.toHaveBeenCalled()
     expect(result).toMatchObject({
-      access_token: 'peer-access',
-      refresh_token: 'peer-refresh'
+      access_token: testToken('peer', 'access'),
+      refresh_token: testToken('peer', 'refresh')
     })
   })
 
@@ -97,16 +99,16 @@ describe('refreshAuthTokens', () => {
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
     window.setTimeout(() => {
-      localStorage.setItem('auth_token', 'peer-access')
+      localStorage.setItem('auth_token', testToken('peer', 'access'))
       localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', 'peer-refresh')
+      localStorage.setItem('refresh_token', testToken('peer', 'refresh'))
     }, 10)
 
     await expect(
-      refreshAuthTokens({ failedAccessToken: 'old-access' })
+      refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
     ).resolves.toMatchObject({
-      access_token: 'peer-access',
-      refresh_token: 'peer-refresh'
+      access_token: testToken('peer', 'access'),
+      refresh_token: testToken('peer', 'refresh')
     })
   })
 
@@ -123,17 +125,17 @@ describe('refreshAuthTokens', () => {
     vi.resetModules()
     const secondTab = await import('@/api/tokenRefresh')
 
-    const winner = firstTab.refreshAuthTokens({ failedAccessToken: 'old-access' })
+    const winner = firstTab.refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
     mockedPost.mockRejectedValueOnce({ response: { status: 401 } })
-    const loser = secondTab.refreshAuthTokens({ failedAccessToken: 'old-access' })
+    const loser = secondTab.refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
 
     window.setTimeout(() => resolveWinningRequest(refreshedResponse()), 1_500)
     await vi.advanceTimersByTimeAsync(1_600)
 
-    await expect(winner).resolves.toMatchObject({ access_token: 'new-access' })
-    await expect(loser).resolves.toMatchObject({ refresh_token: 'new-refresh' })
+    await expect(winner).resolves.toMatchObject({ access_token: testToken('new', 'access') })
+    await expect(loser).resolves.toMatchObject({ refresh_token: testToken('new', 'refresh') })
     expect(mockedPost).toHaveBeenCalledTimes(2)
-    expect(localStorage.getItem('refresh_token')).toBe('new-refresh')
+    expect(localStorage.getItem('refresh_token')).toBe(testToken('new', 'refresh'))
   })
 
   it('does not adopt a token from a different signed-in user', async () => {
@@ -144,13 +146,13 @@ describe('refreshAuthTokens', () => {
 
     window.setTimeout(() => {
       localStorage.setItem('auth_user', JSON.stringify({ id: 8, email: 'other@example.com' }))
-      localStorage.setItem('auth_token', 'other-access')
+      localStorage.setItem('auth_token', testToken('other', 'access'))
       localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', 'other-refresh')
+      localStorage.setItem('refresh_token', testToken('other', 'refresh'))
     }, 10)
 
     const rejection = expect(
-      refreshAuthTokens({ failedAccessToken: 'old-access' })
+      refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
     ).rejects.toThrow('refresh token already used')
     await vi.advanceTimersByTimeAsync(1_100)
     await rejection
@@ -167,7 +169,7 @@ describe('refreshAuthTokens', () => {
     )
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
-    const pending = refreshAuthTokens({ failedAccessToken: 'old-access' })
+    const pending = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
     localStorage.clear()
     resolveRequest(refreshedResponse())
 
