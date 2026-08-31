@@ -41,6 +41,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
 	"github.com/yuchen0x1/sub3api-relay/ent/usagecleanuptask"
@@ -140,6 +141,7 @@ func checkColumn(t, c string) error {
 			redeemcode.Table:                    redeemcode.ValidColumn,
 			securitysecret.Table:                securitysecret.ValidColumn,
 			setting.Table:                       setting.ValidColumn,
+			staticproxy.Table:                   staticproxy.ValidColumn,
 			subscriptionplan.Table:              subscriptionplan.ValidColumn,
 			tlsfingerprintprofile.Table:         tlsfingerprintprofile.ValidColumn,
 			usagecleanuptask.Table:              usagecleanuptask.ValidColumn,

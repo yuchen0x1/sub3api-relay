@@ -252,6 +252,11 @@ export default {
           exceeded: '配额已用完，账号暂停调度',
           normal: '配额正常'
         },
+        staticProxy: {
+          label: '静态代理容量',
+          total: '静态代理容量：{current}/{max}',
+          exit: '{name}（{host}）状态为 {status}：{current}/{max}'
+        },
       },
       clearRateLimit: '清除速率限制',
       resetQuota: '重置配额',

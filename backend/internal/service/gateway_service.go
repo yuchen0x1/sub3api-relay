@@ -742,6 +742,7 @@ type GatewayService struct {
 	tlsFPProfileService   *TLSFingerprintProfileService
 	balanceNotifyService  *BalanceNotifyService
 	userPlatformQuotaRepo UserPlatformQuotaRepository
+	staticProxyLookup     StaticProxyRoutingLookup
 }
 
 // NewGatewayService creates a new GatewayService
@@ -825,6 +826,16 @@ func NewGatewayService(
 		svc.initDebugGatewayBodyFile(path)
 	}
 	return svc
+}
+
+// SetStaticProxyRoutingLookup installs the optional static-proxy assignment
+// lookup used by the generic gateway path (GatewayService.Forward). A nil
+// lookup leaves legacy accounts fully unchanged and disables the feature.
+func (s *GatewayService) SetStaticProxyRoutingLookup(lookup StaticProxyRoutingLookup) {
+	if s == nil {
+		return
+	}
+	s.staticProxyLookup = lookup
 }
 
 // GenerateSessionHash 从预解析请求计算粘性会话 hash

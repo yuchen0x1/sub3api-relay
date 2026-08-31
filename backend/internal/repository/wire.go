@@ -63,6 +63,11 @@ func ProvideSchedulerCache(rdb *redis.Client, cfg *config.Config) service.Schedu
 	return newSchedulerCacheWithChunkSizes(rdb, mgetChunkSize, writeChunkSize)
 }
 
+func ProvideStaticProxyRoutingLookup(repo service.StaticProxyExitRepository) service.StaticProxyRoutingLookup {
+	lookup, _ := repo.(service.StaticProxyRoutingLookup)
+	return lookup
+}
+
 // ProviderSet is the Wire provider set for all repositories
 var ProviderSet = wire.NewSet(
 	NewUserRepository,
@@ -103,6 +108,8 @@ var ProviderSet = wire.NewSet(
 	NewAffiliateRepository,
 	NewUserPlatformQuotaRepository,     // T14: user × platform quota
 	NewUserPlatformQuotaServiceAdapter, // T14: adapter → service.UserPlatformQuotaRepository
+	NewStaticProxyExitRepository,       // static proxy exit assignments
+	ProvideStaticProxyRoutingLookup,    // gateway routing lookup for static proxy exits
 
 	// Cache implementations
 	NewGatewayCache,

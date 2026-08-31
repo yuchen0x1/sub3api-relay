@@ -41,6 +41,7 @@ type AdminHandlers struct {
 	Affiliate              *admin.AffiliateHandler
 	Compliance             *admin.ComplianceHandler
 	AuditLog               *admin.AuditLogHandler
+	StaticProxyExit        *admin.StaticProxyExitHandler
 }
 
 // Handlers contains all HTTP handlers

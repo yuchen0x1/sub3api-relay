@@ -94,6 +94,29 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	}
 	beginUpstreamResponseModelObservation(c)
 
+	// Static proxy routing (generic gateway path only; see the limitation note
+	// on applyStaticProxyRouting). Accounts with enabled assignments reserve an
+	// aggregate + per-exit capacity slot and forward through the assignment's
+	// proxy. Release is deferred so every Forward exit path frees the slot.
+	if account != nil {
+		staticRelease, staticErr := s.applyStaticProxyRouting(ctx, account)
+		if staticErr != nil {
+			if errors.Is(staticErr, ErrStaticProxyCapacityUnavailable) && c != nil {
+				c.JSON(http.StatusTooManyRequests, gin.H{
+					"type": "error",
+					"error": gin.H{
+						"type":    "rate_limit_error",
+						"message": "Static proxy capacity exceeded, please retry later",
+					},
+				})
+			}
+			return nil, staticErr
+		}
+		if staticRelease != nil {
+			defer staticRelease()
+		}
+	}
+
 	// Web Search 模拟：纯 web_search 请求时，直接调用搜索 API 构造响应
 	if account != nil && s.shouldEmulateWebSearch(ctx, account, parsed.GroupID, parsed.Body.Bytes()) {
 		return s.handleWebSearchEmulation(ctx, c, account, parsed)

@@ -33,9 +33,16 @@ const (
 	liveAccountSlotKeyPrefix = "concurrency:live:account:"
 	liveUserSlotKeyPrefix    = "concurrency:live:user:"
 	liveAPIKeySlotKeyPrefix  = "concurrency:live:api_key:"
+	// Static proxy keys carry the account hash tag so the aggregate and
+	// assignment keys can be touched atomically in Redis Cluster.
+	staticProxyAggregateKeyPrefix      = "concurrency:static_proxy:aggregate:{"
+	staticProxyAssignmentKeyPrefix     = "concurrency:static_proxy:assignment:{"
+	staticProxyLiveAggregateKeyPrefix  = "concurrency:static_proxy:live:aggregate:{"
+	staticProxyLiveAssignmentKeyPrefix = "concurrency:static_proxy:live:assignment:{"
 	// API-key-scoped client WebSocket ingress leases use a shorter TTL than
 	// ordinary request slots, because idle ingress sessions do not hold a turn slot.
-	openAIWSIngressLeaseKeyPrefix  = "concurrency:openai_ws_ingress:api_key:"
+	openAIWSIngressLeaseKeyPrefix = "concurrency:openai_ws_ingress:api_key:"
+
 	openAIWSIngressLeaseTTLSeconds = 60
 	liveLeaseTTLSeconds            = 60
 	// 等待队列计数器格式: concurrency:wait:{userID}
@@ -106,8 +113,113 @@ var (
 		return {0, now}
 	`)
 
+	staticProxyAcquireScript = redis.NewScript(`
+			redis.replicate_commands()
+			local targetAggregate = KEYS[1]
+			local targetAssignment = KEYS[2]
+			local otherAggregate = KEYS[3]
+			local otherAssignment = KEYS[4]
+			local maxAggregate = tonumber(ARGV[1])
+			local targetTTL = tonumber(ARGV[2])
+			local otherTTL = tonumber(ARGV[3])
+			local assignmentCapacity = tonumber(ARGV[4])
+			local requestID = ARGV[5]
+			local now = tonumber(redis.call('TIME')[1])
+
+			redis.call('ZREMRANGEBYSCORE', targetAggregate, '-inf', now - targetTTL)
+			redis.call('ZREMRANGEBYSCORE', targetAssignment, '-inf', now - targetTTL)
+			redis.call('ZREMRANGEBYSCORE', otherAggregate, '-inf', now - otherTTL)
+			redis.call('ZREMRANGEBYSCORE', otherAssignment, '-inf', now - otherTTL)
+
+			local targetAggregateMember = redis.call('ZSCORE', targetAggregate, requestID) ~= false
+			local targetAssignmentMember = redis.call('ZSCORE', targetAssignment, requestID) ~= false
+			if targetAggregateMember or targetAssignmentMember then
+				if targetAggregateMember and targetAssignmentMember then
+					redis.call('ZADD', targetAggregate, now, requestID)
+					redis.call('ZADD', targetAssignment, now, requestID)
+					redis.call('EXPIRE', targetAggregate, targetTTL)
+					redis.call('EXPIRE', targetAssignment, targetTTL)
+					return {1, now}
+				end
+				-- Repair any partial reservation before considering a new one.
+				redis.call('ZREM', targetAggregate, requestID)
+				redis.call('ZREM', targetAssignment, requestID)
+			end
+
+			if maxAggregate <= 0 then return {0, now} end
+			local aggregateCount = redis.call('ZCARD', targetAggregate) + redis.call('ZCARD', otherAggregate)
+			local assignmentCount = redis.call('ZCARD', targetAssignment) + redis.call('ZCARD', otherAssignment)
+			if aggregateCount >= maxAggregate or assignmentCount >= assignmentCapacity then
+				return {0, now}
+			end
+
+			redis.call('ZADD', targetAggregate, now, requestID)
+			redis.call('ZADD', targetAssignment, now, requestID)
+			redis.call('EXPIRE', targetAggregate, targetTTL)
+			redis.call('EXPIRE', targetAssignment, targetTTL)
+			return {1, now}
+		`)
+
+	staticProxyReleaseScript = redis.NewScript(`
+			redis.replicate_commands()
+			local requestID = ARGV[1]
+			for _, key in ipairs(KEYS) do
+				redis.call('ZREM', key, requestID)
+				if redis.call('ZCARD', key) == 0 then
+					redis.call('DEL', key)
+				end
+			end
+			return 1
+		`)
+
+	staticProxyCountScript = redis.NewScript(`
+			redis.replicate_commands()
+			local regularKey = KEYS[1]
+			local liveKey = KEYS[2]
+			local regularTTL = tonumber(ARGV[1])
+			local liveTTL = tonumber(ARGV[2])
+			local now = tonumber(redis.call('TIME')[1])
+			redis.call('ZREMRANGEBYSCORE', regularKey, '-inf', now - regularTTL)
+			redis.call('ZREMRANGEBYSCORE', liveKey, '-inf', now - liveTTL)
+			return redis.call('ZCARD', regularKey) + redis.call('ZCARD', liveKey)
+		`)
+
+	staticProxyLiveCountScript = redis.NewScript(`
+			redis.replicate_commands()
+			local key = KEYS[1]
+			local ttl = tonumber(ARGV[1])
+			local now = tonumber(redis.call('TIME')[1])
+			redis.call('ZREMRANGEBYSCORE', key, '-inf', now - ttl)
+			return redis.call('ZCARD', key)
+		`)
+
+	staticProxyLiveRefreshScript = redis.NewScript(`
+			redis.replicate_commands()
+			local aggregateKey = KEYS[1]
+			local assignmentKey = KEYS[2]
+			local ttl = tonumber(ARGV[1])
+			local requestID = ARGV[2]
+			local now = tonumber(redis.call('TIME')[1])
+			redis.call('ZREMRANGEBYSCORE', aggregateKey, '-inf', now - ttl)
+			redis.call('ZREMRANGEBYSCORE', assignmentKey, '-inf', now - ttl)
+			if redis.call('ZSCORE', aggregateKey, requestID) == false or redis.call('ZSCORE', assignmentKey, requestID) == false then
+				redis.call('ZREM', aggregateKey, requestID)
+				redis.call('ZREM', assignmentKey, requestID)
+				if redis.call('ZCARD', aggregateKey) == 0 then redis.call('DEL', aggregateKey) end
+				if redis.call('ZCARD', assignmentKey) == 0 then redis.call('DEL', assignmentKey) end
+				return 0
+			end
+			redis.call('ZADD', aggregateKey, now, requestID)
+			redis.call('ZADD', assignmentKey, now, requestID)
+			redis.call('EXPIRE', aggregateKey, ttl)
+			redis.call('EXPIRE', assignmentKey, ttl)
+			return 1
+		`)
+
 	// getCountScript 统计有序集合中的槽位数量并清理过期条目
+
 	// 使用 Redis TIME 命令获取服务器时间
+
 	// KEYS[1] = 普通槽位键，KEYS[2] = 对应 Live 槽位键
 	// ARGV[1] = TTL（秒）
 	getCountScript = redis.NewScript(`
@@ -406,6 +518,22 @@ func openAIWSIngressLeaseKey(apiKeyID int64) string {
 	return fmt.Sprintf("%s%d", openAIWSIngressLeaseKeyPrefix, apiKeyID)
 }
 
+func staticProxyAggregateKey(accountID int64) string {
+	return fmt.Sprintf("%s%d}", staticProxyAggregateKeyPrefix, accountID)
+}
+
+func staticProxyAssignmentKey(accountID, staticProxyID int64) string {
+	return fmt.Sprintf("%s%d}:%d", staticProxyAssignmentKeyPrefix, accountID, staticProxyID)
+}
+
+func staticProxyLiveAggregateKey(accountID int64) string {
+	return fmt.Sprintf("%s%d}", staticProxyLiveAggregateKeyPrefix, accountID)
+}
+
+func staticProxyLiveAssignmentKey(accountID, staticProxyID int64) string {
+	return fmt.Sprintf("%s%d}:%d", staticProxyLiveAssignmentKeyPrefix, accountID, staticProxyID)
+}
+
 func waitQueueKey(userID int64) string {
 	return fmt.Sprintf("%s%d", waitQueueKeyPrefix, userID)
 }
@@ -650,6 +778,92 @@ func (c *concurrencyCache) ReleaseAccountSlot(ctx context.Context, accountID int
 	// 释放后用真实负载刷新索引；若没有槽位和等待计数，会移除索引 member。
 	c.refreshAccountActiveIndex(ctx, accountID)
 	return nil
+}
+
+// AcquireStaticProxySlot atomically reserves the account aggregate slot and
+// the selected static-proxy assignment slot. All keys share the account hash
+// tag, keeping the Lua operation compatible with Redis Cluster.
+func (c *concurrencyCache) AcquireStaticProxySlot(ctx context.Context, accountID, staticProxyID int64, maxAggregateConcurrency int, requestID string) (bool, error) {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 || maxAggregateConcurrency <= 0 || requestID == "" {
+		return false, nil
+	}
+	result, _, err := runScriptInt64Pair(ctx, c.rdb, staticProxyAcquireScript, []string{
+		staticProxyAggregateKey(accountID),
+		staticProxyAssignmentKey(accountID, staticProxyID),
+		staticProxyLiveAggregateKey(accountID),
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+	}, maxAggregateConcurrency, c.slotTTLSeconds, liveLeaseTTLSeconds, service.StaticProxyCapacity, requestID)
+	if err != nil {
+		return false, err
+	}
+	return result == 1, nil
+}
+
+// ReleaseStaticProxySlot removes both sides of a regular static-proxy
+// reservation atomically. Repeated release is harmless.
+func (c *concurrencyCache) ReleaseStaticProxySlot(ctx context.Context, accountID, staticProxyID int64, requestID string) error {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 || requestID == "" {
+		return nil
+	}
+	_, err := staticProxyReleaseScript.Run(ctx, c.rdb, []string{
+		staticProxyAggregateKey(accountID),
+		staticProxyAssignmentKey(accountID, staticProxyID),
+	}, requestID).Result()
+	return err
+}
+
+// GetStaticProxyConcurrency returns regular plus live requests currently
+// occupying one static-proxy assignment, pruning expired members atomically.
+func (c *concurrencyCache) GetStaticProxyConcurrency(ctx context.Context, accountID, staticProxyID int64) (int, error) {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 {
+		return 0, nil
+	}
+	return staticProxyCountScript.Run(ctx, c.rdb, []string{
+		staticProxyAssignmentKey(accountID, staticProxyID),
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+	}, c.slotTTLSeconds, liveLeaseTTLSeconds).Int()
+}
+
+// AcquireStaticProxyLiveSlot atomically reserves the account aggregate and
+// selected assignment in the short-lived live namespace.
+func (c *concurrencyCache) AcquireStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, maxAggregateConcurrency int, requestID string) (bool, error) {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 || maxAggregateConcurrency <= 0 || requestID == "" {
+		return false, nil
+	}
+	result, _, err := runScriptInt64Pair(ctx, c.rdb, staticProxyAcquireScript, []string{
+		staticProxyLiveAggregateKey(accountID),
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+		staticProxyAggregateKey(accountID),
+		staticProxyAssignmentKey(accountID, staticProxyID),
+	}, maxAggregateConcurrency, liveLeaseTTLSeconds, c.slotTTLSeconds, service.StaticProxyCapacity, requestID)
+	if err != nil {
+		return false, err
+	}
+	return result == 1, nil
+}
+
+// ReleaseStaticProxyLiveSlot removes both sides of a live reservation
+// atomically. Repeated release is harmless.
+func (c *concurrencyCache) ReleaseStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, requestID string) error {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 || requestID == "" {
+		return nil
+	}
+	_, err := staticProxyReleaseScript.Run(ctx, c.rdb, []string{
+		staticProxyLiveAggregateKey(accountID),
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+	}, requestID).Result()
+	return err
+}
+
+// GetStaticProxyLiveConcurrency returns live requests occupying one
+// static-proxy assignment after pruning expired members.
+func (c *concurrencyCache) GetStaticProxyLiveConcurrency(ctx context.Context, accountID, staticProxyID int64) (int, error) {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 {
+		return 0, nil
+	}
+	return staticProxyLiveCountScript.Run(ctx, c.rdb, []string{
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+	}, liveLeaseTTLSeconds).Int()
 }
 
 func (c *concurrencyCache) GetAccountConcurrency(ctx context.Context, accountID int64) (int, error) {

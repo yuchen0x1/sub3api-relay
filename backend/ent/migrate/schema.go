@@ -1517,6 +1517,81 @@ var (
 		Columns:    SettingsColumns,
 		PrimaryKey: []*schema.Column{SettingsColumns[0]},
 	}
+	// AccountStaticProxyExitsColumns holds the columns for the "account_static_proxy_exits" table.
+	AccountStaticProxyExitsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "position", Type: field.TypeInt, Default: 0},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "capacity", Type: field.TypeInt, Default: 10},
+		{Name: "health_status", Type: field.TypeString, Size: 20, Default: "unknown"},
+		{Name: "failure_count", Type: field.TypeInt, Default: 0},
+		{Name: "last_failure_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_failure_reason", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "last_checked_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "account_id", Type: field.TypeInt64},
+		{Name: "proxy_id", Type: field.TypeInt64},
+	}
+	// AccountStaticProxyExitsTable holds the schema information for the "account_static_proxy_exits" table.
+	AccountStaticProxyExitsTable = &schema.Table{
+		Name:       "account_static_proxy_exits",
+		Columns:    AccountStaticProxyExitsColumns,
+		PrimaryKey: []*schema.Column{AccountStaticProxyExitsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "account_static_proxy_exits_accounts_account",
+				Columns:    []*schema.Column{AccountStaticProxyExitsColumns[13]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "account_static_proxy_exits_proxies_proxy",
+				Columns:    []*schema.Column{AccountStaticProxyExitsColumns[14]},
+				RefColumns: []*schema.Column{ProxiesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "staticproxy_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[13]},
+			},
+			{
+				Name:    "staticproxy_proxy_id",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[14]},
+			},
+			{
+				Name:    "staticproxy_account_id_enabled",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[13], AccountStaticProxyExitsColumns[6]},
+			},
+			{
+				Name:    "staticproxy_account_id_position",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[13], AccountStaticProxyExitsColumns[5]},
+			},
+			{
+				Name:    "staticproxy_health_status",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[8]},
+			},
+			{
+				Name:    "staticproxy_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[3]},
+			},
+			{
+				Name:    "staticproxy_account_id_proxy_id",
+				Unique:  false,
+				Columns: []*schema.Column{AccountStaticProxyExitsColumns[13], AccountStaticProxyExitsColumns[14]},
+			},
+		},
+	}
 	// SubscriptionPlansColumns holds the columns for the "subscription_plans" table.
 	SubscriptionPlansColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2098,6 +2173,7 @@ var (
 		RedeemCodesTable,
 		SecuritySecretsTable,
 		SettingsTable,
+		AccountStaticProxyExitsTable,
 		SubscriptionPlansTable,
 		TLSFingerprintProfilesTable,
 		UsageCleanupTasksTable,
@@ -2221,6 +2297,11 @@ func init() {
 	}
 	SettingsTable.Annotation = &entsql.Annotation{
 		Table: "settings",
+	}
+	AccountStaticProxyExitsTable.ForeignKeys[0].RefTable = AccountsTable
+	AccountStaticProxyExitsTable.ForeignKeys[1].RefTable = ProxiesTable
+	AccountStaticProxyExitsTable.Annotation = &entsql.Annotation{
+		Table: "account_static_proxy_exits",
 	}
 	SubscriptionPlansTable.Annotation = &entsql.Annotation{
 		Table: "subscription_plans",

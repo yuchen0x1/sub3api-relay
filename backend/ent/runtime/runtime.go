@@ -35,6 +35,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/schema"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
 	"github.com/yuchen0x1/sub3api-relay/ent/usagecleanuptask"
@@ -1798,6 +1799,65 @@ func init() {
 	setting.DefaultUpdatedAt = settingDescUpdatedAt.Default.(func() time.Time)
 	// setting.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	setting.UpdateDefaultUpdatedAt = settingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	staticproxyMixin := schema.StaticProxy{}.Mixin()
+	staticproxyMixinHooks1 := staticproxyMixin[1].Hooks()
+	staticproxy.Hooks[0] = staticproxyMixinHooks1[0]
+	staticproxyMixinInters1 := staticproxyMixin[1].Interceptors()
+	staticproxy.Interceptors[0] = staticproxyMixinInters1[0]
+	staticproxyMixinFields0 := staticproxyMixin[0].Fields()
+	_ = staticproxyMixinFields0
+	staticproxyFields := schema.StaticProxy{}.Fields()
+	_ = staticproxyFields
+	// staticproxyDescCreatedAt is the schema descriptor for created_at field.
+	staticproxyDescCreatedAt := staticproxyMixinFields0[0].Descriptor()
+	// staticproxy.DefaultCreatedAt holds the default value on creation for the created_at field.
+	staticproxy.DefaultCreatedAt = staticproxyDescCreatedAt.Default.(func() time.Time)
+	// staticproxyDescUpdatedAt is the schema descriptor for updated_at field.
+	staticproxyDescUpdatedAt := staticproxyMixinFields0[1].Descriptor()
+	// staticproxy.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	staticproxy.DefaultUpdatedAt = staticproxyDescUpdatedAt.Default.(func() time.Time)
+	// staticproxy.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	staticproxy.UpdateDefaultUpdatedAt = staticproxyDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// staticproxyDescName is the schema descriptor for name field.
+	staticproxyDescName := staticproxyFields[2].Descriptor()
+	// staticproxy.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	staticproxy.NameValidator = func() func(string) error {
+		validators := staticproxyDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// staticproxyDescPosition is the schema descriptor for position field.
+	staticproxyDescPosition := staticproxyFields[3].Descriptor()
+	// staticproxy.DefaultPosition holds the default value on creation for the position field.
+	staticproxy.DefaultPosition = staticproxyDescPosition.Default.(int)
+	// staticproxyDescEnabled is the schema descriptor for enabled field.
+	staticproxyDescEnabled := staticproxyFields[4].Descriptor()
+	// staticproxy.DefaultEnabled holds the default value on creation for the enabled field.
+	staticproxy.DefaultEnabled = staticproxyDescEnabled.Default.(bool)
+	// staticproxyDescCapacity is the schema descriptor for capacity field.
+	staticproxyDescCapacity := staticproxyFields[5].Descriptor()
+	// staticproxy.DefaultCapacity holds the default value on creation for the capacity field.
+	staticproxy.DefaultCapacity = staticproxyDescCapacity.Default.(int)
+	// staticproxyDescHealthStatus is the schema descriptor for health_status field.
+	staticproxyDescHealthStatus := staticproxyFields[6].Descriptor()
+	// staticproxy.DefaultHealthStatus holds the default value on creation for the health_status field.
+	staticproxy.DefaultHealthStatus = staticproxyDescHealthStatus.Default.(string)
+	// staticproxy.HealthStatusValidator is a validator for the "health_status" field. It is called by the builders before save.
+	staticproxy.HealthStatusValidator = staticproxyDescHealthStatus.Validators[0].(func(string) error)
+	// staticproxyDescFailureCount is the schema descriptor for failure_count field.
+	staticproxyDescFailureCount := staticproxyFields[7].Descriptor()
+	// staticproxy.DefaultFailureCount holds the default value on creation for the failure_count field.
+	staticproxy.DefaultFailureCount = staticproxyDescFailureCount.Default.(int)
 	subscriptionplanFields := schema.SubscriptionPlan{}.Fields()
 	_ = subscriptionplanFields
 	// subscriptionplanDescName is the schema descriptor for name field.

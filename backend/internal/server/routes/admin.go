@@ -57,6 +57,9 @@ func RegisterAdminRoutes(
 		// 代理管理
 		registerProxyRoutes(admin, h, stepUpAuth)
 
+		// 静态代理出口管理
+		registerStaticProxyExitRoutes(admin, h)
+
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
@@ -485,6 +488,23 @@ func registerProxyRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAuth
 		proxies.GET("/:id/accounts", h.Admin.Proxy.GetProxyAccounts)
 		proxies.POST("/batch-delete", h.Admin.Proxy.BatchDelete)
 		proxies.POST("/batch", h.Admin.Proxy.BatchCreate)
+	}
+}
+
+func registerStaticProxyExitRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	exits := admin.Group("/static-proxy-exits")
+	{
+		exits.GET("", h.Admin.StaticProxyExit.List)
+		exits.GET("/capacity", h.Admin.StaticProxyExit.GetCapacitySummary)
+		exits.POST("", h.Admin.StaticProxyExit.Create)
+		exits.GET("/:id", h.Admin.StaticProxyExit.GetByID)
+		exits.PUT("/:id", h.Admin.StaticProxyExit.Update)
+		exits.DELETE("/:id", h.Admin.StaticProxyExit.Delete)
+		exits.POST("/:id/toggle", h.Admin.StaticProxyExit.Toggle)
+
+		// Account-nested route compatibility
+		exits.GET("/account/:account_id", h.Admin.StaticProxyExit.ListByAccount)
+		exits.GET("/account/:account_id/capacity", h.Admin.StaticProxyExit.GetAccountCapacity)
 	}
 }
 

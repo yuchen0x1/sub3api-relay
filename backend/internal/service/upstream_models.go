@@ -99,6 +99,9 @@ func (s *AccountTestService) FetchUpstreamSupportedModels(ctx context.Context, a
 	if err != nil {
 		return nil, newUpstreamModelSyncUpstreamError("Failed to request upstream model list", err)
 	}
+	if resp == nil || resp.Body == nil {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream returned an empty response", nil)
+	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, upstreamModelsBodyLimit+1))

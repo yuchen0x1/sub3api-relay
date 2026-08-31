@@ -860,6 +860,21 @@ export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bed
 export type OAuthAddMethod = 'oauth' | 'setup-token'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'vless'
 
+export interface StaticProxyExitCapacity {
+  id: number | string
+  name: string
+  host: string
+  status: string
+  current: number
+  max: number
+}
+
+export interface StaticIPCapacity {
+  current: number
+  max: number
+  exits: StaticProxyExitCapacity[]
+}
+
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {
   id: string
@@ -1110,6 +1125,8 @@ export interface Account {
   concurrency: number
   load_factor?: number | null
   current_concurrency?: number // Real-time concurrency count from Redis
+  effective_concurrency?: number
+  static_ip_capacity?: StaticIPCapacity
   scheduler_score?: {
     base_score: number
     sticky_score?: number

@@ -64,6 +64,9 @@ type AccountHandler struct {
 	grokImportProber        grokImportProber
 	upstreamBillingProbe    *service.UpstreamBillingProbeService
 	ollamaCloudUsage        *service.OllamaCloudUsageService
+	// staticProxyExitLister optionally enriches account responses with live
+	// static proxy capacity. nil preserves legacy account responses.
+	staticProxyExitLister staticProxyExitLister
 }
 
 // SetUpstreamBillingProbeService attaches the optional remote billing probe service.
@@ -197,6 +200,10 @@ type AccountWithConcurrency struct {
 	CurrentWindowCost *float64 `json:"current_window_cost,omitempty"` // 当前窗口费用
 	ActiveSessions    *int     `json:"active_sessions,omitempty"`     // 当前活跃会话数
 	CurrentRPM        *int     `json:"current_rpm,omitempty"`         // 当前分钟 RPM 计数
+	// StaticIPCapacity aggregates account-wide static proxy capacity with live
+	// Redis concurrency counts; omitted when static proxy support is disabled
+	// or the account has no static proxy exit assignments.
+	StaticIPCapacity *AccountStaticIPCapacity `json:"static_ip_capacity,omitempty"`
 }
 
 type AccountSchedulerScore struct {
@@ -265,6 +272,10 @@ func (h *AccountHandler) buildAccountResponseWithRuntime(ctx context.Context, ac
 	}
 
 	h.enrichShadowParents(ctx, []AccountWithConcurrency{item})
+
+	if h.staticProxyExitLister != nil {
+		item.StaticIPCapacity = h.buildAccountStaticProxyCapacity(ctx, account)
+	}
 
 	return item
 }
@@ -676,6 +687,11 @@ func (h *AccountHandler) List(c *gin.Context) {
 			if rpm, ok := rpmCounts[acc.ID]; ok {
 				item.CurrentRPM = &rpm
 			}
+		}
+
+		// 添加静态代理出口容量（仅当启用且账号有分配时）
+		if h.staticProxyExitLister != nil {
+			item.StaticIPCapacity = h.buildAccountStaticProxyCapacity(c.Request.Context(), acc)
 		}
 
 		result[i] = item

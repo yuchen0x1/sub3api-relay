@@ -42,6 +42,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
 	"github.com/yuchen0x1/sub3api-relay/ent/usagecleanuptask"
@@ -93,6 +94,7 @@ const (
 	TypeRedeemCode                    = "RedeemCode"
 	TypeSecuritySecret                = "SecuritySecret"
 	TypeSetting                       = "Setting"
+	TypeStaticProxy                   = "StaticProxy"
 	TypeSubscriptionPlan              = "SubscriptionPlan"
 	TypeTLSFingerprintProfile         = "TLSFingerprintProfile"
 	TypeUsageCleanupTask              = "UsageCleanupTask"
@@ -39722,6 +39724,1315 @@ func (m *SettingMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SettingMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Setting edge %s", name)
+}
+
+// StaticProxyMutation represents an operation that mutates the StaticProxy nodes in the graph.
+type StaticProxyMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int64
+	created_at          *time.Time
+	updated_at          *time.Time
+	deleted_at          *time.Time
+	name                *string
+	position            *int
+	addposition         *int
+	enabled             *bool
+	capacity            *int
+	addcapacity         *int
+	health_status       *string
+	failure_count       *int
+	addfailure_count    *int
+	last_failure_at     *time.Time
+	last_failure_reason *string
+	last_checked_at     *time.Time
+	clearedFields       map[string]struct{}
+	account             *int64
+	clearedaccount      bool
+	proxy               *int64
+	clearedproxy        bool
+	done                bool
+	oldValue            func(context.Context) (*StaticProxy, error)
+	predicates          []predicate.StaticProxy
+}
+
+var _ ent.Mutation = (*StaticProxyMutation)(nil)
+
+// staticproxyOption allows management of the mutation configuration using functional options.
+type staticproxyOption func(*StaticProxyMutation)
+
+// newStaticProxyMutation creates new mutation for the StaticProxy entity.
+func newStaticProxyMutation(c config, op Op, opts ...staticproxyOption) *StaticProxyMutation {
+	m := &StaticProxyMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStaticProxy,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStaticProxyID sets the ID field of the mutation.
+func withStaticProxyID(id int64) staticproxyOption {
+	return func(m *StaticProxyMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StaticProxy
+		)
+		m.oldValue = func(ctx context.Context) (*StaticProxy, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StaticProxy.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStaticProxy sets the old StaticProxy of the mutation.
+func withStaticProxy(node *StaticProxy) staticproxyOption {
+	return func(m *StaticProxyMutation) {
+		m.oldValue = func(context.Context) (*StaticProxy, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StaticProxyMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StaticProxyMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StaticProxyMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StaticProxyMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StaticProxy.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StaticProxyMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StaticProxyMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StaticProxyMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StaticProxyMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StaticProxyMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StaticProxyMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *StaticProxyMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *StaticProxyMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *StaticProxyMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[staticproxy.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *StaticProxyMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[staticproxy.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *StaticProxyMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, staticproxy.FieldDeletedAt)
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *StaticProxyMutation) SetAccountID(i int64) {
+	m.account = &i
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *StaticProxyMutation) AccountID() (r int64, exists bool) {
+	v := m.account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldAccountID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *StaticProxyMutation) ResetAccountID() {
+	m.account = nil
+}
+
+// SetProxyID sets the "proxy_id" field.
+func (m *StaticProxyMutation) SetProxyID(i int64) {
+	m.proxy = &i
+}
+
+// ProxyID returns the value of the "proxy_id" field in the mutation.
+func (m *StaticProxyMutation) ProxyID() (r int64, exists bool) {
+	v := m.proxy
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProxyID returns the old "proxy_id" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldProxyID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProxyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProxyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProxyID: %w", err)
+	}
+	return oldValue.ProxyID, nil
+}
+
+// ResetProxyID resets all changes to the "proxy_id" field.
+func (m *StaticProxyMutation) ResetProxyID() {
+	m.proxy = nil
+}
+
+// SetName sets the "name" field.
+func (m *StaticProxyMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *StaticProxyMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *StaticProxyMutation) ResetName() {
+	m.name = nil
+}
+
+// SetPosition sets the "position" field.
+func (m *StaticProxyMutation) SetPosition(i int) {
+	m.position = &i
+	m.addposition = nil
+}
+
+// Position returns the value of the "position" field in the mutation.
+func (m *StaticProxyMutation) Position() (r int, exists bool) {
+	v := m.position
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPosition returns the old "position" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldPosition(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPosition is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPosition requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPosition: %w", err)
+	}
+	return oldValue.Position, nil
+}
+
+// AddPosition adds i to the "position" field.
+func (m *StaticProxyMutation) AddPosition(i int) {
+	if m.addposition != nil {
+		*m.addposition += i
+	} else {
+		m.addposition = &i
+	}
+}
+
+// AddedPosition returns the value that was added to the "position" field in this mutation.
+func (m *StaticProxyMutation) AddedPosition() (r int, exists bool) {
+	v := m.addposition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPosition resets all changes to the "position" field.
+func (m *StaticProxyMutation) ResetPosition() {
+	m.position = nil
+	m.addposition = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *StaticProxyMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *StaticProxyMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *StaticProxyMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetCapacity sets the "capacity" field.
+func (m *StaticProxyMutation) SetCapacity(i int) {
+	m.capacity = &i
+	m.addcapacity = nil
+}
+
+// Capacity returns the value of the "capacity" field in the mutation.
+func (m *StaticProxyMutation) Capacity() (r int, exists bool) {
+	v := m.capacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapacity returns the old "capacity" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldCapacity(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapacity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapacity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapacity: %w", err)
+	}
+	return oldValue.Capacity, nil
+}
+
+// AddCapacity adds i to the "capacity" field.
+func (m *StaticProxyMutation) AddCapacity(i int) {
+	if m.addcapacity != nil {
+		*m.addcapacity += i
+	} else {
+		m.addcapacity = &i
+	}
+}
+
+// AddedCapacity returns the value that was added to the "capacity" field in this mutation.
+func (m *StaticProxyMutation) AddedCapacity() (r int, exists bool) {
+	v := m.addcapacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCapacity resets all changes to the "capacity" field.
+func (m *StaticProxyMutation) ResetCapacity() {
+	m.capacity = nil
+	m.addcapacity = nil
+}
+
+// SetHealthStatus sets the "health_status" field.
+func (m *StaticProxyMutation) SetHealthStatus(s string) {
+	m.health_status = &s
+}
+
+// HealthStatus returns the value of the "health_status" field in the mutation.
+func (m *StaticProxyMutation) HealthStatus() (r string, exists bool) {
+	v := m.health_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHealthStatus returns the old "health_status" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldHealthStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHealthStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHealthStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHealthStatus: %w", err)
+	}
+	return oldValue.HealthStatus, nil
+}
+
+// ResetHealthStatus resets all changes to the "health_status" field.
+func (m *StaticProxyMutation) ResetHealthStatus() {
+	m.health_status = nil
+}
+
+// SetFailureCount sets the "failure_count" field.
+func (m *StaticProxyMutation) SetFailureCount(i int) {
+	m.failure_count = &i
+	m.addfailure_count = nil
+}
+
+// FailureCount returns the value of the "failure_count" field in the mutation.
+func (m *StaticProxyMutation) FailureCount() (r int, exists bool) {
+	v := m.failure_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCount returns the old "failure_count" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldFailureCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCount: %w", err)
+	}
+	return oldValue.FailureCount, nil
+}
+
+// AddFailureCount adds i to the "failure_count" field.
+func (m *StaticProxyMutation) AddFailureCount(i int) {
+	if m.addfailure_count != nil {
+		*m.addfailure_count += i
+	} else {
+		m.addfailure_count = &i
+	}
+}
+
+// AddedFailureCount returns the value that was added to the "failure_count" field in this mutation.
+func (m *StaticProxyMutation) AddedFailureCount() (r int, exists bool) {
+	v := m.addfailure_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFailureCount resets all changes to the "failure_count" field.
+func (m *StaticProxyMutation) ResetFailureCount() {
+	m.failure_count = nil
+	m.addfailure_count = nil
+}
+
+// SetLastFailureAt sets the "last_failure_at" field.
+func (m *StaticProxyMutation) SetLastFailureAt(t time.Time) {
+	m.last_failure_at = &t
+}
+
+// LastFailureAt returns the value of the "last_failure_at" field in the mutation.
+func (m *StaticProxyMutation) LastFailureAt() (r time.Time, exists bool) {
+	v := m.last_failure_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastFailureAt returns the old "last_failure_at" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldLastFailureAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastFailureAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastFailureAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastFailureAt: %w", err)
+	}
+	return oldValue.LastFailureAt, nil
+}
+
+// ClearLastFailureAt clears the value of the "last_failure_at" field.
+func (m *StaticProxyMutation) ClearLastFailureAt() {
+	m.last_failure_at = nil
+	m.clearedFields[staticproxy.FieldLastFailureAt] = struct{}{}
+}
+
+// LastFailureAtCleared returns if the "last_failure_at" field was cleared in this mutation.
+func (m *StaticProxyMutation) LastFailureAtCleared() bool {
+	_, ok := m.clearedFields[staticproxy.FieldLastFailureAt]
+	return ok
+}
+
+// ResetLastFailureAt resets all changes to the "last_failure_at" field.
+func (m *StaticProxyMutation) ResetLastFailureAt() {
+	m.last_failure_at = nil
+	delete(m.clearedFields, staticproxy.FieldLastFailureAt)
+}
+
+// SetLastFailureReason sets the "last_failure_reason" field.
+func (m *StaticProxyMutation) SetLastFailureReason(s string) {
+	m.last_failure_reason = &s
+}
+
+// LastFailureReason returns the value of the "last_failure_reason" field in the mutation.
+func (m *StaticProxyMutation) LastFailureReason() (r string, exists bool) {
+	v := m.last_failure_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastFailureReason returns the old "last_failure_reason" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldLastFailureReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastFailureReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastFailureReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastFailureReason: %w", err)
+	}
+	return oldValue.LastFailureReason, nil
+}
+
+// ClearLastFailureReason clears the value of the "last_failure_reason" field.
+func (m *StaticProxyMutation) ClearLastFailureReason() {
+	m.last_failure_reason = nil
+	m.clearedFields[staticproxy.FieldLastFailureReason] = struct{}{}
+}
+
+// LastFailureReasonCleared returns if the "last_failure_reason" field was cleared in this mutation.
+func (m *StaticProxyMutation) LastFailureReasonCleared() bool {
+	_, ok := m.clearedFields[staticproxy.FieldLastFailureReason]
+	return ok
+}
+
+// ResetLastFailureReason resets all changes to the "last_failure_reason" field.
+func (m *StaticProxyMutation) ResetLastFailureReason() {
+	m.last_failure_reason = nil
+	delete(m.clearedFields, staticproxy.FieldLastFailureReason)
+}
+
+// SetLastCheckedAt sets the "last_checked_at" field.
+func (m *StaticProxyMutation) SetLastCheckedAt(t time.Time) {
+	m.last_checked_at = &t
+}
+
+// LastCheckedAt returns the value of the "last_checked_at" field in the mutation.
+func (m *StaticProxyMutation) LastCheckedAt() (r time.Time, exists bool) {
+	v := m.last_checked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCheckedAt returns the old "last_checked_at" field's value of the StaticProxy entity.
+// If the StaticProxy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StaticProxyMutation) OldLastCheckedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCheckedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCheckedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCheckedAt: %w", err)
+	}
+	return oldValue.LastCheckedAt, nil
+}
+
+// ClearLastCheckedAt clears the value of the "last_checked_at" field.
+func (m *StaticProxyMutation) ClearLastCheckedAt() {
+	m.last_checked_at = nil
+	m.clearedFields[staticproxy.FieldLastCheckedAt] = struct{}{}
+}
+
+// LastCheckedAtCleared returns if the "last_checked_at" field was cleared in this mutation.
+func (m *StaticProxyMutation) LastCheckedAtCleared() bool {
+	_, ok := m.clearedFields[staticproxy.FieldLastCheckedAt]
+	return ok
+}
+
+// ResetLastCheckedAt resets all changes to the "last_checked_at" field.
+func (m *StaticProxyMutation) ResetLastCheckedAt() {
+	m.last_checked_at = nil
+	delete(m.clearedFields, staticproxy.FieldLastCheckedAt)
+}
+
+// ClearAccount clears the "account" edge to the Account entity.
+func (m *StaticProxyMutation) ClearAccount() {
+	m.clearedaccount = true
+	m.clearedFields[staticproxy.FieldAccountID] = struct{}{}
+}
+
+// AccountCleared reports if the "account" edge to the Account entity was cleared.
+func (m *StaticProxyMutation) AccountCleared() bool {
+	return m.clearedaccount
+}
+
+// AccountIDs returns the "account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AccountID instead. It exists only for internal usage by the builders.
+func (m *StaticProxyMutation) AccountIDs() (ids []int64) {
+	if id := m.account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAccount resets all changes to the "account" edge.
+func (m *StaticProxyMutation) ResetAccount() {
+	m.account = nil
+	m.clearedaccount = false
+}
+
+// ClearProxy clears the "proxy" edge to the Proxy entity.
+func (m *StaticProxyMutation) ClearProxy() {
+	m.clearedproxy = true
+	m.clearedFields[staticproxy.FieldProxyID] = struct{}{}
+}
+
+// ProxyCleared reports if the "proxy" edge to the Proxy entity was cleared.
+func (m *StaticProxyMutation) ProxyCleared() bool {
+	return m.clearedproxy
+}
+
+// ProxyIDs returns the "proxy" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProxyID instead. It exists only for internal usage by the builders.
+func (m *StaticProxyMutation) ProxyIDs() (ids []int64) {
+	if id := m.proxy; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProxy resets all changes to the "proxy" edge.
+func (m *StaticProxyMutation) ResetProxy() {
+	m.proxy = nil
+	m.clearedproxy = false
+}
+
+// Where appends a list predicates to the StaticProxyMutation builder.
+func (m *StaticProxyMutation) Where(ps ...predicate.StaticProxy) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StaticProxyMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StaticProxyMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.StaticProxy, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StaticProxyMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StaticProxyMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (StaticProxy).
+func (m *StaticProxyMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StaticProxyMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.created_at != nil {
+		fields = append(fields, staticproxy.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, staticproxy.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, staticproxy.FieldDeletedAt)
+	}
+	if m.account != nil {
+		fields = append(fields, staticproxy.FieldAccountID)
+	}
+	if m.proxy != nil {
+		fields = append(fields, staticproxy.FieldProxyID)
+	}
+	if m.name != nil {
+		fields = append(fields, staticproxy.FieldName)
+	}
+	if m.position != nil {
+		fields = append(fields, staticproxy.FieldPosition)
+	}
+	if m.enabled != nil {
+		fields = append(fields, staticproxy.FieldEnabled)
+	}
+	if m.capacity != nil {
+		fields = append(fields, staticproxy.FieldCapacity)
+	}
+	if m.health_status != nil {
+		fields = append(fields, staticproxy.FieldHealthStatus)
+	}
+	if m.failure_count != nil {
+		fields = append(fields, staticproxy.FieldFailureCount)
+	}
+	if m.last_failure_at != nil {
+		fields = append(fields, staticproxy.FieldLastFailureAt)
+	}
+	if m.last_failure_reason != nil {
+		fields = append(fields, staticproxy.FieldLastFailureReason)
+	}
+	if m.last_checked_at != nil {
+		fields = append(fields, staticproxy.FieldLastCheckedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StaticProxyMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case staticproxy.FieldCreatedAt:
+		return m.CreatedAt()
+	case staticproxy.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case staticproxy.FieldDeletedAt:
+		return m.DeletedAt()
+	case staticproxy.FieldAccountID:
+		return m.AccountID()
+	case staticproxy.FieldProxyID:
+		return m.ProxyID()
+	case staticproxy.FieldName:
+		return m.Name()
+	case staticproxy.FieldPosition:
+		return m.Position()
+	case staticproxy.FieldEnabled:
+		return m.Enabled()
+	case staticproxy.FieldCapacity:
+		return m.Capacity()
+	case staticproxy.FieldHealthStatus:
+		return m.HealthStatus()
+	case staticproxy.FieldFailureCount:
+		return m.FailureCount()
+	case staticproxy.FieldLastFailureAt:
+		return m.LastFailureAt()
+	case staticproxy.FieldLastFailureReason:
+		return m.LastFailureReason()
+	case staticproxy.FieldLastCheckedAt:
+		return m.LastCheckedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StaticProxyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case staticproxy.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case staticproxy.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case staticproxy.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case staticproxy.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case staticproxy.FieldProxyID:
+		return m.OldProxyID(ctx)
+	case staticproxy.FieldName:
+		return m.OldName(ctx)
+	case staticproxy.FieldPosition:
+		return m.OldPosition(ctx)
+	case staticproxy.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case staticproxy.FieldCapacity:
+		return m.OldCapacity(ctx)
+	case staticproxy.FieldHealthStatus:
+		return m.OldHealthStatus(ctx)
+	case staticproxy.FieldFailureCount:
+		return m.OldFailureCount(ctx)
+	case staticproxy.FieldLastFailureAt:
+		return m.OldLastFailureAt(ctx)
+	case staticproxy.FieldLastFailureReason:
+		return m.OldLastFailureReason(ctx)
+	case staticproxy.FieldLastCheckedAt:
+		return m.OldLastCheckedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StaticProxy field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StaticProxyMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case staticproxy.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case staticproxy.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case staticproxy.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case staticproxy.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case staticproxy.FieldProxyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProxyID(v)
+		return nil
+	case staticproxy.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case staticproxy.FieldPosition:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPosition(v)
+		return nil
+	case staticproxy.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case staticproxy.FieldCapacity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapacity(v)
+		return nil
+	case staticproxy.FieldHealthStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHealthStatus(v)
+		return nil
+	case staticproxy.FieldFailureCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCount(v)
+		return nil
+	case staticproxy.FieldLastFailureAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastFailureAt(v)
+		return nil
+	case staticproxy.FieldLastFailureReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastFailureReason(v)
+		return nil
+	case staticproxy.FieldLastCheckedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCheckedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StaticProxyMutation) AddedFields() []string {
+	var fields []string
+	if m.addposition != nil {
+		fields = append(fields, staticproxy.FieldPosition)
+	}
+	if m.addcapacity != nil {
+		fields = append(fields, staticproxy.FieldCapacity)
+	}
+	if m.addfailure_count != nil {
+		fields = append(fields, staticproxy.FieldFailureCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StaticProxyMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case staticproxy.FieldPosition:
+		return m.AddedPosition()
+	case staticproxy.FieldCapacity:
+		return m.AddedCapacity()
+	case staticproxy.FieldFailureCount:
+		return m.AddedFailureCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StaticProxyMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case staticproxy.FieldPosition:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPosition(v)
+		return nil
+	case staticproxy.FieldCapacity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCapacity(v)
+		return nil
+	case staticproxy.FieldFailureCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFailureCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StaticProxyMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(staticproxy.FieldDeletedAt) {
+		fields = append(fields, staticproxy.FieldDeletedAt)
+	}
+	if m.FieldCleared(staticproxy.FieldLastFailureAt) {
+		fields = append(fields, staticproxy.FieldLastFailureAt)
+	}
+	if m.FieldCleared(staticproxy.FieldLastFailureReason) {
+		fields = append(fields, staticproxy.FieldLastFailureReason)
+	}
+	if m.FieldCleared(staticproxy.FieldLastCheckedAt) {
+		fields = append(fields, staticproxy.FieldLastCheckedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StaticProxyMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StaticProxyMutation) ClearField(name string) error {
+	switch name {
+	case staticproxy.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case staticproxy.FieldLastFailureAt:
+		m.ClearLastFailureAt()
+		return nil
+	case staticproxy.FieldLastFailureReason:
+		m.ClearLastFailureReason()
+		return nil
+	case staticproxy.FieldLastCheckedAt:
+		m.ClearLastCheckedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StaticProxyMutation) ResetField(name string) error {
+	switch name {
+	case staticproxy.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case staticproxy.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case staticproxy.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case staticproxy.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case staticproxy.FieldProxyID:
+		m.ResetProxyID()
+		return nil
+	case staticproxy.FieldName:
+		m.ResetName()
+		return nil
+	case staticproxy.FieldPosition:
+		m.ResetPosition()
+		return nil
+	case staticproxy.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case staticproxy.FieldCapacity:
+		m.ResetCapacity()
+		return nil
+	case staticproxy.FieldHealthStatus:
+		m.ResetHealthStatus()
+		return nil
+	case staticproxy.FieldFailureCount:
+		m.ResetFailureCount()
+		return nil
+	case staticproxy.FieldLastFailureAt:
+		m.ResetLastFailureAt()
+		return nil
+	case staticproxy.FieldLastFailureReason:
+		m.ResetLastFailureReason()
+		return nil
+	case staticproxy.FieldLastCheckedAt:
+		m.ResetLastCheckedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StaticProxyMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.account != nil {
+		edges = append(edges, staticproxy.EdgeAccount)
+	}
+	if m.proxy != nil {
+		edges = append(edges, staticproxy.EdgeProxy)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StaticProxyMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case staticproxy.EdgeAccount:
+		if id := m.account; id != nil {
+			return []ent.Value{*id}
+		}
+	case staticproxy.EdgeProxy:
+		if id := m.proxy; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StaticProxyMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StaticProxyMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StaticProxyMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedaccount {
+		edges = append(edges, staticproxy.EdgeAccount)
+	}
+	if m.clearedproxy {
+		edges = append(edges, staticproxy.EdgeProxy)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StaticProxyMutation) EdgeCleared(name string) bool {
+	switch name {
+	case staticproxy.EdgeAccount:
+		return m.clearedaccount
+	case staticproxy.EdgeProxy:
+		return m.clearedproxy
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StaticProxyMutation) ClearEdge(name string) error {
+	switch name {
+	case staticproxy.EdgeAccount:
+		m.ClearAccount()
+		return nil
+	case staticproxy.EdgeProxy:
+		m.ClearProxy()
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StaticProxyMutation) ResetEdge(name string) error {
+	switch name {
+	case staticproxy.EdgeAccount:
+		m.ResetAccount()
+		return nil
+	case staticproxy.EdgeProxy:
+		m.ResetProxy()
+		return nil
+	}
+	return fmt.Errorf("unknown StaticProxy edge %s", name)
 }
 
 // SubscriptionPlanMutation represents an operation that mutates the SubscriptionPlan nodes in the graph.

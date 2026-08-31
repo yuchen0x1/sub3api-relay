@@ -570,6 +570,7 @@ export default {
 	  upstreamModelMismatchOnly: '仅不一致',
 	  upstreamModelMatchedOnly: '仅一致',
       ipAddress: 'IP',
+      clientIpAddress: '客户端 IP',
       clickToViewBalance: '点击查看充值记录',
       failedToLoadUser: '加载用户信息失败',
       userDeletedBadge: '已删除',

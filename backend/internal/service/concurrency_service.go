@@ -55,6 +55,33 @@ type ConcurrencyCache interface {
 	CleanupStaleProcessSlots(ctx context.Context, activeRequestPrefix string) error
 }
 
+type StaticProxyConcurrencyCache interface {
+	// AcquireStaticProxySlot atomically reserves one request in the account's
+	// aggregate static-proxy capacity and in the selected assignment's capacity.
+	// maxAggregateConcurrency is the number of assignments multiplied by
+	// StaticProxyCapacity.
+	AcquireStaticProxySlot(ctx context.Context, accountID, staticProxyID int64, maxAggregateConcurrency int, requestID string) (bool, error)
+	ReleaseStaticProxySlot(ctx context.Context, accountID, staticProxyID int64, requestID string) error
+	// GetStaticProxyConcurrency returns the selected assignment's regular and
+	// live request count after pruning expired members.
+	GetStaticProxyConcurrency(ctx context.Context, accountID, staticProxyID int64) (int, error)
+}
+
+// StaticProxyLiveConcurrencyCache is an optional extension for long-lived
+// requests. It is separate so existing ConcurrencyCache implementations remain
+// source-compatible and regular callers do not need live-lease methods.
+type StaticProxyLiveConcurrencyCache interface {
+	AcquireStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, maxAggregateConcurrency int, requestID string) (bool, error)
+	RefreshStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, requestID string) (bool, error)
+	ReleaseStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, requestID string) error
+	GetStaticProxyLiveConcurrency(ctx context.Context, accountID, staticProxyID int64) (int, error)
+}
+
+// LiveStaticProxyConcurrencyCache is a descriptive alias for callers that use
+// the existing LiveConcurrencyCache naming convention.
+type LiveStaticProxyConcurrencyCache = StaticProxyLiveConcurrencyCache
+
+// APIKeyConcurrencyCache is an optional API-key stats capability.
 type APIKeyConcurrencyCache interface {
 	TrackAPIKeySlot(ctx context.Context, apiKeyID int64, requestID string) error
 	ReleaseAPIKeySlot(ctx context.Context, apiKeyID int64, requestID string) error

@@ -306,6 +306,11 @@ export default {
           exceeded: 'Quota exceeded, account paused',
           normal: 'Quota normal'
         },
+        staticProxy: {
+          label: 'Static proxy capacity',
+          total: 'Static proxy capacity: {current}/{max}',
+          exit: '{name} ({host}) is {status}: {current}/{max}'
+        },
       },
       tempUnschedulable: {
         title: 'Temp Unschedulable',
