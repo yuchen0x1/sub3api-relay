@@ -725,6 +725,31 @@ export default {
         failed: 'Connection failed: {error}',
         unknownError: 'Unknown error'
       },
+      importChannels: {
+        title: 'Bulk Import Channels',
+        openButton: 'Bulk Import',
+        description: 'Paste channel JSON exported from OneAPI / NewAPI (the data array returned by /api/channel — wrapper envelope or bare array both work), or a plain key list (one key per line; "url|key" and "url key" forms are also accepted). You will preview the mapping before anything is created.',
+        payloadLabel: 'Channel payload',
+        payloadPlaceholder: '【JSON】envelope object with a "data" key, or a bare array (type/name/key/base_url fields)\n\n【Text】\nhttps://relay.example.com/v1|sk-xxx\nsk-yyy',
+        targetGroup: 'Target group (optional)',
+        targetProxy: 'Target proxy (optional)',
+        noGroup: 'No group',
+        noProxy: 'No proxy',
+        parse: 'Parse & Preview',
+        parseEmpty: 'Nothing importable was found in the payload',
+        willCreate: '{count} accounts will be created',
+        willSkip: '{count} entries skipped',
+        colName: 'Name',
+        colPlatform: 'Platform',
+        colSourceStatus: 'Source status',
+        providerDefault: 'Provider default URL',
+        sourceEnabled: 'Enabled',
+        sourceDisabled: 'Source disabled',
+        submit: 'Import {count} accounts',
+        importing: 'Importing...',
+        resultSummary: 'Created {created} accounts, {failed} failed',
+        importedSuccess: 'Imported {count} accounts'
+      },
       // Quota control (OAuth only)
       quotaControl: {
         title: 'Quota Control',

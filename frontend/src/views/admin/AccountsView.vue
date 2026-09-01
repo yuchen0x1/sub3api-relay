@@ -159,6 +159,16 @@
                 </Teleport>
               </div>
             </template>
+            <template #beforeCreate>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-testid="import-accounts-button"
+                @click="showImportAccounts = true"
+              >
+                {{ t('admin.accounts.importChannels.openButton') }}
+              </button>
+            </template>
           </AccountTableActions>
         </div>
         <div
@@ -451,6 +461,13 @@
       <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
     </TablePageLayout>
     <CreateAccountModal :show="showCreate" :proxies="proxies" :groups="groups" @close="showCreate = false" @created="reload" />
+    <ImportAccountsModal
+      :show="showImportAccounts"
+      :proxies="proxies"
+      :groups="groups"
+      @close="showImportAccounts = false"
+      @imported="handleImported"
+    />
     <EditAccountModal :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" @close="showEdit = false" @updated="handleAccountUpdated" />
     <ReAuthAccountModal :show="showReAuth" :account="reAuthAcc" @close="closeReAuthModal" @reauthorized="handleAccountUpdated" />
     <AccountTestModal :show="showTest" :account="testingAcc" @close="closeTestModal" />
@@ -575,6 +592,7 @@ const selTypes = computed<AccountType[]>(() => {
   return [...types]
 })
 const showCreate = ref(false)
+const showImportAccounts = ref(false)
 const showEdit = ref(false)
 const showSync = ref(false)
 const showImportData = ref(false)
@@ -2227,6 +2245,12 @@ const ReAuthAccountModal = defineAsyncComponent(() => import('@/components/admin
 const ScheduledTestsPanel = defineAsyncComponent(() => import('@/components/admin/account/ScheduledTestsPanel.vue'))
 const TLSFingerprintProfilesModal = defineAsyncComponent(() => import('@/components/admin/TLSFingerprintProfilesModal.vue'))
 const CreateAccountModal = defineAsyncComponent(() => import('@/components/account/CreateAccountModal.vue'))
+const ImportAccountsModal = defineAsyncComponent(() => import('@/components/admin/account/ImportAccountsModal.vue'))
+
+function handleImported(count: number) {
+  reload()
+  appStore.showSuccess(t('admin.accounts.importChannels.importedSuccess', { count }))
+}
 const EditAccountModal = defineAsyncComponent(() => import('@/components/account/EditAccountModal.vue'))
 const BulkEditAccountModal = defineAsyncComponent(() => import('@/components/account/BulkEditAccountModal.vue'))
 const SyncFromCrsModal = defineAsyncComponent(() => import('@/components/account/SyncFromCrsModal.vue'))

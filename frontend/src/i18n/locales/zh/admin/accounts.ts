@@ -784,6 +784,31 @@ export default {
         failed: '连接失败：{error}',
         unknownError: '未知错误'
       },
+      importChannels: {
+        title: '批量导入渠道',
+        openButton: '批量导入',
+        description: '粘贴 OneAPI / NewAPI 渠道导出 JSON（/api/channel 返回的 data 数组，含外层信封或裸数组均可），或直接粘贴密钥列表（每行一个 Key，也支持“地址|Key”、“地址 Key”格式）。解析后先预览再创建。',
+        payloadLabel: '渠道数据',
+        payloadPlaceholder: '【JSON】含 data 键的信封对象，或裸数组（含 type/name/key/base_url 字段）\n\n【文本】\nhttps://relay.example.com/v1|sk-xxx\nsk-yyy',
+        targetGroup: '目标分组（可选）',
+        targetProxy: '目标代理（可选）',
+        noGroup: '不指定分组',
+        noProxy: '不使用代理',
+        parse: '解析预览',
+        parseEmpty: '未解析到可导入的账号',
+        willCreate: '将创建 {count} 个账号',
+        willSkip: '跳过 {count} 项',
+        colName: '名称',
+        colPlatform: '平台',
+        colSourceStatus: '源状态',
+        providerDefault: '官方默认地址',
+        sourceEnabled: '启用',
+        sourceDisabled: '源已禁用',
+        submit: '导入 {count} 个账号',
+        importing: '导入中...',
+        resultSummary: '成功创建 {created} 个账号，失败 {failed} 个',
+        importedSuccess: '已导入 {count} 个账号'
+      },
       // Quota control (protocol-compatible accounts only)
       quotaControl: {
         title: '配额控制',
