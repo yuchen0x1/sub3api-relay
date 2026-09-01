@@ -55,7 +55,7 @@ async function loadAllSettings() {
       advancedSettings.value.openai_account_quota_auto_pause = { default_threshold_5h: 0, default_threshold_7d: 0 }
     }
     if (advancedSettings.value && !advancedSettings.value.channel_monitor_auto_disable) {
-      advancedSettings.value.channel_monitor_auto_disable = { enabled: false, consecutive_failures: 3 }
+      advancedSettings.value.channel_monitor_auto_disable = { enabled: false, consecutive_failures: 3, affects_accounts: false }
     }
     // 如果后端返回了阈值，使用后端的值；否则保持默认值
     if (thresholds && Object.keys(thresholds).length > 0) {
@@ -531,6 +531,13 @@ async function saveAllSettings() {
                 max="1000"
                 class="input"
               />
+              <div class="mt-3 flex items-center justify-between">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.ops.settings.channelAutoDisableAffectsAccounts') }}</label>
+                  <p class="mt-1 text-xs text-gray-500">{{ t('admin.ops.settings.channelAutoDisableAffectsAccountsHint') }}</p>
+                </div>
+                <Toggle v-model="advancedSettings.channel_monitor_auto_disable.affects_accounts" />
+              </div>
             </div>
           </div>
 

@@ -54,7 +54,7 @@ export default {
       crsBaseUrl: 'CRS 服务地址',
       crsBaseUrlPlaceholder: '例如：http://127.0.0.1:3000',
       crsUsername: '用户名',
-      crsPassword: '密码',
+      crsPasswordLabel: '密码',
       syncProxies: '同时同步代理（按 host/port/账号匹配或自动创建）',
       syncNow: '开始同步',
       syncing: '同步中...',
@@ -301,7 +301,7 @@ export default {
       },
       testConnection: '测试连接',
       reAuthorize: '重新授权',
-      refreshToken: '刷新令牌',
+      refreshTokenField: '刷新令牌',
       noAccountsYet: '暂无账号',
       createFirstAccount: '添加 AI 平台账号以开始使用 API 网关。',
       tokenRefreshed: 'Token 刷新成功',
@@ -331,9 +331,9 @@ export default {
         grokBuildOauthDesc: '官方授权，支持自动刷新凭据',
         grokWebSso: 'Grok Web SSO',
         grokWebSsoDesc: '批量导入 SSO 并转换为 Build OAuth',
-        xaiConsoleApiKey: 'xAI Console API Key',
+        xaiConsoleApiKeyField: 'xAI Console API Key',
         xaiConsoleApiKeyDesc: '连接官方 Responses API',
-        antigravityApikey: '通过 Base URL + API Key 连接',
+        antigravityApikeyField: '通过 Base URL + API Key 连接',
         upstream: '对接上游',
         upstreamDesc: '通过 Base URL + API Key 连接上游'
       },
@@ -360,7 +360,9 @@ export default {
         creditsExhausted: '积分已用尽',
         creditsExhaustedUntil: 'AI Credits 已用尽，预计 {time} 恢复',
         overloadedUntil: '负载过重，重置时间：{time}',
-        viewTempUnschedDetails: '查看临时不可调度详情'
+        viewTempUnschedDetails: '查看临时不可调度详情',
+        tempUnschedByChannelMonitor: '渠道监控暂停，{time} 恢复',
+        tempUnschedAutoResume: '预计 {time} 自动恢复'
       },
       tempUnschedulable: {
         title: '临时不可调度',
@@ -495,7 +497,7 @@ export default {
         enableScheduling: '批量启用调度',
         disableScheduling: '批量停止调度',
         resetStatus: '批量重置状态',
-        refreshToken: '批量刷新令牌',
+        refreshTokenField: '批量刷新令牌',
         probeUpstreamBilling: '探测上游倍率',
         resetStatusSuccess: '已成功重置 {count} 个账号状态',
         refreshTokenSuccess: '已成功刷新 {count} 个账号令牌',
@@ -947,16 +949,16 @@ export default {
       mixedChannelWarningTitle: '混合渠道警告',
       mixedChannelWarning: '警告：分组 "{groupName}" 中同时包含 {currentPlatform} 和 {otherPlatform} 账号。混合使用不同渠道可能导致 thinking block 签名验证问题，会自动回退到非 thinking 模式。确定要继续吗？',
       pleaseEnterAccountName: '请输入账号名称',
-      pleaseEnterApiKey: '请输入 API Key',
+      pleaseEnterApiKeyField: '请输入 API Key',
       leaveEmptyToKeep: '留空以保持当前密钥',
       // Upstream type
       upstream: {
         baseUrl: '上游 Base URL',
         baseUrlHint: '上游 Antigravity 服务的地址，例如：https://cloudcode-pa.googleapis.com',
-        apiKey: '上游 API Key',
+        apiKeyField: '上游 API Key',
         apiKeyHint: '上游服务的 API Key',
         pleaseEnterBaseUrl: '请输入上游 Base URL',
-        pleaseEnterApiKey: '请输入上游 API Key'
+        pleaseEnterApiKeyField: '请输入上游 API Key'
       },
       // OAuth flow
       oauth: {
@@ -1057,7 +1059,7 @@ export default {
           parsedAccessTokensLabel: '解析出的 AT',
           validating: '验证中...',
           validateAndCreate: '验证并创建账号',
-          pleaseEnterRefreshToken: '请输入 Refresh Token',
+          pleaseEnterRefreshTokenField: '请输入 Refresh Token',
           pleaseEnterSessionToken: '请输入 Session Token'
         },
         grok: {
@@ -1094,7 +1096,7 @@ export default {
           convertSSOAndCreate: '转换并创建账号',
           validating: '验证中...',
           validateAndCreate: '验证并创建账号',
-          pleaseEnterRefreshToken: '请输入 Refresh Token',
+          pleaseEnterRefreshTokenField: '请输入 Refresh Token',
           failedToGenerateUrl: '生成 Grok 授权链接失败',
           missingExchangeParams: '缺少授权码、state 或 OAuth 会话',
           failedToExchangeCode: 'Grok 授权码兑换失败',
@@ -1189,7 +1191,7 @@ export default {
           refreshTokenPlaceholder: '粘贴您的 Antigravity Refresh Token...\n支持多个，每行一个',
           validating: '验证中...',
           validateAndCreate: '验证并创建账号',
-          pleaseEnterRefreshToken: '请输入 Refresh Token',
+          pleaseEnterRefreshTokenField: '请输入 Refresh Token',
           failedToValidateRT: '验证 Refresh Token 失败'
         }
       },

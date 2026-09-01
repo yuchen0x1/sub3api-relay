@@ -779,7 +779,7 @@
           <p class="input-hint">{{ t('admin.accounts.upstream.baseUrlHint') }}</p>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.upstream.apiKey') }}</label>
+          <label class="input-label">{{ t('admin.accounts.upstream.apiKeyField') }}</label>
           <input
             v-model="upstreamApiKey"
             type="password"

@@ -34,7 +34,7 @@
               </button>
               <button @click="$emit('refresh-token', account); $emit('close')" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-purple-600 hover:bg-gray-100 dark:hover:bg-dark-700">
                 <Icon name="refresh" size="sm" />
-                {{ t('admin.accounts.refreshToken') }}
+                {{ t('admin.accounts.refreshTokenField') }}
               </button>
               <button @click="$emit('reset-fingerprint', account); $emit('close')" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-gray-100 dark:hover:bg-dark-700">
                 <Icon name="shield" size="sm" />

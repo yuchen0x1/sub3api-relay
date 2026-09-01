@@ -1110,8 +1110,8 @@ tbody tr:hover .sticky-col {
 
 /* 2. 重写 Webkit 滚动层，全部加上 !important 强制覆盖透明悬停陷阱 */
 .table-wrapper::-webkit-scrollbar {
-  height: 12px !important;
-  width: 12px !important;
+  height: 8px !important;
+  width: 8px !important;
   display: block !important;
   background-color: transparent !important;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="empty-state">
+  <div class="empty-state px-4">
     <!-- Icon -->
     <div
       class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"

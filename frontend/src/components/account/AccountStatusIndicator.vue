@@ -23,6 +23,9 @@
       >
         {{ statusText }}
       </button>
+      <span v-if="isTempUnschedulable && tempUnschedDetailText" class="max-w-[180px] text-[11px] text-gray-400 dark:text-gray-500" :title="tempUnschedDetailText">
+        {{ tempUnschedDetailText }}
+      </span>
       <span v-else :class="['badge text-xs', statusClass]">
         {{ statusText }}
       </span>
@@ -346,4 +349,17 @@ const handleTempUnschedClick = () => {
   if (!isTempUnschedulable.value) return
   emit('show-temp-unsched', props.account)
 }
+
+// 临时暂停的场景化展示：渠道监控联动（reason 前缀 channel_monitor:）标注来源，
+// 其余来源仅展示恢复时间。
+const tempUnschedDetailText = computed(() => {
+  const reason = props.account.temp_unschedulable_reason || ''
+  const until = props.account.temp_unschedulable_until
+  const untilText = until ? formatDateTime(until) : ''
+  if (reason.startsWith('channel_monitor:')) {
+    return t('admin.accounts.status.tempUnschedByChannelMonitor', { time: untilText })
+  }
+  if (!untilText) return reason || ''
+  return t('admin.accounts.status.tempUnschedAutoResume', { time: untilText })
+})
 </script>

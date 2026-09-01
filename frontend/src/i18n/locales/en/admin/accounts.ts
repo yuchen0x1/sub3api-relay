@@ -54,7 +54,7 @@ export default {
       crsBaseUrl: 'CRS Base URL',
       crsBaseUrlPlaceholder: 'e.g. http://127.0.0.1:3000',
       crsUsername: 'Username',
-      crsPassword: 'Password',
+      crsPasswordLabel: 'Password',
       syncProxies: 'Also sync proxies (match by host/port/auth or create)',
       syncNow: 'Sync Now',
       syncing: 'Syncing...',
@@ -120,9 +120,9 @@ export default {
         grokBuildOauthDesc: 'Official authorization with automatic refresh',
         grokWebSso: 'Grok Web SSO',
         grokWebSsoDesc: 'Import SSO keys and convert them to Build OAuth',
-        xaiConsoleApiKey: 'xAI Console API Key',
+        xaiConsoleApiKeyField: 'xAI Console API Key',
         xaiConsoleApiKeyDesc: 'Connect to the official Responses API',
-        antigravityApikey: 'Connect via Base URL + API Key',
+        antigravityApikeyField: 'Connect via Base URL + API Key',
         upstream: 'Upstream',
         upstreamDesc: 'Connect via Base URL + API Key'
       },
@@ -149,7 +149,9 @@ export default {
         creditsExhausted: 'Credits Exhausted',
         creditsExhaustedUntil: 'AI Credits exhausted, expected recovery at {time}',
         overloadedUntil: 'Overloaded until {time}',
-        viewTempUnschedDetails: 'View temp unschedulable details'
+        viewTempUnschedDetails: 'View temp unschedulable details',
+        tempUnschedByChannelMonitor: 'Paused by channel monitor, resumes {time}',
+        tempUnschedAutoResume: 'Expected auto-resume {time}'
       },
       columns: {
         name: 'Name',
@@ -397,7 +399,7 @@ export default {
       },
       testConnection: 'Test Connection',
       reAuthorize: 'Re-Authorize',
-      refreshToken: 'Refresh Token',
+      refreshTokenField: 'Refresh Token',
       noAccountsYet: 'No accounts yet',
       createFirstAccount: 'Create your first account to start using AI services.',
       tokenRefreshed: 'Token refreshed successfully',
@@ -422,7 +424,7 @@ export default {
         enableScheduling: 'Enable Scheduling',
         disableScheduling: 'Disable Scheduling',
         resetStatus: 'Reset Status',
-        refreshToken: 'Refresh Token',
+        refreshTokenField: 'Refresh Token',
         probeUpstreamBilling: 'Probe Upstream Rate',
         resetStatusSuccess: 'Successfully reset {count} account(s) status',
         refreshTokenSuccess: 'Successfully refreshed {count} account(s) token',
@@ -888,16 +890,16 @@ export default {
       mixedChannelWarningTitle: 'Mixed Channel Warning',
       mixedChannelWarning: 'Warning: Group "{groupName}" contains both {currentPlatform} and {otherPlatform} accounts. Mixing different channels may cause thinking block signature validation issues, which will fallback to non-thinking mode. Are you sure you want to continue?',
       pleaseEnterAccountName: 'Please enter account name',
-      pleaseEnterApiKey: 'Please enter API Key',
+      pleaseEnterApiKeyField: 'Please enter API Key',
       leaveEmptyToKeep: 'Leave empty to keep current key',
       // Upstream type
       upstream: {
         baseUrl: 'Upstream Base URL',
         baseUrlHint: 'The address of the upstream Antigravity service, e.g., https://cloudcode-pa.googleapis.com',
-        apiKey: 'Upstream API Key',
+        apiKeyField: 'Upstream API Key',
         apiKeyHint: 'API Key for the upstream service',
         pleaseEnterBaseUrl: 'Please enter upstream Base URL',
-        pleaseEnterApiKey: 'Please enter upstream API Key'
+        pleaseEnterApiKeyField: 'Please enter upstream API Key'
       },
       // OAuth flow
       oauth: {
@@ -1003,7 +1005,7 @@ export default {
           parsedAccessTokensLabel: 'Parsed AT',
           validating: 'Validating...',
           validateAndCreate: 'Validate & Create Account',
-          pleaseEnterRefreshToken: 'Please enter Refresh Token',
+          pleaseEnterRefreshTokenField: 'Please enter Refresh Token',
           pleaseEnterSessionToken: 'Please enter Session Token'
         },
         grok: {
@@ -1040,7 +1042,7 @@ export default {
           convertSSOAndCreate: 'Convert & Create Account',
           validating: 'Validating...',
           validateAndCreate: 'Validate & Create Account',
-          pleaseEnterRefreshToken: 'Please enter Refresh Token',
+          pleaseEnterRefreshTokenField: 'Please enter Refresh Token',
           failedToGenerateUrl: 'Failed to generate Grok auth URL',
           missingExchangeParams: 'Missing authorization code, state, or OAuth session',
           failedToExchangeCode: 'Failed to exchange Grok authorization code',
@@ -1139,7 +1141,7 @@ export default {
                     refreshTokenPlaceholder: 'Paste your Antigravity Refresh Token...\nSupports multiple tokens, one per line',
                     validating: 'Validating...',
                     validateAndCreate: 'Validate & Create',
-                    pleaseEnterRefreshToken: 'Please enter Refresh Token',
+                    pleaseEnterRefreshTokenField: 'Please enter Refresh Token',
                     failedToValidateRT: 'Failed to validate Refresh Token'
                   }
                 },      // Gemini specific (platform-wide)

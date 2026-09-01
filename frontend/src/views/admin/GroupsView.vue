@@ -46,7 +46,7 @@
 
           <!-- Right: actions -->
           <div
-            class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto"
+            class="flex w-full flex-wrap items-center justify-end gap-3 lg:w-auto"
           >
             <button
               @click="loadGroups"
@@ -94,7 +94,7 @@
             </div>
             <button
               @click="openSortModal"
-              class="btn btn-secondary"
+              class="btn btn-secondary flex-1 sm:flex-none"
               :title="t('admin.groups.sortOrder')"
             >
               <Icon name="arrowsUpDown" size="md" class="mr-2" />
@@ -102,7 +102,7 @@
             </button>
             <button
               @click="openCreateModal"
-              class="btn btn-primary"
+              class="btn btn-primary flex-1 sm:flex-none"
               data-tour="groups-create-btn"
             >
               <Icon name="plus" size="md" class="mr-2" />

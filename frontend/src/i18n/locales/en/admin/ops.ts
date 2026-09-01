@@ -710,6 +710,8 @@ export default {
         enableChannelAutoDisable: 'Enable auto-disable',
         channelAutoDisableHint: 'Automatically set a channel to disabled after N consecutive fully-failed health check rounds (difference from cooldown: docs/CHANNEL_MONITOR.md). Disabled by default.',
         channelAutoDisableThreshold: 'Consecutive failure rounds',
+        channelAutoDisableAffectsAccounts: 'Also pause same-platform accounts',
+        channelAutoDisableAffectsAccountsHint: 'When enabled, consecutive failures also mark accounts of the same provider as temporarily unschedulable for 15 minutes, then they rejoin routing automatically. Disabled by default.',
         openaiQuotaAutoPause: 'OpenAI Account Quota Auto-pause',
         openaiQuotaAutoPauseHint: 'When an OpenAI account reaches its 5h / 7d usage threshold, the scheduler skips it automatically and resumes once the window rolls over. Per-account thresholds take precedence over this global default.',
         openaiQuotaAutoPauseDefault5h: 'Default 5h usage threshold (%)',

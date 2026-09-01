@@ -23,7 +23,7 @@ export default {
     status: '状态',
     name: '名称',
     email: '邮箱',
-    password: '密码',
+    passwordLabel: '密码',
     submit: '提交',
     back: '返回',
     next: '下一步',
@@ -406,7 +406,7 @@ export default {
       fullUrl: '完整URL'
     },
     // 忘记密码
-    forgotPassword: '忘记密码？',
+    forgotPasswordLabel: '忘记密码？',
     forgotPasswordTitle: '重置密码',
     forgotPasswordHint: '输入您的邮箱地址，我们将向您发送密码重置链接。',
     sendResetLink: '发送重置链接',
@@ -416,18 +416,18 @@ export default {
     resetEmailSentHint:
       '如果该邮箱已注册，您将很快收到密码重置链接。请检查您的收件箱和垃圾邮件文件夹。',
     backToLogin: '返回登录',
-    rememberedPassword: '想起密码了？',
+    rememberedPasswordLabel: '想起密码了？',
     // 重置密码
     resetPasswordTitle: '设置新密码',
     resetPasswordHint: '请在下方输入您的新密码。',
-    newPassword: '新密码',
+    newPasswordLabel: '新密码',
     newPasswordPlaceholder: '输入新密码',
-    confirmPassword: '确认密码',
+    confirmPasswordField: '确认密码',
     confirmPasswordPlaceholder: '再次输入新密码',
     confirmPasswordRequired: '请确认您的密码',
     passwordsDoNotMatch: '两次输入的密码不一致',
-    resetPassword: '重置密码',
-    resettingPassword: '重置中...',
+    resetPasswordField: '重置密码',
+    resettingPasswordField: '重置中...',
     resetPasswordFailed: '重置密码失败，请重试。',
     passwordResetSuccess: '密码重置成功',
     passwordResetSuccessHint: '您的密码已重置。现在可以使用新密码登录。',
@@ -448,7 +448,7 @@ export default {
 
   // Dashboard
   chartAriaLabel: '{title}，共 {count} 项',
-  togglePassword: '切换密码可见性',
+  togglePasswordField: '切换密码可见性',
   moveUp: '上移',
   moveDown: '下移',
   clear: '清除',

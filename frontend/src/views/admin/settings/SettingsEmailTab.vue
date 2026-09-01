@@ -240,7 +240,7 @@ async function sendTestEmail() {
                   <label
                     class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    {{ t("admin.settings.smtp.password") }}
+                    {{ t("admin.settings.smtp.passwordField") }}
                   </label>
                   <input
                     v-model="form.smtp_password"

@@ -280,15 +280,18 @@
           @update:selected-keys="handleSelectedKeysUpdate"
         >
           <template #cell-email="{ value }">
-            <div class="flex items-center gap-2">
+            <div class="flex min-w-0 items-center gap-2">
               <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/30"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/30"
               >
                 <span class="text-sm font-medium text-primary-700 dark:text-primary-300">
                   {{ value.charAt(0).toUpperCase() }}
                 </span>
               </div>
-              <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span
+                class="min-w-0 truncate font-medium text-gray-900 dark:text-white"
+                :title="value"
+              >{{ value }}</span>
             </div>
           </template>
 

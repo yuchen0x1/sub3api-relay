@@ -30,7 +30,7 @@
           </div>
 
           <!-- Right: Actions -->
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
+          <div class="flex w-full flex-wrap items-center justify-end gap-3 lg:w-auto">
             <button
               @click="loadChannels"
               :disabled="loading"
@@ -39,7 +39,7 @@
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
-            <button @click="openCreateDialog" class="btn btn-primary">
+            <button @click="openCreateDialog" class="btn btn-primary flex-1 sm:flex-none">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.channels.createChannel', 'Create Channel') }}
             </button>
@@ -147,7 +147,7 @@
     >
       <div class="channel-dialog-body">
         <!-- Tab Bar -->
-        <div class="flex items-center border-b border-gray-200 dark:border-dark-700 flex-shrink-0 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-3 sm:-mt-4">
+        <div class="channel-tabs-scroll flex items-center overflow-x-auto border-b border-gray-200 dark:border-dark-700 flex-shrink-0 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-3 sm:-mt-4">
           <!-- Basic Settings Tab -->
           <button
             type="button"
@@ -1548,8 +1548,23 @@ onUnmounted(() => {
 .channel-dialog-body {
   display: flex;
   flex-direction: column;
-  height: 70vh;
-  min-height: 400px;
+  height: min(70vh, 760px);
+  max-height: calc(100dvh - 8rem);
+  min-height: min(400px, calc(100dvh - 10rem));
+}
+
+.channel-tabs-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.45) transparent;
+}
+
+.channel-tabs-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.channel-tabs-scroll::-webkit-scrollbar-thumb {
+  background: rgb(148 163 184 / 0.45);
+  border-radius: 9999px;
 }
 
 .channel-tab {

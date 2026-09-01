@@ -11,15 +11,10 @@
 @utility card {
     position: relative;
     overflow: hidden;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 48%),
-      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.10), transparent 38%),
-      var(--glass-bg);
+    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.34);
-    backdrop-filter: blur(22px) saturate(165%);
-    -webkit-backdrop-filter: blur(22px) saturate(165%);
+    box-shadow: var(--shadow-card);
     isolation: isolate;
     @apply transition-all duration-300;
   }
@@ -37,18 +32,10 @@
     @apply text-gray-900 dark:text-gray-100;
     @apply min-h-screen;
     background-color: var(--color-bg);
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.16), transparent 32%),
-      radial-gradient(circle at 90% 12%, rgba(236, 72, 153, 0.12), transparent 28%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 42%);
-    background-attachment: fixed;
   }
 
   .dark body {
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.22), transparent 34%),
-      radial-gradient(circle at 90% 12%, rgba(168, 85, 247, 0.2), transparent 30%),
-      linear-gradient(180deg, rgba(5, 8, 22, 0.2), transparent 48%);
+    background-color: var(--color-bg);
   }
 
   /* 自定义滚动条 - 仅针对 Firefox，避免 Chrome 取消 webkit 的全局定制 */
@@ -255,28 +242,18 @@
   .glass-card {
     position: relative;
     overflow: hidden;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 46%),
-      linear-gradient(315deg, rgba(125, 211, 252, 0.10), transparent 42%),
-      var(--glass-bg);
+    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-glass), inset 0 1px 0 rgba(255, 255, 255, 0.42);
-    backdrop-filter: blur(30px) saturate(185%);
-    -webkit-backdrop-filter: blur(30px) saturate(185%);
+    box-shadow: var(--shadow-card);
     isolation: isolate;
     @apply transition-all duration-300;
   }
 
   .glass-surface {
-    background:
-      radial-gradient(circle at 10% 0%, rgba(103, 232, 249, 0.16), transparent 38%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 52%),
-      var(--glass-bg);
+    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), var(--shadow-card);
-    backdrop-filter: blur(24px) saturate(175%);
-    -webkit-backdrop-filter: blur(24px) saturate(175%);
+    box-shadow: var(--shadow-card);
     isolation: isolate;
   }
 
@@ -1082,76 +1059,45 @@
   .ops-panel {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.62);
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.38), transparent 46%),
-      radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.13), transparent 42%),
-      rgba(255, 255, 255, 0.44);
-    box-shadow: 0 18px 46px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.52);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-  }
-
-  .ops-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto auto 10%;
-    width: 64%;
-    height: 1px;
-    pointer-events: none;
-    background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.85), rgba(196, 181, 253, 0.72), transparent);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
 
   .ops-panel:hover {
-    transform: translateY(-2px);
-    border-color: rgba(103, 232, 249, 0.42);
-    box-shadow: 0 24px 58px rgba(15, 23, 42, 0.14), 0 0 36px rgba(14, 165, 233, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.58);
+    border-color: var(--glass-border-strong);
+    box-shadow: var(--shadow-card-hover);
   }
 
   .ops-panel-hero {
-    background:
-      linear-gradient(120deg, rgba(255, 255, 255, 0.46), transparent 42%),
-      radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.16), transparent 34%),
-      radial-gradient(circle at 86% 18%, rgba(168, 85, 247, 0.14), transparent 32%),
-      rgba(255, 255, 255, 0.42);
+    background: var(--glass-bg);
   }
 
   .dark .ops-panel {
-    border-color: rgba(148, 210, 255, 0.16);
-    background:
-      linear-gradient(135deg, rgba(34, 211, 238, 0.07), transparent 46%),
-      radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.12), transparent 42%),
-      rgba(7, 13, 32, 0.58);
-    box-shadow: 0 20px 52px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
+    box-shadow: var(--shadow-card);
   }
 
   .dark .ops-panel:hover {
-    border-color: rgba(103, 232, 249, 0.30);
-    box-shadow: 0 26px 62px rgba(0, 0, 0, 0.38), 0 0 38px rgba(34, 211, 238, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    border-color: var(--glass-border-strong);
+    box-shadow: var(--shadow-card-hover);
   }
 
   .dark .ops-panel-hero {
-    background:
-      linear-gradient(120deg, rgba(34, 211, 238, 0.08), transparent 42%),
-      radial-gradient(circle at 18% 12%, rgba(14, 165, 233, 0.12), transparent 35%),
-      radial-gradient(circle at 86% 18%, rgba(168, 85, 247, 0.13), transparent 34%),
-      rgba(6, 12, 30, 0.56);
+    background: var(--glass-bg);
   }
 
   .ops-dashboard .glass-surface {
     border-radius: 1.25rem;
-    border-color: rgba(255, 255, 255, 0.48);
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.30), transparent 54%),
-      rgba(255, 255, 255, 0.24);
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
   }
 
   .dark .ops-dashboard .glass-surface {
-    border-color: rgba(148, 210, 255, 0.13);
-    background:
-      linear-gradient(135deg, rgba(34, 211, 238, 0.06), transparent 54%),
-      rgba(10, 18, 42, 0.44);
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
   }
 
   @keyframes console-glow-drift {

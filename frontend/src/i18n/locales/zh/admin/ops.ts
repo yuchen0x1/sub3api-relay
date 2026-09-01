@@ -710,6 +710,8 @@ export default {
         enableChannelAutoDisable: '启用自动禁用',
         channelAutoDisableHint: '健康检查连续 N 轮整体失败后自动把渠道置为 disabled（与冷却策略的区别见 docs/CHANNEL_MONITOR.md）。默认关闭。',
         channelAutoDisableThreshold: '连续失败轮数',
+        channelAutoDisableAffectsAccounts: '联动暂停同平台账号调度',
+        channelAutoDisableAffectsAccountsHint: '启用后，连续失败还会把同 Provider 的账号临时标记为不可调度 15 分钟，之后自动恢复参与路由。默认关闭。',
         openaiQuotaAutoPause: 'OpenAI 账号配额自动暂停',
         openaiQuotaAutoPauseHint: '当 OpenAI 账号 5h / 7d 用量达到阈值时，调度会自动跳过该账号；窗口滚动后自动恢复。账号级阈值优先于此全局默认值。',
         openaiQuotaAutoPauseDefault5h: '默认 5h 用量阈值 (%)',

@@ -809,6 +809,7 @@ export interface OpsAdvancedSettings {
   channel_monitor_auto_disable: {
     enabled: boolean
     consecutive_failures: number
+    affects_accounts: boolean
   }
   aggregation: OpsAggregationSettings
   openai_account_quota_auto_pause: OpsOpenAIAccountQuotaAutoPauseSettings
