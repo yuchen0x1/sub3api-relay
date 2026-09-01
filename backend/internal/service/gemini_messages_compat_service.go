@@ -1149,6 +1149,19 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 	beginGeminiImageOutputObservation(c)
 	startTime := time.Now()
 
+	// 静态出口路由：Gemini 原生协议路径与其他网关协议保持同一出口绑定与容量语义。
+	// 出口槽位在整个转发生命周期内持有，所有退出路径都要释放。
+	staticRelease, staticErr := s.staticProxyRouter.Apply(ctx, account)
+	if staticErr != nil {
+		if errors.Is(staticErr, ErrStaticProxyCapacityUnavailable) {
+			return nil, s.writeGoogleError(c, http.StatusTooManyRequests, "Static proxy capacity exceeded, please retry later")
+		}
+		return nil, staticErr
+	}
+	if staticRelease != nil {
+		defer staticRelease()
+	}
+
 	if strings.TrimSpace(originalModel) == "" {
 		return nil, s.writeGoogleError(c, http.StatusBadRequest, "Missing model in URL")
 	}

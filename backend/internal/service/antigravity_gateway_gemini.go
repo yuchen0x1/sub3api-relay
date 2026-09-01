@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -44,6 +45,19 @@ func WithForwardGeminiSession(groupID int64, sessionHash string) ForwardGeminiOp
 func (s *AntigravityGatewayService) ForwardGemini(ctx context.Context, c *gin.Context, account *Account, originalModel string, action string, stream bool, body []byte, isStickySession bool, options ...ForwardGeminiOption) (*ForwardResult, error) {
 	beginUpstreamResponseModelObservation(c)
 	startTime := time.Now()
+
+	// 静态出口路由：Gemini 原生路径与 Antigravity Claude 路径保持同一出口绑定与容量语义。
+	staticRelease, staticErr := s.staticProxyRouter.Apply(ctx, account)
+	if staticErr != nil {
+		if errors.Is(staticErr, ErrStaticProxyCapacityUnavailable) {
+			return nil, s.writeGoogleError(c, http.StatusTooManyRequests, "Static proxy capacity exceeded, please retry later")
+		}
+		return nil, staticErr
+	}
+	if staticRelease != nil {
+		defer staticRelease()
+	}
+
 	forwardOpts := forwardGeminiOptions{}
 	for _, apply := range options {
 		if apply != nil {
