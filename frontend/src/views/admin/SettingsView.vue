@@ -2062,7 +2062,7 @@
                             size="xs"
                           />
                         </button>
-                        <button :aria-label="t('common.moveUp')"
+                        <button :aria-label="t('moveUp')"
                           type="button"
                           class="btn btn-secondary btn-sm px-2"
                           :disabled="index === 0"
@@ -2070,7 +2070,7 @@
                         >
                           <Icon name="arrowUp" size="xs" />
                         </button>
-                        <button :aria-label="t('common.moveDown')"
+                        <button :aria-label="t('moveDown')"
                           type="button"
                           class="btn btn-secondary btn-sm px-2"
                           :disabled="

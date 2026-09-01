@@ -56,7 +56,7 @@
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.passwordPlaceholder')"
             />
-            <button :aria-label="t('common.togglePassword')"
+            <button :aria-label="t('togglePasswordField')"
               type="button"
               @click="showPassword = !showPassword"
               :disabled="authActionDisabled"
@@ -73,7 +73,7 @@
               to="/forgot-password"
               class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
             >
-              {{ t('auth.forgotPassword') }}
+              {{ t('auth.forgotPasswordLabel') }}
             </router-link>
           </div>
         </div>

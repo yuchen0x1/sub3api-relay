@@ -43,7 +43,7 @@
             />
           </div>
           <div>
-            <label class="input-label">{{ t('auth.confirmPassword') }}</label>
+            <label class="input-label">{{ t('auth.confirmPasswordField') }}</label>
             <input
               v-model="confirmPassword"
               type="password"

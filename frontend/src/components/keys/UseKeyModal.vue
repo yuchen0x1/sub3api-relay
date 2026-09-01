@@ -97,7 +97,7 @@
               ]"
               @click="codexAuthMode = 'api-key'"
             >
-              {{ t('keys.useKeyModal.openai.authModeApiKey') }}
+              {{ t('keys.useKeyModal.openai.authModeApiKeyField') }}
             </button>
           </div>
           <div

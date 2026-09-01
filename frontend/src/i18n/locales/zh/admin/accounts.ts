@@ -2,6 +2,11 @@ export default {
     accounts: {
       title: '账号管理',
       description: '管理 AI 平台账号和 Cookie',
+      apiKeyHint: '填写上游服务商签发的 API Key',
+      baseUrlHint: '填写兼容接口的 Base URL，留空使用该平台的默认地址',
+      apiKeyIsRequired: 'API Key 不能为空',
+      fromModel: '源模型',
+      toModel: '目标模型',
       createAccount: '添加账号',
       autoRefresh: '自动刷新',
       enableAutoRefresh: '启用自动刷新',

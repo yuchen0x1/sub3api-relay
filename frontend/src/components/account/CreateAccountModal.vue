@@ -302,7 +302,7 @@
               <Icon name="key" size="sm" />
             </div>
             <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.xaiConsoleApiKey') }}</span>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.xaiConsoleApiKeyField') }}</span>
               <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.xaiConsoleApiKeyDesc') }}</span>
             </div>
           </button>
@@ -747,7 +747,7 @@
             </div>
             <div>
               <span class="block text-sm font-medium text-gray-900 dark:text-white">API Key</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.antigravityApikey') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.antigravityApikeyField') }}</span>
             </div>
           </button>
         </div>
@@ -1804,7 +1804,7 @@
                   {{ t('admin.accounts.tempUnschedulable.ruleIndex', { index: index + 1 }) }}
                 </span>
                 <div class="flex items-center gap-2">
-                  <button :aria-label="t('common.moveUp')"
+                  <button :aria-label="t('moveUp')"
                     type="button"
                     :disabled="index === 0"
                     @click="moveTempUnschedRule(index, -1)"
@@ -1812,7 +1812,7 @@
                   >
                     <Icon name="chevronUp" size="sm" :stroke-width="2" />
                   </button>
-                  <button :aria-label="t('common.moveDown')"
+                  <button :aria-label="t('moveDown')"
                     type="button"
                     :disabled="index === tempUnschedRules.length - 1"
                     @click="moveTempUnschedRule(index, 1)"
@@ -4159,7 +4159,7 @@ const handleSubmit = async () => {
       return
     }
     if (!upstreamApiKey.value.trim()) {
-      appStore.showError(t('admin.accounts.upstream.pleaseEnterApiKey'))
+      appStore.showError(t('admin.accounts.upstream.pleaseEnterApiKeyField'))
       return
     }
 
@@ -4211,7 +4211,7 @@ const handleSubmit = async () => {
 
   // For apikey type, create directly
   if (!apiKeyValue.value.trim()) {
-    appStore.showError(t('admin.accounts.pleaseEnterApiKey'))
+    appStore.showError(t('admin.accounts.pleaseEnterApiKeyField'))
     return
   }
 
@@ -4435,7 +4435,7 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
     .filter((rt) => rt)
 
   if (refreshTokens.length === 0) {
-    grokOAuth.error.value = t('admin.accounts.oauth.grok.pleaseEnterRefreshToken')
+    grokOAuth.error.value = t('admin.accounts.oauth.grok.pleaseEnterRefreshTokenField')
     return
   }
   if (!validateGrokOAuthUpstreamConfig()) return
@@ -4890,7 +4890,7 @@ const handleOpenAIBatchRT = async (refreshTokenInput: string, clientId?: string)
     .filter((rt) => rt)
 
   if (refreshTokens.length === 0) {
-    oauthClient.error.value = t('admin.accounts.oauth.openai.pleaseEnterRefreshToken')
+    oauthClient.error.value = t('admin.accounts.oauth.openai.pleaseEnterRefreshTokenField')
     return
   }
 
@@ -5010,7 +5010,7 @@ const handleAntigravityValidateRT = async (refreshTokenInput: string) => {
     .filter((rt) => rt)
 
   if (refreshTokens.length === 0) {
-    antigravityOAuth.error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshToken')
+    antigravityOAuth.error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshTokenField')
     return
   }
 

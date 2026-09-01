@@ -9,7 +9,7 @@
           <Icon name="key" size="lg" class="text-primary-600 dark:text-primary-400" />
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('dashboard.createApiKey') }}</p>
+          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('dashboard.createApiKeyField') }}</p>
           <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('dashboard.generateNewKey') }}</p>
         </div>
         <Icon

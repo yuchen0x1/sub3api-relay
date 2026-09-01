@@ -120,7 +120,7 @@
     <!-- Footer -->
     <template #footer>
       <p class="text-gray-500 dark:text-dark-400">
-        {{ t('auth.rememberedPassword') }}
+        {{ t('auth.rememberedPasswordLabel') }}
         <router-link
           to="/login"
           class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"

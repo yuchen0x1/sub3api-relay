@@ -470,7 +470,7 @@
                     @click="toggleClearApiKey"
                   >
                     <Icon :name="configForm.clear_api_key ? 'x' : 'trash'" size="sm" />
-                    {{ configForm.clear_api_key ? t('admin.riskControl.keepApiKey') : t('admin.riskControl.clearApiKey') }}
+                    {{ configForm.clear_api_key ? t('admin.riskControl.keepApiKeyField') : t('admin.riskControl.clearApiKeyField') }}
                   </button>
                 </div>
               </div>
@@ -634,7 +634,7 @@
                               v-if="row.configured && !configForm.clear_api_key"
                               type="button"
                               class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-dark-700 dark:hover:text-gray-200"
-                              :title="isStoredApiKeyPendingDelete(row) ? t('admin.riskControl.undoDeleteApiKey') : t('admin.riskControl.deleteApiKey')"
+                              :title="isStoredApiKeyPendingDelete(row) ? t('admin.riskControl.undoDeleteApiKeyField') : t('admin.riskControl.deleteApiKeyField')"
                               @click="toggleDeleteStoredApiKey(row)"
                             >
                               <Icon :name="isStoredApiKeyPendingDelete(row) ? 'refresh' : 'trash'" size="xs" />
@@ -1466,7 +1466,7 @@ const isFlaggedHashInputValid = computed(() => /^[a-fA-F0-9]{64}$/.test(flaggedH
 
 const storedApiKeyTestButtonText = computed(() => {
   if (apiKeyTesting.value) return t('admin.riskControl.testingApiKeys')
-  if (hasModerationAuditInput.value) return t('admin.riskControl.testContentWithStoredApiKey')
+  if (hasModerationAuditInput.value) return t('admin.riskControl.testContentWithStoredApiKeyField')
   return t('admin.riskControl.testStoredApiKeys')
 })
 

@@ -838,7 +838,7 @@
                 <span class="min-w-0 flex-1 break-all text-sm text-gray-700 dark:text-gray-300">
                   {{ item.id }}
                 </span>
-                <button :aria-label="t('common.moveUp')"
+                <button :aria-label="t('moveUp')"
                   type="button"
                   :disabled="index === 0"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -846,7 +846,7 @@
                 >
                   <Icon name="arrowUp" size="sm" />
                 </button>
-                <button :aria-label="t('common.moveDown')"
+                <button :aria-label="t('moveDown')"
                   type="button"
                   :disabled="index === createModelsListState.items.length - 1"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -2174,7 +2174,7 @@
                 <span class="min-w-0 flex-1 break-all text-sm text-gray-700 dark:text-gray-300">
                   {{ item.id }}
                 </span>
-                <button :aria-label="t('common.moveUp')"
+                <button :aria-label="t('moveUp')"
                   type="button"
                   :disabled="index === 0"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -2182,7 +2182,7 @@
                 >
                   <Icon name="arrowUp" size="sm" />
                 </button>
-                <button :aria-label="t('common.moveDown')"
+                <button :aria-label="t('moveDown')"
                   type="button"
                   :disabled="index === editModelsListState.items.length - 1"
                   class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-dark-600 dark:hover:text-gray-200"
@@ -3510,7 +3510,7 @@
                   :options="compositeRouteEndpointOptions"
                   class="min-w-0 flex-1"
                 />
-                <button :aria-label="t('common.preview')"
+                <button :aria-label="t('preview')"
                   type="button"
                   class="btn btn-secondary"
                   :disabled="compositePreviewLoading || !compositePreviewModel"

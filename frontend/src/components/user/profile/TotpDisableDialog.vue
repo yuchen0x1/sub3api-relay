@@ -51,7 +51,7 @@
           <!-- Password verification -->
           <div v-else>
             <label for="password" class="input-label">
-              {{ t('profile.currentPassword') }}
+              {{ t('profile.currentPasswordField') }}
             </label>
             <input
               id="password"
@@ -59,7 +59,7 @@
               type="password"
               autocomplete="current-password"
               class="input"
-              :placeholder="t('profile.totp.enterPassword')"
+              :placeholder="t('profile.totp.enterPasswordField')"
             />
           </div>
 

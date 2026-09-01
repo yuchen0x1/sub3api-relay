@@ -2,6 +2,11 @@ export default {
     accounts: {
       title: 'Account Management',
       description: 'Manage AI platform accounts and credentials',
+      apiKeyHint: 'Enter the API key issued by your upstream provider',
+      baseUrlHint: 'Enter a compatible API base URL; leave empty to use the platform default',
+      apiKeyIsRequired: 'API key is required',
+      fromModel: 'From model',
+      toModel: 'To model',
       createAccount: 'Create Account',
       autoRefresh: 'Auto Refresh',
       enableAutoRefresh: 'Enable auto refresh',

@@ -114,7 +114,7 @@
               />
             </div>
             <div>
-              <label class="input-label">{{ t('setup.database.password') }}</label>
+              <label class="input-label">{{ t('setup.database.passwordField') }}</label>
               <input
                 v-model="formData.database.password"
                 type="password"

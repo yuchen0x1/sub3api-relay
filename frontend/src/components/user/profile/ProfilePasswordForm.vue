@@ -5,19 +5,19 @@
       class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
     >
       <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-        {{ t('profile.changePassword') }}
+        {{ t('profile.changePasswordField') }}
       </h2>
     </div>
     <div :class="props.embedded ? '' : 'px-6 py-6'">
       <form @submit.prevent="handleChangePassword" class="space-y-4">
         <div v-if="props.embedded">
           <p class="text-sm font-semibold text-gray-900 dark:text-white">
-            {{ t('profile.changePassword') }}
+            {{ t('profile.changePasswordField') }}
           </p>
         </div>
         <div>
           <label for="old_password" class="input-label">
-            {{ t('profile.currentPassword') }}
+            {{ t('profile.currentPasswordField') }}
           </label>
           <input
             id="old_password"
@@ -31,7 +31,7 @@
 
         <div>
           <label for="new_password" class="input-label">
-            {{ t('profile.newPassword') }}
+            {{ t('profile.newPasswordField') }}
           </label>
           <input
             id="new_password"
@@ -48,7 +48,7 @@
 
         <div>
           <label for="confirm_password" class="input-label">
-            {{ t('profile.confirmNewPassword') }}
+            {{ t('profile.confirmNewPasswordField') }}
           </label>
           <input
             id="confirm_password"
@@ -62,7 +62,7 @@
 
         <div class="flex justify-end pt-4">
           <button type="submit" :disabled="loading" class="btn btn-primary">
-            {{ loading ? t('profile.changingPassword') : t('profile.changePasswordButton') }}
+            {{ loading ? t('profile.changingPasswordField') : t('profile.changePasswordButton') }}
           </button>
         </div>
       </form>

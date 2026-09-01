@@ -61,7 +61,7 @@
               class="input-ring w-full h-12 pl-12 pr-12 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 transition-all dark:border-dark-700 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-500"
               @keydown.enter="queryKey"
             />
-            <button :aria-label="t('common.togglePassword')"
+            <button :aria-label="t('togglePasswordField')"
               @click="keyVisible = !keyVisible"
               class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 dark:text-dark-500 dark:hover:text-white transition-colors"
             >
@@ -873,7 +873,7 @@ async function queryKey() {
   if (isQuerying.value) return
   const key = apiKey.value.trim()
   if (!key) {
-    appStore.showInfo(t('keyUsage.enterApiKey'))
+    appStore.showInfo(t('keyUsage.enterApiKeyField'))
     return
   }
 

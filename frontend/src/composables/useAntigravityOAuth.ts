@@ -88,7 +88,7 @@ export function useAntigravityOAuth() {
     proxyId?: number | null
   ): Promise<AntigravityTokenInfo | null> => {
     if (!refreshToken.trim()) {
-      error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshToken')
+      error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshTokenField')
       return null
     }
 

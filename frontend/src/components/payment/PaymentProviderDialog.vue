@@ -183,7 +183,7 @@
                 spellcheck="false"
                 :placeholder="editing ? t('admin.accounts.leaveEmptyToKeep') : (field.defaultValue || '')"
               />
-              <button :aria-label="t('common.togglePassword')"
+              <button :aria-label="t('togglePasswordField')"
                 type="button"
                 @click="visibleFields[field.key] = !visibleFields[field.key]"
                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"

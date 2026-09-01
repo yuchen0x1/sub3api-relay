@@ -50,13 +50,13 @@
             <!-- Password verification -->
             <div v-else class="space-y-4">
               <div>
-                <label class="input-label">{{ t('profile.currentPassword') }}</label>
+                <label class="input-label">{{ t('profile.currentPasswordField') }}</label>
                 <input
                   v-model="verifyForm.password"
                   type="password"
                   autocomplete="current-password"
                   class="input"
-                  :placeholder="t('profile.totp.enterPassword')"
+                  :placeholder="t('profile.totp.enterPasswordField')"
                 />
               </div>
             </div>

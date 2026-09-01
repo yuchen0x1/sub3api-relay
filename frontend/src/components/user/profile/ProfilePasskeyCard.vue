@@ -47,7 +47,7 @@
             </div>
             <div>
               <label for="passkey-add-password" class="input-label">{{
-                t('profile.currentPassword')
+                t('profile.currentPasswordField')
               }}</label>
               <input
                 id="passkey-add-password"
@@ -145,7 +145,7 @@
           <form class="mt-4 space-y-4" @submit.prevent="confirmDelete">
             <div>
               <label for="passkey-delete-password" class="input-label">{{
-                t('profile.currentPassword')
+                t('profile.currentPasswordField')
               }}</label>
               <input
                 id="passkey-delete-password"

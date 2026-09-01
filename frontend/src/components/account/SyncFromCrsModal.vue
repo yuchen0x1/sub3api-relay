@@ -46,7 +46,7 @@
             <input id="crs-username" v-model="form.username" type="text" class="input" required autocomplete="username" />
           </div>
           <div>
-            <label for="crs-password" class="input-label">{{ t('admin.accounts.crsPassword') }}</label>
+            <label for="crs-password" class="input-label">{{ t('admin.accounts.crsPasswordLabel') }}</label>
             <input
               id="crs-password"
               v-model="form.password"

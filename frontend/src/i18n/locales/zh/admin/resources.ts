@@ -139,7 +139,7 @@ export default {
       batchQualityCheck: '批量质量检测',
       batchTest: '批量测试',
       testFailed: '失败',
-      latencyFailed: '链接失败',
+      latencyFailed: '连接失败',
       batchTestEmpty: '暂无可测试的代理',
       batchTestDone: '批量测试完成，共测试 {count} 个代理',
       batchTestFailed: '批量测试失败',

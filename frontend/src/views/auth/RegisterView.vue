@@ -73,7 +73,7 @@
               :placeholder="t('auth.createPasswordPlaceholder')"
             />
             <button
-              :aria-label="t('common.togglePassword')"
+              :aria-label="t('togglePasswordField')"
               type="button"
               :disabled="registrationActionDisabled"
               @click="showPassword = !showPassword"

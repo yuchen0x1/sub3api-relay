@@ -489,6 +489,7 @@ export default {
       leaveEmptyToKeep: 'Leave empty to keep current password',
       generatePasswordField: 'Generate random password',
       copyPasswordField: 'Copy password',
+      passwordCopiedField: 'Password copied to clipboard',
       creating: 'Creating...',
       updating: 'Updating...',
       form: {
@@ -942,6 +943,8 @@ export default {
         gemini: 'Gemini',
         antigravity: 'Antigravity',
         grok: 'Grok',
+        manus: 'Manus',
+        anthropic: 'Anthropic (Claude)',
         composite: 'Composite',
       },
       deleteConfirm:
@@ -1141,6 +1144,14 @@ export default {
         selectAccounts: 'Select accounts',
         noAccounts: 'No accounts in this group',
         loadingAccounts: 'Loading accounts...',
+        claudeMaxSimulation: {
+          title: 'Claude Max Usage Simulation',
+          tooltip:
+            'When enabled, for Claude models without upstream cache-write usage, the system deterministically maps tokens to a small input plus 1h cache creation while keeping total tokens unchanged.',
+          enabled: 'Enabled (simulate 1h cache)',
+          disabled: 'Disabled',
+          hint: 'Only token categories in usage billing logs are adjusted. No per-request mapping state is persisted.'
+        },
         removeRule: 'Remove Rule',
         noRules: 'No routing rules',
         noRulesHint: 'Add routing rules to route specific model requests to designated accounts',
@@ -1152,14 +1163,6 @@ export default {
         tooltip: 'When enabled, if the request contains MCP tools, an XML format call protocol prompt will be injected into the system prompt. Disable this to avoid interference with certain clients.',
         enabled: 'Enabled',
         disabled: 'Disabled'
-      },
-      claudeMaxSimulation: {
-        title: 'Claude Max Usage Simulation',
-        tooltip:
-          'When enabled, for Claude models without upstream cache-write usage, the system deterministically maps tokens to a small input plus 1h cache creation while keeping total tokens unchanged.',
-        enabled: 'Enabled (simulate 1h cache)',
-        disabled: 'Disabled',
-        hint: 'Only token categories in usage billing logs are adjusted. No per-request mapping state is persisted.'
       },
       supportedScopes: {
         title: 'Supported Model Families',

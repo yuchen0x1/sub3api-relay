@@ -11,10 +11,10 @@
         <input v-model="form.email" type="email" required class="input" :placeholder="t('admin.users.enterEmail')" />
       </div>
       <div>
-        <label class="input-label">{{ t('admin.users.password') }}</label>
+        <label class="input-label">{{ t('admin.users.passwordField') }}</label>
         <div class="flex gap-2">
           <div class="relative flex-1">
-            <input v-model="form.password" type="text" required class="input pr-10" :placeholder="t('admin.users.enterPassword')" />
+            <input v-model="form.password" type="text" required class="input pr-10" :placeholder="t('admin.users.enterPasswordField')" />
           </div>
           <button :aria-label="t('common.add')" type="button" @click="generateRandomPassword" class="btn btn-secondary px-3">
             <Icon name="refresh" size="md" />

@@ -93,7 +93,7 @@
         <!-- New Password Input -->
         <div>
           <label for="password" class="input-label">
-            {{ t('auth.newPassword') }}
+            {{ t('auth.newPasswordLabel') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -110,7 +110,7 @@
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.newPasswordPlaceholder')"
             />
-            <button :aria-label="t('common.togglePassword')"
+            <button :aria-label="t('togglePasswordField')"
               type="button"
               @click="showPassword = !showPassword"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
@@ -124,7 +124,7 @@
         <!-- Confirm Password Input -->
         <div>
           <label for="confirmPassword" class="input-label">
-            {{ t('auth.confirmPassword') }}
+            {{ t('auth.confirmPasswordField') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -141,7 +141,7 @@
               :class="{ 'input-error': errors.confirmPassword }"
               :placeholder="t('auth.confirmPasswordPlaceholder')"
             />
-            <button :aria-label="t('common.togglePassword')"
+            <button :aria-label="t('togglePasswordField')"
               type="button"
               @click="showConfirmPassword = !showConfirmPassword"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
@@ -179,7 +179,7 @@
             ></path>
           </svg>
           <Icon v-else name="checkCircle" size="md" class="mr-2" />
-          {{ isLoading ? t('auth.resettingPassword') : t('auth.resetPassword') }}
+          {{ isLoading ? t('auth.resettingPasswordField') : t('auth.resetPasswordField') }}
         </button>
       </form>
     </div>
@@ -187,7 +187,7 @@
     <!-- Footer -->
     <template #footer>
       <p class="text-gray-500 dark:text-dark-400">
-        {{ t('auth.rememberedPassword') }}
+        {{ t('auth.rememberedPasswordLabel') }}
         <router-link
           to="/login"
           class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"

@@ -91,7 +91,7 @@ export function useGrokOAuth() {
     proxyId?: number | null
   ): Promise<GrokTokenInfo | null> => {
     if (!refreshToken.trim()) {
-      error.value = t('admin.accounts.oauth.grok.pleaseEnterRefreshToken')
+      error.value = t('admin.accounts.oauth.grok.pleaseEnterRefreshTokenField')
       return null
     }
 

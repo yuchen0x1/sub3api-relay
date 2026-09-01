@@ -1080,7 +1080,7 @@
                   {{ t('admin.accounts.tempUnschedulable.ruleIndex', { index: index + 1 }) }}
                 </span>
                 <div class="flex items-center gap-2">
-                  <button :aria-label="t('common.moveUp')"
+                  <button :aria-label="t('moveUp')"
                     type="button"
                     :disabled="index === 0"
                     @click="moveTempUnschedRule(index, -1)"
@@ -1088,7 +1088,7 @@
                   >
                     <Icon name="chevronUp" size="sm" :stroke-width="2" />
                   </button>
-                  <button :aria-label="t('common.moveDown')"
+                  <button :aria-label="t('moveDown')"
                     type="button"
                     :disabled="index === tempUnschedRules.length - 1"
                     @click="moveTempUnschedRule(index, 1)"
