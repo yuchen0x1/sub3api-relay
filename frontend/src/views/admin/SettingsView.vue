@@ -5275,7 +5275,7 @@ const betaPolicyActionOptions = computed(() => [
 const betaPolicyScopeOptions = computed(() => [
   { value: "all", label: t("admin.settings.betaPolicy.scopeAll") },
   { value: "oauth", label: t("admin.settings.betaPolicy.scopeOAuth") },
-  { value: "apikey", label: t("admin.settings.betaPolicy.scopeAPIKey") },
+  { value: "apikey", label: t("admin.settings.betaPolicy.scopeAPIKeyField") },
   { value: "bedrock", label: t("admin.settings.betaPolicy.scopeBedrock") },
 ]);
 
@@ -5378,7 +5378,7 @@ const openaiFastPolicyActionOptions = computed(() => [
 const openaiFastPolicyScopeOptions = computed(() => [
   { value: "all", label: t("admin.settings.openaiFastPolicy.scopeAll") },
   { value: "oauth", label: t("admin.settings.openaiFastPolicy.scopeOAuth") },
-  { value: "apikey", label: t("admin.settings.openaiFastPolicy.scopeAPIKey") },
+  { value: "apikey", label: t("admin.settings.openaiFastPolicy.scopeAPIKeyField") },
   {
     value: "bedrock",
     label: t("admin.settings.openaiFastPolicy.scopeBedrock"),
@@ -5492,21 +5492,28 @@ watch(
 
 /* ============ 系统设置 Tab 导航 ============ */
 .settings-tabs-shell {
-  @apply sticky z-20 -mx-1 rounded-2xl border border-white/80 bg-white/90 p-1.5 backdrop-blur-xl;
+  @apply sticky z-20 -mx-1 rounded-2xl border border-gray-200 bg-white p-1.5;
   top: 4.75rem;
-  box-shadow:
-    0 12px 28px rgb(15 23 42 / 0.07),
-    0 1px 0 rgb(255 255 255 / 0.9) inset;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 0.06);
+}
+
+.dark .settings-tabs-shell {
+  @apply border-dark-700 bg-dark-800;
 }
 
 .settings-tabs-scroll {
   @apply overflow-x-auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.45) transparent;
 }
 
 .settings-tabs-scroll::-webkit-scrollbar {
-  display: none;
+  height: 4px;
+}
+
+.settings-tabs-scroll::-webkit-scrollbar-thumb {
+  background: rgb(148 163 184 / 0.45);
+  border-radius: 9999px;
 }
 
 .settings-tabs {

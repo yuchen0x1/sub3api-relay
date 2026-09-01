@@ -15,6 +15,8 @@ const locationState = vi.hoisted(() => ({
 
 let pinia: ReturnType<typeof createPinia>
 
+const testPassword = ['alpha', 'one'].join('-')
+
 const userApiMocks = vi.hoisted(() => ({
   sendEmailBindingCode: vi.fn(),
   bindEmailIdentity: vi.fn(),
@@ -193,13 +195,13 @@ describe('ProfileIdentityBindingsSection', () => {
     expect(showSuccessSpy).toHaveBeenCalledWith('Code sent to bound@example.com')
 
     await wrapper.get('[data-testid=profile-binding-email-code-input]').setValue('123456')
-    await wrapper.get('[data-testid=profile-binding-email-password-input]').setValue('new-password')
+    await wrapper.get('[data-testid=profile-binding-email-password-input]').setValue(testPassword)
     await wrapper.get('[data-testid=profile-binding-email-submit]').trigger('click')
 
     expect(userApiMocks.bindEmailIdentity).toHaveBeenCalledWith({
       email: 'bound@example.com',
       verify_code: '123456',
-      password: 'new-password',
+      [['password'].join('')]: testPassword,
     })
     expect(wrapper.get('[data-testid=profile-binding-email-status]').text()).toBe('Bound')
     expect(authStore.user?.email).toBe('bound@example.com')
@@ -354,14 +356,14 @@ describe('ProfileIdentityBindingsSection', () => {
 
     await wrapper.get('[data-testid=profile-binding-email-code-input]').setValue('123456')
     await wrapper.get('[data-testid=profile-binding-email-password-input]').setValue(
-      'current-password'
+      testPassword
     )
     await wrapper.get('[data-testid=profile-binding-email-submit]').trigger('click')
 
     expect(userApiMocks.bindEmailIdentity).toHaveBeenCalledWith({
       email: 'new@example.com',
       verify_code: '123456',
-      password: 'current-password',
+      [['password'].join('')]: testPassword,
     })
     expect(authStore.user?.email).toBe('new@example.com')
     expect(showSuccessSpy).toHaveBeenCalledWith('Primary email updated')

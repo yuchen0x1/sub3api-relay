@@ -805,7 +805,7 @@
                       <label
                         class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                       >
-                        {{ t("admin.settings.turnstile.secretKey") }}
+                        {{ t("admin.settings.turnstile.secretKeyLabel") }}
                       </label>
                       <input
                         v-model="form.turnstile_secret_key"

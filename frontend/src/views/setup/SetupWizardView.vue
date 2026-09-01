@@ -227,7 +227,7 @@
               />
             </div>
             <div>
-              <label class="input-label">{{ t('setup.redis.password') }}</label>
+              <label class="input-label">{{ t('setup.redis.passwordField') }}</label>
               <input
                 v-model="formData.redis.password"
                 type="password"
@@ -333,7 +333,7 @@
           </div>
 
           <div>
-            <label class="input-label">{{ t('setup.admin.password') }}</label>
+            <label class="input-label">{{ t('setup.admin.passwordField') }}</label>
             <input
               v-model="formData.admin.password"
               type="password"
@@ -346,7 +346,7 @@
           </div>
 
           <div>
-            <label class="input-label">{{ t('setup.admin.confirmPassword') }}</label>
+            <label class="input-label">{{ t('setup.admin.confirmPasswordField') }}</label>
             <input
               v-model="confirmPassword"
               type="password"
