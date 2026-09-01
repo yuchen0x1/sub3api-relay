@@ -21,6 +21,11 @@ type mockAccountRepoForGemini struct {
 	listByPlatformFunc func(ctx context.Context, platforms []string) ([]Account, error)
 }
 
+func (m *mockAccountRepoForGemini) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
+	// 网关调度测试不涉及监控联动，返回 0 表示未暂停任何账号。
+	return 0, nil
+}
+
 func (m *mockAccountRepoForGemini) GetByID(ctx context.Context, id int64) (*Account, error) {
 	if acc, ok := m.accountsByID[id]; ok {
 		return acc, nil

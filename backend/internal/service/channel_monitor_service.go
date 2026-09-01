@@ -68,6 +68,13 @@ type channelMonitorAutoDisableReader interface {
 	ChannelMonitorAutoDisableSettings() OpsChannelMonitorAutoDisableSettings
 }
 
+// channelMonitorAccountPauser 在监控连续失败后对同 Provider 的可调度账号
+// 做临时调度暂停。实现按平台列举账号并对每个账号写入 temp_unschedulable_until。
+// until 由调用方设定（15 分钟），过期后调度过滤自动恢复参与，不在此处显式清理。
+type channelMonitorAccountPauser interface {
+	SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error)
+}
+
 // ChannelMonitorService 渠道监控管理服务。
 type ChannelMonitorService struct {
 	repo      ChannelMonitorRepository
@@ -77,6 +84,8 @@ type ChannelMonitorService struct {
 	scheduler MonitorScheduler
 	// autoDisableReader 为 nil 时自动禁用功能不生效（默认关闭）。
 	autoDisableReader channelMonitorAutoDisableReader
+	// accountPauser 为 nil 时"监控失败联动账号调度暂停"不生效（配置默认关闭）。
+	accountPauser channelMonitorAccountPauser
 
 	failMu           sync.Mutex
 	consecutiveFails map[int64]int
@@ -90,6 +99,10 @@ const maxChannelMonitorNameRunes = 100
 // ExtraHeaders to the service layer.
 const ChannelMonitorDuplicateOperationIDMetadataKey = "sub3api:duplicate_operation_id"
 
+// channelMonitorAccountPauseDuration 监控失败联动账号调度暂停的时长。
+// 到期后调度过滤（temp_unschedulable_until < now）自动恢复账号参与，无需显式清理。
+const channelMonitorAccountPauseDuration = 15 * time.Minute
+
 // NewChannelMonitorService 创建渠道监控服务实例。
 func NewChannelMonitorService(repo ChannelMonitorRepository, encryptor SecretEncryptor) *ChannelMonitorService {
 	return &ChannelMonitorService{
@@ -102,6 +115,11 @@ func NewChannelMonitorService(repo ChannelMonitorRepository, encryptor SecretEnc
 // SetAutoDisableReader 注入自动禁用配置读取器（wire 调用）。
 func (s *ChannelMonitorService) SetAutoDisableReader(reader channelMonitorAutoDisableReader) {
 	s.autoDisableReader = reader
+}
+
+// SetAccountPauser 注入"监控失败联动账号调度暂停"执行器（wire 调用，仅配置开启时生效）。
+func (s *ChannelMonitorService) SetAccountPauser(pauser channelMonitorAccountPauser) {
+	s.accountPauser = pauser
 }
 
 // ---------- CRUD ----------
@@ -533,6 +551,21 @@ func (s *ChannelMonitorService) maybeAutoDisable(ctx context.Context, m *Channel
 	}
 	if s.scheduler != nil {
 		s.scheduler.Unschedule(m.ID)
+	}
+	if cfg.AffectsAccounts && s.accountPauser != nil && m.Provider != "" {
+		// 同 Provider 的可调度账号本应服务于同一上游端点；监控连续失败说明
+		// 该上游持续不可用，一并临时取消它们的调度资格，避免流量继续打到
+		// 已知故障端点。15 分钟后 temp_unschedulable_until 过期自动恢复。
+		until := time.Now().Add(channelMonitorAccountPauseDuration)
+		reason := fmt.Sprintf("channel_monitor:%d", m.ID)
+		paused, err := s.accountPauser.SuspendAccountsByPlatform(ctx, m.Provider, until, reason)
+		if err != nil {
+			slog.Error("channel_monitor: account pause failed",
+				"monitor_id", m.ID, "provider", m.Provider, "error", err)
+		} else if paused > 0 {
+			slog.Warn("channel_monitor: paused scheduler accounts after consecutive failures",
+				"monitor_id", m.ID, "provider", m.Provider, "paused_accounts", paused, "until", until)
+		}
 	}
 	slog.Warn("channel_monitor: auto-disabled after consecutive failures",
 		"monitor_id", m.ID, "name", m.Name, "consecutive_failures", count)

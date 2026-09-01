@@ -2358,6 +2358,37 @@ func (r *accountRepository) ClearTempUnschedulable(ctx context.Context, id int64
 	return nil
 }
 
+// SuspendAccountsByPlatform 对指定平台的 active 可调度账号批量写入临时调度暂停。
+// 只影响存在新暂停窗口的账号（已有更长/更新的暂停窗口不会被缩短）
+// 返回受影响数量，用于监控联动日志。
+func (r *accountRepository) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
+	result, err := r.sql.ExecContext(ctx, `
+		UPDATE accounts
+		SET temp_unschedulable_until = CASE
+				WHEN temp_unschedulable_until IS NULL OR temp_unschedulable_until < $1 THEN $1
+				ELSE temp_unschedulable_until
+			END,
+			temp_unschedulable_reason = $2,
+			updated_at = NOW()
+		WHERE platform = $3
+			AND status = $4
+			AND deleted_at IS NULL
+	`, until, reason, platform, service.StatusActive)
+	if err != nil {
+		return 0, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if affected > 0 {
+		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, nil, nil, platform); err != nil {
+			logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue suspend by platform failed: platform=%s err=%v", platform, err)
+		}
+	}
+	return affected, nil
+}
+
 func (r *accountRepository) ClearRateLimit(ctx context.Context, id int64) error {
 	_, err := r.client.Account.Update().
 		Where(dbaccount.IDEQ(id)).

@@ -892,14 +892,20 @@ func ProvidePaymentOrderExpiryService(paymentSvc *PaymentService, lockCache Lead
 // ProvideChannelMonitorService 创建渠道监控服务（CRUD + RunCheck + 用户视图聚合）。
 // 加密器复用 wire 中已注入的 SecretEncryptor（AES-256-GCM）。
 // opsService 用于读取"连续失败自动禁用"配置（可选，默认关闭）。
+// accountPauser 用于"监控失败联动账号调度暂停"（可选：为 nil 且配置关闭时不生效）；
+// 只依赖最小接口，不要求完整 AccountRepository，避免测试内存根被方法炸开。
 func ProvideChannelMonitorService(
 	repo ChannelMonitorRepository,
 	encryptor SecretEncryptor,
 	opsService *OpsService,
+	accountPauser channelMonitorAccountPauser,
 ) *ChannelMonitorService {
 	svc := NewChannelMonitorService(repo, encryptor)
 	if opsService != nil {
 		svc.SetAutoDisableReader(opsService)
+	}
+	if accountPauser != nil {
+		svc.SetAccountPauser(accountPauser)
 	}
 	return svc
 }

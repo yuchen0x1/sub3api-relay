@@ -371,6 +371,43 @@ type recordingSQLExecutor struct {
 	execArgs    [][]any
 }
 
+func TestAccountRepository_SuspendAccountsByPlatform_NoRowsAffectedDoesNotWriteOutbox(t *testing.T) {
+	exec := &recordingSQLExecutor{result: rowsAffectedResult(0)}
+	repo := newAccountRepositoryWithSQL(nil, exec, nil)
+	until := time.Now().Add(time.Minute)
+
+	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "openai", until, "channel_monitor:7")
+
+	require.NoError(t, err)
+	require.Equal(t, int64(0), affected)
+	require.Len(t, exec.execQueries, 1)
+	normalized := normalizeSQLWhitespace(exec.execQueries[0])
+	require.Contains(t, normalized, "UPDATE accounts")
+	require.Contains(t, normalized, "temp_unschedulable_until < $1")
+	require.Contains(t, normalized, "platform = $3")
+	require.Contains(t, normalized, "status = $4")
+	require.NotContains(t, strings.Join(exec.execQueries, "\n"), "scheduler_outbox")
+}
+
+func TestAccountRepository_SuspendAccountsByPlatform_AffectedWritesOutboxWithPlatformPayload(t *testing.T) {
+	exec := &recordingSQLExecutor{result: rowsAffectedResult(3)}
+	repo := newAccountRepositoryWithSQL(nil, exec, nil)
+	until := time.Now().Add(15 * time.Minute)
+
+	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "gemini", until, "channel_monitor:9")
+
+	require.NoError(t, err)
+	require.Equal(t, int64(3), affected)
+	require.Len(t, exec.execQueries, 2)
+	require.NotContains(t, normalizeSQLWhitespace(exec.execQueries[0]), "scheduler_outbox")
+	require.Contains(t, normalizeSQLWhitespace(exec.execQueries[1]), "INSERT INTO scheduler_outbox")
+	require.Equal(t, until, exec.execArgs[0][0])
+	require.Equal(t, "channel_monitor:9", exec.execArgs[0][1])
+	require.Equal(t, "gemini", exec.execArgs[0][2])
+	require.Equal(t, service.StatusActive, exec.execArgs[0][3])
+	require.Equal(t, service.SchedulerOutboxEventAccountChanged, exec.execArgs[1][0])
+}
+
 func (e *recordingSQLExecutor) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	e.execQueries = append(e.execQueries, query)
 	e.execArgs = append(e.execArgs, append([]any(nil), args...))

@@ -32,6 +32,11 @@ type accountRepoStub struct {
 
 // 以下方法在本测试中不应被调用，使用 panic 确保测试失败时能快速定位问题
 
+// SuspendAccountsByPlatform 删除功能测试不调用，panic 用于快速定位误用。
+func (s *accountRepoStub) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
+	panic("unexpected SuspendAccountsByPlatform call")
+}
+
 func (s *accountRepoStub) Create(ctx context.Context, account *Account) error {
 	panic("unexpected Create call")
 }

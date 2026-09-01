@@ -455,6 +455,7 @@ func defaultOpsAdvancedSettings() *OpsAdvancedSettings {
 		ChannelMonitorAutoDisable: OpsChannelMonitorAutoDisableSettings{
 			Enabled:             false,
 			ConsecutiveFailures: 3,
+			AffectsAccounts:     false,
 		},
 		OpenAIAccountQuotaAutoPause:     OpsOpenAIAccountQuotaAutoPauseSettings{},
 		IgnoreCountTokensErrors:         true,  // count_tokens 404 是预期行为，默认忽略

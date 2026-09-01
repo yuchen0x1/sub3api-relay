@@ -99,6 +99,9 @@ type OpsAlertRuntimeSettings struct {
 type OpsChannelMonitorAutoDisableSettings struct {
 	Enabled             bool `json:"enabled"`
 	ConsecutiveFailures int  `json:"consecutive_failures"`
+	// AffectsAccounts 为 true 时，连续失败还会把同 Provider 的可调度账号
+	// 临时标记为不可调度（temp_unschedulable_until），实现"监控即路由健康"闭环。
+	AffectsAccounts bool `json:"affects_accounts"`
 }
 
 type OpsAdvancedSettings struct {

@@ -104,6 +104,10 @@ type AccountRepository interface {
 	SetOverloaded(ctx context.Context, id int64, until time.Time) error
 	SetTempUnschedulable(ctx context.Context, id int64, until time.Time, reason string) error
 	ClearTempUnschedulable(ctx context.Context, id int64) error
+	// SuspendAccountsByPlatform batch-pauses scheduling for all accounts of a
+	// platform up to `until` and returns the affected row count. Only accounts
+	// without a longer/newer pause window are touched.
+	SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error)
 	ClearRateLimit(ctx context.Context, id int64) error
 	ClearAntigravityQuotaScopes(ctx context.Context, id int64) error
 	ClearModelRateLimits(ctx context.Context, id int64) error

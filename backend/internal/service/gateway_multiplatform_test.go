@@ -27,6 +27,17 @@ type mockAccountRepoForPlatform struct {
 	getByIDCalls     int
 }
 
+func (m *mockAccountRepoForPlatform) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
+	if m.listPlatformFunc != nil {
+		accounts, err := m.listPlatformFunc(ctx, platform)
+		if err != nil {
+			return 0, err
+		}
+		return int64(len(accounts)), nil
+	}
+	return 0, nil
+}
+
 func (m *mockAccountRepoForPlatform) GetByID(ctx context.Context, id int64) (*Account, error) {
 	m.getByIDCalls++
 	if acc, ok := m.accountsByID[id]; ok {

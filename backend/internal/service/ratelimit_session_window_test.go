@@ -57,6 +57,9 @@ func (m *sessionWindowMockRepo) ClearModelRateLimits(_ context.Context, _ int64)
 func (m *sessionWindowMockRepo) ClearTempUnschedulable(_ context.Context, _ int64) error {
 	return nil
 }
+func (m *sessionWindowMockRepo) SuspendAccountsByPlatform(_ context.Context, _ string, _ time.Time, _ string) (int64, error) {
+	return 0, nil
+}
 
 // --- Unused interface methods (panic on unexpected call) ---
 
