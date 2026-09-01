@@ -2362,31 +2362,47 @@ func (r *accountRepository) ClearTempUnschedulable(ctx context.Context, id int64
 // 只影响存在新暂停窗口的账号（已有更长/更新的暂停窗口不会被缩短）
 // 返回受影响数量，用于监控联动日志。
 func (r *accountRepository) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
-	result, err := r.sql.ExecContext(ctx, `
+	rows, err := r.sql.QueryContext(ctx, `
 		UPDATE accounts
 		SET temp_unschedulable_until = CASE
 				WHEN temp_unschedulable_until IS NULL OR temp_unschedulable_until < $1 THEN $1
 				ELSE temp_unschedulable_until
 			END,
-			temp_unschedulable_reason = $2,
+			temp_unschedulable_reason = CASE
+				WHEN temp_unschedulable_until IS NULL OR temp_unschedulable_until < $1 THEN $2
+				ELSE temp_unschedulable_reason
+			END,
 			updated_at = NOW()
 		WHERE platform = $3
 			AND status = $4
 			AND deleted_at IS NULL
+		RETURNING id
 	`, until, reason, platform, service.StatusActive)
 	if err != nil {
 		return 0, err
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
+	ids := make([]int64, 0, 8)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
 		return 0, err
 	}
-	if affected > 0 {
-		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, nil, nil, platform); err != nil {
-			logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue suspend by platform failed: platform=%s err=%v", platform, err)
+	rows.Close()
+	// 平台级暂停没有单一 account_id，按受影响账号逐个入箱，
+	// 由消费端按账号粒度刷新快照；payload 留空与其他 AccountChanged 事件保持同一契约。
+	for _, id := range ids {
+		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, nil); err != nil {
+			logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue suspend by platform failed: account=%d err=%v", id, err)
 		}
 	}
-	return affected, nil
+	return int64(len(ids)), nil
 }
 
 func (r *accountRepository) ClearRateLimit(ctx context.Context, id int64) error {

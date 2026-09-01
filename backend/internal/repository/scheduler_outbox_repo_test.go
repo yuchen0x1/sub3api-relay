@@ -168,3 +168,27 @@ func TestEnqueueSchedulerOutbox_UngroupedAccountDedupesWithLiteralNilPayload(t *
 	require.Equal(t, keyLiteralNil, keyEmptyGroups,
 		"ungrouped-account account_changed must share dedup_key with other nil-payload variants")
 }
+
+func TestSchedulerOutboxRepositoryListAfterDropsMalformedPayload(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	// 历史版本曾写入裸字符串 payload（如 "gemini"）。反序列化成 map 必然失败，
+	// 这里验证该行被跳过而不是让整个批次返回错误、watermark 永久停摆。
+	mock.ExpectQuery("FROM selected AS s").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "event_type", "account_id", "group_id", "payload", "created_at"}).
+			AddRow(int64(7), "account_changed", nil, nil, []byte(`"gemini"`), time.Now()).
+			AddRow(int64(8), "account_changed", int64(42), nil, nil, time.Now()),
+	)
+
+	repo := &schedulerOutboxRepository{db: db}
+	events, err := repo.ListAfterAndReleaseDedup(context.Background(), 0, 10)
+
+	require.NoError(t, err, "malformed payload must be dropped, not fail the batch")
+	require.Len(t, events, 2)
+	require.Nil(t, events[0].Payload)
+	require.NotNil(t, events[1].AccountID)
+	require.Equal(t, int64(42), *events[1].AccountID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}

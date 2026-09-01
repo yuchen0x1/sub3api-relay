@@ -371,41 +371,72 @@ type recordingSQLExecutor struct {
 	execArgs    [][]any
 }
 
-func TestAccountRepository_SuspendAccountsByPlatform_NoRowsAffectedDoesNotWriteOutbox(t *testing.T) {
-	exec := &recordingSQLExecutor{result: rowsAffectedResult(0)}
-	repo := newAccountRepositoryWithSQL(nil, exec, nil)
-	until := time.Now().Add(time.Minute)
+func TestAccountRepository_SuspendAccountsByPlatform_NoRowsDoesNotWriteOutbox(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
 
-	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "openai", until, "channel_monitor:7")
+	exec := &sqlmockSQLExecutor{db: db}
+	mock.ExpectQuery("UPDATE accounts").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	repo := newAccountRepositoryWithSQL(nil, exec, nil)
+
+	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "openai", time.Now().Add(time.Minute), "channel_monitor:7")
 
 	require.NoError(t, err)
 	require.Equal(t, int64(0), affected)
-	require.Len(t, exec.execQueries, 1)
-	normalized := normalizeSQLWhitespace(exec.execQueries[0])
-	require.Contains(t, normalized, "UPDATE accounts")
-	require.Contains(t, normalized, "temp_unschedulable_until < $1")
-	require.Contains(t, normalized, "platform = $3")
-	require.Contains(t, normalized, "status = $4")
-	require.NotContains(t, strings.Join(exec.execQueries, "\n"), "scheduler_outbox")
+	require.Empty(t, exec.execQueries, "no outbox insert expected when no account was suspended")
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestAccountRepository_SuspendAccountsByPlatform_AffectedWritesOutboxWithPlatformPayload(t *testing.T) {
-	exec := &recordingSQLExecutor{result: rowsAffectedResult(3)}
-	repo := newAccountRepositoryWithSQL(nil, exec, nil)
-	until := time.Now().Add(15 * time.Minute)
+func TestAccountRepository_SuspendAccountsByPlatform_EnqueuesPerAccountOutboxEvents(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
 
-	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "gemini", until, "channel_monitor:9")
+	exec := &sqlmockSQLExecutor{db: db}
+	mock.ExpectQuery("UPDATE accounts").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(11).AddRow(12).AddRow(13))
+	mock.ExpectExec("INSERT INTO scheduler_outbox").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("INSERT INTO scheduler_outbox").WillReturnResult(sqlmock.NewResult(2, 1))
+	mock.ExpectExec("INSERT INTO scheduler_outbox").WillReturnResult(sqlmock.NewResult(3, 1))
+	repo := newAccountRepositoryWithSQL(nil, exec, nil)
+
+	affected, err := repo.SuspendAccountsByPlatform(context.Background(), "gemini", time.Now().Add(15*time.Minute), "channel_monitor:9")
 
 	require.NoError(t, err)
 	require.Equal(t, int64(3), affected)
-	require.Len(t, exec.execQueries, 2)
-	require.NotContains(t, normalizeSQLWhitespace(exec.execQueries[0]), "scheduler_outbox")
-	require.Contains(t, normalizeSQLWhitespace(exec.execQueries[1]), "INSERT INTO scheduler_outbox")
-	require.Equal(t, until, exec.execArgs[0][0])
-	require.Equal(t, "channel_monitor:9", exec.execArgs[0][1])
-	require.Equal(t, "gemini", exec.execArgs[0][2])
-	require.Equal(t, service.StatusActive, exec.execArgs[0][3])
-	require.Equal(t, service.SchedulerOutboxEventAccountChanged, exec.execArgs[1][0])
+	require.Len(t, exec.execQueries, 3, "one outbox event per suspended account; consumer refreshes snapshots per account id")
+	normalized := normalizeSQLWhitespace(exec.queries[0])
+	require.Contains(t, normalized, "temp_unschedulable_reason = CASE",
+		"an existing longer pause window must keep its original reason")
+	require.Contains(t, normalized, "RETURNING id")
+	for i, wantID := range []int64{11, 12, 13} {
+		require.Equal(t, service.SchedulerOutboxEventAccountChanged, exec.execArgs[i][0])
+		accountID, ok := exec.execArgs[i][1].(*int64)
+		require.True(t, ok)
+		require.Equal(t, wantID, *accountID)
+	}
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// sqlmockSQLExecutor 把 QueryContext/ExecContext 委托给 sqlmock，用于覆盖 RETURNING 类写入路径。
+type sqlmockSQLExecutor struct {
+	db          *sql.DB
+	queries     []string
+	execQueries []string
+	execArgs    [][]any
+}
+
+func (e *sqlmockSQLExecutor) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	e.queries = append(e.queries, query)
+	e.execQueries = append(e.execQueries, query)
+	e.execArgs = append(e.execArgs, append([]any(nil), args...))
+	return e.db.ExecContext(ctx, query, args...)
+}
+
+func (e *sqlmockSQLExecutor) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	e.queries = append(e.queries, query)
+	return e.db.QueryContext(ctx, query, args...)
 }
 
 func (e *recordingSQLExecutor) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {

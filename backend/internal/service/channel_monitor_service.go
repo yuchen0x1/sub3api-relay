@@ -401,6 +401,12 @@ func (s *ChannelMonitorService) Update(ctx context.Context, id int64, p ChannelM
 		return nil, fmt.Errorf("update channel monitor: %w", err)
 	}
 
+	// 修改/重新启用后清零连续失败计数：手动重启用时旧计数往往已达阈值，
+	// 不清零会导致下一次检测失败一次就立即再次自动禁用，永远无法用重启用验证上游是否恢复。
+	s.failMu.Lock()
+	delete(s.consecutiveFails, existing.ID)
+	s.failMu.Unlock()
+
 	// 不再调 s.Get 重走解密链：避免二次解密带来的"密文被静默清空"风险（与 Create 一致）。
 	if apiKeyUpdated {
 		existing.APIKey = newPlainAPIKey
@@ -437,6 +443,9 @@ func (s *ChannelMonitorService) Delete(ctx context.Context, id int64) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("delete channel monitor: %w", err)
 	}
+	s.failMu.Lock()
+	delete(s.consecutiveFails, id)
+	s.failMu.Unlock()
 	if s.scheduler != nil {
 		s.scheduler.Unschedule(id)
 	}

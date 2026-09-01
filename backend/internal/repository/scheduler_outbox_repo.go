@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
 )
 
@@ -81,9 +82,13 @@ func (r *schedulerOutboxRepository) ListAfterAndReleaseDedup(ctx context.Context
 		if len(payloadRaw) > 0 {
 			var payload map[string]any
 			if err := json.Unmarshal(payloadRaw, &payload); err != nil {
-				return nil, err
+				// 非对象 payload 无法被任何处理器消费；跳过而不是让整个轮询失败、
+				// watermark 停摆并阻塞后续所有事件。
+				logger.LegacyPrintf("repository.scheduler_outbox", "[SchedulerOutbox] drop malformed payload: event=%d type=%s err=%v", event.ID, event.EventType, err)
+				event.Payload = nil
+			} else {
+				event.Payload = payload
 			}
-			event.Payload = payload
 		}
 		events = append(events, event)
 	}
