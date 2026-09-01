@@ -43,8 +43,7 @@ export default {
     // Proxies Management
     proxies: {
       title: 'IP管理',
-      description: '管理代理服务器配置',
-      createProxy: '添加代理',
+      description: '管理代理服务器配置',      createProxy: '添加代理',
       editProxy: '编辑代理',
       deleteProxy: '删除代理',
       ad: {
@@ -243,6 +242,31 @@ export default {
       fallbackProxy: '指定备用代理',
       fallbackDirect: '回退直连',
       backupProxy: '备用代理',
+    },
+
+    // Static Proxy Exits Management
+    staticExitsPage: {
+      title: '静态出口',
+      description: '管理账号的静态代理出口分配，每个启用的出口提供 10 个请求并发槽位',
+      allAccounts: '全部账号',
+      allStates: '全部状态',
+      totalExits: '出口总数',
+      enabledExits: '启用出口',
+      enabledCapacity: '有效并发容量',
+      capacityPerExit: '单出口并发槽',
+      createTitle: '新建出口分配',
+      selectAccount: '选择账号',
+      exitName: '出口名称',
+      account: '账号',
+      proxy: '代理',
+      health: '健康状态',
+      failures: '失败次数',
+      enabledState: '启用状态',
+      actions: '操作',
+      pageIndicator: '第 {page} / {pages} 页',
+      prevPage: '上一页',
+      nextPage: '下一页',
+      loadReferencesFailed: '加载账号或代理列表失败',
     },
 
     // Redeem Codes Management

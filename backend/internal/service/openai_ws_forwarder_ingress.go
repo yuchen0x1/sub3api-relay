@@ -65,6 +65,19 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		return err
 	}
 
+	// Static proxy routing (all-protocol coverage; see StaticProxyRouter).
+	// The WS session dials through the selected exit's proxy via
+	// account.Proxy; the caller maps ErrStaticProxyCapacityUnavailable to a
+	// 429 handshake rejection. The release func must stay alive for the whole
+	// WS session, so it is released by the session-scoped defer below.
+	staticRelease, staticErr := s.staticProxyRouter.Apply(ctx, account)
+	if staticErr != nil {
+		return staticErr
+	}
+	if staticRelease != nil {
+		defer staticRelease()
+	}
+
 	// 预取一次 OpenAI Fast Policy settings，绑定到 ctx，让该 WS session
 	// 内所有帧的 evaluateOpenAIFastPolicy 调用复用同一份快照，避免每帧
 	// 进入 DB / settingRepo。Trade-off 见 withOpenAIFastPolicyContext 注释。

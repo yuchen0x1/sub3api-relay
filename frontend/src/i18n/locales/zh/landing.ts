@@ -16,11 +16,11 @@ export default {
     goToDashboard: '进入控制台',
     gateway: {
       title: '一套接口，直连模型',
-      description: '兼容 Anthropic Messages API 契约，一个密钥调用所有已接入模型',
+      description: '统一网关 API 契约，一个密钥调用所有已接入模型',
       request: '请求示例',
       response: '响应示例',
       chat: '对话补全',
-      chatDesc: 'POST /v1/messages，Anthropic 兼容格式，天然支持流式输出',
+      chatDesc: 'POST /v1/messages，天然支持流式输出',
       models: '模型列表',
       modelsDesc: 'GET /v1/models，随时获取当前可用的模型目录',
       streaming: '流式输出',

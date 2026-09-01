@@ -53,7 +53,7 @@ describe('buildOpenAIUsageRefreshKey', () => {
   it('非 OpenAI OAuth 账号返回空 key', () => {
     expect(buildOpenAIUsageRefreshKey({
       id: 2,
-      platform: 'anthropic',
+      platform: 'grok',
       type: 'oauth',
       updated_at: '2026-03-07T10:00:00Z',
       last_used_at: '2026-03-07T10:00:00Z',

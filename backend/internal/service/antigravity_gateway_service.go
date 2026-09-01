@@ -129,6 +129,7 @@ type AntigravityGatewayService struct {
 	cache             GatewayCache // 用于模型级限流时清除粘性会话绑定
 	schedulerSnapshot *SchedulerSnapshotService
 	internal500Cache  Internal500CounterCache // INTERNAL 500 渐进惩罚计数器
+	staticProxyRouter *StaticProxyRouter
 }
 
 func (s *AntigravityGatewayService) upstreamErrorBodyReadLimit() int64 {
@@ -156,7 +157,16 @@ func NewAntigravityGatewayService(
 	httpUpstream HTTPUpstream,
 	settingService *SettingService,
 	internal500Cache Internal500CounterCache,
+	// staticProxyRouter is optional (variadic); see NewOpenAIGatewayService.
+	staticProxyRouters ...*StaticProxyRouter,
 ) *AntigravityGatewayService {
+	var staticProxyRouter *StaticProxyRouter
+	for _, router := range staticProxyRouters {
+		if router != nil {
+			staticProxyRouter = router
+			break
+		}
+	}
 	return &AntigravityGatewayService{
 		accountRepo:       accountRepo,
 		tokenProvider:     tokenProvider,
@@ -166,6 +176,7 @@ func NewAntigravityGatewayService(
 		cache:             cache,
 		schedulerSnapshot: schedulerSnapshot,
 		internal500Cache:  internal500Cache,
+		staticProxyRouter: staticProxyRouter,
 	}
 }
 

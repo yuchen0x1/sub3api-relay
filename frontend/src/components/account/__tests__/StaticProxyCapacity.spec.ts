@@ -16,7 +16,7 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
   return {
     id: 1,
     name: 'account',
-    platform: 'anthropic',
+    platform: 'openai',
     type: 'oauth',
     proxy_id: null,
     concurrency: 5,
@@ -78,25 +78,15 @@ describe('Static proxy exit capacity', () => {
     expect(wrapper.text()).toContain('2/5')
   })
 
-  it('keeps existing cost, session, RPM, and quota badges beside static capacity', () => {
+  it('static capacity replaces the concurrency badge and quota badges still apply to apikey accounts', () => {
     const wrapper = mount(AccountCapacityCell, {
       props: {
-        account: staticCapacityAccount({
-          window_cost_limit: 20,
-          current_window_cost: 4,
-          max_sessions: 3,
-          active_sessions: 1,
-          base_rpm: 10,
-          current_rpm: 2
-        })
+        account: staticCapacityAccount()
       }
     })
 
-    expect(wrapper.findAllComponents(CapacityBadge)).toHaveLength(7)
+    expect(wrapper.findAllComponents(CapacityBadge)).toHaveLength(4)
     expect(wrapper.findAllComponents(QuotaBadge)).toHaveLength(0)
-    expect(wrapper.text()).toContain('$4.00/$20.00')
-    expect(wrapper.text()).toContain('1/3')
-    expect(wrapper.text()).toContain('2/10')
 
     const quotaWrapper = mount(AccountCapacityCell, {
       props: {
@@ -127,5 +117,19 @@ describe('Static proxy exit capacity', () => {
     expect(disabled.attributes('title')).toContain('disabled.example.com')
     expect(unhealthy.classes()).toContain('bg-red-100')
     expect(unhealthy.attributes('title')).toContain('unhealthy.example.com')
+  })
+
+  it('colors idle exits green and near-full exits amber', () => {
+    const account = staticCapacityAccount()
+    account.static_ip_capacity!.exits = [
+      { id: 9, name: 'Idle exit', host: 'idle.example.com', status: 'healthy', current: 0, max: 10 },
+      { id: 10, name: 'Near full exit', host: 'near.example.com', status: 'healthy', current: 8, max: 10 },
+      { id: 11, name: 'Full exit', host: 'full.example.com', status: 'healthy', current: 10, max: 10 }
+    ]
+
+    const wrapper = mount(AccountCapacityCell, { props: { account } })
+    expect(wrapper.get('[data-test="static-capacity-exit-9"]').classes()).toContain('bg-emerald-100')
+    expect(wrapper.get('[data-test="static-capacity-exit-10"]').classes()).toContain('bg-amber-100')
+    expect(wrapper.get('[data-test="static-capacity-exit-11"]').classes()).toContain('bg-red-100')
   })
 })

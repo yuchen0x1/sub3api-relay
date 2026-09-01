@@ -15,7 +15,7 @@ describe("groupsModelsListCandidates", () => {
     const second = {
       mode: "create" as const,
       groupID: 0,
-      platform: "anthropic" as const,
+      platform: "grok" as const,
     };
 
     const firstID = tracker.next(first);
@@ -54,7 +54,7 @@ describe("groupsModelsListCandidates", () => {
     const createRequest = {
       mode: "create" as const,
       groupID: 0,
-      platform: "anthropic" as const,
+      platform: "grok" as const,
     };
 
     const editID = tracker.next(editRequest);

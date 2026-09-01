@@ -219,6 +219,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyCyberSessionBlockEnabled:    "false",
 		SettingKeyCyberSessionBlockTTLSeconds: "3600",
 
+		// 静态出口池（默认开启：v0.1.198 起已生效，开关仅作灰度/紧急回退）
+		SettingKeyStaticIPPoolEnabled: "true",
+
 		// Claude Code version check (default: empty = disabled)
 		SettingKeyMinClaudeCodeVersion: "",
 		SettingKeyMaxClaudeCodeVersion: "",
@@ -823,6 +826,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	} else {
 		result.CyberSessionBlockTTLSeconds = 3600
 	}
+
+	// 静态出口池（默认开启，仅显式 false 关闭）
+	result.StaticIPPoolEnabled = settings[SettingKeyStaticIPPoolEnabled] != "false"
 
 	// Claude Code version check
 	result.MinClaudeCodeVersion = settings[SettingKeyMinClaudeCodeVersion]

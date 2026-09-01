@@ -2200,7 +2200,7 @@
                 </p>
               </div>
 
-              <!-- Anthropic Cache TTL 1h Injection -->
+              <!-- Protocol Cache TTL 1h Injection -->
               <div class="flex items-center justify-between">
                 <div>
                   <label
@@ -2248,7 +2248,7 @@
                 <Toggle v-model="form.rewrite_message_cache_control" />
               </div>
 
-              <!-- 客户端 dateline 归一化（仅 Anthropic OAuth/SetupToken） -->
+              <!-- 客户端 dateline 归一化（仅协议兼容账号） -->
               <div class="flex items-center justify-between">
                 <div>
                   <label

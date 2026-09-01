@@ -34,6 +34,7 @@ import affiliatesAPI from './affiliates'
 import riskControlAPI from './riskControl'
 import adminComplianceAPI from './compliance'
 import auditAPI from './audit'
+import staticProxyExitsAPI from './staticProxyExits'
 
 /**
  * Unified admin API object for convenient access
@@ -44,6 +45,7 @@ export const adminAPI = {
   groups: groupsAPI,
   accounts: accountsAPI,
   proxies: proxiesAPI,
+  staticProxyExits: staticProxyExitsAPI,
   redeem: redeemAPI,
   promo: promoAPI,
   announcements: announcementsAPI,

@@ -618,12 +618,12 @@ describe('AccountUsageCell', () => {
   it('Key 账号会展示 today stats 徽章并带 A/U 提示', async () => {
 		const wrapper = mount(AccountUsageCell, {
 		  props: {
-		    account: makeAccount({
-		      id: 3001,
-		      platform: 'anthropic',
-		      type: 'apikey'
-		    }),
-		    todayStats: {
+	    account: makeAccount({
+	      id: 3001,
+	      platform: 'openai',
+	      type: 'apikey'
+	    }),
+	    todayStats: {
 		      requests: 1_000_000,
 		      tokens: 1_000_000_000,
 		      cost: 12.345,
@@ -1296,13 +1296,13 @@ describe('AccountUsageCell', () => {
   it('Key 账号在 today stats loading 时显示骨架屏', async () => {
 		const wrapper = mount(AccountUsageCell, {
 		  props: {
-		    account: makeAccount({
-		      id: 3002,
-		      platform: 'anthropic',
-		      type: 'apikey'
-		    }),
-		    todayStats: null,
-		    todayStatsLoading: true
+	    account: makeAccount({
+	      id: 3002,
+	      platform: 'openai',
+	      type: 'apikey'
+	    }),
+	    todayStats: null,
+	    todayStatsLoading: true
 		  },
 		  global: {
 		    stubs: {
@@ -1320,10 +1320,10 @@ describe('AccountUsageCell', () => {
   it('Key 账号在无 today stats 且无配额时显示兜底短横线', async () => {
 		const wrapper = mount(AccountUsageCell, {
 		  props: {
-		    account: makeAccount({
-		      id: 3003,
-		      platform: 'anthropic',
-		      type: 'apikey',
+	    account: makeAccount({
+	      id: 3003,
+	      platform: 'openai',
+	      type: 'apikey',
 		      quota_limit: 0,
 		      quota_daily_limit: 0,
 		      quota_weekly_limit: 0
@@ -1383,61 +1383,7 @@ describe('AccountUsageCell', () => {
 		expect(wrapper.text()).toContain('U $0.00')
   })
 
-  it('Anthropic OAuth 会渲染 7d F (Fable) 进度条，且 7d S 逻辑保留', async () => {
-    getUsage.mockResolvedValue({
-      source: 'passive',
-      five_hour: {
-        utilization: 41,
-        resets_at: '2026-07-03T10:00:00Z',
-        remaining_seconds: 3600
-      },
-      seven_day: {
-        utilization: 56,
-        resets_at: '2026-07-06T22:00:00Z',
-        remaining_seconds: 300000
-      },
-      seven_day_sonnet: {
-        utilization: 30,
-        resets_at: '2026-07-06T22:00:00Z',
-        remaining_seconds: 300000
-      },
-      seven_day_fable: {
-        utilization: 100,
-        resets_at: '2026-07-06T22:00:00Z',
-        remaining_seconds: 300000
-      }
-    })
-
-    const wrapper = mount(AccountUsageCell, {
-      props: {
-        account: makeAccount({
-          id: 3001,
-          platform: 'anthropic',
-          type: 'oauth',
-          extra: {}
-        })
-      },
-      global: {
-        stubs: {
-          UsageProgressBar: {
-            props: ['label', 'utilization', 'resetsAt', 'color'],
-            template: '<div class="usage-bar">{{ label }}|{{ utilization }}</div>'
-          },
-          AccountQuotaInfo: true,
-          GrokQuotaProbeCell: true
-        }
-      }
-    })
-
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('5h|41')
-    expect(wrapper.text()).toContain('7d|56')
-    expect(wrapper.text()).toContain('7d S|30')
-    expect(wrapper.text()).toContain('7d F|100')
-  })
-
-  it('Anthropic OAuth 无 Fable 数据时不渲染 7d F 进度条', async () => {
+  it('OpenAI OAuth 无 Sonnet/Fable 扩展窗口数据时只渲染 5h/7d', async () => {
     getUsage.mockResolvedValue({
       source: 'passive',
       five_hour: {
@@ -1456,7 +1402,7 @@ describe('AccountUsageCell', () => {
       props: {
         account: makeAccount({
           id: 3002,
-          platform: 'anthropic',
+          platform: 'openai',
           type: 'oauth',
           extra: {}
         })

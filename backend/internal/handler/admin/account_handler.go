@@ -118,7 +118,7 @@ type CreateAccountRequest struct {
 	Name                    string         `json:"name" binding:"required"`
 	Notes                   *string        `json:"notes"`
 	Platform                string         `json:"platform" binding:"required"`
-	Type                    string         `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string         `json:"type" binding:"required,oneof=oauth apikey upstream service_account"`
 	Credentials             map[string]any `json:"credentials" binding:"required"`
 	Extra                   map[string]any `json:"extra"`
 	ProxyID                 *int64         `json:"proxy_id"`
@@ -138,7 +138,7 @@ type CreateAccountRequest struct {
 type UpdateAccountRequest struct {
 	Name                    string         `json:"name"`
 	Notes                   *string        `json:"notes"`
-	Type                    string         `json:"type" binding:"omitempty,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string         `json:"type" binding:"omitempty,oneof=oauth apikey upstream service_account"`
 	Credentials             map[string]any `json:"credentials"`
 	Extra                   map[string]any `json:"extra"`
 	ProxyID                 *int64         `json:"proxy_id"`
@@ -891,6 +891,15 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		return h.buildAccountResponseWithRuntime(ctx, account), nil
 	})
 	if err != nil {
+		// 平台已从产品面移除：返回明确的 400，避免落入通用 500
+		if errors.Is(err, service.ErrAccountPlatformRemoved) {
+			c.JSON(400, gin.H{
+				"error":   "platform_removed",
+				"message": err.Error(),
+			})
+			return
+		}
+
 		// 检查是否为混合渠道错误
 		var mixedErr *service.MixedChannelError
 		if errors.As(err, &mixedErr) {
@@ -1121,6 +1130,36 @@ func (h *AccountHandler) Test(c *gin.Context) {
 			_ = c.Error(err)
 		}
 	}
+}
+
+// TestDraftRequest represents the request body for a pre-save connection test
+// with credentials that have not been persisted as an account yet.
+type TestDraftRequest struct {
+	Platform    string         `json:"platform" binding:"required"`
+	Type        string         `json:"type" binding:"required"`
+	Credentials map[string]any `json:"credentials"`
+}
+
+// TestDraft handles testing credentials from the create-account form before
+// the account exists (no account record is created or modified).
+// POST /api/v1/admin/accounts/test-draft
+func (h *AccountHandler) TestDraft(c *gin.Context) {
+	var req TestDraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	// Removed platforms must not re-enter through the draft test funnel.
+	if service.IsAccountPlatformRemoved(req.Platform) {
+		response.BadRequest(c, service.ErrAccountPlatformRemoved.Error())
+		return
+	}
+	result, err := h.accountTestService.TestDraftConnection(c.Request.Context(), req.Platform, req.Type, req.Credentials)
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": result})
 }
 
 // RecoverState handles unified recovery of recoverable account runtime state.
@@ -1383,7 +1422,7 @@ func (h *AccountHandler) Refresh(c *gin.Context) {
 
 // ApplyOAuthCredentialsRequest is the payload for persisting re-authorized OAuth credentials.
 type ApplyOAuthCredentialsRequest struct {
-	Type        string         `json:"type" binding:"required,oneof=oauth setup-token"`
+	Type        string         `json:"type" binding:"required,oneof=oauth"`
 	Credentials map[string]any `json:"credentials" binding:"required"`
 	Extra       map[string]any `json:"extra"`
 }

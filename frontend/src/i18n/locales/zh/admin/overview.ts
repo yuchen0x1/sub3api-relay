@@ -503,7 +503,6 @@ export default {
         balance: '余额',
         balancePlatformQuota: '余额(平台配额)',
         usage: '用量',
-        usageAnthropic: '用量 (Claude)',
         usageOpenAI: '用量 (OpenAI)',
         usageGemini: '用量 (Gemini)',
         usageAntigravity: '用量 (Antigravity)',
@@ -872,7 +871,6 @@ export default {
       rateMultiplierHint: '1.0 = 标准费率，0.5 = 半价，2.0 = 双倍',
       platforms: {
         all: '全部平台',
-        anthropic: 'Anthropic',
         openai: 'OpenAI',
         gemini: 'Gemini',
         antigravity: 'Antigravity',

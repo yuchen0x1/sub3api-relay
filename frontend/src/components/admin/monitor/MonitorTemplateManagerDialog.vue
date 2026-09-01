@@ -277,9 +277,8 @@ const templatesForActiveProvider = computed(() =>
   templates.value.filter((t) => t.provider === activeProvider.value),
 )
 
-const countByProvider = computed<Record<Provider, number>>(() => {
-  const out: Record<Provider, number> = {
-    anthropic: 0,
+const countByProvider = computed<Record<string, number>>(() => {
+  const out: Record<string, number> = {
     openai: 0,
     gemini: 0,
     grok: 0,

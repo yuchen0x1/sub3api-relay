@@ -89,9 +89,9 @@ vi.mock('vue-i18n', async () => {
 
 const createGroup = (overrides: Partial<AdminGroup> = {}): AdminGroup => ({
   id: 1,
-  name: 'Core Anthropic',
+  name: 'Core OpenAI',
   description: null,
-  platform: 'anthropic',
+  platform: 'openai',
   rate_multiplier: 1,
   rpm_limit: 0,
   is_exclusive: false,

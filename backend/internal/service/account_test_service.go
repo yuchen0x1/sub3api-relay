@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -2125,4 +2126,93 @@ func parseTestSSEOutput(body string) (responseText, errMsg string) {
 	}
 	responseText = strings.Join(texts, "")
 	return
+}
+
+// DraftConnectionTestResult reports the outcome of a pre-save connection
+// test performed with user-supplied credentials that are not persisted yet.
+type DraftConnectionTestResult struct {
+	Success     bool   `json:"success"`
+	LatencyMS   int64  `json:"latency_ms"`
+	ModelCount  int    `json:"model_count"`
+	UpstreamURL string `json:"upstream_url"`
+	Error       string `json:"error,omitempty"`
+}
+
+// TestDraftConnection probes an OpenAI-compatible credential before the
+// account is created: it issues a lightweight GET /v1/models against the
+// supplied base URL and reports reachability, latency and the advertised
+// model count. No account record is created or modified.
+func (s *AccountTestService) TestDraftConnection(ctx context.Context, platform, accountType string, credentials map[string]any) (*DraftConnectionTestResult, error) {
+	if platform != "openai" || accountType != "apikey" {
+		return nil, errors.New("draft connection test currently supports openai apikey credentials only")
+	}
+	apiKey := ""
+	if v, ok := credentials["api_key"].(string); ok {
+		apiKey = strings.TrimSpace(v)
+	}
+	if apiKey == "" {
+		return nil, errors.New("api key is required")
+	}
+	baseURL := ""
+	if v, ok := credentials["base_url"].(string); ok {
+		baseURL = strings.TrimSpace(v)
+	}
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
+	}
+	normalized, err := s.validateUpstreamBaseURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+	// A draft probe has no saved-account context, so it must never be usable
+	// to reach intranet targets: reject hosts resolving to loopback, private
+	// or reserved addresses regardless of the URL-allowlist configuration.
+	if probeTarget, err := url.Parse(normalized); err == nil && probeTarget.Hostname() != "" {
+		if err := urlvalidator.ValidateResolvedIP(probeTarget.Hostname()); err != nil {
+			return nil, fmt.Errorf("base url host is not allowed: %w", err)
+		}
+	}
+	probeURL := buildOpenAIEndpointURL(normalized, "/v1/models")
+	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, probeURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "application/json")
+
+	result := &DraftConnectionTestResult{UpstreamURL: probeURL}
+	start := time.Now()
+	resp, err := s.httpUpstream.DoWithTLS(req, "", 0, 1, nil)
+	result.LatencyMS = time.Since(start).Milliseconds()
+	if err != nil {
+		result.Error = fmt.Sprintf("upstream request failed: %v", err)
+		return result, nil
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		result.Error = fmt.Sprintf("read upstream response failed: %v", err)
+		return result, nil
+	}
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		result.Error = "authentication failed: upstream rejected the API key"
+		return result, nil
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		result.Error = fmt.Sprintf("upstream returned HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body[:min(len(body), 200)])))
+		return result, nil
+	}
+	var modelsResp struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &modelsResp); err == nil {
+		result.ModelCount = len(modelsResp.Data)
+	}
+	result.Success = true
+	return result, nil
 }

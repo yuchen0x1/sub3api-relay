@@ -91,7 +91,7 @@ func TestDuplicateAccountCopiesConfigurationAndResetsRuntimeState(t *testing.T) 
 	source := &Account{
 		Name:                  "primary",
 		Notes:                 &notes,
-		Platform:              PlatformAnthropic,
+		Platform:              PlatformOpenAI,
 		Type:                  AccountTypeAPIKey,
 		ProxyID:               &proxyID,
 		ProxyFallbackOriginID: &originalProxyID,
@@ -158,10 +158,11 @@ func TestDuplicateAccountCopiesConfigurationAndResetsRuntimeState(t *testing.T) 
 	require.Equal(t, source.GroupIDs, duplicate.GroupIDs)
 	require.Equal(t, source.Credentials, duplicate.Credentials)
 	require.Equal(t, map[string]any{
-		"config":         map[string]any{"region": "us-east-1"},
-		"items":          []any{map[string]any{"enabled": true}},
-		"quota_limit":    float64(1000),
-		"codex_cli_only": true,
+		"config":                              map[string]any{"region": "us-east-1"},
+		"items":                               []any{map[string]any{"enabled": true}},
+		"quota_limit":                         float64(1000),
+		"codex_cli_only":                      true,
+		"openai_long_context_billing_enabled": false,
 	}, duplicate.Extra)
 	require.NotContains(t, duplicate.Extra, UpstreamBillingRateSyncEnabledExtraKey)
 	require.NotNil(t, duplicate.ExpiresAt)
@@ -252,7 +253,7 @@ func TestDuplicateAccountPreservesUngroupedState(t *testing.T) {
 	svc := &adminServiceImpl{accountRepo: repo, accountDuplicateRepo: repo}
 	source := &Account{
 		Name:        "ungrouped",
-		Platform:    PlatformAnthropic,
+		Platform:    PlatformOpenAI,
 		Type:        AccountTypeAPIKey,
 		Credentials: map[string]any{"api_key": "secret"},
 		GroupIDs:    nil,
@@ -272,7 +273,7 @@ func TestDuplicateAccountAtomicCreateFailureLeavesNoOrphan(t *testing.T) {
 	svc := &adminServiceImpl{accountRepo: repo, accountDuplicateRepo: repo}
 	source := &Account{
 		Name:          "source",
-		Platform:      PlatformAnthropic,
+		Platform:      PlatformOpenAI,
 		Type:          AccountTypeAPIKey,
 		Credentials:   map[string]any{"api_key": "secret"},
 		GroupIDs:      []int64{7},
@@ -300,7 +301,7 @@ func TestDuplicateAccountReturnsExistingCopyForSameOperationKey(t *testing.T) {
 	svc := &adminServiceImpl{accountRepo: repo, accountDuplicateRepo: repo}
 	source := &Account{
 		Name:        "source",
-		Platform:    PlatformAnthropic,
+		Platform:    PlatformOpenAI,
 		Type:        AccountTypeAPIKey,
 		Credentials: map[string]any{"api_key": "secret"},
 	}

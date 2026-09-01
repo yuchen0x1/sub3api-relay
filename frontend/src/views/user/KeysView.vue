@@ -1870,7 +1870,7 @@ const resetRateLimitUsage = async () => {
 }
 
 const importToCcswitch = (row: ApiKey) => {
-  const platform = row.group?.platform || 'anthropic'
+  const platform = row.group?.platform || 'openai'
 
   // For antigravity platform, show client selection dialog
   if (platform === 'antigravity') {
@@ -1885,7 +1885,7 @@ const importToCcswitch = (row: ApiKey) => {
 
 const executeCcsImport = (row: ApiKey, clientType: CcSwitchClientType) => {
   const baseUrl = publicSettings.value?.api_base_url || window.location.origin
-  const platform = row.group?.platform || 'anthropic'
+  const platform = row.group?.platform || 'openai'
 
   const usageScript = `({
     request: {

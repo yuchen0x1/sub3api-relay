@@ -508,10 +508,10 @@ const baseSettingsResponse = {
   account_quota_notify_emails: [],
   // 平台限额嵌套字段（新后端契约）
   default_platform_quotas: {
-    anthropic:   { daily: null, weekly: null, monthly: null },
     openai:      { daily: null, weekly: 12.5, monthly: null },
     gemini:      { daily: null, weekly: null, monthly: 200 },
     antigravity: { daily: null, weekly: null, monthly: null },
+    grok:        { daily: null, weekly: null, monthly: null },
   },
 };
 

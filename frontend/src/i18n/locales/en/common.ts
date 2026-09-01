@@ -171,6 +171,7 @@ export default {
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
+    staticExits: 'Static Exits',
     redeemCodes: 'Card Codes',
     ops: 'Ops',
     promoCodes: 'Promo Codes',

@@ -1,7 +1,25 @@
 import { FormEvent, useEffect, useState } from "react"
 import { AccountsPage } from "../features/accounts/components/AccountsPage"
+import { StaticExitsPage } from "../features/staticExits/components/StaticExitsPage"
 import { AuthScheme, AuthSession, authTokenStore } from "../lib/auth/tokenStore"
 import { apiBaseUrl } from "../lib/config"
+
+type AppView = "accounts" | "static-exits"
+
+const VIEW_META: Record<AppView, { tab: string; title: string; summary: string; route: string }> = {
+  accounts: {
+    tab: "Accounts",
+    title: "Accounts",
+    summary: "Inspect account availability and capacity from the Sub3API admin API.",
+    route: "GET /api/v1/admin/accounts",
+  },
+  "static-exits": {
+    tab: "Static exits",
+    title: "Static proxy exits",
+    summary: "Bind static IP proxies to accounts and manage per-exit concurrency capacity.",
+    route: "GET /api/v1/admin/static-proxy-exits",
+  },
+}
 
 function SessionControls({ session, onSessionChange }: { session: AuthSession | null; onSessionChange: (next: AuthSession | null) => void }) {
   const [scheme, setScheme] = useState<AuthScheme>("api-key")
@@ -55,12 +73,15 @@ function SessionControls({ session, onSessionChange }: { session: AuthSession | 
 export function App() {
   const [session, setSession] = useState<AuthSession | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
+  const [view, setView] = useState<AppView>("accounts")
 
   useEffect(() => {
     let active = true
     authTokenStore.get().then((storedSession) => { if (active) setSession(storedSession) }).finally(() => { if (active) setSessionReady(true) })
     return () => { active = false }
   }, [])
+
+  const meta = VIEW_META[view]
 
   return (
     <div className="app-shell">
@@ -70,8 +91,24 @@ export function App() {
       </header>
       <main className="main-content">
         <SessionControls session={session} onSessionChange={setSession} />
-        <div className="page-heading"><div><p className="eyebrow">Operations</p><h2>Accounts</h2><p className="page-summary">Inspect account availability and capacity from the Sub3API admin API.</p></div><span className="route-label">GET /api/v1/admin/accounts</span></div>
-        {sessionReady ? <AccountsPage enabled={Boolean(session)} /> : <div className="state-panel">Preparing session...</div>}
+        <nav className="view-tabs" aria-label="Control plane sections">
+          {(Object.keys(VIEW_META) as AppView[]).map((viewKey) => (
+            <button
+              className={`view-tab ${view === viewKey ? "is-active" : ""}`}
+              type="button"
+              key={viewKey}
+              onClick={() => setView(viewKey)}
+            >
+              {VIEW_META[viewKey].tab}
+            </button>
+          ))}
+        </nav>
+        <div className="page-heading"><div><p className="eyebrow">Operations</p><h2>{meta.title}</h2><p className="page-summary">{meta.summary}</p></div><span className="route-label">{meta.route}</span></div>
+        {sessionReady ? (
+          view === "accounts"
+            ? <AccountsPage enabled={Boolean(session)} />
+            : <StaticExitsPage enabled={Boolean(session)} />
+        ) : <div className="state-panel">Preparing session...</div>}
       </main>
     </div>
   )

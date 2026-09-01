@@ -23,6 +23,29 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	clearGrokResponsesClientToolMapping(c)
 	clearOpenAIResponsesNamespaceNames(c)
 	startTime := time.Now()
+
+	// Static proxy routing (all-protocol coverage; see StaticProxyRouter).
+	// Accounts with enabled assignments reserve an aggregate + per-exit
+	// capacity slot and forward through the assignment's proxy for this
+	// attempt. Release is deferred so every exit path frees the slot.
+	if s.staticProxyRouter != nil && account != nil {
+		staticRelease, staticErr := s.staticProxyRouter.Apply(ctx, account)
+		if staticErr != nil {
+			if errors.Is(staticErr, ErrStaticProxyCapacityUnavailable) && c != nil {
+				c.JSON(http.StatusTooManyRequests, gin.H{
+					"error": gin.H{
+						"type":    "rate_limit_error",
+						"message": "Static proxy capacity exceeded, please retry later",
+					},
+				})
+			}
+			return nil, staticErr
+		}
+		if staticRelease != nil {
+			defer staticRelease()
+		}
+	}
+
 	// 固定渠道映射后的请求级 canonical body；账号 normalize/strip 不得改写跨 failover hint。
 	canonicalImageIntentBody := body
 

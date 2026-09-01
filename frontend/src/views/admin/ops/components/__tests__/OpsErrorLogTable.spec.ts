@@ -26,7 +26,8 @@ function mountTable(row: Partial<OpsErrorLog>) {
     error_source: 'upstream_http',
     severity: 'error',
     status_code: 529,
-    platform: 'anthropic',
+    // claude 系模型仍可作为 antigravity 上游模型出现（协议层保留）
+    platform: 'antigravity',
     model: 'claude-opus-4-8',
     resolved: false,
     client_request_id: '',

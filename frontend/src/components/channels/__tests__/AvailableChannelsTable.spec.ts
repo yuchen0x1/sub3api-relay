@@ -37,12 +37,12 @@ const rows: UserAvailableChannel[] = [
     description: 'Fast and reliable access',
     platforms: [
       {
-        platform: 'anthropic',
+        platform: 'grok',
         groups: [
           {
             id: 1,
             name: 'Exclusive Pro',
-            platform: 'anthropic',
+            platform: 'grok',
             subscription_type: 'standard',
             rate_multiplier: 1.2,
             peak_rate_enabled: true,
@@ -54,7 +54,7 @@ const rows: UserAvailableChannel[] = [
           {
             id: 2,
             name: 'Public',
-            platform: 'anthropic',
+            platform: 'grok',
             subscription_type: 'standard',
             rate_multiplier: 1,
             peak_rate_enabled: false,
@@ -64,7 +64,7 @@ const rows: UserAvailableChannel[] = [
             is_exclusive: false,
           },
         ],
-        supported_models: [{ name: 'claude-test', platform: 'anthropic', pricing: null }],
+        supported_models: [{ name: 'claude-test', platform: 'grok', pricing: null }],
       },
     ],
   },

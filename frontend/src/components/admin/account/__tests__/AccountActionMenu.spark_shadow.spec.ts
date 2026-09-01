@@ -50,7 +50,7 @@ const getBodyButtons = () => Array.from(document.body.querySelectorAll('button')
 
 describe('AccountActionMenu — spark shadow 按钮可见性', () => {
   it('普通账号显示「复制账号」按钮', () => {
-    const account = makeAccount({ platform: 'anthropic', type: 'apikey', parent_account_id: null })
+    const account = makeAccount({ platform: 'openai', type: 'apikey', parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {
       props: { show: true, account, position },
       attachTo: document.body,
@@ -69,8 +69,8 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
     wrapper.unmount()
   })
 
-  it.each(['oauth', 'setup-token'] as const)('%s 账号隐藏「复制账号」按钮，避免共享可轮换令牌', (type) => {
-    const account = makeAccount({ platform: 'openai', type, parent_account_id: null })
+  it('oauth 账号隐藏「复制账号」按钮，避免共享可轮换令牌', () => {
+    const account = makeAccount({ platform: 'openai', type: 'oauth', parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {
       props: { show: true, account, position },
       attachTo: document.body,
@@ -80,7 +80,7 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
   })
 
   it('点击「复制账号」触发 duplicate 事件并携带 account', async () => {
-    const account = makeAccount({ platform: 'anthropic', type: 'apikey', parent_account_id: null })
+    const account = makeAccount({ platform: 'openai', type: 'apikey', parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {
       props: { show: true, account, position },
       attachTo: document.body,
@@ -174,8 +174,8 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
     wrapper.unmount()
   })
 
-  it.each(['oauth', 'setup-token'] as const)('shows reset fingerprint for %s parent accounts', (type) => {
-    const account = makeAccount({ platform: 'anthropic', type, parent_account_id: null })
+  it('shows reset fingerprint for oauth parent accounts', () => {
+    const account = makeAccount({ platform: 'openai', type: 'oauth', parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {
       props: { show: true, account, position },
       attachTo: document.body,
@@ -195,7 +195,7 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
   })
 
   it('emits reset-fingerprint with the selected account', async () => {
-    const account = makeAccount({ platform: 'anthropic', type: 'oauth', parent_account_id: null })
+    const account = makeAccount({ platform: 'openai', type: 'oauth', parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {
       props: { show: true, account, position },
       attachTo: document.body,

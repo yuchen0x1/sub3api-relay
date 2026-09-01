@@ -247,6 +247,31 @@ export default {
       backupProxy: 'Backup proxy',
     },
 
+    // Static Proxy Exits Management
+    staticExitsPage: {
+      title: 'Static Exits',
+      description: 'Manage per-account static proxy exit assignments; each enabled exit provides 10 request concurrency slots',
+      allAccounts: 'All accounts',
+      allStates: 'All states',
+      totalExits: 'Total exits',
+      enabledExits: 'Enabled exits',
+      enabledCapacity: 'Effective concurrency',
+      capacityPerExit: 'Slots per exit',
+      createTitle: 'Create exit assignment',
+      selectAccount: 'Select account',
+      exitName: 'Exit name',
+      account: 'Account',
+      proxy: 'Proxy',
+      health: 'Health',
+      failures: 'Failures',
+      enabledState: 'Enabled',
+      actions: 'Actions',
+      pageIndicator: 'Page {page} / {pages}',
+      prevPage: 'Prev',
+      nextPage: 'Next',
+      loadReferencesFailed: 'Failed to load accounts or proxies',
+    },
+
     // Redeem Codes
     redeem: {
       title: 'Card Code Management',

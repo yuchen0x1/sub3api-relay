@@ -47,9 +47,6 @@ const canonicalPlatform = (value: unknown): AccountPlatform | undefined => {
     case 'chatgpt':
     case 'sora':
       return 'openai'
-    case 'anthropic':
-    case 'claude':
-      return 'anthropic'
     case 'gemini':
     case 'google':
     case 'google-ai':
@@ -73,11 +70,6 @@ const canonicalType = (value: unknown): AccountType | undefined => {
     case 'oauth':
     case 'oauth2':
       return 'oauth'
-    case 'setup-token':
-    case 'setuptoken':
-    case 'session-token':
-    case 'sessiontoken':
-      return 'setup-token'
     case 'apikey':
     case 'api-key':
     case 'key':
@@ -85,8 +77,6 @@ const canonicalType = (value: unknown): AccountType | undefined => {
     case 'upstream':
     case 'proxy':
       return 'upstream'
-    case 'bedrock':
-      return 'bedrock'
     case 'service-account':
     case 'serviceaccount':
       return 'service_account'
@@ -100,7 +90,6 @@ const credentialAliases: Record<string, string> = {
   refreshToken: 'refresh_token',
   idToken: 'id_token',
   sessionToken: 'session_token',
-  setupToken: 'setup_token',
   apiKey: 'api_key',
   key: 'api_key',
   openai_api_key: 'api_key',
@@ -110,7 +99,6 @@ const credentialAliases: Record<string, string> = {
   api_base_url: 'base_url',
   apiBaseURL: 'base_url',
   apiBaseUrl: 'base_url',
-  bedrock_api_key: 'api_key',
   personal_access_token: 'access_token',
   baseUrl: 'base_url',
   accountId: 'chatgpt_account_id',
@@ -127,17 +115,6 @@ const credentialAliases: Record<string, string> = {
   privateKey: 'private_key',
   privateKeyId: 'private_key_id',
   clientEmail: 'client_email',
-  accessKeyId: 'aws_access_key_id',
-  secretAccessKey: 'aws_secret_access_key',
-  awsAccessKeyId: 'aws_access_key_id',
-  awsSecretAccessKey: 'aws_secret_access_key',
-  awsSessionToken: 'aws_session_token',
-  awsRegion: 'aws_region',
-  access_key_id: 'aws_access_key_id',
-  secret_access_key: 'aws_secret_access_key',
-  aws_access_key: 'aws_access_key_id',
-  aws_secret_key: 'aws_secret_access_key',
-  region: 'aws_region',
   planType: 'plan_type',
   expiresAt: 'expires_at',
   expiry: 'expires_at',
@@ -151,7 +128,6 @@ const credentialKeys = new Set([
   'refresh_token',
   'id_token',
   'session_token',
-  'setup_token',
   'api_key',
   'openai_api_key',
   'key',
@@ -166,16 +142,7 @@ const credentialKeys = new Set([
   'private_key',
   'private_key_id',
   'client_email',
-  'aws_access_key_id',
-  'aws_secret_access_key',
-  'aws_session_token',
-  'aws_region',
-  'bedrock_api_key',
-  'bedrock_access_keys',
   'personal_access_token',
-  'access_key_id',
-  'secret_access_key',
-  'region',
   'service_account',
   'service_account_json',
   'expires_at',
@@ -187,10 +154,6 @@ const credentialKeys = new Set([
   'plan_type',
   'model_mapping',
   'header_overrides',
-  'aws_access_key_id',
-  'aws_secret_access_key',
-  'aws_session_token',
-  'bedrock_api_key',
 ])
 
 const withAliases = (source: RecordValue): RecordValue => {
@@ -212,8 +175,6 @@ const buildCredentials = (source: RecordValue): Record<string, unknown> => {
     'auth',
     'oauth',
     'auth_info',
-    'claudeAiOauth',
-    'claude_ai_oauth',
     'geminiOauth',
     'oauth_creds',
   ]) {
@@ -225,19 +186,6 @@ const buildCredentials = (source: RecordValue): Record<string, unknown> => {
     const normalizedKey = credentialAliases[key] || key
     if (credentialKeys.has(normalizedKey) && value !== undefined && value !== null && value !== '') {
       credentials[normalizedKey] = value
-    }
-  }
-  // AWS SDK credential files commonly use sessionToken/region without the
-  // aws_ prefix. Preserve the project-specific credential names expected by
-  // the Bedrock signer when the source is explicitly a Bedrock record.
-  if (canonicalType(source.type) === 'bedrock') {
-    if (credentials.session_token && !credentials.aws_session_token) {
-      credentials.aws_session_token = credentials.session_token
-      delete credentials.session_token
-    }
-    if (credentials.region && !credentials.aws_region) {
-      credentials.aws_region = credentials.region
-      delete credentials.region
     }
   }
   const openAIKey = firstString(
@@ -264,16 +212,6 @@ const buildCredentials = (source: RecordValue): Record<string, unknown> => {
     }
   }
 
-  const bedrockKeys = isRecord(source.bedrock_access_keys) ? source.bedrock_access_keys : undefined
-  if (bedrockKeys) {
-    const accessKeyID = firstString(bedrockKeys.access_key_id, bedrockKeys.aws_access_key_id)
-    const secretAccessKey = firstString(bedrockKeys.secret_access_key, bedrockKeys.aws_secret_access_key)
-    const region = firstString(bedrockKeys.region, bedrockKeys.aws_region)
-    if (accessKeyID) credentials.aws_access_key_id = accessKeyID
-    if (secretAccessKey) credentials.aws_secret_access_key = secretAccessKey
-    if (region) credentials.aws_region = region
-  }
-
   // A service-account file is itself the credential object. Keep it nested so
   // the backend can apply its token_uri allowlist and key validation.
   if (canonicalType(source.type) === 'service_account' && !credentials.service_account_json) {
@@ -286,11 +224,9 @@ const buildCredentials = (source: RecordValue): Record<string, unknown> => {
 }
 
 const inferPlatform = (source: RecordValue, credentials: RecordValue, sourceName = ''): AccountPlatform | undefined => {
-  if (isRecord(source.claudeAiOauth) || /claude/i.test(sourceName)) return 'anthropic'
   // Google ADC / Gemini OAuth files use the same `authorized_user` marker.
   if (source.type === 'authorized_user') return 'gemini'
   if (/(?:gemini|google|oauth_creds|vertex)/i.test(sourceName)) return 'gemini'
-  if (canonicalType(source.type) === 'bedrock') return 'anthropic'
   const explicit = canonicalPlatform(source.platform ?? source.provider ?? source.vendor ?? source.service)
   if (explicit) return explicit
 
@@ -303,11 +239,9 @@ const inferPlatform = (source: RecordValue, credentials: RecordValue, sourceName
     credentials.access_token,
     credentials.refresh_token
   )
-  if (key?.startsWith('sk-ant-')) return 'anthropic'
   if (key?.startsWith('AIza')) return 'gemini'
   if (key?.startsWith('xai-')) return 'grok'
   if (credentials.project_id || credentials.service_account || credentials.service_account_json) return 'gemini'
-  if (credentials.aws_access_key_id || credentials.aws_secret_access_key || source.type === 'bedrock' || source.bedrock_api_key || source.bedrock_access_keys) return 'anthropic'
   if (credentials.chatgpt_account_id || credentials.id_token || credentials.refresh_token || credentials.access_token) {
     return 'openai'
   }
@@ -322,14 +256,7 @@ const inferType = (source: RecordValue, credentials: RecordValue): AccountType |
   const explicit = canonicalType(source.account_type ?? source.auth_type ?? source.type)
   if (explicit) return explicit
   if (credentials.service_account || credentials.service_account_json || credentials.private_key) return 'service_account'
-  if (credentials.aws_access_key_id || credentials.aws_secret_access_key || source.type === 'bedrock') return 'bedrock'
-  if (credentials.setup_token) return 'setup-token'
-  // Claude Code setup tokens use the sk-ant-oat prefix and are sometimes
-  // exported under a generic token/refresh_token key.
-  const token = firstString(credentials.token, credentials.access_token, credentials.refresh_token)
-  if (token?.toLowerCase().startsWith('sk-ant-oat')) return 'setup-token'
   if (credentials.access_token || credentials.refresh_token || credentials.id_token) return 'oauth'
-  if (credentials.session_token) return 'setup-token'
   if (credentials.api_key || credentials.token) return 'apikey'
   return undefined
 }
@@ -356,15 +283,6 @@ const normalizeAccount = (input: unknown, index: number, sourceName = ''): Admin
   const type = inferType(source, credentials)
   if (!platform || !type) {
     throw new Error(`accounts[${index}] 无法识别 platform/type，请提供 provider/platform 和 credentials`)
-  }
-  if (type === 'setup-token' && !firstString(credentials.setup_token)) {
-    const setupToken = firstString(
-      credentials.token,
-      credentials.access_token,
-      credentials.refresh_token,
-      credentials.session_token
-    )
-    if (setupToken) credentials.setup_token = setupToken
   }
 
   const expiresAt = timestampSeconds(

@@ -138,11 +138,9 @@
             <span
               :class="[
                 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-                value === 'anthropic'
-                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                  : value === 'openai'
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : value === 'antigravity'
+                value === 'openai'
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : value === 'antigravity'
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                       : value === 'grok'
                         ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100'
@@ -1333,82 +1331,6 @@
           </div>
         </div>
 
-        <!-- Claude Code 客户端限制（仅 anthropic 平台） -->
-        <div v-if="createForm.platform === 'anthropic'" class="border-t pt-4">
-          <div class="mb-1.5 flex items-center gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t("admin.groups.claudeCode.title") }}
-            </label>
-            <!-- Help Tooltip -->
-            <div class="group relative inline-flex">
-              <Icon
-                name="questionCircle"
-                size="sm"
-                :stroke-width="2"
-                class="cursor-help text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-              />
-              <div
-                class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-72 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              >
-                <div
-                  class="rounded-lg bg-gray-900 p-3 text-white shadow-lg dark:bg-gray-800"
-                >
-                  <p class="text-xs leading-relaxed text-gray-300">
-                    {{ t("admin.groups.claudeCode.tooltip") }}
-                  </p>
-                  <div
-                    class="absolute -bottom-1.5 left-3 h-3 w-3 rotate-45 bg-gray-900 dark:bg-gray-800"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              type="button"
-              @click="
-                createForm.claude_code_only = !createForm.claude_code_only
-              "
-              :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                createForm.claude_code_only
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600',
-              ]"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-                  createForm.claude_code_only
-                    ? 'translate-x-6'
-                    : 'translate-x-1',
-                ]"
-              />
-            </button>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{
-                createForm.claude_code_only
-                  ? t("admin.groups.claudeCode.enabled")
-                  : t("admin.groups.claudeCode.disabled")
-              }}
-            </span>
-          </div>
-          <!-- 降级分组选择（仅当启用 claude_code_only 时显示） -->
-          <div v-if="createForm.claude_code_only" class="mt-3">
-            <label class="input-label">{{
-              t("admin.groups.claudeCode.fallbackGroup")
-            }}</label>
-            <Select
-              v-model="createForm.fallback_group_id"
-              :options="fallbackGroupOptions"
-              :placeholder="t('admin.groups.claudeCode.noFallback')"
-            />
-            <p class="input-hint">
-              {{ t("admin.groups.claudeCode.fallbackHint") }}
-            </p>
-          </div>
-        </div>
-
         <!-- Codex 网页搜索按次计费（仅 openai 平台） -->
         <div
           v-if="createForm.platform === 'openai'"
@@ -1704,10 +1626,10 @@
           </div>
         </div>
 
-        <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
+        <!-- 账号过滤控制 (OpenAI/Antigravity/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini'].includes(
+            ['openai', 'antigravity', 'gemini'].includes(
               createForm.platform,
             )
           "
@@ -1792,10 +1714,10 @@
           </div>
         </div>
 
-        <!-- 无效请求兜底（仅 anthropic/antigravity 平台，且非订阅分组） -->
+        <!-- 无效请求兜底（仅 antigravity 平台，且非订阅分组） -->
         <div
           v-if="
-            ['anthropic', 'antigravity'].includes(createForm.platform) &&
+            ['antigravity'].includes(createForm.platform) &&
             createForm.subscription_type !== 'subscription'
           "
           class="border-t pt-4"
@@ -1813,199 +1735,6 @@
           </p>
         </div>
 
-        <!-- 模型路由配置（仅 anthropic 平台） -->
-        <div v-if="createForm.platform === 'anthropic'" class="border-t pt-4">
-          <div class="mb-1.5 flex items-center gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t("admin.groups.modelRouting.title") }}
-            </label>
-            <!-- Help Tooltip -->
-            <div class="group relative inline-flex">
-              <Icon
-                name="questionCircle"
-                size="sm"
-                :stroke-width="2"
-                class="cursor-help text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-              />
-              <div
-                class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-80 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              >
-                <div
-                  class="rounded-lg bg-gray-900 p-3 text-white shadow-lg dark:bg-gray-800"
-                >
-                  <p class="text-xs leading-relaxed text-gray-300">
-                    {{ t("admin.groups.modelRouting.tooltip") }}
-                  </p>
-                  <div
-                    class="absolute -bottom-1.5 left-3 h-3 w-3 rotate-45 bg-gray-900 dark:bg-gray-800"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- 启用开关 -->
-          <div class="flex items-center gap-3 mb-3">
-            <button
-              type="button"
-              @click="
-                createForm.model_routing_enabled =
-                  !createForm.model_routing_enabled
-              "
-              :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                createForm.model_routing_enabled
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600',
-              ]"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-                  createForm.model_routing_enabled
-                    ? 'translate-x-6'
-                    : 'translate-x-1',
-                ]"
-              />
-            </button>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{
-                createForm.model_routing_enabled
-                  ? t("admin.groups.modelRouting.enabled")
-                  : t("admin.groups.modelRouting.disabled")
-              }}
-            </span>
-          </div>
-          <p
-            v-if="!createForm.model_routing_enabled"
-            class="text-xs text-gray-500 dark:text-gray-400 mb-3"
-          >
-            {{ t("admin.groups.modelRouting.disabledHint") }}
-          </p>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            {{ t("admin.groups.modelRouting.noRulesHint") }}
-          </p>
-          <!-- 路由规则列表（仅在启用时显示） -->
-          <div v-if="createForm.model_routing_enabled" class="space-y-3">
-            <div
-              v-for="rule in createModelRoutingRules"
-              :key="getCreateRuleRenderKey(rule)"
-              class="rounded-lg border border-gray-200 p-3 dark:border-dark-600"
-            >
-              <div class="flex items-start gap-3">
-                <div class="flex-1 space-y-2">
-                  <div>
-                    <label class="input-label text-xs">{{
-                      t("admin.groups.modelRouting.modelPattern")
-                    }}</label>
-                    <input
-                      v-model="rule.pattern"
-                      type="text"
-                      class="input text-sm"
-                      :placeholder="
-                        t('admin.groups.modelRouting.modelPatternPlaceholder')
-                      "
-                    />
-                  </div>
-                  <div>
-                    <label class="input-label text-xs">{{
-                      t("admin.groups.modelRouting.accounts")
-                    }}</label>
-                    <!-- 已选账号标签 -->
-                    <div
-                      v-if="rule.accounts.length > 0"
-                      class="flex flex-wrap gap-1.5 mb-2"
-                    >
-                      <span
-                        v-for="account in rule.accounts"
-                        :key="account.id"
-                        class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-                      >
-                        {{ account.name }}
-                        <button :aria-label="t('common.delete')"
-                          type="button"
-                          @click="removeSelectedAccount(rule, account.id)"
-                          class="ml-0.5 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
-                        >
-                          <Icon name="x" size="xs" />
-                        </button>
-                      </span>
-                    </div>
-                    <!-- 账号搜索输入框 -->
-                    <div class="relative account-search-container">
-                      <input
-                        v-model="
-                          accountSearchKeyword[getCreateRuleSearchKey(rule)]
-                        "
-                        type="text"
-                        class="input text-sm"
-                        :placeholder="
-                          t(
-                            'admin.groups.modelRouting.searchAccountPlaceholder',
-                          )
-                        "
-                        @input="searchAccountsByRule(rule)"
-                        @focus="onAccountSearchFocus(rule)"
-                      />
-                      <!-- 搜索结果下拉框 -->
-                      <div
-                        v-if="
-                          showAccountDropdown[getCreateRuleSearchKey(rule)] &&
-                          accountSearchResults[getCreateRuleSearchKey(rule)]
-                            ?.length > 0
-                        "
-                        class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:border-dark-600 dark:bg-dark-800"
-                      >
-                        <button
-                          v-for="account in accountSearchResults[
-                            getCreateRuleSearchKey(rule)
-                          ]"
-                          :key="account.id"
-                          type="button"
-                          @click="selectAccount(rule, account)"
-                          class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700"
-                          :class="{
-                            'opacity-50': rule.accounts.some(
-                              (a) => a.id === account.id,
-                            ),
-                          }"
-                          :disabled="
-                            rule.accounts.some((a) => a.id === account.id)
-                          "
-                        >
-                          <span>{{ account.name }}</span>
-                          <span class="ml-2 text-xs text-gray-400"
-                            >#{{ account.id }}</span
-                          >
-                        </button>
-                      </div>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">
-                      {{ t("admin.groups.modelRouting.accountsHint") }}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  @click="removeCreateRoutingRule(rule)"
-                  class="mt-5 p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                  :title="t('admin.groups.modelRouting.removeRule')"
-                >
-                  <Icon name="trash" size="sm" />
-                </button>
-              </div>
-            </div>
-          </div>
-          <!-- 添加规则按钮（仅在启用时显示） -->
-          <button
-            v-if="createForm.model_routing_enabled"
-            type="button"
-            @click="addCreateRoutingRule"
-            class="mt-3 flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-          >
-            <Icon name="plus" size="sm" />
-            {{ t("admin.groups.modelRouting.addRule") }}
-          </button>
-        </div>
       </form>
 
       <template #footer>
@@ -2938,78 +2667,6 @@
           </div>
         </div>
 
-        <!-- Claude Code 客户端限制（仅 anthropic 平台） -->
-        <div v-if="editForm.platform === 'anthropic'" class="border-t pt-4">
-          <div class="mb-1.5 flex items-center gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t("admin.groups.claudeCode.title") }}
-            </label>
-            <!-- Help Tooltip -->
-            <div class="group relative inline-flex">
-              <Icon
-                name="questionCircle"
-                size="sm"
-                :stroke-width="2"
-                class="cursor-help text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-              />
-              <div
-                class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-72 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              >
-                <div
-                  class="rounded-lg bg-gray-900 p-3 text-white shadow-lg dark:bg-gray-800"
-                >
-                  <p class="text-xs leading-relaxed text-gray-300">
-                    {{ t("admin.groups.claudeCode.tooltip") }}
-                  </p>
-                  <div
-                    class="absolute -bottom-1.5 left-3 h-3 w-3 rotate-45 bg-gray-900 dark:bg-gray-800"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              type="button"
-              @click="editForm.claude_code_only = !editForm.claude_code_only"
-              :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                editForm.claude_code_only
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600',
-              ]"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-                  editForm.claude_code_only ? 'translate-x-6' : 'translate-x-1',
-                ]"
-              />
-            </button>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{
-                editForm.claude_code_only
-                  ? t("admin.groups.claudeCode.enabled")
-                  : t("admin.groups.claudeCode.disabled")
-              }}
-            </span>
-          </div>
-          <!-- 降级分组选择（仅当启用 claude_code_only 时显示） -->
-          <div v-if="editForm.claude_code_only" class="mt-3">
-            <label class="input-label">{{
-              t("admin.groups.claudeCode.fallbackGroup")
-            }}</label>
-            <Select
-              v-model="editForm.fallback_group_id"
-              :options="fallbackGroupOptionsForEdit"
-              :placeholder="t('admin.groups.claudeCode.noFallback')"
-            />
-            <p class="input-hint">
-              {{ t("admin.groups.claudeCode.fallbackHint") }}
-            </p>
-          </div>
-        </div>
-
         <!-- Codex 网页搜索按次计费（仅 openai 平台） -->
         <div
           v-if="editForm.platform === 'openai'"
@@ -3305,10 +2962,10 @@
           </div>
         </div>
 
-        <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
+        <!-- 账号过滤控制 (OpenAI/Antigravity/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini'].includes(
+            ['openai', 'antigravity', 'gemini'].includes(
               editForm.platform,
             )
           "
@@ -3393,10 +3050,10 @@
           </div>
         </div>
 
-        <!-- 无效请求兜底（仅 anthropic/antigravity 平台，且非订阅分组） -->
+        <!-- 无效请求兜底（仅 antigravity 平台，且非订阅分组） -->
         <div
           v-if="
-            ['anthropic', 'antigravity'].includes(editForm.platform) &&
+            ['antigravity'].includes(editForm.platform) &&
             editForm.subscription_type !== 'subscription'
           "
           class="border-t pt-4"
@@ -3414,198 +3071,6 @@
           </p>
         </div>
 
-        <!-- 模型路由配置（仅 anthropic 平台） -->
-        <div v-if="editForm.platform === 'anthropic'" class="border-t pt-4">
-          <div class="mb-1.5 flex items-center gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t("admin.groups.modelRouting.title") }}
-            </label>
-            <!-- Help Tooltip -->
-            <div class="group relative inline-flex">
-              <Icon
-                name="questionCircle"
-                size="sm"
-                :stroke-width="2"
-                class="cursor-help text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-              />
-              <div
-                class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-80 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              >
-                <div
-                  class="rounded-lg bg-gray-900 p-3 text-white shadow-lg dark:bg-gray-800"
-                >
-                  <p class="text-xs leading-relaxed text-gray-300">
-                    {{ t("admin.groups.modelRouting.tooltip") }}
-                  </p>
-                  <div
-                    class="absolute -bottom-1.5 left-3 h-3 w-3 rotate-45 bg-gray-900 dark:bg-gray-800"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- 启用开关 -->
-          <div class="flex items-center gap-3 mb-3">
-            <button
-              type="button"
-              @click="
-                editForm.model_routing_enabled = !editForm.model_routing_enabled
-              "
-              :class="[
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                editForm.model_routing_enabled
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600',
-              ]"
-            >
-              <span
-                :class="[
-                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-                  editForm.model_routing_enabled
-                    ? 'translate-x-6'
-                    : 'translate-x-1',
-                ]"
-              />
-            </button>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{
-                editForm.model_routing_enabled
-                  ? t("admin.groups.modelRouting.enabled")
-                  : t("admin.groups.modelRouting.disabled")
-              }}
-            </span>
-          </div>
-          <p
-            v-if="!editForm.model_routing_enabled"
-            class="text-xs text-gray-500 dark:text-gray-400 mb-3"
-          >
-            {{ t("admin.groups.modelRouting.disabledHint") }}
-          </p>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            {{ t("admin.groups.modelRouting.noRulesHint") }}
-          </p>
-          <!-- 路由规则列表（仅在启用时显示） -->
-          <div v-if="editForm.model_routing_enabled" class="space-y-3">
-            <div
-              v-for="rule in editModelRoutingRules"
-              :key="getEditRuleRenderKey(rule)"
-              class="rounded-lg border border-gray-200 p-3 dark:border-dark-600"
-            >
-              <div class="flex items-start gap-3">
-                <div class="flex-1 space-y-2">
-                  <div>
-                    <label class="input-label text-xs">{{
-                      t("admin.groups.modelRouting.modelPattern")
-                    }}</label>
-                    <input
-                      v-model="rule.pattern"
-                      type="text"
-                      class="input text-sm"
-                      :placeholder="
-                        t('admin.groups.modelRouting.modelPatternPlaceholder')
-                      "
-                    />
-                  </div>
-                  <div>
-                    <label class="input-label text-xs">{{
-                      t("admin.groups.modelRouting.accounts")
-                    }}</label>
-                    <!-- 已选账号标签 -->
-                    <div
-                      v-if="rule.accounts.length > 0"
-                      class="flex flex-wrap gap-1.5 mb-2"
-                    >
-                      <span
-                        v-for="account in rule.accounts"
-                        :key="account.id"
-                        class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-                      >
-                        {{ account.name }}
-                        <button :aria-label="t('common.delete')"
-                          type="button"
-                          @click="removeSelectedAccount(rule, account.id, true)"
-                          class="ml-0.5 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
-                        >
-                          <Icon name="x" size="xs" />
-                        </button>
-                      </span>
-                    </div>
-                    <!-- 账号搜索输入框 -->
-                    <div class="relative account-search-container">
-                      <input
-                        v-model="
-                          accountSearchKeyword[getEditRuleSearchKey(rule)]
-                        "
-                        type="text"
-                        class="input text-sm"
-                        :placeholder="
-                          t(
-                            'admin.groups.modelRouting.searchAccountPlaceholder',
-                          )
-                        "
-                        @input="searchAccountsByRule(rule, true)"
-                        @focus="onAccountSearchFocus(rule, true)"
-                      />
-                      <!-- 搜索结果下拉框 -->
-                      <div
-                        v-if="
-                          showAccountDropdown[getEditRuleSearchKey(rule)] &&
-                          accountSearchResults[getEditRuleSearchKey(rule)]
-                            ?.length > 0
-                        "
-                        class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:border-dark-600 dark:bg-dark-800"
-                      >
-                        <button
-                          v-for="account in accountSearchResults[
-                            getEditRuleSearchKey(rule)
-                          ]"
-                          :key="account.id"
-                          type="button"
-                          @click="selectAccount(rule, account, true)"
-                          class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700"
-                          :class="{
-                            'opacity-50': rule.accounts.some(
-                              (a) => a.id === account.id,
-                            ),
-                          }"
-                          :disabled="
-                            rule.accounts.some((a) => a.id === account.id)
-                          "
-                        >
-                          <span>{{ account.name }}</span>
-                          <span class="ml-2 text-xs text-gray-400"
-                            >#{{ account.id }}</span
-                          >
-                        </button>
-                      </div>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">
-                      {{ t("admin.groups.modelRouting.accountsHint") }}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  @click="removeEditRoutingRule(rule)"
-                  class="mt-5 p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                  :title="t('admin.groups.modelRouting.removeRule')"
-                >
-                  <Icon name="trash" size="sm" />
-                </button>
-              </div>
-            </div>
-          </div>
-          <!-- 添加规则按钮（仅在启用时显示） -->
-          <button
-            v-if="editForm.model_routing_enabled"
-            type="button"
-            @click="addEditRoutingRule"
-            class="mt-3 flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-          >
-            <Icon name="plus" size="sm" />
-            {{ t("admin.groups.modelRouting.addRule") }}
-          </button>
-        </div>
       </form>
 
       <template #footer>
@@ -3705,17 +3170,15 @@
                 <span
                   :class="[
                     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                    group.platform === 'anthropic'
-                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                      : group.platform === 'openai'
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : group.platform === 'antigravity'
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                          : group.platform === 'grok'
-                            ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100'
-                            : group.platform === 'manus'
-                              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
-                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                    group.platform === 'openai'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                      : group.platform === 'antigravity'
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        : group.platform === 'grok'
+                          ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100'
+                          : group.platform === 'manus'
+                            ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
                   ]"
                 >
                   {{ t("admin.groups.platforms." + group.platform) }}
@@ -4401,7 +3864,6 @@ const exclusiveOptions = computed(() => [
 ]);
 
 const platformOptions = computed(() => [
-  { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
   { value: "antigravity", label: "Antigravity" },
@@ -4412,7 +3874,6 @@ const platformOptions = computed(() => [
 
 const platformFilterOptions = computed(() => [
   { value: "", label: t("admin.groups.allPlatforms") },
-  { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
   { value: "antigravity", label: "Antigravity" },
@@ -4422,7 +3883,6 @@ const platformFilterOptions = computed(() => [
 ]);
 
 const compositeRoutePlatformOptions = computed(() => [
-  { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
   { value: "antigravity", label: "Antigravity" },
@@ -4470,50 +3930,14 @@ const subscriptionTypeOptions = computed(() => [
   { value: "subscription", label: t("admin.groups.subscription.subscription") },
 ]);
 
-// 降级分组选项（创建时）- 仅包含 anthropic 平台且未启用 claude_code_only 的分组
-const fallbackGroupOptions = computed(() => {
-  const options: { value: number | null; label: string }[] = [
-    { value: null, label: t("admin.groups.claudeCode.noFallback") },
-  ];
-  const eligibleGroups = groups.value.filter(
-    (g) =>
-      g.platform === "anthropic" &&
-      !g.claude_code_only &&
-      g.status === "active",
-  );
-  eligibleGroups.forEach((g) => {
-    options.push({ value: g.id, label: g.name });
-  });
-  return options;
-});
-
-// 降级分组选项（编辑时）- 排除自身
-const fallbackGroupOptionsForEdit = computed(() => {
-  const options: { value: number | null; label: string }[] = [
-    { value: null, label: t("admin.groups.claudeCode.noFallback") },
-  ];
-  const currentId = editingGroup.value?.id;
-  const eligibleGroups = groups.value.filter(
-    (g) =>
-      g.platform === "anthropic" &&
-      !g.claude_code_only &&
-      g.status === "active" &&
-      g.id !== currentId,
-  );
-  eligibleGroups.forEach((g) => {
-    options.push({ value: g.id, label: g.name });
-  });
-  return options;
-});
-
-// 无效请求兜底分组选项（创建时）- 仅包含 anthropic 平台、非订阅且未配置兜底的分组
+// 无效请求兜底分组选项（创建时）- 仅包含 antigravity 平台、非订阅且未配置兜底的分组
 const invalidRequestFallbackOptions = computed(() => {
   const options: { value: number | null; label: string }[] = [
     { value: null, label: t("admin.groups.invalidRequestFallback.noFallback") },
   ];
   const eligibleGroups = groups.value.filter(
     (g) =>
-      g.platform === "anthropic" &&
+      g.platform === "antigravity" &&
       g.status === "active" &&
       g.subscription_type !== "subscription" &&
       g.fallback_group_id_on_invalid_request === null,
@@ -4532,7 +3956,7 @@ const invalidRequestFallbackOptionsForEdit = computed(() => {
   const currentId = editingGroup.value?.id;
   const eligibleGroups = groups.value.filter(
     (g) =>
-      g.platform === "anthropic" &&
+      g.platform === "antigravity" &&
       g.status === "active" &&
       g.subscription_type !== "subscription" &&
       g.fallback_group_id_on_invalid_request === null &&
@@ -4700,7 +4124,7 @@ const editModelsListSelectedCount = computed(
 const createForm = reactive({
   name: "",
   description: "",
-  platform: "anthropic" as GroupPlatform,
+  platform: "openai" as GroupPlatform,
   rate_multiplier: 1.0,
   is_exclusive: false,
   subscription_type: "standard" as SubscriptionType,
@@ -4734,7 +4158,7 @@ const createForm = reactive({
   profit_control_enabled: false,
   profit_min_margin_percent: 0,
   profit_safety_buffer_percent: 0,
-  // Claude Code 客户端限制（仅 anthropic 平台使用）
+  // Claude Code 客户端限制字段（后端 DTO 保留，UI 已随 anthropic 平台入口移除）
   claude_code_only: false,
   fallback_group_id: null as number | null,
   fallback_group_id_on_invalid_request: null as number | null,
@@ -4794,10 +4218,6 @@ const resolveEditMessagesDispatchRowKey =
     "edit-messages-dispatch-row",
   );
 
-const getCreateRuleRenderKey = (rule: ModelRoutingRule) =>
-  resolveCreateRuleKey(rule);
-const getEditRuleRenderKey = (rule: ModelRoutingRule) =>
-  resolveEditRuleKey(rule);
 const getCreateMessagesDispatchRowKey = (row: MessagesDispatchMappingRow) =>
   resolveCreateMessagesDispatchRowKey(row);
 const getEditMessagesDispatchRowKey = (row: MessagesDispatchMappingRow) =>
@@ -4808,20 +4228,10 @@ const getCreateRuleSearchKey = (rule: ModelRoutingRule) =>
 const getEditRuleSearchKey = (rule: ModelRoutingRule) =>
   `edit-${resolveEditRuleKey(rule)}`;
 
-const getRuleSearchKey = (rule: ModelRoutingRule, isEdit: boolean = false) => {
-  return isEdit ? getEditRuleSearchKey(rule) : getCreateRuleSearchKey(rule);
-};
-
 // 账号搜索相关状态
 const accountSearchKeyword = ref<Record<string, string>>({});
 const accountSearchResults = ref<Record<string, SimpleAccount[]>>({});
 const showAccountDropdown = ref<Record<string, boolean>>({});
-
-const clearAccountSearchStateByKey = (key: string) => {
-  delete accountSearchKeyword.value[key];
-  delete accountSearchResults.value[key];
-  delete showAccountDropdown.value[key];
-};
 
 const clearAllAccountSearchState = () => {
   accountSearchKeyword.value = {};
@@ -4829,6 +4239,7 @@ const clearAllAccountSearchState = () => {
   showAccountDropdown.value = {};
 };
 
+// 模型路由账号搜索（anthropic 模型路由 UI 已移除；仅保留 runner 以便关闭弹窗时清理搜索状态）
 const accountSearchRunner = useKeyedDebouncedSearch<SimpleAccount[]>({
   delay: 300,
   search: async (keyword, { signal }) => {
@@ -4837,7 +4248,6 @@ const accountSearchRunner = useKeyedDebouncedSearch<SimpleAccount[]>({
       20,
       {
         search: keyword,
-        platform: "anthropic",
       },
       { signal },
     );
@@ -4850,48 +4260,6 @@ const accountSearchRunner = useKeyedDebouncedSearch<SimpleAccount[]>({
     accountSearchResults.value[key] = [];
   },
 });
-
-// 搜索账号（仅限 anthropic 平台）
-const searchAccounts = (key: string) => {
-  accountSearchRunner.trigger(key, accountSearchKeyword.value[key] || "");
-};
-
-const searchAccountsByRule = (
-  rule: ModelRoutingRule,
-  isEdit: boolean = false,
-) => {
-  searchAccounts(getRuleSearchKey(rule, isEdit));
-};
-
-// 选择账号
-const selectAccount = (
-  rule: ModelRoutingRule,
-  account: SimpleAccount,
-  isEdit: boolean = false,
-) => {
-  if (!rule) return;
-
-  // 检查是否已选择
-  if (!rule.accounts.some((a) => a.id === account.id)) {
-    rule.accounts.push(account);
-  }
-
-  // 清空搜索
-  const key = getRuleSearchKey(rule, isEdit);
-  accountSearchKeyword.value[key] = "";
-  showAccountDropdown.value[key] = false;
-};
-
-// 移除已选账号
-const removeSelectedAccount = (
-  rule: ModelRoutingRule,
-  accountId: number,
-  _isEdit: boolean = false,
-) => {
-  if (!rule) return;
-
-  rule.accounts = rule.accounts.filter((a) => a.id !== accountId);
-};
 
 // 切换创建表单的模型系列选择
 const toggleCreateScope = (scope: string) => {
@@ -4911,51 +4279,6 @@ const toggleEditScope = (scope: string) => {
   } else {
     editForm.supported_model_scopes.splice(idx, 1);
   }
-};
-
-// 处理账号搜索输入框聚焦
-const onAccountSearchFocus = (
-  rule: ModelRoutingRule,
-  isEdit: boolean = false,
-) => {
-  const key = getRuleSearchKey(rule, isEdit);
-  showAccountDropdown.value[key] = true;
-  // 如果没有搜索结果，触发一次搜索
-  if (!accountSearchResults.value[key]?.length) {
-    searchAccounts(key);
-  }
-};
-
-// 添加创建表单的路由规则
-const addCreateRoutingRule = () => {
-  createModelRoutingRules.value.push({ pattern: "", accounts: [] });
-};
-
-// 删除创建表单的路由规则
-const removeCreateRoutingRule = (rule: ModelRoutingRule) => {
-  const index = createModelRoutingRules.value.indexOf(rule);
-  if (index === -1) return;
-
-  const key = getCreateRuleSearchKey(rule);
-  accountSearchRunner.clearKey(key);
-  clearAccountSearchStateByKey(key);
-  createModelRoutingRules.value.splice(index, 1);
-};
-
-// 添加编辑表单的路由规则
-const addEditRoutingRule = () => {
-  editModelRoutingRules.value.push({ pattern: "", accounts: [] });
-};
-
-// 删除编辑表单的路由规则
-const removeEditRoutingRule = (rule: ModelRoutingRule) => {
-  const index = editModelRoutingRules.value.indexOf(rule);
-  if (index === -1) return;
-
-  const key = getEditRuleSearchKey(rule);
-  accountSearchRunner.clearKey(key);
-  clearAccountSearchStateByKey(key);
-  editModelRoutingRules.value.splice(index, 1);
 };
 
 const resetModelsListState = (
@@ -5053,7 +4376,7 @@ const convertApiFormatToRoutingRules = async (
 const editForm = reactive({
   name: "",
   description: "",
-  platform: "anthropic" as GroupPlatform,
+  platform: "openai" as GroupPlatform,
   rate_multiplier: 1.0,
   is_exclusive: false,
   status: "active" as "active" | "inactive",
@@ -5088,7 +4411,7 @@ const editForm = reactive({
   profit_control_enabled: false,
   profit_min_margin_percent: 0,
   profit_safety_buffer_percent: 0,
-  // Claude Code 客户端限制（仅 anthropic 平台使用）
+  // Claude Code 客户端限制字段（后端 DTO 保留，UI 已随 anthropic 平台入口移除）
   claude_code_only: false,
   fallback_group_id: null as number | null,
   fallback_group_id_on_invalid_request: null as number | null,
@@ -5506,7 +4829,7 @@ const closeCreateModal = () => {
   clearAllAccountSearchState();
   createForm.name = "";
   createForm.description = "";
-  createForm.platform = "anthropic";
+  createForm.platform = "openai";
   createForm.rate_multiplier = 1.0;
   createForm.is_exclusive = false;
   createForm.subscription_type = "standard";
@@ -6233,7 +5556,7 @@ watch(
 watch(
   () => createForm.platform,
   (newVal) => {
-    if (!["anthropic", "antigravity"].includes(newVal)) {
+    if (!["antigravity"].includes(newVal)) {
       createForm.fallback_group_id_on_invalid_request = null;
     }
     if (newVal !== "openai") {
@@ -6254,7 +5577,7 @@ watch(
       newVal,
     );
     createReasoningEffortPolicyRef.value?.resetValidation();
-    if (!["openai", "antigravity", "anthropic", "gemini"].includes(newVal)) {
+    if (!["openai", "antigravity", "gemini"].includes(newVal)) {
       createForm.require_oauth_only = false;
       createForm.require_privacy_set = false;
     }
@@ -6281,7 +5604,7 @@ watch(
 watch(
   () => editForm.platform,
   (newVal) => {
-    if (!["anthropic", "antigravity"].includes(newVal)) {
+    if (!["antigravity"].includes(newVal)) {
       editForm.fallback_group_id_on_invalid_request = null;
     }
     if (newVal !== "openai") {
@@ -6302,7 +5625,7 @@ watch(
       newVal,
     );
     editReasoningEffortPolicyRef.value?.resetValidation();
-    if (!["openai", "antigravity", "anthropic", "gemini"].includes(newVal)) {
+    if (!["openai", "antigravity", "gemini"].includes(newVal)) {
       editForm.require_oauth_only = false;
       editForm.require_privacy_set = false;
     }
@@ -6331,7 +5654,7 @@ watch(
 watch(
   () => editForm.platform,
   (newVal) => {
-    if (!['anthropic', 'antigravity'].includes(newVal)) {
+    if (!['antigravity'].includes(newVal)) {
       editForm.fallback_group_id_on_invalid_request = null
     }
     if (newVal !== 'openai') {

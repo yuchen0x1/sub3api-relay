@@ -523,7 +523,6 @@ export default {
         balance: 'Balance',
         balancePlatformQuota: 'Balance (Platform Quota)',
         usage: 'Usage',
-        usageAnthropic: 'Usage (Claude)',
         usageOpenAI: 'Usage (OpenAI)',
         usageGemini: 'Usage (Gemini)',
         usageAntigravity: 'Usage (Antigravity)',
@@ -939,7 +938,6 @@ export default {
       userInfo: 'User Info',
       platforms: {
         all: 'All Platforms',
-        anthropic: 'Anthropic',
         openai: 'OpenAI',
         gemini: 'Gemini',
         antigravity: 'Antigravity',

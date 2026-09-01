@@ -351,6 +351,9 @@ type UpdateSettingsRequest struct {
 	CyberSessionBlockEnabled    *bool `json:"cyber_session_block_enabled"`
 	CyberSessionBlockTTLSeconds *int  `json:"cyber_session_block_ttl_seconds"`
 
+	// 静态出口池开关（1 出口 10 并发，默认开）
+	StaticIPPoolEnabled *bool `json:"static_ip_pool_enabled"`
+
 	// OpenAI fast/flex policy (optional, only updated when provided)
 	OpenAIFastPolicySettings *dto.OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 
@@ -1918,6 +1921,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.CyberSessionBlockTTLSeconds
 			}
 			return previousSettings.CyberSessionBlockTTLSeconds
+		}(),
+		StaticIPPoolEnabled: func() bool {
+			if req.StaticIPPoolEnabled != nil {
+				return *req.StaticIPPoolEnabled
+			}
+			return previousSettings.StaticIPPoolEnabled
 		}(),
 	}
 

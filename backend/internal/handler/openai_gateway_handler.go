@@ -2235,6 +2235,17 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				return
 			}
 
+			// 静态出口容量耗尽：failover 换号前先检查，避免把容量错误当作
+			// 上游故障反复换号。握手已完成，只能以 WS close code 告知客户端。
+			if errors.Is(err, service.ErrStaticProxyCapacityUnavailable) {
+				reqLog.Warn("openai.websocket_static_proxy_capacity_exhausted",
+					zap.Int64("account_id", account.ID),
+					zap.Error(err),
+				)
+				closeOpenAIClientWS(wsConn, coderws.StatusTryAgainLater, "static proxy capacity exceeded; please retry later")
+				return
+			}
+
 			if errors.Is(context.Cause(ctx), service.ErrOpenAIWSIngressLeaseLost) {
 				reqLog.Warn("openai.websocket_ingress_lease_lost",
 					zap.Int64("account_id", account.ID),

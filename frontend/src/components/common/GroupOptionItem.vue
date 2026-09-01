@@ -126,8 +126,6 @@ const peakRateTitle = computed(() => {
 // Rate pill color matches platform badge color
 const ratePillClass = computed(() => {
   switch (props.platform) {
-    case 'anthropic':
-      return 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
     case 'openai':
       return 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
     case 'gemini':

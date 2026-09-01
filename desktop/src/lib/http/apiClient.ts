@@ -22,8 +22,12 @@ export interface GetOptions {
   signal?: AbortSignal
 }
 
+export interface MutationOptions extends GetOptions {
+  body?: unknown
+}
+
 function joinUrl(baseUrl: string, path: string): string {
-  return `${baseUrl.replace(/\+$/, "")}/${path.replace(/^\/+/, "")}`
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`
 }
 
 function errorMessage(body: unknown, status: number): string {
@@ -65,9 +69,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = options.baseUrl ?? apiBaseUrl
   const fetchImpl = options.fetchImpl ?? fetch
 
-  async function get<T>(path: string, getOptions: GetOptions = {}): Promise<T> {
+  async function request<T>(method: string, path: string, options: MutationOptions = {}): Promise<T> {
     const url = new URL(joinUrl(baseUrl, path))
-    Object.entries(getOptions.query ?? {}).forEach(([key, value]) => {
+    Object.entries(options.query ?? {}).forEach(([key, value]) => {
       if (value !== undefined) url.searchParams.set(key, String(value))
     })
 
@@ -76,18 +80,29 @@ export function createApiClient(options: ApiClientOptions = {}) {
       Accept: "application/json",
       "X-Admin-UI-Request": "1",
     }
+    if (options.body !== undefined) headers["Content-Type"] = "application/json"
     if (session?.token) {
       if (session.scheme === "bearer") headers.Authorization = `Bearer ${session.token}`
       else headers["x-api-key"] = session.token
     }
 
-    const response = await fetchImpl(url, { method: "GET", headers, signal: getOptions.signal })
+    const response = await fetchImpl(url, {
+      method,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal,
+    })
     const body = await readBody(response)
     if (!response.ok) throw new ApiError(errorMessage(body, response.status), response.status, body)
     return unwrapEnvelope<T>(body)
   }
 
-  return { get }
+  return {
+    get: <T>(path: string, getOptions: GetOptions = {}) => request<T>("GET", path, getOptions),
+    post: <T>(path: string, mutationOptions: MutationOptions = {}) => request<T>("POST", path, mutationOptions),
+    put: <T>(path: string, mutationOptions: MutationOptions = {}) => request<T>("PUT", path, mutationOptions),
+    del: <T>(path: string, mutationOptions: MutationOptions = {}) => request<T>("DELETE", path, mutationOptions),
+  }
 }
 
 export const apiClient = createApiClient()

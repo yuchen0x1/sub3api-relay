@@ -7,11 +7,13 @@ const {
   probeUpstreamBillingMock,
   importCodexSessionMock,
   createOpenAICodexPATMock,
+  testDraftConnectionMock,
 } = vi.hoisted(() => ({
   createAccountMock: vi.fn(),
   probeUpstreamBillingMock: vi.fn(),
   importCodexSessionMock: vi.fn(),
   createOpenAICodexPATMock: vi.fn(),
+  testDraftConnectionMock: vi.fn(),
 }))
 
 vi.mock('@/stores/app', () => ({
@@ -34,6 +36,7 @@ vi.mock('@/api/admin', () => ({
       checkMixedChannelRisk: vi.fn().mockResolvedValue({ has_risk: false }),
       importCodexSession: importCodexSessionMock,
       createOpenAICodexPAT: createOpenAICodexPATMock,
+      testDraftConnection: testDraftConnectionMock,
     },
     settings: {
       getWebSearchEmulationConfig: vi.fn().mockResolvedValue({ enabled: false, providers: [] }),
@@ -339,5 +342,71 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     await flushPromises()
 
     expect(createOpenAICodexPATMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBe(false)
+  })
+})
+
+describe('CreateAccountModal draft connection test', () => {
+  beforeEach(() => {
+    testDraftConnectionMock.mockReset()
+    createAccountMock.mockReset().mockResolvedValue({ id: 42, platform: 'openai', type: 'apikey' })
+  })
+
+  async function openOpenAIApiKeyForm() {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await selectButtonByText(wrapper, 'API Key')
+    const textInputs = wrapper.findAll('form#create-account-form input[type="text"]')
+    await textInputs[0].setValue('draft probe account')
+    await wrapper.get('[data-testid="api-base-url"]').setValue('https://relay.example.com/v1')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('sk-draft-key')
+    return wrapper
+  }
+
+  it('probes upstream with the form credentials before the account exists', async () => {
+    testDraftConnectionMock.mockResolvedValue({
+      success: true,
+      latency_ms: 123,
+      model_count: 45,
+      upstream_url: 'https://relay.example.com/v1/models'
+    })
+    const wrapper = await openOpenAIApiKeyForm()
+
+    const button = wrapper.get('[data-testid="draft-test-button"]')
+    expect(button.attributes('disabled')).toBeUndefined()
+    await button.trigger('click')
+    await flushPromises()
+
+    expect(testDraftConnectionMock).toHaveBeenCalledTimes(1)
+    expect(testDraftConnectionMock).toHaveBeenCalledWith({
+      platform: 'openai',
+      type: 'apikey',
+      credentials: { base_url: 'https://relay.example.com/v1', api_key: 'sk-draft-key' }
+    })
+    expect(wrapper.text()).toContain('admin.accounts.draftTest.success')
+  })
+
+  it('keeps the probe disabled until an API key is entered', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+    await selectButtonByText(wrapper, 'API Key')
+
+    const button = wrapper.get('[data-testid="draft-test-button"]')
+    expect(button.attributes('disabled')).toBeDefined()
+  })
+
+  it('shows the upstream failure reason when the probe is rejected', async () => {
+    testDraftConnectionMock.mockResolvedValue({
+      success: false,
+      latency_ms: 0,
+      model_count: 0,
+      upstream_url: 'https://relay.example.com/v1/models',
+      error: 'authentication failed: upstream rejected the API key'
+    })
+    const wrapper = await openOpenAIApiKeyForm()
+
+    await wrapper.get('[data-testid="draft-test-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('admin.accounts.draftTest.failed')
   })
 })

@@ -136,6 +136,65 @@ const cyberSessionBlockRuntimeCacheTTL = 60 * time.Second
 const cyberSessionBlockRuntimeErrorTTL = 5 * time.Second
 const cyberSessionBlockRuntimeDBTimeout = 5 * time.Second
 
+// cachedStaticIPPoolEnabled 静态出口池开关进程内缓存（60s TTL）。
+// GetStaticIPPoolEnabled 在每个网关请求的静态出口路由检查路径上被调用，
+// 禁止每次访问 DB。
+type cachedStaticIPPoolEnabled struct {
+	enabled   bool
+	expiresAt int64 // unix nano
+}
+
+const staticIPPoolEnabledCacheTTL = 60 * time.Second
+const staticIPPoolEnabledErrorTTL = 5 * time.Second
+const staticIPPoolEnabledDBTimeout = 5 * time.Second
+
+// GetStaticIPPoolEnabled 返回账号静态出口池总开关（static_ip_pool_enabled）。
+// 默认开启：v0.1.198 起静态出口路由已对存量账号生效，本开关仅作为灰度/
+// 紧急回退使用。读取失败时按开启处理（fail-open），避免设置存储故障把
+// 已配置出口的账号全部打回旧代理路径。
+func (s *SettingService) GetStaticIPPoolEnabled(ctx context.Context) bool {
+	if cached, ok := s.staticIPPoolEnabledCache.Load().(*cachedStaticIPPoolEnabled); ok && cached != nil {
+		if time.Now().UnixNano() < cached.expiresAt {
+			return cached.enabled
+		}
+	}
+	result, _, _ := s.staticIPPoolEnabledSF.Do("static_ip_pool_enabled", func() (any, error) {
+		if cached, ok := s.staticIPPoolEnabledCache.Load().(*cachedStaticIPPoolEnabled); ok && cached != nil {
+			if time.Now().UnixNano() < cached.expiresAt {
+				return cached, nil
+			}
+		}
+		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), staticIPPoolEnabledDBTimeout)
+		defer cancel()
+
+		value, err := s.settingRepo.GetValue(dbCtx, SettingKeyStaticIPPoolEnabled)
+		if err != nil && !errors.Is(err, ErrSettingNotFound) {
+			slog.Warn("failed to get static_ip_pool_enabled setting", "error", err)
+			entry := &cachedStaticIPPoolEnabled{
+				enabled:   true,
+				expiresAt: time.Now().Add(staticIPPoolEnabledErrorTTL).UnixNano(),
+			}
+			s.staticIPPoolEnabledCache.Store(entry)
+			return entry, nil
+		}
+
+		// 未写入过该键时按默认开启处理，与 setting_parse.go 的默认值一致。
+		enabled := err != nil || strings.TrimSpace(value) != "false"
+
+		entry := &cachedStaticIPPoolEnabled{
+			enabled:   enabled,
+			expiresAt: time.Now().Add(staticIPPoolEnabledCacheTTL).UnixNano(),
+		}
+		s.staticIPPoolEnabledCache.Store(entry)
+		return entry, nil
+	})
+	if entry, ok := result.(*cachedStaticIPPoolEnabled); ok && entry != nil {
+		return entry.enabled
+	}
+	return true
+}
+
+
 const openAIQuotaAutoPauseSettingsCacheTTL = 60 * time.Second
 const openAIQuotaAutoPauseSettingsErrorTTL = 5 * time.Second
 const openAIQuotaAutoPauseSettingsDBTimeout = 5 * time.Second

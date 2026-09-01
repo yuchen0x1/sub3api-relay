@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -46,6 +47,12 @@ func (h *ManusGatewayHandler) Proxy(c *gin.Context) {
 		c.Request.Context(), account, c.Request.Method, endpoint, c.Request.URL.RawQuery, c.Request.Header, c.Request.Body,
 	)
 	if err != nil {
+		// 静态出口容量耗尽不是上游故障：返回 429 而非 502，避免客户端
+		// 把它当网关错误告警。
+		if errors.Is(err, service.ErrStaticProxyCapacityUnavailable) {
+			writeManusError(c, http.StatusTooManyRequests, "rate_limit_error", "Static proxy capacity exceeded, please retry later")
+			return
+		}
 		writeManusError(c, http.StatusBadGateway, "upstream_error", err.Error())
 		return
 	}

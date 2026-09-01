@@ -49,6 +49,8 @@ const { t } = useI18n()
 
 const capacityClass = (current: number, max: number) => {
   if (max > 0 && current >= max) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+  // Near-full (>=80%) gets its own amber tier between active and full.
+  if (max > 0 && current / max >= 0.8) return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
   if (current > 0) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
   return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }
@@ -63,13 +65,18 @@ const totalTooltip = computed(() =>
 )
 
 const exitClass = (exit: StaticProxyExitCapacity) => {
-  if (exit.status.toLowerCase() === 'disabled') {
-    return 'bg-gray-100 text-gray-500 opacity-60 dark:bg-gray-800 dark:text-gray-500'
+  switch (exit.status.toLowerCase()) {
+    case 'disabled':
+      return 'bg-gray-100 text-gray-500 opacity-60 dark:bg-gray-800 dark:text-gray-500'
+    case 'unhealthy':
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    default:
+      // Healthy exits: idle shows green, then yellow/amber/red as load rises.
+      if (exit.current === 0) {
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+      }
+      return capacityClass(exit.current, exit.max)
   }
-  if (exit.status.toLowerCase() === 'unhealthy') {
-    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  }
-  return capacityClass(exit.current, exit.max)
 }
 
 const exitTooltip = (exit: StaticProxyExitCapacity) =>

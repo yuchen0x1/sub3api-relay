@@ -523,7 +523,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus' | 'composite'
+export type GroupPlatform = 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus' | 'composite'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -593,7 +593,7 @@ export interface Group {
 }
 
 export interface AdminGroup extends Group {
-  // 分组利润控制（openai/anthropic/gemini/grok/antigravity 分组可启用；margin/buffer 为小数存储）。
+  // 分组利润控制（openai/gemini/grok/antigravity 分组可启用；margin/buffer 为小数存储）。
   // 仅管理员可见：与 rate_multiplier 相乘即可反推上游成本上限，不得下放到 Group。
   profit_control_enabled: boolean
   profit_min_margin: number
@@ -855,9 +855,9 @@ export interface UpdateGroupRequest {
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
-export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
-export type OAuthAddMethod = 'oauth' | 'setup-token'
+export type AccountPlatform = 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
+export type AccountType = 'oauth' | 'apikey' | 'upstream' | 'service_account'
+export type OAuthAddMethod = 'oauth'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'vless'
 
 export interface StaticProxyExitCapacity {
@@ -873,6 +873,63 @@ export interface StaticIPCapacity {
   current: number
   max: number
   exits: StaticProxyExitCapacity[]
+}
+
+// Static proxy exit: an account-owned assignment of an existing proxy.
+// Each enabled exit hard-caps at 10 concurrent request slots.
+export const STATIC_PROXY_EXIT_CAPACITY = 10
+
+export interface StaticProxyExitProxyRef {
+  id: number
+  name: string
+  protocol: string
+  host: string
+  port: number
+  status: string
+}
+
+export interface StaticProxyExit {
+  id: number
+  account_id: number
+  proxy_id: number
+  name: string
+  position: number
+  enabled: boolean
+  capacity: number
+  health_status: string
+  failure_count: number
+  last_failure_at?: string | null
+  last_failure_reason?: string
+  last_checked_at?: string | null
+  created_at: string
+  updated_at: string
+  proxy?: StaticProxyExitProxyRef | null
+}
+
+export interface StaticProxyExitCreateRequest {
+  account_id: number
+  proxy_id: number
+  name?: string
+  position?: number
+  enabled?: boolean
+}
+
+export interface StaticProxyExitUpdateRequest {
+  account_id?: number
+  proxy_id?: number
+  name?: string
+  position?: number
+  enabled?: boolean
+}
+
+export interface StaticProxyExitCapacitySummary {
+  account_id?: number | null
+  assignment_count: number
+  enabled_count: number
+  disabled_count: number
+  capacity_per_assignment: number
+  total_capacity: number
+  enabled_capacity: number
 }
 
 // Claude Model type (returned by /v1/models and account models API)
@@ -1160,33 +1217,33 @@ export interface Account {
   session_window_end: string | null
   session_window_status: 'allowed' | 'allowed_warning' | 'rejected' | null
 
-  // 5h窗口费用控制（仅 Anthropic OAuth/SetupToken 账号有效）
+  // 5h窗口费用控制（仅协议兼容层账号有效）
   window_cost_limit?: number | null
   window_cost_sticky_reserve?: number | null
 
-  // 会话数量控制（仅 Anthropic OAuth/SetupToken 账号有效）
+  // 会话数量控制（仅协议兼容层账号有效）
   max_sessions?: number | null
   session_idle_timeout_minutes?: number | null
 
-  // RPM 限制（仅 Anthropic OAuth/SetupToken 账号有效）
+  // RPM 限制（仅协议兼容层账号有效）
   base_rpm?: number | null
   rpm_strategy?: string | null
   rpm_sticky_buffer?: number | null
   user_msg_queue_mode?: string | null  // "serialize" | "throttle" | null
 
-  // TLS指纹伪装（仅 Anthropic OAuth/SetupToken 账号有效）
+  // TLS指纹伪装（仅协议兼容层账号有效）
   enable_tls_fingerprint?: boolean | null
   tls_fingerprint_profile_id?: number | null
 
-  // 会话ID伪装（仅 Anthropic OAuth/SetupToken 账号有效）
+  // 会话ID伪装（仅协议兼容层账号有效）
   // 启用后将在15分钟内固定 metadata.user_id 中的 session ID
   session_id_masking_enabled?: boolean | null
 
-  // 缓存 TTL 强制替换（仅 Anthropic OAuth/SetupToken 账号有效）
+  // 缓存 TTL 强制替换（仅协议兼容层账号有效）
   cache_ttl_override_enabled?: boolean | null
   cache_ttl_override_target?: string | null
 
-  // 自定义 Base URL 中继转发（仅 Anthropic OAuth/SetupToken 账号有效）
+  // 自定义 Base URL 中继转发（仅协议兼容层账号有效）
   custom_base_url_enabled?: boolean | null
   custom_base_url?: string | null
 

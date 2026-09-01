@@ -209,7 +209,6 @@ describe('admin UsersView', () => {
         'groups',
         'subscriptions',
         'concurrency',
-        'usage_anthropic',
         'usage_openai',
         'usage_gemini',
         'usage_antigravity',

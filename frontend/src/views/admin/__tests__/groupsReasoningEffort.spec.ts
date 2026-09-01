@@ -29,7 +29,7 @@ describe("groupsReasoningEffort", () => {
       expect(supportsReasoningEffortPolicyPlatform(platform)).toBe(true);
     }
     for (const platform of [
-      "anthropic",
+      "manus",
       "gemini",
       "antigravity",
       "grok",

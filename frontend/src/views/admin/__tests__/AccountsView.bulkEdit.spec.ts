@@ -208,7 +208,7 @@ describe('admin AccountsView bulk edit scope', () => {
         {
           id: 1,
           name: 'test-account',
-          platform: 'anthropic',
+          platform: 'openai',
           type: 'oauth',
           status: 'active',
           schedulable: true,

@@ -1956,8 +1956,6 @@ const qualityTargetLabel = (target: string) => {
       return t('admin.proxies.qualityTargetBase')
     case 'openai':
       return 'OpenAI'
-    case 'anthropic':
-      return 'Anthropic'
     case 'gemini':
       return 'Gemini'
     case 'grok':

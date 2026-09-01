@@ -245,6 +245,31 @@ export async function testAccount(id: number): Promise<{
   return data
 }
 
+/** Result of a pre-save connection test against user-supplied credentials. */
+export interface DraftConnectionTestResult {
+  success: boolean
+  latency_ms: number
+  model_count: number
+  upstream_url: string
+  error?: string
+}
+
+/**
+ * Test draft credentials from the create form before the account exists.
+ * No account record is created or modified.
+ */
+export async function testDraftConnection(payload: {
+  platform: string
+  type: string
+  credentials: Record<string, unknown>
+}): Promise<DraftConnectionTestResult> {
+  const { data } = await apiClient.post<DraftConnectionTestResult>(
+    '/admin/accounts/test-draft',
+    payload
+  )
+  return data
+}
+
 /**
  * Refresh account credentials
  * @param id - Account ID
@@ -997,6 +1022,7 @@ export const accountsAPI = {
   delete: deleteAccount,
   toggleStatus,
   testAccount,
+  testDraftConnection,
   refreshCredentials,
   applyOAuthCredentials,
   getStats,

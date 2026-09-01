@@ -279,10 +279,10 @@ function buildGrokAPIKeyAccount() {
   } as any
 }
 
-function buildOpenAISetupTokenAccount() {
+function buildOpenAIOAuthAccount() {
   return {
     ...buildAccount(),
-    type: 'setup-token',
+    type: 'oauth',
     extra: {
       openai_oauth_responses_websockets_v2_mode: 'ctx_pool',
       openai_oauth_responses_websockets_v2_enabled: true
@@ -1005,8 +1005,8 @@ describe('EditAccountModal', () => {
     expect(updateAccountMock.mock.calls[0]?.[1]?.extra).not.toHaveProperty('codex_image_generation_bridge')
   })
 
-  it('setup-token account can select and submit OAuth WS mode', async () => {
-    const account = buildOpenAISetupTokenAccount()
+  it('openai OAuth account can select and submit OAuth WS mode', async () => {
+    const account = buildOpenAIOAuthAccount()
     updateAccountMock.mockReset()
     checkMixedChannelRiskMock.mockReset()
     checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })

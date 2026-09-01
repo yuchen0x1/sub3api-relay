@@ -146,7 +146,7 @@ describe('BulkEditAccountModal', () => {
 
   it('仅勾选模型限制且白名单留空时，应提交空 model_mapping 以支持所有模型', async () => {
     const wrapper = mountModal({
-      selectedPlatforms: ['anthropic'],
+      selectedPlatforms: ['openai'],
       selectedTypes: ['apikey']
     })
 
@@ -205,7 +205,7 @@ describe('BulkEditAccountModal', () => {
 
   it('所选含非 grok 平台时不展示快捷端点', async () => {
     const wrapper = mountModal({
-      selectedPlatforms: ['grok', 'anthropic'],
+      selectedPlatforms: ['grok', 'openai'],
       selectedTypes: ['apikey']
     })
 
@@ -422,7 +422,7 @@ describe('BulkEditAccountModal', () => {
   it('非 OpenAI 平台的 API Key 批量编辑同样可开启上游倍率自动探测', async () => {
     // 探测已放宽到全部 API-key 平台，混合平台选择只要求类型全为 apikey。
     const wrapper = mountModal({
-      selectedPlatforms: ['grok', 'anthropic'],
+      selectedPlatforms: ['grok', 'gemini'],
       selectedTypes: ['apikey']
     })
 

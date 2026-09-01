@@ -79,10 +79,9 @@ describe('UserPlatformQuotaModal', () => {
     expect(apiMocks.getPlatformQuotas).toHaveBeenCalledWith(99)
   })
 
-  it('空数据渲染 5 个 platform 行', async () => {
+  it('空数据渲染 4 个 platform 行', async () => {
     const w = await mountAndOpen()
     const html = w.html()
-    expect(html).toContain('anthropic')
     expect(html).toContain('openai')
     expect(html).toContain('gemini')
     expect(html).toContain('antigravity')
@@ -92,19 +91,19 @@ describe('UserPlatformQuotaModal', () => {
   it('已有数据正确填充 limit input', async () => {
     apiMocks.getPlatformQuotas.mockResolvedValueOnce({
       platform_quotas: [
-        { platform: 'anthropic', daily_limit_usd: 10, weekly_limit_usd: null, monthly_limit_usd: null,
+        { platform: 'openai', daily_limit_usd: 10, weekly_limit_usd: null, monthly_limit_usd: null,
           daily_usage_usd: 3.2, weekly_usage_usd: 0, monthly_usage_usd: 0 },
       ],
     })
     const w = await mountAndOpen()
     const inputs = w.findAll('input[type=number]')
-    // 5 platforms × 3 windows = 15 inputs
-    expect(inputs.length).toBe(15)
-    // 第一个 input 是 anthropic.daily = 10
+    // 4 platforms × 3 windows = 12 inputs
+    expect(inputs.length).toBe(12)
+    // 第一个 input 是 openai.daily = 10
     expect((inputs[0].element as HTMLInputElement).value).toBe('10')
   })
 
-  it('保存提交完整 5 platform payload', async () => {
+  it('保存提交完整 4 platform payload', async () => {
     apiMocks.getPlatformQuotas.mockResolvedValueOnce({
       platform_quotas: [
         { platform: 'openai', daily_limit_usd: null, weekly_limit_usd: 20, monthly_limit_usd: null,
@@ -121,7 +120,7 @@ describe('UserPlatformQuotaModal', () => {
     expect(apiMocks.updatePlatformQuotas).toHaveBeenCalledTimes(1)
     const [uid, payload] = apiMocks.updatePlatformQuotas.mock.calls[0]
     expect(uid).toBe(99)
-    expect(payload).toHaveLength(5) // 5 platforms always submitted
+    expect(payload).toHaveLength(4) // 4 platforms always submitted
     const openai = payload.find((p: any) => p.platform === 'openai')
     expect(openai.weekly_limit_usd).toBe(20)
   })
@@ -130,7 +129,7 @@ describe('UserPlatformQuotaModal', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     apiMocks.getPlatformQuotas.mockResolvedValueOnce({
       platform_quotas: [
-        { platform: 'anthropic', daily_limit_usd: 10, weekly_limit_usd: 50, monthly_limit_usd: 100,
+        { platform: 'openai', daily_limit_usd: 10, weekly_limit_usd: 50, monthly_limit_usd: 100,
           daily_usage_usd: 0, weekly_usage_usd: 0, monthly_usage_usd: 0 },
       ],
     })
@@ -152,7 +151,7 @@ describe('UserPlatformQuotaModal', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     apiMocks.getPlatformQuotas.mockResolvedValueOnce({
       platform_quotas: [
-        { platform: 'anthropic', daily_limit_usd: 10, weekly_limit_usd: 50, monthly_limit_usd: 100,
+        { platform: 'openai', daily_limit_usd: 10, weekly_limit_usd: 50, monthly_limit_usd: 100,
           daily_usage_usd: 0, weekly_usage_usd: 0, monthly_usage_usd: 0 },
       ],
     })
@@ -161,7 +160,7 @@ describe('UserPlatformQuotaModal', () => {
     await clearBtn!.trigger('click')
     await flushPromises()
     expect(confirmSpy).toHaveBeenCalledTimes(1)
-    // anthropic daily 应保持 10（未被清空）
+    // openai daily 应保持 10（未被清空）
     const inputs = w.findAll('input[type=number]')
     const dailyVal = (inputs[0].element as HTMLInputElement).value
     expect(dailyVal).toBe('10')
@@ -183,9 +182,9 @@ describe('UserPlatformQuotaModal', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const w = await mountAndOpen()
     const resetBtns = w.findAll('button').filter((b) => b.text() === '↻')
-    await resetBtns[0].trigger('click') // 第一个是 anthropic.daily
+    await resetBtns[0].trigger('click') // 第一个是 openai.daily
     await flushPromises()
-    expect(apiMocks.resetPlatformQuotaWindow).toHaveBeenCalledWith(99, 'anthropic', 'daily')
+    expect(apiMocks.resetPlatformQuotaWindow).toHaveBeenCalledWith(99, 'openai', 'daily')
     confirmSpy.mockRestore()
   })
 

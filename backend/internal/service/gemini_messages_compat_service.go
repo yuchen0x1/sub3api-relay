@@ -55,6 +55,7 @@ type GeminiMessagesCompatService struct {
 	antigravityGatewayService *AntigravityGatewayService
 	cfg                       *config.Config
 	responseHeaderFilter      *responseheaders.CompiledHeaderFilter
+	staticProxyRouter         *StaticProxyRouter
 }
 
 func (s *GeminiMessagesCompatService) readUpstreamErrorBody(resp *http.Response) []byte {
@@ -79,7 +80,16 @@ func NewGeminiMessagesCompatService(
 	httpUpstream HTTPUpstream,
 	antigravityGatewayService *AntigravityGatewayService,
 	cfg *config.Config,
+	// staticProxyRouter is optional (variadic); see NewOpenAIGatewayService.
+	staticProxyRouters ...*StaticProxyRouter,
 ) *GeminiMessagesCompatService {
+	var staticProxyRouter *StaticProxyRouter
+	for _, router := range staticProxyRouters {
+		if router != nil {
+			staticProxyRouter = router
+			break
+		}
+	}
 	return &GeminiMessagesCompatService{
 		accountRepo:               accountRepo,
 		groupRepo:                 groupRepo,
@@ -91,6 +101,7 @@ func NewGeminiMessagesCompatService(
 		antigravityGatewayService: antigravityGatewayService,
 		cfg:                       cfg,
 		responseHeaderFilter:      compileResponseHeaderFilter(cfg),
+		staticProxyRouter:         staticProxyRouter,
 	}
 }
 
@@ -586,6 +597,18 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 	beginUpstreamResponseModelObservation(c)
 	beginGeminiImageOutputObservation(c)
 	startTime := time.Now()
+
+	// Static proxy routing (all-protocol coverage; see StaticProxyRouter).
+	// Accounts with enabled assignments reserve an aggregate + per-exit
+	// capacity slot and forward through the assignment's proxy for this
+	// attempt. Release is deferred so every exit path frees the slot.
+	staticRelease, staticErr := applyStaticProxyRoutingForProtocol(ctx, s.staticProxyRouter, c, account)
+	if staticErr != nil {
+		return nil, staticErr
+	}
+	if staticRelease != nil {
+		defer staticRelease()
+	}
 
 	var req struct {
 		Model  string `json:"model"`

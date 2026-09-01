@@ -38,7 +38,7 @@ describe("normalizeAccountsResponse", () => {
       accounts: [{
         account_id: "edge-7",
         email: "edge@example.com",
-        provider: "anthropic",
+        provider: "grok",
         status: "inactive",
         static_ip_capacity: {
           "198.51.100.4": { used: 2, capacity: 5 },

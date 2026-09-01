@@ -438,6 +438,9 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		updates[SettingKeyCyberSessionBlockTTLSeconds] = strconv.Itoa(settings.CyberSessionBlockTTLSeconds)
 	}
 
+	// 静态出口池开关（默认开，灰度/紧急回退用）
+	updates[SettingKeyStaticIPPoolEnabled] = strconv.FormatBool(settings.StaticIPPoolEnabled)
+
 	// Claude Code version check
 	updates[SettingKeyMinClaudeCodeVersion] = settings.MinClaudeCodeVersion
 	updates[SettingKeyMaxClaudeCodeVersion] = settings.MaxClaudeCodeVersion

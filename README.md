@@ -13,13 +13,13 @@
 
 ## 项目简介
 
-Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将多个上游 AI 账号统一调度到 OpenAI、Anthropic/Claude、Gemini、Grok、Manus、Antigravity 等兼容入口，并提供用户、分组、API Key、代理、用量、余额、运维监控、备份、审计、风控和系统配置管理。
+Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将多个上游 AI 账号统一调度到 OpenAI、Gemini、Grok、Manus、Antigravity 等兼容入口，并提供用户、分组、API Key、代理、用量、余额、运维监控、备份、审计、风控和系统配置管理。
 
 项目默认适合个人自建、内部工具和小团队网关场景。生产部署推荐使用 Docker Compose 或发行版二进制；本地开发可分别运行 Go 后端与 Vite 前端。
 
 ## 核心功能
 
-- **多平台网关**：支持 Anthropic/Claude 风格 `/v1/messages`、OpenAI 风格 `/v1/responses`、`/v1/chat/completions`、`/v1/images/*`，以及 Gemini 原生 `/v1beta/models/*`。
+- **多平台网关**：支持 Claude Messages 协议风格 `/v1/messages`、OpenAI 风格 `/v1/responses`、`/v1/chat/completions`、`/v1/images/*`，以及 Gemini 原生 `/v1beta/models/*`。
 - **多账号调度**：支持按平台、分组、模型路由、账号状态、代理和并发容量进行调度。
 - **API Key 分发**：用户可创建和管理自己的 API Key；管理员可调整 Key 所属分组。
 - **用量与计费**：记录请求、Token、模型、费用、余额和聚合统计，支持按用户、Key、分组查看。
@@ -156,7 +156,7 @@ curl http://127.0.0.1:8080/v1/models \
 
 | 入口 | 说明 |
 | --- | --- |
-| `/v1/messages` | Anthropic/Claude Messages 兼容入口 |
+| `/v1/messages` | Claude Messages 协议兼容入口 |
 | `/v1/messages/count_tokens` | Token 计数入口 |
 | `/v1/models` | 模型列表入口 |
 | `/v1/responses` | OpenAI Responses 兼容入口 |

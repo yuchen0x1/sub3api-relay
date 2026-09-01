@@ -175,7 +175,7 @@ describe('admin AccountsView scheduler score column', () => {
           ...baseAccount,
           id: 3,
           name: 'no-score',
-          platform: 'anthropic'
+          platform: 'grok'
         }
       ],
       total: 3,

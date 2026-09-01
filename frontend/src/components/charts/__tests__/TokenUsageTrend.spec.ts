@@ -87,7 +87,7 @@ describe('TokenUsageTrend', () => {
     expect(hitRateDataset.data[0]).toBe(0)
   })
 
-  it('includes cache_creation_tokens in denominator for Anthropic models', () => {
+  it('includes cache_creation_tokens in the hit rate denominator', () => {
     const wrapper = mount(TokenUsageTrend, {
       props: {
         trendData: [

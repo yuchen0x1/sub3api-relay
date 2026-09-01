@@ -395,6 +395,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/static-exits',
+    name: 'AdminStaticExits',
+    component: () => import('@/views/admin/StaticExitsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Static Proxy Exits',
+      titleKey: 'admin.staticExitsPage.title',
+      descriptionKey: 'admin.staticExitsPage.description'
+    }
+  },
+  {
     path: '/admin/redeem',
     alias: ['/admin/cards', '/admin/card-codes'],
     name: 'AdminRedeem',

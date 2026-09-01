@@ -117,6 +117,8 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 
 		RiskControlEnabled: settings.RiskControlEnabled,
 
+		StaticIPPoolEnabled: settings.StaticIPPoolEnabled,
+
 		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,
 	})
 }

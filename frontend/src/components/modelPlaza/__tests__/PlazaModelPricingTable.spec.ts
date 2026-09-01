@@ -16,7 +16,7 @@ vi.mock('vue-i18n', async () => {
 function tokenModel(overrides: Partial<PlazaModel> = {}): PlazaModel {
   return {
     name: 'claude-sonnet',
-    platform: 'anthropic',
+    platform: 'openai',
     pricing: {
       billing_mode: 'token',
       input_price: 3e-6,
@@ -385,11 +385,11 @@ describe('PlazaModelPricingTable', () => {
   })
 
   it('Composite 分组中相同模型名按具体平台分别展示徽章', () => {
-    const anthropic = tokenModel({ name: 'shared-model', platform: 'anthropic' })
+    const grok = tokenModel({ name: 'shared-model', platform: 'grok' })
     const openai = tokenModel({ name: 'shared-model', platform: 'openai' })
     const wrapper = mount(PlazaModelPricingTable, {
       props: {
-        models: [anthropic, openai],
+        models: [grok, openai],
         platform: 'composite',
         rateMultiplier: 1
       }
@@ -398,10 +398,10 @@ describe('PlazaModelPricingTable', () => {
     const rows = wrapper.findAll('tbody tr')
     expect(rows).toHaveLength(2)
     expect(rows.map((row) => row.find('td').text())).toEqual([
-      'shared-modelAnthropic',
+      'shared-modelGrok',
       'shared-modelOpenAI'
     ])
-    expect(wrapper.text()).toContain('Anthropic')
+    expect(wrapper.text()).toContain('Grok')
     expect(wrapper.text()).toContain('OpenAI')
   })
 })

@@ -26,17 +26,6 @@
                 t('admin.accounts.oauth.manualAuth')
               }}</span>
             </label>
-            <label v-if="showCookieOption" class="flex cursor-pointer items-center gap-2">
-              <input
-                v-model="inputMethod"
-                type="radio"
-                value="cookie"
-                class="text-blue-600 focus:ring-blue-500"
-              />
-              <span class="text-sm text-blue-900 dark:text-blue-200">{{
-                t('admin.accounts.oauth.cookieAutoAuth')
-              }}</span>
-            </label>
             <label v-if="showRefreshTokenOption" class="flex cursor-pointer items-center gap-2">
               <input
                 v-model="inputMethod"
@@ -498,138 +487,6 @@
           </div>
         </div>
 
-        <!-- Cookie Auto-Auth Form -->
-        <div v-if="inputMethod === 'cookie'" class="space-y-4">
-          <div
-            class="rounded-lg border border-blue-300 bg-white/80 p-4 dark:border-blue-600 dark:bg-gray-800/80"
-          >
-            <p class="mb-3 text-sm text-blue-700 dark:text-blue-300">
-              {{ t('admin.accounts.oauth.cookieAutoAuthDesc') }}
-            </p>
-
-            <!-- sessionKey Input -->
-            <div class="mb-4">
-              <label
-                class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300"
-              >
-                <Icon name="key" size="sm" class="text-blue-500" />
-                {{ t('admin.accounts.oauth.sessionKey') }}
-                <span
-                  v-if="parsedKeyCount > 1 && allowMultiple"
-                  class="rounded-full bg-blue-500 px-2 py-0.5 text-xs text-white"
-                >
-                  {{ t('admin.accounts.oauth.keysCount', { count: parsedKeyCount }) }}
-                </span>
-                <button :aria-label="t('common.help')"
-                  v-if="showHelp"
-                  type="button"
-                  class="text-blue-500 hover:text-blue-600"
-                  @click="showHelpDialog = !showHelpDialog"
-                >
-                  <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
-                    />
-                  </svg>
-                </button>
-              </label>
-              <textarea
-                v-model="sessionKeyInput"
-                rows="3"
-                class="input w-full resize-y font-mono text-sm"
-                :placeholder="
-                  allowMultiple
-                    ? t('admin.accounts.oauth.sessionKeyPlaceholder')
-                    : t('admin.accounts.oauth.sessionKeyPlaceholderSingle')
-                "
-              ></textarea>
-              <p
-                v-if="parsedKeyCount > 1 && allowMultiple"
-                class="mt-1 text-xs text-blue-600 dark:text-blue-400"
-              >
-                {{ t('admin.accounts.oauth.batchCreateAccounts', { count: parsedKeyCount }) }}
-              </p>
-            </div>
-
-            <!-- Help Section -->
-            <div
-              v-if="showHelpDialog && showHelp"
-              class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-900/30"
-            >
-              <h5 class="mb-2 font-semibold text-amber-800 dark:text-amber-200">
-                {{ t('admin.accounts.oauth.howToGetSessionKey') }}
-              </h5>
-              <ol
-                class="list-inside list-decimal space-y-1 text-xs text-amber-700 dark:text-amber-300"
-              >
-                <li>{{ t('admin.accounts.oauth.step1') }}</li>
-                <li>{{ t('admin.accounts.oauth.step2') }}</li>
-                <li>{{ t('admin.accounts.oauth.step3') }}</li>
-                <li>{{ t('admin.accounts.oauth.step4') }}</li>
-                <li>{{ t('admin.accounts.oauth.step5') }}</li>
-                <li>{{ t('admin.accounts.oauth.step6') }}</li>
-              </ol>
-              <p
-                class="mt-2 text-xs text-amber-600 dark:text-amber-400"
-                v-text="t('admin.accounts.oauth.sessionKeyFormat')"
-              ></p>
-            </div>
-
-            <!-- Error Message -->
-            <div
-              v-if="error"
-              class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-700 dark:bg-red-900/30"
-            >
-              <p class="whitespace-pre-line text-sm text-red-600 dark:text-red-400">
-                {{ error }}
-              </p>
-            </div>
-
-            <!-- Auth Button -->
-            <button
-              type="button"
-              class="btn btn-primary w-full"
-              :disabled="loading || !sessionKeyInput.trim()"
-              @click="handleCookieAuth"
-            >
-              <svg
-                v-if="loading"
-                class="-ml-1 mr-2 h-4 w-4 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <Icon v-else name="sparkles" size="sm" class="mr-2" />
-              {{
-                loading
-                  ? t('admin.accounts.oauth.authorizing')
-                  : t('admin.accounts.oauth.startAutoAuth')
-              }}
-            </button>
-          </div>
-        </div>
-
         <!-- Manual Authorization Flow -->
         <div v-if="inputMethod === 'manual'" class="space-y-4">
           <p class="mb-4 text-sm text-blue-800 dark:text-blue-300">
@@ -886,7 +743,6 @@ interface Props {
   showProxyWarning?: boolean
   allowMultiple?: boolean
   methodLabel?: string
-  showCookieOption?: boolean // Whether to show cookie auto-auth option
   showRefreshTokenOption?: boolean // Whether to show refresh token input option (OpenAI only)
   showMobileRefreshTokenOption?: boolean // Whether to show mobile refresh token option (OpenAI only)
   showSessionTokenOption?: boolean
@@ -917,7 +773,6 @@ const props = withDefaults(defineProps<Props>(), {
   showProxyWarning: true,
   allowMultiple: false,
   methodLabel: 'Authorization Method',
-  showCookieOption: true,
   showRefreshTokenOption: false,
   showMobileRefreshTokenOption: false,
   showSessionTokenOption: false,
@@ -929,14 +784,13 @@ const props = withDefaults(defineProps<Props>(), {
   showManualOption: true,
   initialInputMethod: 'manual',
   ssoImportProgress: null,
-  platform: 'anthropic',
+  platform: 'openai',
   showProjectId: true
 })
 
 const emit = defineEmits<{
   'generate-url': []
   'exchange-code': [code: string]
-  'cookie-auth': [sessionKey: string]
   'validate-refresh-token': [refreshToken: string]
   'validate-mobile-refresh-token': [refreshToken: string]
   'validate-session-token': [sessionToken: string]
@@ -983,7 +837,6 @@ const oauthImportantNotice = computed(() => {
 const inputMethod = ref<AuthInputMethod>(props.initialInputMethod)
 const isAgentIdentityInput = computed(() => inputMethod.value === 'agent_identity')
 const authCodeInput = ref('')
-const sessionKeyInput = ref('')
 const refreshTokenInput = ref('')
 const sessionTokenInput = ref('')
 const codexSessionInput = ref('')
@@ -991,14 +844,12 @@ const codexPATInput = ref('')
 const ssoCookieInput = ref('')
 const ssoFileInput = ref<HTMLInputElement | null>(null)
 const ssoFileName = ref('')
-const showHelpDialog = ref(false)
 const oauthState = ref('')
 const projectId = ref('')
 
 // Computed: show method selection only when there is something to choose.
 const methodOptionCount = computed(() => [
   props.showManualOption,
-  props.showCookieOption,
   props.showRefreshTokenOption,
   props.showMobileRefreshTokenOption,
   props.showSessionTokenOption,
@@ -1012,14 +863,6 @@ const showMethodSelection = computed(() => methodOptionCount.value > 1)
 
 // Clipboard
 const { copied, copyToClipboard } = useClipboard()
-
-// Computed
-const parsedKeyCount = computed(() => {
-  return sessionKeyInput.value
-    .split('\n')
-    .map((k) => k.trim())
-    .filter((k) => k).length
-})
 
 // Computed: count of refresh tokens entered
 const parsedRefreshTokenCount = computed(() => {
@@ -1141,12 +984,6 @@ const handleRegenerate = () => {
   emit('generate-url')
 }
 
-const handleCookieAuth = () => {
-  if (sessionKeyInput.value.trim()) {
-    emit('cookie-auth', sessionKeyInput.value)
-  }
-}
-
 const handleValidateRefreshToken = () => {
   if (refreshTokenInput.value.trim()) {
     if (inputMethod.value === 'mobile_refresh_token') {
@@ -1180,7 +1017,6 @@ defineExpose({
   authCode: authCodeInput,
   oauthState,
   projectId,
-  sessionKey: sessionKeyInput,
   refreshToken: refreshTokenInput,
   sessionToken: sessionTokenInput,
   codexSession: codexSessionInput,
@@ -1191,7 +1027,6 @@ defineExpose({
     authCodeInput.value = ''
     oauthState.value = ''
     projectId.value = ''
-    sessionKeyInput.value = ''
     refreshTokenInput.value = ''
     sessionTokenInput.value = ''
     codexSessionInput.value = ''
@@ -1199,7 +1034,6 @@ defineExpose({
     ssoCookieInput.value = ''
     ssoFileName.value = ''
     inputMethod.value = props.initialInputMethod
-    showHelpDialog.value = false
   }
 })
 </script>

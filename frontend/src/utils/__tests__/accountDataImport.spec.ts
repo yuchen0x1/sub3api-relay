@@ -94,18 +94,7 @@ describe('accountDataImport', () => {
     })
   })
 
-  it('normalizes Claude OAuth and Gemini service-account files', () => {
-    const claude = normalizeAccountDataPayload({
-      type: 'authorized_user',
-      claudeAiOauth: {
-        accessToken: 'claude-access',
-        refreshToken: 'claude-refresh',
-        expiresAt: 1735689600000
-      }
-    }, 'claude-auth.json')
-    expect(claude.accounts[0]).toMatchObject({ platform: 'anthropic', type: 'oauth' })
-    expect(claude.accounts[0]?.credentials.access_token).toBe('claude-access')
-
+  it('normalizes Gemini service-account and Google ADC files', () => {
     const gemini = normalizeAccountDataPayload({
       type: 'service_account',
       project_id: 'demo-project',
@@ -122,33 +111,6 @@ describe('accountDataImport', () => {
       refresh_token: 'google-refresh'
     }, 'application_default_credentials.json')
     expect(googleADC.accounts[0]).toMatchObject({ platform: 'gemini', type: 'oauth' })
-  })
-
-  it('normalizes AWS Bedrock camelCase credentials', () => {
-    const payload = normalizeAccountDataPayload({
-      type: 'bedrock',
-      accessKeyId: 'AKIAEXAMPLE',
-      secretAccessKey: 'secret-example',
-      sessionToken: 'session-example',
-      region: 'us-east-1'
-    }, 'bedrock.json')
-    expect(payload.accounts[0]).toMatchObject({
-      platform: 'anthropic',
-      type: 'bedrock',
-      credentials: {
-        aws_access_key_id: 'AKIAEXAMPLE',
-        aws_secret_access_key: 'secret-example',
-        aws_session_token: 'session-example',
-        aws_region: 'us-east-1'
-      }
-    })
-  })
-
-  it('recognizes Claude setup tokens in token files', () => {
-    const parsed = parseAccountDataText('sk-ant-oat01-example-token', 'claude.at-txt')
-    const payload = normalizeAccountDataPayload(parsed, 'claude.at-txt')
-    expect(payload.accounts[0]).toMatchObject({ platform: 'anthropic', type: 'setup-token' })
-    expect(payload.accounts[0]?.credentials.setup_token).toBe('sk-ant-oat01-example-token')
   })
 
   it('parses token-per-line TXT and JSONL formats', () => {

@@ -22,22 +22,33 @@ type ManusGatewayService struct {
 	cfg                  *config.Config
 	tlsProfileService    *TLSFingerprintProfileService
 	responseHeaderFilter *responseheaders.CompiledHeaderFilter
+	staticProxyRouter    *StaticProxyRouter
 }
 
 func NewManusGatewayService(
 	httpUpstream HTTPUpstream,
 	cfg *config.Config,
 	tlsProfileService *TLSFingerprintProfileService,
+	// staticProxyRouter is optional (variadic); see NewOpenAIGatewayService.
+	staticProxyRouters ...*StaticProxyRouter,
 ) *ManusGatewayService {
 	headerCfg := config.ResponseHeaderConfig{}
 	if cfg != nil {
 		headerCfg = cfg.Security.ResponseHeaders
+	}
+	var staticProxyRouter *StaticProxyRouter
+	for _, router := range staticProxyRouters {
+		if router != nil {
+			staticProxyRouter = router
+			break
+		}
 	}
 	return &ManusGatewayService{
 		httpUpstream:         httpUpstream,
 		cfg:                  cfg,
 		tlsProfileService:    tlsProfileService,
 		responseHeaderFilter: responseheaders.CompileHeaderFilter(headerCfg),
+		staticProxyRouter:    staticProxyRouter,
 	}
 }
 
@@ -56,6 +67,18 @@ func (s *ManusGatewayService) Forward(
 	if account == nil || !account.IsManus() {
 		return nil, errors.New("invalid Manus account")
 	}
+
+	// Static proxy routing (all-protocol coverage; see StaticProxyRouter).
+	// The caller maps ErrStaticProxyCapacityUnavailable to a 429 response —
+	// this service has no gin context, so it never writes HTTP bodies itself.
+	staticRelease, staticErr := s.staticProxyRouter.Apply(ctx, account)
+	if staticErr != nil {
+		return nil, staticErr
+	}
+	if staticRelease != nil {
+		defer staticRelease()
+	}
+
 	endpoint = strings.Trim(strings.TrimSpace(endpoint), "/")
 	if !manusEndpointPattern.MatchString(endpoint) {
 		return nil, errors.New("unsupported Manus endpoint")

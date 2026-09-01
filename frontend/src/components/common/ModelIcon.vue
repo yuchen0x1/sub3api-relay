@@ -171,7 +171,6 @@ const iconKey = computed(() => {
       modelLower.includes('babbage') || modelLower.includes('davinci') ||
       modelLower.includes('curie') || modelLower.includes('ada')) return 'openai'
 
-  // Anthropic Claude
   if (modelLower.includes('claude')) return 'claude'
 
   // Google Gemini

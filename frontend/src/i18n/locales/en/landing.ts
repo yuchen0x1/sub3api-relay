@@ -16,11 +16,11 @@ export default {
     goToDashboard: 'Go to Dashboard',
     gateway: {
       title: 'One Contract, Every Model',
-      description: 'Anthropic-compatible Messages API. One key for all connected models.',
+      description: 'Unified gateway API. One key for all connected models.',
       request: 'Example Request',
       response: 'Example Response',
       chat: 'Chat Completions',
-      chatDesc: 'POST /v1/messages, Anthropic-compatible and streaming ready',
+      chatDesc: 'POST /v1/messages, streaming ready',
       models: 'Model List',
       modelsDesc: 'GET /v1/models for the current model catalog',
       streaming: 'Streaming',
