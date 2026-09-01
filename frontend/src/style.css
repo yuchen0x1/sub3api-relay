@@ -320,25 +320,24 @@
   .app-shell-aurora {
     @apply pointer-events-none fixed inset-0 z-0 overflow-hidden;
     background:
-      radial-gradient(circle at 9% 8%, rgba(6, 182, 212, 0.24), transparent 30%),
-      radial-gradient(circle at 82% 12%, rgba(139, 92, 246, 0.20), transparent 28%),
-      radial-gradient(circle at 58% 92%, rgba(236, 72, 153, 0.14), transparent 32%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 48%);
+      radial-gradient(circle at 9% 8%, rgba(6, 182, 212, 0.05), transparent 30%),
+      radial-gradient(circle at 82% 12%, rgba(139, 92, 246, 0.04), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 40%);
   }
 
   .app-shell-grid {
     @apply pointer-events-none fixed inset-0 z-0;
-    opacity: 0.32;
+    opacity: 0.10;
     background-image:
-      linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139, 92, 246, 0.07) 1px, transparent 1px);
+      linear-gradient(rgba(100, 116, 139, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100, 116, 139, 0.07) 1px, transparent 1px);
     background-size: 56px 56px;
     mask-image: linear-gradient(to bottom, black, transparent 92%);
   }
 
   .app-shell-glow {
     @apply pointer-events-none fixed z-0 rounded-full;
-    filter: blur(80px);
+    filter: blur(90px);
     animation: console-glow-drift 16s ease-in-out infinite alternate;
   }
 
@@ -347,7 +346,7 @@
     top: 18%;
     width: 24rem;
     height: 24rem;
-    background: rgba(34, 211, 238, 0.12);
+    background: rgba(20, 184, 166, 0.05);
   }
 
   .app-shell-glow-two {
@@ -355,7 +354,7 @@
     left: 34%;
     width: 30rem;
     height: 30rem;
-    background: rgba(168, 85, 247, 0.12);
+    background: rgba(99, 102, 241, 0.04);
     animation-delay: -7s;
   }
 
@@ -921,11 +920,9 @@
     @apply border-l-primary-500;
   }
 
-  /* ============ 侧边栏 ============ */
+  /* ============ 侧边栏（深色控制台面板：浅色/深色模式同外观） ============ */
   .app-shell {
-    background:
-      linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 42%),
-      var(--color-bg);
+    background: var(--color-bg);
     isolation: isolate;
   }
 
@@ -936,20 +933,17 @@
 
   .app-header {
     overflow: visible;
-    background:
-      linear-gradient(110deg, rgba(255, 255, 255, 0.34), transparent 48%),
-      color-mix(in srgb, var(--glass-bg-strong) 80%, transparent);
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.46);
-    backdrop-filter: blur(30px) saturate(185%);
-    -webkit-backdrop-filter: blur(30px) saturate(185%);
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
   }
 
   .dark .app-header {
-    background:
-      linear-gradient(110deg, rgba(34, 211, 238, 0.08), transparent 42%),
-      linear-gradient(290deg, rgba(168, 85, 247, 0.08), transparent 46%),
-      color-mix(in srgb, var(--glass-bg-strong) 80%, transparent);
-    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 76%, transparent);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20);
   }
 
   .sidebar {
@@ -959,15 +953,10 @@
     bottom: 0.75rem;
     left: 0.75rem;
     overflow: hidden;
-    border: 1px solid var(--glass-border);
-    border-radius: 1.75rem;
-    background:
-      radial-gradient(circle at 10% 8%, rgba(34, 211, 238, 0.18), transparent 34%),
-      radial-gradient(circle at 92% 88%, rgba(168, 85, 247, 0.14), transparent 38%),
-      color-mix(in srgb, var(--glass-bg-strong) 78%, transparent);
-    box-shadow: 22px 0 54px rgba(15, 23, 42, 0.13), 0 18px 48px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.42);
-    backdrop-filter: blur(32px) saturate(190%);
-    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, #101827 0%, #0b1220 100%);
+    box-shadow: 0 12px 36px rgba(2, 6, 23, 0.28);
     @apply flex flex-col;
     @apply transition-transform duration-300;
     transition-property: width, transform;
@@ -975,28 +964,14 @@
   }
 
   .dark .sidebar {
-    box-shadow: 24px 0 64px rgba(0, 0, 0, 0.32), 0 20px 54px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.10);
-  }
-
-  .sidebar::after {
-    content: '';
-    position: absolute;
-    right: -5rem;
-    bottom: 6rem;
-    width: 12rem;
-    height: 12rem;
-    border-radius: 9999px;
-    background: rgba(139, 92, 246, 0.12);
-    filter: blur(44px);
-    pointer-events: none;
-    z-index: -1;
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.44);
   }
 
   .sidebar-header {
     @apply min-h-[72px] px-5 py-3;
     @apply flex items-start gap-3;
-    border-bottom: 1px solid var(--glass-border);
-    background: linear-gradient(115deg, rgba(255, 255, 255, 0.18), transparent 64%);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     transition:
       padding 0.2s ease,
       gap 0.2s ease;
@@ -1008,43 +983,39 @@
 
   .sidebar-link {
     position: relative;
-    @apply flex min-h-11 items-center gap-3 rounded-2xl py-2.5;
+    @apply flex min-h-11 items-center gap-3 rounded-xl py-2.5;
     @apply overflow-hidden;
     @apply text-sm font-medium;
-    @apply text-gray-600 dark:text-dark-300;
+    @apply text-slate-400;
     @apply border border-transparent transition-all duration-200;
-    @apply hover:text-gray-900 dark:hover:text-white;
+    @apply hover:text-white;
     padding-left: 1.0625rem;
     padding-right: 0.875rem;
   }
 
   .sidebar-link:hover {
-    transform: translateX(3px);
-    border-color: rgba(103, 232, 249, 0.22);
-    background: linear-gradient(110deg, rgba(255, 255, 255, 0.24), rgba(125, 211, 252, 0.08));
-    box-shadow: 0 10px 26px rgba(14, 165, 233, 0.08);
-  }
-
-  .dark .sidebar-link:hover {
-    background: linear-gradient(110deg, rgba(34, 211, 238, 0.11), rgba(139, 92, 246, 0.08));
+    background: rgba(148, 163, 184, 0.09);
   }
 
   .sidebar-link-active {
-    background: linear-gradient(110deg, rgba(34, 211, 238, 0.22), rgba(99, 102, 241, 0.15) 58%, rgba(236, 72, 153, 0.10));
-    border-color: rgba(103, 232, 249, 0.30);
-    box-shadow: inset 3px 0 0 rgb(var(--color-primary) / 0.95), 0 12px 30px rgba(14, 165, 233, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-    @apply text-primary-600 dark:text-primary-400;
+    background: color-mix(in srgb, rgb(var(--color-primary)) 16%, transparent);
+    @apply text-white;
   }
 
-  .sidebar-link-active::after {
+  .sidebar-link-active:hover {
+    background: color-mix(in srgb, rgb(var(--color-primary)) 20%, transparent);
+  }
+
+  .sidebar-link-active::before {
     content: '';
     position: absolute;
-    right: 0.7rem;
-    width: 0.35rem;
-    height: 0.35rem;
+    left: 0;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 3px;
     border-radius: 9999px;
-    background: rgb(34 211 238);
-    box-shadow: 0 0 14px rgba(34, 211, 238, 0.95);
+    background: rgb(var(--color-primary));
+    box-shadow: 0 0 10px rgb(var(--color-primary) / 0.55);
   }
 
   .sidebar-section {
@@ -1054,25 +1025,19 @@
   .sidebar-section-title {
     @apply mb-2 px-3;
     @apply text-xs font-semibold uppercase tracking-wider;
-    @apply text-gray-400 dark:text-dark-500;
+    @apply text-slate-500;
   }
 
   .sidebar-footer {
-    border-top: 1px solid var(--glass-border);
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.12), transparent);
+    border-top: 1px solid rgba(148, 163, 184, 0.10);
   }
 
   .app-header-title {
-    color: transparent;
-    background: linear-gradient(100deg, #0f172a 5%, #0369a1 48%, #7c3aed 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
+    color: var(--color-text);
   }
 
   .dark .app-header-title {
-    background: linear-gradient(100deg, #f8fafc 5%, #67e8f9 48%, #c4b5fd 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
+    color: var(--color-text);
   }
 
   .app-header-description {
@@ -1080,21 +1045,21 @@
   }
 
   .app-user-menu {
-    background: rgba(255, 255, 255, 0.18);
+    background: transparent;
   }
 
   .app-user-menu:hover {
-    border-color: rgba(103, 232, 249, 0.30);
-    background: rgba(255, 255, 255, 0.34);
-    box-shadow: 0 10px 28px rgba(14, 165, 233, 0.10);
+    border-color: var(--color-border);
+    background: color-mix(in srgb, var(--color-surface-2) 70%, transparent);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   }
 
   .dark .app-user-menu {
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
   }
 
   .dark .app-user-menu:hover {
-    background: rgba(34, 211, 238, 0.08);
+    background: rgba(148, 163, 184, 0.08);
   }
 
   .ops-dashboard {
@@ -1396,8 +1361,7 @@
   .dropdown,
   .modal-content,
   .dialog-container,
-  .toast,
-  .sidebar {
+  .toast {
     background: var(--glass-bg-strong);
   }
 }
@@ -1410,8 +1374,7 @@
   .dropdown,
   .modal-content,
   .dialog-container,
-  .toast,
-  .sidebar {
+  .toast {
     background-color: color-mix(in srgb, var(--glass-bg-strong) 88%, transparent);
   }
 }

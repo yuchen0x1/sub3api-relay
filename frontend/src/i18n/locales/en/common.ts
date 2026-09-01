@@ -182,6 +182,8 @@ export default {
     collapse: 'Collapse',
     expand: 'Expand',
     mainNavigation: 'Main navigation',
+    adminSection: 'Administration',
+    personalSection: 'Personal',
     logout: 'Logout',
     github: 'GitHub',
     mySubscriptions: 'My Subscriptions',

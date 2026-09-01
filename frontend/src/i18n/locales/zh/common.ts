@@ -182,6 +182,8 @@ export default {
     collapse: '收起',
     expand: '展开',
     mainNavigation: '主导航',
+    adminSection: '管理',
+    personalSection: '个人',
     logout: '退出登录',
     github: 'GitHub',
     mySubscriptions: '我的订阅',

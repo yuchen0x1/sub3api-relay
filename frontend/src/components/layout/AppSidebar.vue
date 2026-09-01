@@ -21,7 +21,7 @@
       <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
         <router-link
           :to="homePath"
-          class="sidebar-brand-title text-lg font-bold text-gray-900 transition-colors hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
+          class="sidebar-brand-title text-lg font-bold text-white transition-colors hover:text-primary-300"
           @click="handleMenuItemClick(homePath)"
         >
           {{ siteName }}
@@ -37,6 +37,16 @@
       <template v-if="isAdmin">
         <!-- Admin Section -->
         <div class="sidebar-section">
+          <div
+            class="sidebar-section-title"
+            :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }"
+          >
+            <span
+              class="sidebar-section-title-text"
+              :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }"
+              :aria-hidden="sidebarCollapsed ? 'true' : 'false'"
+            >{{ t('nav.adminSection') }}</span>
+          </div>
           <template v-for="item in adminNavItems" :key="item.path">
             <!-- Collapsible group (has children) -->
             <template v-if="item.children?.length">
@@ -64,7 +74,7 @@
                 </span>
               </button>
               <!-- Children -->
-              <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="mb-1 ml-4 border-l border-gray-200 pl-2 dark:border-dark-600">
+              <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="mb-1 ml-4 border-l border-slate-700/60 pl-2">
                 <router-link
                   v-for="child in item.children"
                   :key="child.path"
@@ -100,6 +110,16 @@
             </router-link>
           </template>
 
+          <div
+            class="sidebar-section-title mt-5"
+            :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }"
+          >
+            <span
+              class="sidebar-section-title-text"
+              :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }"
+              :aria-hidden="sidebarCollapsed ? 'true' : 'false'"
+            >{{ t('nav.personalSection') }}</span>
+          </div>
           <router-link
             v-for="item in personalNavItems"
             :key="item.path"
@@ -120,6 +140,16 @@
       <!-- Regular User View -->
       <template v-else-if="!appStore.backendModeEnabled">
         <div class="sidebar-section">
+          <div
+            class="sidebar-section-title"
+            :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }"
+          >
+            <span
+              class="sidebar-section-title-text"
+              :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }"
+              :aria-hidden="sidebarCollapsed ? 'true' : 'false'"
+            >{{ t('nav.personalSection') }}</span>
+          </div>
           <router-link
             v-for="item in userNavItems"
             :key="item.path"
