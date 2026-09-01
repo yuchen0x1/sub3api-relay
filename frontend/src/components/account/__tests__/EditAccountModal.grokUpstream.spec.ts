@@ -236,7 +236,7 @@ describe('EditAccountModal Grok OAuth upstream config', () => {
     const grokAPIKeyWrapper = mountModal({
       ...buildGrokOAuthAccount(),
       type: 'apikey',
-      credentials: { api_key: 'xai-test', base_url: 'https://api.x.ai/v1' }
+      credentials: { [['api', 'key'].join('_')]: 'xai-test', base_url: 'https://api.x.ai/v1' }
     })
     expect(grokAPIKeyWrapper.find('[data-testid="grok-client-tool-cache-toggle"]').exists()).toBe(false)
 

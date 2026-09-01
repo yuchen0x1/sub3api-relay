@@ -137,6 +137,7 @@ docs/*
 !docs/PAYMENT_CN.md
 !docs/ADMIN_PAYMENT_INTEGRATION_API.md
 !docs/ASYNC_IMAGE_TASKS.md
+!docs/CHANNEL_MONITOR.md
 !docs/legal/
 !docs/legal/*.md
 .serena/
@@ -160,3 +161,19 @@ frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
 frontend-dist-*.tar.gz
+
+# Playwright E2E 本地产物（登录态/失败截图/报告）
+frontend/e2e/.auth/
+frontend/e2e/.artifacts/
+frontend/test-results/
+frontend/playwright-report/
+
+# Desktop 本地编译产物
+desktop/vite.config.d.ts
+desktop/vitest.config.d.ts
+desktop/vitest.config.js
+
+# 本地会话与产物目录
+.zcode/
+/data/
+dist-release/

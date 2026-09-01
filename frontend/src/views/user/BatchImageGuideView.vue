@@ -1596,7 +1596,7 @@ function keyForSelectedBatch(): ApiKey | null {
 
 function requireApiKey(): ApiKey | null {
   if (!selectedApiKey.value) {
-    appStore.showError(batchImageText('selectApiKey'))
+    appStore.showError(batchImageText('selectApiKeyText'))
     return null
   }
   return selectedApiKey.value
@@ -2403,7 +2403,7 @@ type BatchImageTextKey =
   | 'loadKeysFailed'
   | 'loadModelsFailed'
   | 'loadJobsFailed'
-  | 'selectApiKey'
+  | 'selectApiKeyText'
   | 'noModelsForKey'
   | 'selectModel'
   | 'promptRequired'

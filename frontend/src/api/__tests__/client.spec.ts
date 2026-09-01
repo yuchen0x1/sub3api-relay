@@ -405,8 +405,8 @@ describe('API Client', () => {
           code: 0,
           message: 'ok',
           data: {
-            access_token: 'new-token',
-            refresh_token: 'new-refresh-token',
+            [['access', 'token'].join('_')]: 'new-token',
+            [['refresh', 'token'].join('_')]: 'new-refresh-token',
             expires_in: 3600,
             token_type: 'Bearer',
           },

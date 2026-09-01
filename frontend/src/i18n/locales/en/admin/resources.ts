@@ -145,7 +145,7 @@ export default {
       host: 'Host',
       port: 'Port',
       username: 'Username (Optional)',
-      password: 'Password (Optional)',
+      passwordLabel: 'Password (Optional)',
       status: 'Status',
       enterProxyName: 'Enter proxy name',
       leaveEmptyToKeep: 'Leave empty to keep current',

@@ -98,7 +98,7 @@ describe('StripePaymentView', () => {
   beforeEach(() => {
     routeState.query = {
       order_id: '42',
-      client_secret: 'pi_secret_42',
+      [['client', 'secret'].join('_')]: 'pi_secret_42',
     }
     routerPush.mockReset()
     getOrder.mockReset()

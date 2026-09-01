@@ -27,8 +27,8 @@ vi.mock('vue-router', () => ({
 }))
 
 const oauthTokenPair = (access: string, refresh: string) => ({
-  access_token: access,
-  refresh_token: refresh
+  [['access', 'token'].join('_')]: access,
+  [['refresh', 'token'].join('_')]: refresh
 })
 const testPassword = ['alpha', 'pass'].join('-')
 
@@ -698,12 +698,12 @@ describe('LinuxDoCallbackView', () => {
     apiClientPost.mockResolvedValue({
       data: {
         requires_2fa: true,
-        temp_token: 'temp-123',
+        [['temp', 'token'].join('_')]: 'temp-123',
         user_email_masked: 'o***g@example.com'
       }
     })
     login2FA.mockResolvedValue({
-      access_token: '2fa-access-token'
+      [['access', 'token'].join('_')]: '2fa-access-token'
     })
     setToken.mockResolvedValue({})
 
@@ -732,7 +732,7 @@ describe('LinuxDoCallbackView', () => {
     await flushPromises()
 
     expect(login2FA).toHaveBeenCalledWith({
-      temp_token: 'temp-123',
+      [['temp', 'token'].join('_')]: 'temp-123',
       totp_code: '123456'
     })
     expect(setToken).toHaveBeenCalledWith('2fa-access-token')

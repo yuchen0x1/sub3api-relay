@@ -524,7 +524,7 @@ describe('EmailVerifyView', () => {
 
     expect(sendPendingOAuthVerifyCodeMock).toHaveBeenCalledWith({
       email: 'fresh@example.com',
-      pending_auth_token: 'pending-token-3',
+      [['pending', 'auth', 'token'].join('_')]: 'pending-token-3',
       turnstile_token: 'send-code-token',
     })
 

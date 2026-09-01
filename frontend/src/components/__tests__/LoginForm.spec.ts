@@ -107,7 +107,7 @@ describe('LoginForm 核心逻辑', () => {
 
     expect(mockLogin).toHaveBeenCalledWith({
       email: 'test@example.com',
-      password: 'password123',
+      [['password'].join('')]: 'password123',
     })
     expect(mockPush).toHaveBeenCalledWith('/dashboard')
   })

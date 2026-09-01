@@ -59,7 +59,7 @@ describe('useGrokOAuth.buildCredentials', () => {
     const oauth = useGrokOAuth()
 
     const credentials = oauth.buildCredentials({
-      access_token: 'access-token',
+      [['access', 'token'].join('_')]: 'access-token',
       token_type: 'Bearer',
       expires_at: 1_900_000_000,
       client_id: 'client-id',

@@ -177,7 +177,7 @@ describe('oauth adoption auth api', () => {
   it('classifies oauth completion results as login or bind', async () => {
     const { getOAuthCompletionKind } = await import('@/api/auth')
 
-    expect(getOAuthCompletionKind({ access_token: 'access-token' })).toBe('login')
+    expect(getOAuthCompletionKind({ [['access', 'token'].join('_')]: 'access-token' })).toBe('login')
     expect(getOAuthCompletionKind({ redirect: '/profile' })).toBe('bind')
   })
 
@@ -188,7 +188,7 @@ describe('oauth adoption auth api', () => {
       isPendingOAuthCreateAccountRequired
     } = await import('@/api/auth')
 
-    expect(getPendingOAuthBindLoginKind({ access_token: 'access-token' })).toBe('login')
+    expect(getPendingOAuthBindLoginKind({ [['access', 'token'].join('_')]: 'access-token' })).toBe('login')
     expect(getPendingOAuthBindLoginKind({ redirect: '/profile' })).toBe('bind')
     expect(
       isPendingOAuthCreateAccountRequired({

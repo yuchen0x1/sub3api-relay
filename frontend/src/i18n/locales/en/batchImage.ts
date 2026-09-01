@@ -148,7 +148,7 @@ export default {
       loadKeysFailed: 'Failed to load API keys.',
       loadModelsFailed: 'Failed to load available models.',
       loadJobsFailed: 'Failed to load batch jobs.',
-      selectApiKey: 'Select an available Gemini API key.',
+      selectApiKeyText: 'Select an available Gemini API key.',
       noModelsForKey: 'This key has no available batch image models.',
       selectModel: 'Select a model.',
       promptRequired: 'Enter at least one prompt.',

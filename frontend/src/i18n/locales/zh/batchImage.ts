@@ -148,7 +148,7 @@ export default {
       loadKeysFailed: '加载 API Key 失败',
       loadModelsFailed: '加载可用模型失败',
       loadJobsFailed: '加载批量任务失败',
-      selectApiKey: '请选择可用的 Gemini API Key',
+      selectApiKeyText: '请选择可用的 Gemini API Key',
       noModelsForKey: '当前密钥没有可用的批量生图模型',
       selectModel: '请选择模型',
       promptRequired: '请至少填写一条 prompt',

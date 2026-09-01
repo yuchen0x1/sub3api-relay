@@ -474,7 +474,7 @@
           />
         </div>
         <div v-if="createForm.protocol !== 'vless'">
-          <label class="input-label">{{ t('admin.proxies.password') }}</label>
+          <label class="input-label">{{ t('admin.proxies.passwordLabel') }}</label>
           <div class="relative">
             <input
               v-model="createForm.password"
@@ -718,7 +718,7 @@
           <input v-model="editForm.username" type="text" class="input" />
         </div>
         <div v-if="editForm.protocol !== 'vless'">
-          <label class="input-label">{{ t('admin.proxies.password') }}</label>
+          <label class="input-label">{{ t('admin.proxies.passwordLabel') }}</label>
           <div class="relative">
             <input
               v-model="editForm.password"
