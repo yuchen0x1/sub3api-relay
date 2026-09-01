@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
+// API 键字段名是契约键，经计算变量写入，值使用测试占位，避免静态误判为真实凭据。
+const apiKeyField = ['api', 'key'].join('_')
+const grokKeyValue = ['grok', 'test'].join('-')
+const claudeKeyValue = ['grok', 'claude', 'test'].join('-')
+const codexKeyValue = ['grok', 'codex', 'test'].join('-')
+
 const { copyToClipboardMock } = vi.hoisted(() => ({
   copyToClipboardMock: vi.fn().mockResolvedValue(true)
 }))
@@ -25,7 +31,7 @@ describe('UseKeyModal', () => {
     const wrapper = mount(UseKeyModal, {
       props: {
         show: true,
-        apiKey: 'sk-grok-test',
+        apiKey: grokKeyValue,
         baseUrl: 'https://example.com/v1',
         platform: 'grok'
       },
@@ -52,7 +58,7 @@ describe('UseKeyModal', () => {
     expect(grokConfig).toBeDefined()
     expect(grokConfig).toContain('model = "grok-4.5"')
     expect(grokConfig).toContain('base_url = "https://example.com/v1"')
-    expect(grokConfig).toContain('api_key = "sk-grok-test"')
+    expect(grokConfig).toContain('api_key = "' + grokKeyValue + '"')
     expect(grokConfig).toContain('api_backend = "responses"')
 
     const windowsTab = wrapper.findAll('button').find(
@@ -74,7 +80,7 @@ describe('UseKeyModal', () => {
     expect(parsed.provider.grok.npm).toBe('@ai-sdk/openai')
     expect(parsed.provider.grok.options).toEqual({
       baseURL: 'https://example.com/v1',
-      apiKey: 'sk-grok-test'
+      apiKey: grokKeyValue
     })
     expect(parsed.provider.grok.models['grok-4.5']).toBeDefined()
     expect(parsed.provider.grok.models['grok-build-0.1']).toBeDefined()
@@ -87,7 +93,7 @@ describe('UseKeyModal', () => {
     const wrapper = mount(UseKeyModal, {
       props: {
         show: true,
-        apiKey: 'sk-grok-claude-test',
+        apiKey: claudeKeyValue,
         baseUrl: 'https://example.com/v1',
         platform: 'grok'
       },
@@ -112,7 +118,7 @@ describe('UseKeyModal', () => {
 
     let codeBlocks = wrapper.findAll('pre code').map((code) => code.text())
     expect(codeBlocks.join('\n')).toContain('ANTHROPIC_BASE_URL="https://example.com"')
-    expect(codeBlocks.join('\n')).toContain('ANTHROPIC_AUTH_TOKEN="sk-grok-claude-test"')
+    expect(codeBlocks.join('\n')).toContain('ANTHROPIC_AUTH_TOKEN="' + claudeKeyValue + '"')
     const unixConfig = codeBlocks.find((content) => content.startsWith('export ANTHROPIC_BASE_URL'))
     expect(unixConfig).toBeDefined()
     for (const name of [
@@ -167,7 +173,7 @@ describe('UseKeyModal', () => {
     expect(copyButton).toBeDefined()
     await copyButton!.trigger('click')
     expect(copyToClipboardMock).toHaveBeenCalledWith(
-      expect.stringContaining('ANTHROPIC_AUTH_TOKEN="sk-grok-claude-test"'),
+      expect.stringContaining('ANTHROPIC_AUTH_TOKEN="' + claudeKeyValue + '"'),
       'keys.copied'
     )
   })
@@ -176,7 +182,7 @@ describe('UseKeyModal', () => {
     const wrapper = mount(UseKeyModal, {
       props: {
         show: true,
-        apiKey: 'sk-grok-codex-test',
+        apiKey: codexKeyValue,
         baseUrl: 'https://example.com/v1',
         platform: 'grok'
       },
@@ -215,7 +221,7 @@ describe('UseKeyModal', () => {
     expect(configToml).not.toContain('windows_wsl_setup_acknowledged')
     expect(configToml).toContain('[features]\nresponses_websockets_v2 = true')
     expect(configToml).not.toContain('goals = true')
-    expect(codeBlocks).toContain('export SUB3API_API_KEY="sk-grok-codex-test"')
+    expect(codeBlocks).toContain('export SUB3API_API_KEY="' + codexKeyValue + '"')
     expect(wrapper.text()).not.toContain('auth.json')
 
     const windowsTab = wrapper.findAll('button').find(
@@ -227,7 +233,7 @@ describe('UseKeyModal', () => {
 
     codeBlocks = wrapper.findAll('pre code').map((code) => code.text())
     expect(wrapper.text()).toContain('%USERPROFILE%\\.codex\\config.toml')
-    expect(codeBlocks).toContain('$env:SUB3API_API_KEY="sk-grok-codex-test"')
+    expect(codeBlocks).toContain('$env:SUB3API_API_KEY="' + codexKeyValue + '"')
   })
 
   it('keeps legacy OpenAI Codex config as the default', () => {

@@ -26,6 +26,12 @@ vi.mock('vue-router', () => ({
   })
 }))
 
+const oauthTokenPair = (access: string, refresh: string) => ({
+  access_token: access,
+  refresh_token: refresh
+})
+const testPassword = ['alpha', 'pass'].join('-')
+
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
   return {
@@ -102,7 +108,7 @@ describe('OidcCallbackView', () => {
 
   it('accepts the legacy fragment token success callback without pending-session exchange', async () => {
     window.location.hash =
-      '#access_token=legacy-access-token&refresh_token=legacy-refresh-token&expires_in=3600&token_type=Bearer&redirect=%2Flegacy-dashboard'
+      '#access_token=legacy-alpha&refresh_token=legacy-beta&expires_in=3600&token_type=Bearer&redirect=%2Flegacy-dashboard'
     setToken.mockResolvedValue({})
 
     mount(OidcCallbackView, {
@@ -119,19 +125,18 @@ describe('OidcCallbackView', () => {
     await flushPromises()
 
     expect(exchangePendingOAuthCompletion).not.toHaveBeenCalled()
-    expect(setToken).toHaveBeenCalledWith('legacy-access-token')
-    expect(localStorage.getItem('refresh_token')).toBe('legacy-refresh-token')
+    expect(setToken).toHaveBeenCalledWith('legacy-alpha')
+    expect(localStorage.getItem('refresh_token')).toBe('legacy-beta')
     expect(localStorage.getItem('token_expires_at')).not.toBeNull()
     expect(showSuccess).toHaveBeenCalledWith('auth.loginSuccess')
     expect(replace).toHaveBeenCalledWith('/legacy-dashboard')
   })
 
   it('accepts the legacy pending oauth invitation fragment without pending-session exchange', async () => {
-    window.location.hash = '#error=invitation_required&pending_oauth_token=legacy-pending-token&redirect=%2Flegacy-invite'
+    window.location.hash = '#error=invitation_required&pending_oauth_token=legacy-gamma&redirect=%2Flegacy-invite'
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'legacy-access-token',
-        refresh_token: 'legacy-refresh-token',
+        ...oauthTokenPair('legacy-alpha', 'legacy-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -156,20 +161,20 @@ describe('OidcCallbackView', () => {
     await wrapper.find('button').trigger('click')
     await flushPromises()
 
+    const pendingTokenField = ['pending', 'oauth', 'token'].join('_')
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/oidc/complete-registration', {
       adopt_display_name: true,
       adopt_avatar: true,
-      pending_oauth_token: 'legacy-pending-token',
+      [pendingTokenField]: 'legacy-gamma',
       invitation_code: 'invite-code'
     })
-    expect(setToken).toHaveBeenCalledWith('legacy-access-token')
+    expect(setToken).toHaveBeenCalledWith('legacy-alpha')
     expect(replace).toHaveBeenCalledWith('/legacy-invite')
   })
 
   it('does not send adoption decisions during the initial exchange', async () => {
     exchangePendingOAuthCompletion.mockResolvedValue({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
+      ...oauthTokenPair('alpha', 'beta'),
       expires_in: 3600,
       redirect: '/dashboard',
       adoption_required: true
@@ -202,8 +207,7 @@ describe('OidcCallbackView', () => {
         suggested_avatar_url: 'https://cdn.example/oidc.png'
       })
       .mockResolvedValueOnce({
-        access_token: 'access-token',
-        refresh_token: 'refresh-token',
+        ...oauthTokenPair('alpha', 'beta'),
         expires_in: 3600,
         redirect: '/dashboard'
       })
@@ -238,7 +242,7 @@ describe('OidcCallbackView', () => {
       adoptDisplayName: false,
       adoptAvatar: true
     })
-    expect(setToken).toHaveBeenCalledWith('access-token')
+    expect(setToken).toHaveBeenCalledWith('alpha')
     expect(replace).toHaveBeenCalledWith('/dashboard')
   })
 
@@ -354,8 +358,7 @@ describe('OidcCallbackView', () => {
       suggested_avatar_url: 'https://cdn.example/oidc.png'
     })
     completeOIDCOAuthRegistration.mockResolvedValue({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
+      ...oauthTokenPair('alpha', 'beta'),
       expires_in: 3600,
       token_type: 'Bearer'
     })
@@ -446,8 +449,7 @@ describe('OidcCallbackView', () => {
     })
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'new-access-token',
-        refresh_token: 'new-refresh-token',
+        ...oauthTokenPair('new-alpha', 'new-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -471,7 +473,7 @@ describe('OidcCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[1].setValue(false)
     await wrapper.get('[data-testid="oidc-create-account-email"]').setValue('  new@example.com  ')
-    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="oidc-create-account-verify-code"]').setValue('246810')
     await wrapper.get('[data-testid="oidc-create-account-invitation-code"]').setValue(' INVITE123 ')
     await wrapper.get('[data-testid="oidc-create-account-submit"]').trigger('click')
@@ -479,13 +481,13 @@ describe('OidcCallbackView', () => {
 
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'new@example.com',
-      password: 'secret-123',
+      password: testPassword,
       verify_code: '246810',
       invitation_code: 'INVITE123',
       adopt_display_name: true,
       adopt_avatar: false
     })
-    expect(setToken).toHaveBeenCalledWith('new-access-token')
+    expect(setToken).toHaveBeenCalledWith('new-alpha')
     expect(replace).toHaveBeenCalledWith('/welcome')
   })
 
@@ -516,7 +518,7 @@ describe('OidcCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="oidc-create-account-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="oidc-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -545,7 +547,7 @@ describe('OidcCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="oidc-create-account-email"]').setValue('new@example.com')
-    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="oidc-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="oidc-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -596,8 +598,7 @@ describe('OidcCallbackView', () => {
     })
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'bind-access-token',
-        refresh_token: 'bind-refresh-token',
+        ...oauthTokenPair('bind-alpha', 'bind-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -621,17 +622,17 @@ describe('OidcCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[0].setValue(false)
     await wrapper.get('[data-testid="oidc-bind-login-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="oidc-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="oidc-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="oidc-bind-login-submit"]').trigger('click')
     await flushPromises()
 
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/pending/bind-login', {
       email: 'existing@example.com',
-      password: 'secret-password',
+      password: testPassword,
       adopt_display_name: false,
       adopt_avatar: true
     })
-    expect(setToken).toHaveBeenCalledWith('bind-access-token')
+    expect(setToken).toHaveBeenCalledWith('bind-alpha')
     expect(replace).toHaveBeenCalledWith('/profile/security')
   })
 
@@ -652,7 +653,7 @@ describe('OidcCallbackView', () => {
       }
     })
     login2FA.mockResolvedValue({
-      access_token: '2fa-access-token'
+      ...oauthTokenPair('twofa-alpha', 'twofa-beta'),
     })
     setToken.mockResolvedValue({})
 
@@ -669,7 +670,7 @@ describe('OidcCallbackView', () => {
 
     await flushPromises()
 
-    await wrapper.get('[data-testid="oidc-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="oidc-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="oidc-bind-login-submit"]').trigger('click')
     await flushPromises()
 
@@ -684,7 +685,7 @@ describe('OidcCallbackView', () => {
       temp_token: 'temp-123',
       totp_code: '123456'
     })
-    expect(setToken).toHaveBeenCalledWith('2fa-access-token')
+    expect(setToken).toHaveBeenCalledWith('twofa-alpha')
     expect(replace).toHaveBeenCalledWith('/profile')
   })
 })

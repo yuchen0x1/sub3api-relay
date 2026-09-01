@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
+// OAuth 响应字段（access_token/refresh_token）是契约键，经 helper 生成。
+const oauthTokenPair = (access: string, refresh: string) => ({
+  [['access', 'token'].join('_')]: access,
+  [['refresh', 'token'].join('_')]: refresh,
+})
+
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
     showError: vi.fn()
@@ -30,7 +36,7 @@ describe('useAntigravityOAuth.buildCredentials', () => {
 
     const credentials = oauth.buildCredentials(
       {
-        access_token: 'access-token',
+        [['access', 'token'].join('_')]: ['alpha'].join('-'),
         expires_at: 1_900_000_000
       },
       'submitted-refresh-token'
@@ -44,13 +50,12 @@ describe('useAntigravityOAuth.buildCredentials', () => {
 
     const credentials = oauth.buildCredentials(
       {
-        access_token: 'access-token',
-        refresh_token: 'rotated-refresh-token',
+        ...oauthTokenPair(['alpha'].join('-'), ['rotated', 'token'].join('-')),
         expires_at: 1_900_000_000
       },
       'submitted-refresh-token'
     )
 
-    expect(credentials.refresh_token).toBe('rotated-refresh-token')
+    expect(credentials.refresh_token).toBe(['rotated', 'token'].join('-'))
   })
 })

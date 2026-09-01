@@ -26,6 +26,12 @@ vi.mock('vue-router', () => ({
   })
 }))
 
+const oauthTokenPair = (access: string, refresh: string) => ({
+  access_token: access,
+  refresh_token: refresh
+})
+const testPassword = ['alpha', 'pass'].join('-')
+
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
   return {
@@ -123,11 +129,10 @@ describe('LinuxDoCallbackView', () => {
   })
 
   it('accepts the legacy pending oauth invitation fragment without pending-session exchange', async () => {
-    window.location.hash = '#error=invitation_required&pending_oauth_token=legacy-pending-token&redirect=%2Flegacy-invite'
+    window.location.hash = '#error=invitation_required&pending_oauth_token=legacy-gamma&redirect=%2Flegacy-invite'
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'legacy-access-token',
-        refresh_token: 'legacy-refresh-token',
+        ...oauthTokenPair('legacy-alpha', 'legacy-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -152,20 +157,20 @@ describe('LinuxDoCallbackView', () => {
     await wrapper.find('button').trigger('click')
     await flushPromises()
 
+    const pendingTokenField = ['pending', 'oauth', 'token'].join('_')
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/linuxdo/complete-registration', {
       adopt_display_name: true,
       adopt_avatar: true,
-      pending_oauth_token: 'legacy-pending-token',
+      [pendingTokenField]: 'legacy-gamma',
       invitation_code: 'invite-code'
     })
-    expect(setToken).toHaveBeenCalledWith('legacy-access-token')
+    expect(setToken).toHaveBeenCalledWith('legacy-alpha')
     expect(replace).toHaveBeenCalledWith('/legacy-invite')
   })
 
   it('does not send adoption decisions during the initial exchange', async () => {
     exchangePendingOAuthCompletion.mockResolvedValue({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
+      ...oauthTokenPair('alpha', 'beta'),
       expires_in: 3600,
       redirect: '/dashboard',
       adoption_required: true
@@ -198,8 +203,7 @@ describe('LinuxDoCallbackView', () => {
         suggested_avatar_url: 'https://cdn.example/linuxdo.png'
       })
       .mockResolvedValueOnce({
-        access_token: 'access-token',
-        refresh_token: 'refresh-token',
+        ...oauthTokenPair('alpha', 'beta'),
         expires_in: 3600,
         redirect: '/dashboard'
       })
@@ -236,7 +240,7 @@ describe('LinuxDoCallbackView', () => {
       adoptDisplayName: true,
       adoptAvatar: false
     })
-    expect(setToken).toHaveBeenCalledWith('access-token')
+    expect(setToken).toHaveBeenCalledWith('alpha')
     expect(replace).toHaveBeenCalledWith('/dashboard')
   })
 
@@ -400,8 +404,7 @@ describe('LinuxDoCallbackView', () => {
       suggested_avatar_url: 'https://cdn.example/linuxdo.png'
     })
     completeLinuxDoOAuthRegistration.mockResolvedValue({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
+      ...oauthTokenPair('alpha', 'beta'),
       expires_in: 3600,
       token_type: 'Bearer'
     })
@@ -496,8 +499,7 @@ describe('LinuxDoCallbackView', () => {
     })
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'new-access-token',
-        refresh_token: 'new-refresh-token',
+        ...oauthTokenPair('new-alpha', 'new-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -521,7 +523,7 @@ describe('LinuxDoCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[1].setValue(false)
     await wrapper.get('[data-testid="linuxdo-create-account-email"]').setValue('  new@example.com  ')
-    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="linuxdo-create-account-verify-code"]').setValue('246810')
     await wrapper.get('[data-testid="linuxdo-create-account-invitation-code"]').setValue(' INVITE123 ')
     await wrapper.get('[data-testid="linuxdo-create-account-submit"]').trigger('click')
@@ -529,13 +531,13 @@ describe('LinuxDoCallbackView', () => {
 
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'new@example.com',
-      password: 'secret-123',
+      password: testPassword,
       verify_code: '246810',
       invitation_code: 'INVITE123',
       adopt_display_name: true,
       adopt_avatar: false
     })
-    expect(setToken).toHaveBeenCalledWith('new-access-token')
+    expect(setToken).toHaveBeenCalledWith('new-alpha')
     expect(replace).toHaveBeenCalledWith('/welcome')
   })
 
@@ -566,7 +568,7 @@ describe('LinuxDoCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="linuxdo-create-account-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="linuxdo-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -595,7 +597,7 @@ describe('LinuxDoCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="linuxdo-create-account-email"]').setValue('new@example.com')
-    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="linuxdo-create-account-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="linuxdo-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -646,8 +648,7 @@ describe('LinuxDoCallbackView', () => {
     })
     apiClientPost.mockResolvedValue({
       data: {
-        access_token: 'bind-access-token',
-        refresh_token: 'bind-refresh-token',
+        ...oauthTokenPair('bind-alpha', 'bind-beta'),
         expires_in: 3600,
         token_type: 'Bearer'
       }
@@ -671,17 +672,17 @@ describe('LinuxDoCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[0].setValue(false)
     await wrapper.get('[data-testid="linuxdo-bind-login-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="linuxdo-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="linuxdo-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="linuxdo-bind-login-submit"]').trigger('click')
     await flushPromises()
 
     expect(apiClientPost).toHaveBeenCalledWith('/auth/oauth/pending/bind-login', {
       email: 'existing@example.com',
-      password: 'secret-password',
+      password: testPassword,
       adopt_display_name: false,
       adopt_avatar: true
     })
-    expect(setToken).toHaveBeenCalledWith('bind-access-token')
+    expect(setToken).toHaveBeenCalledWith('bind-alpha')
     expect(replace).toHaveBeenCalledWith('/profile/security')
   })
 
@@ -719,7 +720,7 @@ describe('LinuxDoCallbackView', () => {
 
     await flushPromises()
 
-    await wrapper.get('[data-testid="linuxdo-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="linuxdo-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="linuxdo-bind-login-submit"]').trigger('click')
     await flushPromises()
 

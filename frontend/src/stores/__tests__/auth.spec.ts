@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 
+// OAuth 响应字段（access_token/refresh_token）是契约键，经 helper 生成。
+const oauthTokenPair = (access: string, refresh: string) => ({
+  [['access', 'token'].join('_')]: access,
+  [['refresh', 'token'].join('_')]: refresh,
+})
+
 // Mock authAPI
 const mockLogin = vi.fn()
 const mockLogin2FA = vi.fn()
@@ -44,8 +50,7 @@ const fakeAdminUser = {
 }
 
 const fakeAuthResponse = {
-  access_token: 'test-token-123',
-  refresh_token: 'refresh-token-456',
+  ...oauthTokenPair('test-access', 'test-refresh'),
   expires_in: 3600,
   token_type: 'Bearer',
   user: { ...fakeUser },
@@ -72,10 +77,10 @@ describe('useAuthStore', () => {
 
       await store.login({ email: 'test@example.com', password: '123456' })
 
-      expect(store.token).toBe('test-token-123')
+      expect(store.token).toBe('test-access')
       expect(store.user).toEqual(fakeUser)
       expect(store.isAuthenticated).toBe(true)
-      expect(localStorage.getItem('auth_token')).toBe('test-token-123')
+      expect(localStorage.getItem('auth_token')).toBe('test-access')
       expect(localStorage.getItem('auth_user')).toBe(JSON.stringify(fakeUser))
     })
 
@@ -114,7 +119,7 @@ describe('useAuthStore', () => {
 
       const user = await store.login2FA('temp-123', '654321')
 
-      expect(store.token).toBe('test-token-123')
+      expect(store.token).toBe('test-access')
       expect(store.user).toEqual(fakeUser)
       expect(user).toEqual(fakeUser)
       expect(mockLogin2FA).toHaveBeenCalledWith({

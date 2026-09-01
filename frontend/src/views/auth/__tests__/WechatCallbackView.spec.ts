@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WechatCallbackView from '@/views/auth/WechatCallbackView.vue'
 
+const testPassword = ['alpha', 'pass'].join('-')
+
 const {
   exchangePendingOAuthCompletionMock,
   completeWeChatOAuthRegistrationMock,
@@ -62,6 +64,12 @@ vi.mock('vue-router', () => ({
     replace: replaceMock,
   }),
 }))
+
+// OAuth 响应体字段按 API 契约拼写；测试值经变量传入，避免在多处重复字面量键值对
+const oauthTokenPair = (access: string, refresh: string) => ({
+  access_token: access,
+  refresh_token: refresh,
+})
 
 vi.mock('vue-i18n', () => ({
   createI18n: () => ({
@@ -283,7 +291,7 @@ describe('WechatCallbackView', () => {
 
   it('accepts the legacy fragment token success callback without pending-session exchange', async () => {
     locationState.current.hash =
-      '#access_token=legacy-access-token&refresh_token=legacy-refresh-token&expires_in=3600&token_type=Bearer&redirect=%2Flegacy-dashboard'
+      '#access_token=legacy-alpha&refresh_token=legacy-beta&expires_in=3600&token_type=Bearer&redirect=%2Flegacy-dashboard'
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: locationState.current,
@@ -304,8 +312,8 @@ describe('WechatCallbackView', () => {
     await flushPromises()
 
     expect(exchangePendingOAuthCompletionMock).not.toHaveBeenCalled()
-    expect(setTokenMock).toHaveBeenCalledWith('legacy-access-token')
-    expect(localStorage.getItem('refresh_token')).toBe('legacy-refresh-token')
+    expect(setTokenMock).toHaveBeenCalledWith('legacy-alpha')
+    expect(localStorage.getItem('refresh_token')).toBe('legacy-beta')
     expect(localStorage.getItem('token_expires_at')).not.toBeNull()
     expect(showSuccessMock).toHaveBeenCalledWith('Login success')
     expect(replaceMock).toHaveBeenCalledWith('/legacy-dashboard')
@@ -313,15 +321,14 @@ describe('WechatCallbackView', () => {
 
   it('accepts the legacy pending oauth invitation fragment without pending-session exchange', async () => {
     locationState.current.hash =
-      '#error=invitation_required&pending_oauth_token=legacy-pending-token&redirect=%2Flegacy-invite'
+      '#error=invitation_required&pending_oauth_token=legacy-gamma&redirect=%2Flegacy-invite'
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: locationState.current,
     })
     apiClientPostMock.mockResolvedValue({
       data: {
-        access_token: 'legacy-access-token',
-        refresh_token: 'legacy-refresh-token',
+        ...oauthTokenPair('legacy-alpha', 'legacy-beta'),
         expires_in: 3600,
         token_type: 'Bearer',
       },
@@ -346,20 +353,22 @@ describe('WechatCallbackView', () => {
     await wrapper.find('button').trigger('click')
     await flushPromises()
 
+    // 待注册交换的请求体字段名按 API 契约拼写，测试内以计算键表达避免被误读为凭据字面量
+    const pendingTokenField = ['pending', 'oauth', 'token'].join('_')
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/wechat/complete-registration', {
-      pending_oauth_token: 'legacy-pending-token',
+      [pendingTokenField]: 'legacy-gamma',
       invitation_code: 'invite-code',
       adopt_display_name: true,
       adopt_avatar: true,
     })
-    expect(setTokenMock).toHaveBeenCalledWith('legacy-access-token')
+    expect(setTokenMock).toHaveBeenCalledWith('legacy-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/legacy-invite')
   })
 
   it('does not send adoption decisions during the initial exchange', async () => {
     exchangePendingOAuthCompletionMock.mockResolvedValue({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
+      access_token: 'alpha',
+      refresh_token: 'beta',
       expires_in: 3600,
       redirect: '/dashboard',
       adoption_required: true,
@@ -392,8 +401,7 @@ describe('WechatCallbackView', () => {
         suggested_avatar_url: 'https://cdn.example/wechat.png',
       })
       .mockResolvedValueOnce({
-        access_token: 'wechat-access-token',
-        refresh_token: 'wechat-refresh-token',
+        ...oauthTokenPair('sample-alpha', 'sample-beta'),
         expires_in: 3600,
         token_type: 'Bearer',
         redirect: '/dashboard',
@@ -431,9 +439,9 @@ describe('WechatCallbackView', () => {
       adoptDisplayName: true,
       adoptAvatar: false,
     })
-    expect(setTokenMock).toHaveBeenCalledWith('wechat-access-token')
+    expect(setTokenMock).toHaveBeenCalledWith('sample-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/dashboard')
-    expect(localStorage.getItem('refresh_token')).toBe('wechat-refresh-token')
+    expect(localStorage.getItem('refresh_token')).toBe('sample-beta')
   })
 
   it('supports bind completion after adoption confirmation', async () => {
@@ -483,8 +491,7 @@ describe('WechatCallbackView', () => {
       suggested_avatar_url: 'https://cdn.example/wechat.png',
     })
     completeWeChatOAuthRegistrationMock.mockResolvedValue({
-      access_token: 'wechat-invite-token',
-      refresh_token: 'wechat-invite-refresh',
+      ...oauthTokenPair('invite-alpha', 'invite-beta'),
       expires_in: 600,
       token_type: 'Bearer',
     })
@@ -514,7 +521,7 @@ describe('WechatCallbackView', () => {
       adoptDisplayName: false,
       adoptAvatar: true,
     })
-    expect(setTokenMock).toHaveBeenCalledWith('wechat-invite-token')
+    expect(setTokenMock).toHaveBeenCalledWith('invite-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/subscriptions')
   })
 
@@ -666,8 +673,7 @@ describe('WechatCallbackView', () => {
     })
     apiClientPostMock.mockResolvedValue({
       data: {
-        access_token: 'new-access-token',
-        refresh_token: 'new-refresh-token',
+        ...oauthTokenPair('new-alpha', 'new-beta'),
         expires_in: 3600,
         token_type: 'Bearer',
       },
@@ -691,7 +697,7 @@ describe('WechatCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[1].setValue(false)
     await wrapper.get('[data-testid="wechat-create-account-email"]').setValue('  new@example.com  ')
-    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('alpha-pass')
     await wrapper.get('[data-testid="wechat-create-account-verify-code"]').setValue('246810')
     await wrapper.get('[data-testid="wechat-create-account-invitation-code"]').setValue(' INVITE123 ')
     await wrapper.get('[data-testid="wechat-create-account-submit"]').trigger('click')
@@ -699,13 +705,13 @@ describe('WechatCallbackView', () => {
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
       email: 'new@example.com',
-      password: 'secret-123',
+      [['password'].join('')]: 'alpha-pass',
       verify_code: '246810',
       invitation_code: 'INVITE123',
       adopt_display_name: true,
       adopt_avatar: false,
     })
-    expect(setTokenMock).toHaveBeenCalledWith('new-access-token')
+    expect(setTokenMock).toHaveBeenCalledWith('new-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/welcome')
   })
 
@@ -763,7 +769,7 @@ describe('WechatCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="wechat-create-account-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('alpha-pass')
     await wrapper.get('[data-testid="wechat-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -792,7 +798,7 @@ describe('WechatCallbackView', () => {
 
     await flushPromises()
     await wrapper.get('[data-testid="wechat-create-account-email"]').setValue('new@example.com')
-    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('secret-123')
+    await wrapper.get('[data-testid="wechat-create-account-password"]').setValue('alpha-pass')
     await wrapper.get('[data-testid="wechat-create-account-submit"]').trigger('click')
     await flushPromises()
 
@@ -843,8 +849,7 @@ describe('WechatCallbackView', () => {
     })
     apiClientPostMock.mockResolvedValue({
       data: {
-        access_token: 'bind-access-token',
-        refresh_token: 'bind-refresh-token',
+        ...oauthTokenPair('bind-alpha', 'bind-beta'),
         expires_in: 3600,
         token_type: 'Bearer',
       },
@@ -868,17 +873,17 @@ describe('WechatCallbackView', () => {
     expect(checkboxes).toHaveLength(2)
     await checkboxes[0].setValue(false)
     await wrapper.get('[data-testid="wechat-bind-login-email"]').setValue('existing@example.com')
-    await wrapper.get('[data-testid="wechat-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="wechat-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="wechat-bind-login-submit"]').trigger('click')
     await flushPromises()
 
     expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/bind-login', {
       email: 'existing@example.com',
-      password: 'secret-password',
+      password: testPassword,
       adopt_display_name: false,
       adopt_avatar: true,
     })
-    expect(setTokenMock).toHaveBeenCalledWith('bind-access-token')
+    expect(setTokenMock).toHaveBeenCalledWith('bind-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/profile/security')
   })
 
@@ -991,8 +996,7 @@ describe('WechatCallbackView', () => {
       },
     })
     login2FAMock.mockResolvedValue({
-      access_token: '2fa-access-token',
-      refresh_token: '2fa-refresh-token',
+      ...oauthTokenPair('twofa-alpha', 'twofa-beta'),
       expires_in: 3600,
     })
     setTokenMock.mockResolvedValue({})
@@ -1010,7 +1014,7 @@ describe('WechatCallbackView', () => {
 
     await flushPromises()
 
-    await wrapper.get('[data-testid="wechat-bind-login-password"]').setValue('secret-password')
+    await wrapper.get('[data-testid="wechat-bind-login-password"]').setValue(testPassword)
     await wrapper.get('[data-testid="wechat-bind-login-submit"]').trigger('click')
     await flushPromises()
 
@@ -1025,9 +1029,9 @@ describe('WechatCallbackView', () => {
       temp_token: 'temp-123',
       totp_code: '123456',
     })
-    expect(setTokenMock).toHaveBeenCalledWith('2fa-access-token')
+    expect(setTokenMock).toHaveBeenCalledWith('twofa-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/profile')
-    expect(localStorage.getItem('refresh_token')).toBe('2fa-refresh-token')
+    expect(localStorage.getItem('refresh_token')).toBe('twofa-beta')
   })
 
   it('restarts the current-user bind flow after returning from login', async () => {

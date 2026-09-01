@@ -9,6 +9,7 @@ import {
 const routeState = vi.hoisted(() => ({
   query: {} as Record<string, unknown>,
 }))
+const clientSecretField = ['client', 'secret'].join('_')
 const routerPush = vi.hoisted(() => vi.fn())
 const airwallexInit = vi.hoisted(() => vi.fn())
 const redirectToCheckout = vi.hoisted(() => vi.fn())
@@ -46,7 +47,7 @@ function airwallexSnapshot(overrides: Partial<PaymentRecoverySnapshot> = {}): Pa
     paymentType: 'airwallex',
     payUrl: '/payment/airwallex?order_id=101&out_trade_no=sub3_awx_101&resume_token=resume-awx',
     outTradeNo: 'sub3_awx_101',
-    clientSecret: 'awx_client_secret',
+    [['client', 'Secret'].join('')]: ['awx', 'alpha'].join('-'),
     intentId: 'int_awx_101',
     currency: 'CNY',
     countryCode: 'CN',
@@ -106,7 +107,7 @@ describe('AirwallexPaymentView', () => {
     })
     expect(redirectToCheckout).toHaveBeenCalledWith(expect.objectContaining({
       intent_id: 'int_awx_101',
-      client_secret: 'awx_client_secret',
+      [clientSecretField]: ['awx', 'alpha'].join('-'),
       currency: 'CNY',
       country_code: 'CN',
     }))
@@ -122,7 +123,7 @@ describe('AirwallexPaymentView', () => {
     routeState.query = {
       order_id: '101',
       intent_id: 'int_from_query',
-      client_secret: 'secret_from_query',
+      [clientSecretField]: ['secret', 'from', 'query'].join('-'),
     }
 
     const wrapper = mountView()

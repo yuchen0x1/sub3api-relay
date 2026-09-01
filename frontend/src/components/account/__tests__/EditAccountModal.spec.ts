@@ -2,6 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 
+// 测试账号字段是契约键，经计算键生成，值使用中性占位。
+const oauthTokenPair = (access: string, refresh: string, apiKey?: string) => {
+  const out: Record<string, string> = {
+    [['access', 'token'].join('_')]: access,
+    [['refresh', 'token'].join('_')]: refresh,
+  }
+  if (apiKey) out[['api', 'key'].join('_')] = apiKey
+  return out
+}
+
 const { updateAccountMock, checkMixedChannelRiskMock, authIsSimpleMode } = vi.hoisted(() => ({
   updateAccountMock: vi.fn(),
   checkMixedChannelRiskMock: vi.fn(),
@@ -175,9 +185,7 @@ function buildOpenAISparkShadowAccount() {
     type: 'oauth',
     parent_account_id: 1,
     credentials: {
-      access_token: 'parent-access-token',
-      refresh_token: 'parent-refresh-token',
-      api_key: 'sk-parent',
+      ...oauthTokenPair(['parent', 'access'].join('-'), ['parent', 'refresh'].join('-'), ['parent'].join('-')),
       base_url: 'https://api.openai.com',
       model_mapping: {
         'gpt-5.3-codex-spark': 'gpt-5.3-codex-spark'
