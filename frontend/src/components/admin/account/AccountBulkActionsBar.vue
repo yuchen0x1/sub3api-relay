@@ -1,5 +1,10 @@
 <template>
-  <div class="mb-4 flex items-center justify-between rounded-lg bg-primary-50 p-3 dark:bg-primary-900/20">
+  <div
+    class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2"
+    :class="hasSelection
+      ? 'border-primary-200 bg-primary-50/70 dark:border-primary-800/60 dark:bg-primary-900/20'
+      : 'border-gray-200 bg-gray-50/70 dark:border-dark-700 dark:bg-dark-800/60'"
+  >
     <div class="flex flex-wrap items-center gap-2">
       <span v-if="allResultsSelected" class="text-sm font-medium text-primary-900 dark:text-primary-100">
         {{ t('admin.accounts.bulkActions.selectedAll', { count: selectedIds.length }) }}
@@ -7,7 +12,7 @@
       <span v-else-if="selectedIds.length > 0" class="text-sm font-medium text-primary-900 dark:text-primary-100">
         {{ t('admin.accounts.bulkActions.selected', { count: selectedIds.length }) }}
       </span>
-      <span v-else class="text-sm font-medium text-primary-900 dark:text-primary-100">
+      <span v-else class="text-sm font-medium text-gray-500 dark:text-dark-400">
         {{ t('admin.accounts.bulkEdit.title') }}
       </span>
       <template v-if="selectedIds.length > 0">
@@ -52,7 +57,7 @@
         <button @click="$emit('toggle-schedulable', false)" class="btn btn-warning btn-sm">{{ t('admin.accounts.bulkActions.disableScheduling') }}</button>
         <button @click="$emit('edit-selected')" class="btn btn-primary btn-sm">{{ t('admin.accounts.bulkActions.edit') }}</button>
       </template>
-      <button @click="$emit('edit-filtered')" class="btn btn-primary btn-sm">
+      <button @click="$emit('edit-filtered')" class="btn btn-secondary btn-sm">
         {{ t('admin.accounts.bulkEdit.submit') }}
       </button>
     </div>
@@ -60,14 +65,17 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-defineProps<{
+const props = defineProps<{
   selectedIds: number[]
   totalResults: number
   selectingAll: boolean
   allResultsSelected: boolean
 }>()
+
+const hasSelection = computed(() => props.selectedIds.length > 0 || props.allResultsSelected)
 
 defineEmits([
   'delete',

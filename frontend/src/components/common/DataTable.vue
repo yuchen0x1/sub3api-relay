@@ -309,10 +309,13 @@ const observeElementRectNonZero = (
   if (rect.height > 0) cb(rect)
 })
 
-// 检查是否可滚动
+// 检查是否可滚动：固定列的滚动阴影仅在内容溢出且已横向滚动时才有意义，
+// 未滚动时显示会让阴影看起来像一条突兀的竖线
 const checkScrollable = () => {
   if (tableWrapperRef.value) {
-    isScrollable.value = tableWrapperRef.value.scrollWidth > tableWrapperRef.value.clientWidth
+    isScrollable.value =
+      tableWrapperRef.value.scrollWidth > tableWrapperRef.value.clientWidth &&
+      tableWrapperRef.value.scrollLeft > 0
   }
 }
 
@@ -376,6 +379,7 @@ let desktopViewportListener: ((event: MediaQueryListEvent) => void) | null = nul
 const detachDesktopTableTracking = () => {
   resizeObserver?.disconnect()
   resizeObserver = null
+  tableWrapperRef.value?.removeEventListener('scroll', checkScrollable)
   if (resizeHandler) {
     window.removeEventListener('resize', resizeHandler)
     resizeHandler = null
@@ -385,6 +389,7 @@ const detachDesktopTableTracking = () => {
 const attachDesktopTableTracking = () => {
   checkScrollable()
   checkActionsColumnWidth()
+  tableWrapperRef.value?.addEventListener('scroll', checkScrollable, { passive: true })
   if (tableWrapperRef.value && typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => {
       checkScrollable()
