@@ -83,7 +83,10 @@ export default {
         http: 'HTTP',
         https: 'HTTPS',
         socks5: 'SOCKS5',
-        socks5h: 'SOCKS5H (Remote DNS)'
+        socks5h: 'SOCKS5H (Remote DNS)',
+        ss: 'Shadowsocks',
+        trojan: 'Trojan',
+        vmess: 'VMess'
       },
       columns: {
         name: 'Name',
@@ -163,7 +166,7 @@ export default {
       batchInputPlaceholder:
         "Enter one proxy per line in the following formats:\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
       batchInputHint:
-        'Supports HTTP, HTTPS, SOCKS5, and VLESS (WS/TLS); subscription URLs are parsed automatically.',
+        'Supports HTTP, HTTPS, SOCKS5, VLESS (WS/TLS), Shadowsocks, Trojan, and VMess; subscription URLs are parsed automatically.',
       parsedCount: '{count} valid',
       invalidCount: '{count} invalid',
       duplicateCount: '{count} duplicate',
@@ -180,6 +183,9 @@ export default {
 		vlessOptionsPlaceholder: "{'{'}\"security\":\"tls\",\"type\":\"ws\",\"sni\":\"...\",\"host\":\"...\",\"path\":\"/\"{'}'}",
 		vlessOptionsHint: 'TLS/WS only; subscription imports fill these options automatically.',
 		vlessOptionsInvalid: 'VLESS transport options must be a JSON object with string values.',
+		vmessOptions: 'VMess transport options (JSON, optional)',
+		vmessOptionsPlaceholder: "{'{'}\"net\":\"ws\",\"path\":\"/\",\"host\":\"...\",\"tls\":\"tls\",\"scy\":\"auto\"{'}'}",
+		trojanPasswordLabel: 'Password',
       // Other messages
       saving: 'Saving...',
       testing: 'Testing...',

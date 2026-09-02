@@ -465,15 +465,15 @@
           </div>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.proxies.username') }}</label>
+          <label class="input-label">{{ createForm.protocol === 'trojan' ? t('admin.proxies.trojanPasswordLabel') : t('admin.proxies.username') }}</label>
           <input
             v-model="createForm.username"
-            type="text"
+            :type="createForm.protocol === 'trojan' ? 'password' : 'text'"
             class="input"
             :placeholder="t('admin.proxies.optionalAuth')"
           />
         </div>
-        <div v-if="createForm.protocol !== 'vless'">
+        <div v-if="!['vless', 'vmess'].includes(createForm.protocol)">
           <label class="input-label">{{ t('admin.proxies.passwordLabel') }}</label>
           <div class="relative">
             <input
@@ -491,13 +491,13 @@
             </button>
           </div>
         </div>
-        <div v-if="createForm.protocol === 'vless'">
-          <label class="input-label">{{ t('admin.proxies.vlessOptions') }}</label>
+        <div v-if="['vless', 'vmess'].includes(createForm.protocol)">
+          <label class="input-label">{{ createForm.protocol === 'vmess' ? t('admin.proxies.vmessOptions') : t('admin.proxies.vlessOptions') }}</label>
           <textarea
             v-model="createForm.options_text"
             rows="3"
             class="input font-mono text-xs"
-            :placeholder="t('admin.proxies.vlessOptionsPlaceholder')"
+            :placeholder="createForm.protocol === 'vmess' ? t('admin.proxies.vmessOptionsPlaceholder') : t('admin.proxies.vlessOptionsPlaceholder')"
           ></textarea>
           <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
@@ -717,7 +717,7 @@
           <label class="input-label">{{ t('admin.proxies.username') }}</label>
           <input v-model="editForm.username" type="text" class="input" />
         </div>
-        <div v-if="editForm.protocol !== 'vless'">
+        <div v-if="!['vless', 'vmess'].includes(editForm.protocol)">
           <label class="input-label">{{ t('admin.proxies.passwordLabel') }}</label>
           <div class="relative">
             <input
@@ -736,13 +736,13 @@
             </button>
           </div>
         </div>
-        <div v-if="editForm.protocol === 'vless'">
-          <label class="input-label">{{ t('admin.proxies.vlessOptions') }}</label>
+        <div v-if="['vless', 'vmess'].includes(editForm.protocol)">
+          <label class="input-label">{{ editForm.protocol === 'vmess' ? t('admin.proxies.vmessOptions') : t('admin.proxies.vlessOptions') }}</label>
           <textarea
             v-model="editForm.options_text"
             rows="3"
             class="input font-mono text-xs"
-            :placeholder="t('admin.proxies.vlessOptionsPlaceholder')"
+            :placeholder="editForm.protocol === 'vmess' ? t('admin.proxies.vmessOptionsPlaceholder') : t('admin.proxies.vlessOptionsPlaceholder')"
           ></textarea>
           <p class="input-hint mt-1">{{ t('admin.proxies.vlessOptionsHint') }}</p>
         </div>
@@ -1040,7 +1040,10 @@ const protocolOptions = computed(() => [
   { value: 'https', label: 'HTTPS' },
   { value: 'socks5', label: 'SOCKS5' },
   { value: 'socks5h', label: 'SOCKS5H' },
-  { value: 'vless', label: 'VLESS (WS/TLS)' }
+  { value: 'vless', label: 'VLESS (WS/TLS)' },
+  { value: 'ss', label: 'Shadowsocks' },
+  { value: 'trojan', label: 'Trojan' },
+  { value: 'vmess', label: 'VMess' }
 ])
 
 const statusOptions = computed(() => [
@@ -1056,7 +1059,10 @@ const protocolSelectOptions = computed(() => [
   { value: 'https', label: t('admin.proxies.protocols.https') },
   { value: 'socks5', label: t('admin.proxies.protocols.socks5') },
   { value: 'socks5h', label: t('admin.proxies.protocols.socks5h') },
-  { value: 'vless', label: t('admin.proxies.protocols.vless') }
+  { value: 'vless', label: t('admin.proxies.protocols.vless') },
+  { value: 'ss', label: t('admin.proxies.protocols.ss') },
+  { value: 'trojan', label: t('admin.proxies.protocols.trojan') },
+  { value: 'vmess', label: t('admin.proxies.protocols.vmess') }
 ])
 
 const editStatusOptions = computed(() => [
@@ -1543,7 +1549,7 @@ const handleCreateProxy = async () => {
     return
   }
 	const options = parseProxyOptionsText(createForm.options_text)
-	if (createForm.protocol === 'vless' && options === null) {
+	if (['vless', 'vmess'].includes(createForm.protocol) && options === null) {
 		appStore.showError(t('admin.proxies.vlessOptionsInvalid'))
 		return
 	}
@@ -1613,8 +1619,8 @@ const handleUpdateProxy = async () => {
     appStore.showError(t('admin.proxies.portInvalid'))
     return
   }
-	const options = editForm.protocol === 'vless' ? parseProxyOptionsText(editForm.options_text) : undefined
-	if (editForm.protocol === 'vless' && options === null) {
+	const options = ['vless', 'vmess'].includes(editForm.protocol) ? parseProxyOptionsText(editForm.options_text) : undefined
+	if (['vless', 'vmess'].includes(editForm.protocol) && options === null) {
 		appStore.showError(t('admin.proxies.vlessOptionsInvalid'))
 		return
 	}

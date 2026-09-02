@@ -117,6 +117,9 @@ export default {
         https: 'HTTPS',
         socks5: 'SOCKS5',
         socks5h: 'SOCKS5H (远程 DNS)',
+        ss: 'Shadowsocks',
+        trojan: 'Trojan',
+        vmess: 'VMess',
       },
       name: '名称',
       protocol: '协议',
@@ -162,7 +165,7 @@ export default {
       batchInput: '代理列表',
       batchInputPlaceholder:
         "每行输入一个代理，支持以下格式：\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
-	batchInputHint: "支持 http、https、socks5 和 VLESS (WS/TLS)；订阅地址会自动解析节点。",
+	batchInputHint: "支持 http、https、socks5、VLESS (WS/TLS)、Shadowsocks、Trojan 和 VMess；订阅地址会自动解析节点。",
       parsedCount: '有效 {count} 个',
       invalidCount: '无效 {count} 个',
       duplicateCount: '重复 {count} 个',
@@ -179,6 +182,9 @@ export default {
 		vlessOptionsPlaceholder: "{'{'}\"security\":\"tls\",\"type\":\"ws\",\"sni\":\"...\",\"host\":\"...\",\"path\":\"/\"{'}'}",
 		vlessOptionsHint: '仅支持 TLS/WS；订阅导入会自动填充这些参数。',
 		vlessOptionsInvalid: 'VLESS 传输参数必须是字符串键值 JSON。',
+		vmessOptions: 'VMess 传输参数（JSON，可选）',
+		vmessOptionsPlaceholder: "{'{'}\"net\":\"ws\",\"path\":\"/\",\"host\":\"...\",\"tls\":\"tls\",\"scy\":\"auto\"{'}'}",
+		trojanPasswordLabel: '密码',
       // Other messages
       saving: '保存中...',
       testing: '测试中...',

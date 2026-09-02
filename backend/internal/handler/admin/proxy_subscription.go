@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 )
@@ -49,19 +51,19 @@ func (h *ProxyHandler) ParseSubscription(c *gin.Context) {
 		response.BadRequest(c, "Invalid request")
 		return
 	}
-	nodes, err := fetchAndParseProxySubscription(c.Request.Context(), req.URL)
+	nodes, skipped, err := fetchAndParseProxySubscription(c.Request.Context(), req.URL)
 	if err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
-	response.Success(c, gin.H{"proxies": nodes, "count": len(nodes)})
+	response.Success(c, gin.H{"proxies": nodes, "count": len(nodes), "skipped": skipped})
 }
 
-func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parsedProxySubscription, error) {
+func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parsedProxySubscription, map[string]int, error) {
 	cleaned := trimSubscriptionURLPunctuation(rawURL)
 	normalized, err := validateSubscriptionURL(cleaned)
 	if err != nil {
-		return nil, errors.New("subscription URL must be a public HTTPS URL")
+		return nil, nil, errors.New("subscription URL must be a public HTTPS URL")
 	}
 	client := &http.Client{
 		Timeout: proxySubscriptionTimeout,
@@ -85,24 +87,24 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, normalized, nil)
 	if err != nil {
-		return nil, errors.New("invalid subscription request")
+		return nil, nil, errors.New("invalid subscription request")
 	}
 	httpReq.Header.Set("Accept", "text/plain, application/octet-stream;q=0.9, */*;q=0.1")
 	httpReq.Header.Set("User-Agent", "sub3api-proxy-subscription/1.0")
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return nil, errors.New("failed to fetch subscription")
+		return nil, nil, errors.New("failed to fetch subscription")
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("subscription returned HTTP %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("subscription returned HTTP %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, proxySubscriptionMaxBytes+1))
 	if err != nil {
-		return nil, errors.New("failed to read subscription")
+		return nil, nil, errors.New("failed to read subscription")
 	}
 	if len(body) > proxySubscriptionMaxBytes {
-		return nil, errors.New("subscription is too large")
+		return nil, nil, errors.New("subscription is too large")
 	}
 	return parseProxySubscriptionBody(body)
 }
@@ -196,27 +198,33 @@ func trimSubscriptionURLPunctuation(raw string) string {
 	return strings.TrimRight(strings.TrimSpace(raw), "，。；、！!？?")
 }
 
-func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) {
+func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, map[string]int, error) {
 	text := strings.TrimSpace(strings.TrimPrefix(string(body), "\ufeff"))
 	if text == "" {
-		return nil, errors.New("subscription is empty")
+		return nil, nil, errors.New("subscription is empty")
 	}
 	if !containsSupportedProxyURI(text) {
 		decoded, err := decodeProxySubscriptionBase64(text)
 		if err != nil {
-			return nil, errors.New("subscription is not a supported proxy list")
+			return nil, nil, errors.New("subscription is not a supported proxy list")
 		}
 		text = decoded
 	}
 	lines := strings.Fields(text)
 	nodes := make([]parsedProxySubscription, 0, len(lines))
 	seen := make(map[string]struct{}, len(lines))
+	skipped := make(map[string]int)
 	for _, line := range lines {
 		if len(nodes) >= proxySubscriptionMaxNodes {
-			return nil, fmt.Errorf("subscription contains more than %d nodes", proxySubscriptionMaxNodes)
+			return nil, nil, fmt.Errorf("subscription contains more than %d nodes", proxySubscriptionMaxNodes)
 		}
 		node, err := parseProxySubscriptionURI(line)
 		if err != nil {
+			reason := err.Error()
+			if reason == "" {
+				reason = "unsupported node"
+			}
+			skipped[reason]++
 			continue
 		}
 		optionsKey, _ := json.Marshal(node.Options)
@@ -228,14 +236,39 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, error) 
 		nodes = append(nodes, node)
 	}
 	if len(nodes) == 0 {
-		return nil, errors.New("subscription contains no supported VLESS nodes")
+		detail := summarizeSkippedNodes(skipped)
+		if detail != "" {
+			return nil, skipped, fmt.Errorf("subscription contains no supported proxy nodes; skipped: %s", detail)
+		}
+		return nil, skipped, errors.New("subscription contains no supported proxy nodes")
 	}
-	return nodes, nil
+	return nodes, skipped, nil
 }
 
+// summarizeSkippedNodes renders the per-reason skip counts so admins can see
+// why parts of a subscription were not imported.
+func summarizeSkippedNodes(skipped map[string]int) string {
+	if len(skipped) == 0 {
+		return ""
+	}
+	reasons := make([]string, 0, len(skipped))
+	for reason, count := range skipped {
+		reasons = append(reasons, fmt.Sprintf("%d %s", count, reason))
+	}
+	sort.Strings(reasons)
+	return strings.Join(reasons, ", ")
+}
+
+// containsSupportedProxyURI reports whether the raw text already carries any
+// proxy URI scheme the importer understands (otherwise it is base64).
 func containsSupportedProxyURI(text string) bool {
 	lower := strings.ToLower(text)
-	return strings.Contains(lower, "vless://")
+	for _, scheme := range []string{"vless://", "ss://", "trojan://", "vmess://"} {
+		if strings.Contains(lower, scheme) {
+			return true
+		}
+	}
+	return false
 }
 
 func decodeProxySubscriptionBase64(raw string) (string, error) {
@@ -258,9 +291,112 @@ func parseProxySubscriptionURI(raw string) (parsedProxySubscription, error) {
 	switch strings.ToLower(parsed.Scheme) {
 	case "vless":
 		return parseVLESSSubscriptionURI(parsed)
+	case "ss":
+		return parseSSSubscriptionURI(parsed)
+	case "trojan":
+		return parseTrojanSubscriptionURI(parsed)
+	case "vmess":
+		return parseVMESSSubscriptionURI(raw)
 	default:
-		return parsedProxySubscription{}, errors.New("unsupported proxy scheme")
+		return parsedProxySubscription{}, fmt.Errorf("unsupported proxy scheme: %s", parsed.Scheme)
 	}
+}
+
+// parseSSSubscriptionURI maps a SIP002 ss:// node onto the generic proxy
+// record: the cipher travels in Username, the secret in Password.
+func parseSSSubscriptionURI(parsed *url.URL) (parsedProxySubscription, error) {
+	node, err := proxyutil.ParseSSNode(trimSubscriptionURLPunctuation(parsed.String()))
+	if err != nil {
+		return parsedProxySubscription{}, err
+	}
+	name := strings.TrimSpace(parsed.Fragment)
+	if name == "" {
+		name = net.JoinHostPort(node.Host, strconv.Itoa(node.Port))
+	}
+	return parsedProxySubscription{
+		Name:     name,
+		Protocol: "ss",
+		Host:     node.Host,
+		Port:     node.Port,
+		Username: node.Method,
+		Password: node.Password,
+	}, nil
+}
+
+// parseTrojanSubscriptionURI maps a trojan:// node onto the generic proxy
+// record: the password travels in Username, SNI/insecure in Options.
+func parseTrojanSubscriptionURI(parsed *url.URL) (parsedProxySubscription, error) {
+	node, err := proxyutil.ParseTrojanNode(trimSubscriptionURLPunctuation(parsed.String()))
+	if err != nil {
+		return parsedProxySubscription{}, err
+	}
+	options := map[string]string{}
+	if node.SNI != "" && !strings.EqualFold(node.SNI, node.Host) {
+		options["sni"] = node.SNI
+	}
+	if node.Insecure {
+		options["allowInsecure"] = "true"
+	}
+	name := strings.TrimSpace(parsed.Fragment)
+	if name == "" {
+		name = net.JoinHostPort(node.Host, strconv.Itoa(node.Port))
+	}
+	return parsedProxySubscription{
+		Name:     name,
+		Protocol: "trojan",
+		Host:     node.Host,
+		Port:     node.Port,
+		Username: node.Password,
+		Options:  options,
+	}, nil
+}
+
+// parseVMESSSubscriptionURI maps a vmess:// base64(JSON) node onto the
+// generic proxy record: UUID in Username, alterId in Password, transport
+// settings in Options.
+func parseVMESSSubscriptionURI(raw string) (parsedProxySubscription, error) {
+	node, err := proxyutil.ParseVMESSNode(trimSubscriptionURLPunctuation(raw))
+	if err != nil {
+		return parsedProxySubscription{}, err
+	}
+	options := map[string]string{
+		"net": node.Network,
+		"scy": node.Cipher,
+	}
+	if node.TLS {
+		options["tls"] = "tls"
+	}
+	if node.Host != "" {
+		options["host"] = node.Host
+	}
+	if node.Path != "" {
+		options["path"] = node.Path
+	}
+	if node.SNI != "" {
+		options["sni"] = node.SNI
+	}
+	if node.Insecure {
+		options["skip-cert-verify"] = "true"
+	}
+	name := nodeDisplayName(raw, node.ServerHost, node.ServerPort)
+	return parsedProxySubscription{
+		Name:     name,
+		Protocol: "vmess",
+		Host:     node.ServerHost,
+		Port:     node.ServerPort,
+		Username: node.UUID,
+		Password: "0",
+		Options:  options,
+	}, nil
+}
+
+// nodeDisplayName returns the URI fragment when present (vmess JSON "ps" is
+// embedded in the fragment-less base64 payload, so fall back to host:port).
+func nodeDisplayName(raw, host string, port int) string {
+	if parsed, err := url.Parse(strings.TrimSpace(raw)); err == nil && strings.TrimSpace(parsed.Fragment) != "" {
+		return strings.TrimSpace(parsed.Fragment)
+	}
+	return net.JoinHostPort(host, strconv.Itoa(port))
 }
 
 // parseVLESSSubscriptionURI accepts the VLESS transport used by common
@@ -308,24 +444,11 @@ func parseVLESSSubscriptionURI(parsed *url.URL) (parsedProxySubscription, error)
 }
 
 func normalizeVLESSSubscriptionOptions(query url.Values, serverHost string) (map[string]string, error) {
-	allowed := map[string]bool{
-		"encryption": true,
-		"security":   true,
-		"type":       true,
-		"mode":       true,
-		"sni":        true,
-		"host":       true,
-		"path":       true,
-		"fp":         true,
-		"alpn":       true,
-		"flow":       true,
-		"insecure":   true,
-	}
-	for key := range query {
-		if !allowed[strings.ToLower(key)] {
-			return nil, fmt.Errorf("unsupported VLESS option: %s", key)
-		}
-	}
+	// Unknown keys are ignored: real-world subscription generators append
+	// transport-specific params (serviceName, quicSecurity, headerType, sid,
+	// pbk, ...) to every node, and rejecting them wholesale used to discard
+	// otherwise importable WS/TLS nodes. Only values this dialer cannot
+	// honor are rejected below.
 	security := strings.ToLower(strings.TrimSpace(query.Get("security")))
 	if security == "" {
 		security = "tls"
@@ -349,6 +472,9 @@ func normalizeVLESSSubscriptionOptions(query url.Values, serverHost string) (map
 	}
 	if flow := strings.TrimSpace(query.Get("flow")); flow != "" {
 		return nil, fmt.Errorf("unsupported VLESS flow: %s", flow)
+	}
+	if headerType := strings.ToLower(strings.TrimSpace(query.Get("headerType"))); headerType != "" && headerType != "none" {
+		return nil, fmt.Errorf("unsupported VLESS header type: %s", headerType)
 	}
 	path := query.Get("path")
 	if path == "" {

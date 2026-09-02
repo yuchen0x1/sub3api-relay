@@ -98,6 +98,33 @@ func ConfigureTransportProxyWithCloser(transport *http.Transport, proxyURL *url.
 		transport.DialContext = dialContext
 		return nil, nil
 
+	case "ss":
+		dialContext, err := newSSDialContext(proxyURL)
+		if err != nil {
+			return nil, err
+		}
+		transport.Proxy = nil
+		transport.DialContext = dialContext
+		return nil, nil
+
+	case "trojan":
+		dialContext, err := newTrojanDialContext(proxyURL)
+		if err != nil {
+			return nil, err
+		}
+		transport.Proxy = nil
+		transport.DialContext = dialContext
+		return nil, nil
+
+	case "vmess":
+		dialContext, err := newVMESSDialContext(proxyURL.String())
+		if err != nil {
+			return nil, err
+		}
+		transport.Proxy = nil
+		transport.DialContext = dialContext
+		return nil, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported proxy scheme: %s", scheme)
 	}

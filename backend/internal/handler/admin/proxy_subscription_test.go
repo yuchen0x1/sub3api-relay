@@ -15,18 +15,20 @@ func TestTrimSubscriptionURLPunctuation(t *testing.T) {
 
 func TestParseProxySubscriptionRejectsHysteria2(t *testing.T) {
 	content := "hysteria2://secret@example.com:8443/?insecure=1#node-one\n"
-	_, err := parseProxySubscriptionBody([]byte(base64.StdEncoding.EncodeToString([]byte(content))))
+	nodes, skipped, err := parseProxySubscriptionBody([]byte(base64.StdEncoding.EncodeToString([]byte(content))))
 	require.Error(t, err)
+	require.Empty(t, nodes)
+	require.NotEmpty(t, skipped)
 }
 
 func TestParseProxySubscriptionRejectsHysteria2Options(t *testing.T) {
-	_, err := parseProxySubscriptionBody([]byte("hysteria2://secret@example.com:443/?obfs=salamander"))
+	_, _, err := parseProxySubscriptionBody([]byte("hysteria2://secret@example.com:443/?obfs=salamander"))
 	require.Error(t, err)
 }
 
 func TestParseProxySubscriptionBodyBase64VLESSWebSocket(t *testing.T) {
 	content := "vless://d9428888-122b-11ed-861d-0242ac120002@edge.example.com:443?encryption=none&security=tls&type=ws&sni=cdn.example.com&host=cdn.example.com&path=%2Fnewlogin%2Flogin.do&fp=safari#Japan\n"
-	nodes, err := parseProxySubscriptionBody([]byte(base64.StdEncoding.EncodeToString([]byte(content))))
+	nodes, _, err := parseProxySubscriptionBody([]byte(base64.StdEncoding.EncodeToString([]byte(content))))
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	require.Equal(t, "vless", nodes[0].Protocol)
@@ -38,7 +40,7 @@ func TestParseProxySubscriptionBodyBase64VLESSWebSocket(t *testing.T) {
 }
 
 func TestParseVLESSSubscriptionRejectsUnsupportedTransport(t *testing.T) {
-	_, err := parseProxySubscriptionBody([]byte("vless://d9428888-122b-11ed-861d-0242ac120002@example.com:443?security=reality&type=tcp"))
+	_, _, err := parseProxySubscriptionBody([]byte("vless://d9428888-122b-11ed-861d-0242ac120002@example.com:443?security=reality&type=tcp"))
 	require.Error(t, err)
 }
 

@@ -868,7 +868,7 @@ func validateDataProxy(item DataProxy) error {
 		return errors.New("proxy port is invalid")
 	}
 	switch item.Protocol {
-	case "http", "https", "socks5", "socks5h", "vless":
+	case "http", "https", "socks5", "socks5h", "vless", "ss", "trojan", "vmess":
 	default:
 		return fmt.Errorf("proxy protocol is invalid: %s", item.Protocol)
 	}

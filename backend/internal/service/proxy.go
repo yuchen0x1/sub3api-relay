@@ -1,11 +1,14 @@
 package service
 
 import (
+	"encoding/base64"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
 )
 
 const (
@@ -50,23 +53,48 @@ func (p *Proxy) URL() string {
 		Scheme: p.Protocol,
 		Host:   net.JoinHostPort(p.Host, strconv.Itoa(p.Port)),
 	}
-	if p.Protocol == "vless" {
+	switch p.Protocol {
+	case "vless":
 		if p.Username != "" {
 			u.User = url.User(p.Username)
 		}
-		if len(p.Options) > 0 {
-			query := u.Query()
-			for key, value := range p.Options {
-				if strings.TrimSpace(key) != "" && value != "" {
-					query.Set(key, value)
-				}
-			}
-			u.RawQuery = query.Encode()
+		u.RawQuery = encodeProxyOptionsQuery(p.Options)
+	case "ss":
+		// SIP002: websafe base64 of "method:password" as the userinfo.
+		if p.Username != "" || p.Password != "" {
+			u.User = url.User(base64.RawURLEncoding.EncodeToString(
+				[]byte(p.Username + ":" + p.Password)))
 		}
-	} else if p.Username != "" && p.Password != "" {
-		u.User = url.UserPassword(p.Username, p.Password)
+	case "trojan":
+		// The password is the userinfo username in trojan URIs.
+		if p.Username != "" {
+			u.User = url.User(p.Username)
+		}
+		u.RawQuery = encodeProxyOptionsQuery(p.Options)
+	case "vmess":
+		aid := p.Password
+		if aid == "" {
+			aid = "0"
+		}
+		return proxyutil.SerializeVMESSURL(p.Username, aid, p.Host, strconv.Itoa(p.Port), p.Options)
+	default:
+		if p.Username != "" && p.Password != "" {
+			u.User = url.UserPassword(p.Username, p.Password)
+		}
 	}
 	return u.String()
+}
+
+// encodeProxyOptionsQuery serializes transport options into URL query form,
+// skipping empty values the way the dialers' parsers do.
+func encodeProxyOptionsQuery(options map[string]string) string {
+	query := url.Values{}
+	for key, value := range options {
+		if strings.TrimSpace(key) != "" && value != "" {
+			query.Set(key, value)
+		}
+	}
+	return query.Encode()
 }
 
 func (p *Proxy) PersistencePassword() string {

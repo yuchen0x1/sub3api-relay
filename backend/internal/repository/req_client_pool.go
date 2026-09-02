@@ -57,7 +57,9 @@ func getSharedReqClient(opts reqClientOptions) (*req.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if parsed != nil && strings.EqualFold(parsed.Scheme, "vless") {
+	// req 库只支持 http/socks5 代理；隧道类协议（vless/ss/trojan/vmess）
+	// 统一走 proxyutil 拨号桥。
+	if parsed != nil && isTunnelProxyScheme(parsed.Scheme) {
 		bridge := &http.Transport{}
 		if _, err := proxyutil.ConfigureTransportProxyWithCloser(bridge, parsed); err != nil {
 			return nil, err

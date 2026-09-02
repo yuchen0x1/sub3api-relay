@@ -7,6 +7,7 @@ import { apiClient } from '../client'
 import type {
   Proxy,
   ProxyAccountSummary,
+  ProxyProtocol,
   ProxyQualityCheckResult,
   CreateProxyRequest,
   UpdateProxyRequest,
@@ -218,7 +219,7 @@ export async function parseSubscription(url: string): Promise<{
   count: number
   proxies: Array<{
     name: string
-    protocol: 'vless'
+    protocol: ProxyProtocol
     host: string
     port: number
     username: string
@@ -231,7 +232,7 @@ export async function parseSubscription(url: string): Promise<{
     count: number
     proxies: Array<{
       name: string
-      protocol: 'vless'
+      protocol: ProxyProtocol
       host: string
       port: number
       username: string

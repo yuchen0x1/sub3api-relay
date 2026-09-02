@@ -19,6 +19,9 @@ var allowedSchemes = map[string]bool{
 	"socks5":  true,
 	"socks5h": true,
 	"vless":   true,
+	"ss":      true,
+	"trojan":  true,
+	"vmess":   true,
 }
 
 // Parse 解析并验证代理 URL。
@@ -52,7 +55,7 @@ func Parse(raw string) (trimmed string, parsed *url.URL, err error) {
 
 	scheme := strings.ToLower(parsed.Scheme)
 	if !allowedSchemes[scheme] {
-		return "", nil, fmt.Errorf("unsupported proxy scheme %q (allowed: http, https, socks5, socks5h, vless)", scheme)
+		return "", nil, fmt.Errorf("unsupported proxy scheme %q (allowed: http, https, socks5, socks5h, vless, ss, trojan, vmess)", scheme)
 	}
 
 	// 自动升级 socks5 → socks5h，确保 DNS 由代理端解析，防止 DNS 泄漏。

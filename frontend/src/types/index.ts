@@ -858,7 +858,7 @@ export interface UpdateGroupRequest {
 export type AccountPlatform = 'openai' | 'gemini' | 'antigravity' | 'grok' | 'manus'
 export type AccountType = 'oauth' | 'apikey' | 'upstream' | 'service_account'
 export type OAuthAddMethod = 'oauth'
-export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'vless'
+export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h' | 'vless' | 'ss' | 'trojan' | 'vmess'
 
 export interface StaticProxyExitCapacity {
   id: number | string

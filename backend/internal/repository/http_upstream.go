@@ -1168,29 +1168,36 @@ func normalizeProxyURL(raw string) (string, *url.URL, error) {
 	if parsed == nil {
 		return directProxyKey, nil, nil
 	}
-	// 规范化：小写 scheme/host，去除路径。VLESS 的 query 是拨号配置，
-	// 必须同时保留在缓存键和实际拨号 URL 中。
+	// 规范化：小写 scheme/host，去除路径。VLESS/SS/Trojan 的 query 是拨号
+	// 配置，必须同时保留在缓存键和实际拨号 URL 中；VMess 的载荷整体位于
+	// host（base64，大小写敏感），host 保持原样，userinfo 同理不改动。
 	parsed.Scheme = strings.ToLower(parsed.Scheme)
-	parsed.Host = strings.ToLower(parsed.Host)
+	if parsed.Scheme != "vmess" {
+		parsed.Host = strings.ToLower(parsed.Host)
+	}
 	parsed.Path = ""
 	parsed.RawPath = ""
-	if parsed.Scheme != "vless" {
-		parsed.RawQuery = ""
-	} else {
+	switch parsed.Scheme {
+	case "vless", "ss", "trojan":
 		parsed.RawQuery = parsed.Query().Encode()
+	default:
+		parsed.RawQuery = ""
 	}
 	parsed.Fragment = ""
 	parsed.ForceQuery = false
-	if hostname := parsed.Hostname(); hostname != "" {
-		port := parsed.Port()
-		if (parsed.Scheme == "http" && port == "80") || (parsed.Scheme == "https" && port == "443") {
-			port = ""
-		}
-		hostname = strings.ToLower(hostname)
-		if port != "" {
-			parsed.Host = net.JoinHostPort(hostname, port)
-		} else {
-			parsed.Host = hostname
+	// VMess 的 host 是整个 base64 载荷，大小写敏感，不做小写化与重组。
+	if parsed.Scheme != "vmess" {
+		if hostname := parsed.Hostname(); hostname != "" {
+			port := parsed.Port()
+			if (parsed.Scheme == "http" && port == "80") || (parsed.Scheme == "https" && port == "443") {
+				port = ""
+			}
+			hostname = strings.ToLower(hostname)
+			if port != "" {
+				parsed.Host = net.JoinHostPort(hostname, port)
+			} else {
+				parsed.Host = hostname
+			}
 		}
 	}
 	return parsed.String(), parsed, nil
