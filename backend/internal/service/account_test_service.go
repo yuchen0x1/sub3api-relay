@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -2175,7 +2176,8 @@ func (s *AccountTestService) TestDraftConnection(ctx context.Context, platform, 
 		return result, nil
 	}
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		result.Error = "authentication failed: upstream rejected the API key"
+		result.Error = fmt.Sprintf("authentication failed: upstream rejected the API key (HTTP %d: %s)",
+			resp.StatusCode, diagnosticBodySnippet(body))
 		return result, nil
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -2192,4 +2194,30 @@ func (s *AccountTestService) TestDraftConnection(ctx context.Context, platform, 
 	}
 	result.Success = true
 	return result, nil
+}
+
+// diagnosticBodySnippet condenses an upstream error response body for
+// admin-facing diagnostics so the upstream's own rejection reason (IP ban,
+// token disabled, model permission, ...) stays visible instead of being
+// reduced to a bare status code. Control characters are collapsed and the
+// snippet is capped to keep error toasts readable.
+func diagnosticBodySnippet(body []byte) string {
+	const maxSnippetRunes = 300
+	compact := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
+		switch r {
+		case '\n', '\r', '\t':
+			return ' '
+		}
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, string(body))), " ")
+	if compact == "" {
+		return "empty body"
+	}
+	if runes := []rune(compact); len(runes) > maxSnippetRunes {
+		return string(runes[:maxSnippetRunes]) + "…"
+	}
+	return compact
 }

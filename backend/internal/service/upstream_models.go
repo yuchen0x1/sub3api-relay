@@ -113,8 +113,16 @@ func (s *AccountTestService) FetchUpstreamSupportedModels(ctx context.Context, a
 	}
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		// 401/403 carry the upstream's own rejection reason (invalid token,
+		// IP ban, token disabled) which admins need for credential diagnosis;
+		// other failure bodies may echo internal upstream details, so they
+		// stay status-only.
+		message := fmt.Sprintf("Upstream model list request failed with HTTP %d", resp.StatusCode)
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			message += ": " + diagnosticBodySnippet(body)
+		}
 		return nil, newUpstreamModelSyncUpstreamError(
-			fmt.Sprintf("Upstream model list request failed with HTTP %d", resp.StatusCode),
+			message,
 			fmt.Errorf("upstream model list returned HTTP %d", resp.StatusCode),
 		)
 	}
