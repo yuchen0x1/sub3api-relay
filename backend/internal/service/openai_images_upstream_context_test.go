@@ -30,9 +30,7 @@ func newOpenAIImagesTestService(upstream HTTPUpstream) *OpenAIGatewayService {
 	return &OpenAIGatewayService{
 		httpUpstream: upstream,
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 	}
 }

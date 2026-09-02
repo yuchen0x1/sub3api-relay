@@ -147,22 +147,7 @@ func (s *ManusGatewayService) WriteResponse(dst http.ResponseWriter, resp *http.
 }
 
 func (s *ManusGatewayService) validateBaseURL(raw string) (string, error) {
-	if s.cfg == nil || !s.cfg.Security.URLAllowlist.Enabled {
-		allowHTTP := false
-		if s.cfg != nil {
-			allowHTTP = s.cfg.Security.URLAllowlist.AllowInsecureHTTP
-		}
-		normalized, err := urlvalidator.ValidateURLFormat(raw, allowHTTP)
-		if err != nil {
-			return "", fmt.Errorf("invalid Manus base_url: %w", err)
-		}
-		return normalized, nil
-	}
-	normalized, err := urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowedHosts:     s.cfg.Security.URLAllowlist.UpstreamHosts,
-		RequireAllowlist: true,
-		AllowPrivate:     s.cfg.Security.URLAllowlist.AllowPrivateHosts,
-	})
+	normalized, err := urlvalidator.ValidateURLFormat(raw)
 	if err != nil {
 		return "", fmt.Errorf("invalid Manus base_url: %w", err)
 	}

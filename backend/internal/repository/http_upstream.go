@@ -32,7 +32,6 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
-	"github.com/yuchen0x1/sub3api-relay/internal/util/urlvalidator"
 	"golang.org/x/mod/semver"
 )
 
@@ -218,9 +217,6 @@ func NewHTTPUpstream(cfg *config.Config) service.HTTPUpstream {
 //   - inFlight > 0 的客户端不会被淘汰，确保活跃请求不被中断
 func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID int64, accountConcurrency int) (*http.Response, error) {
 	applyGrokCLIProxyHeaders(req)
-	if err := s.validateRequestHost(req); err != nil {
-		return nil, err
-	}
 	profile := service.HTTPUpstreamProfileDefault
 	if req != nil {
 		profile = service.HTTPUpstreamProfileFromContext(req.Context())
@@ -284,10 +280,6 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 		proxyInfo = proxyURL
 	}
 	slog.Debug("tls_fingerprint_enabled", "account_id", accountID, "target", targetHost, "proxy", proxyInfo, "profile", profile.Name)
-
-	if err := s.validateRequestHost(req); err != nil {
-		return nil, err
-	}
 
 	entry, err := s.acquireClientWithTLS(proxyURL, accountID, accountConcurrency, profile, upstreamProfile)
 	if err != nil {
@@ -566,9 +558,6 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	client := &http.Client{Transport: transport}
-	if s.shouldValidateResolvedIP() {
-		client.CheckRedirect = s.redirectChecker
-	}
 
 	entry := &upstreamClientEntry{
 		client:      client,
@@ -586,40 +575,6 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	s.evictOverLimitLocked()
 	s.mu.Unlock()
 	return entry, nil
-}
-
-func (s *httpUpstreamService) shouldValidateResolvedIP() bool {
-	if s.cfg == nil {
-		return false
-	}
-	if !s.cfg.Security.URLAllowlist.Enabled {
-		return false
-	}
-	return !s.cfg.Security.URLAllowlist.AllowPrivateHosts
-}
-
-func (s *httpUpstreamService) validateRequestHost(req *http.Request) error {
-	if !s.shouldValidateResolvedIP() {
-		return nil
-	}
-	if req == nil || req.URL == nil {
-		return errors.New("request url is nil")
-	}
-	host := strings.TrimSpace(req.URL.Hostname())
-	if host == "" {
-		return errors.New("request host is empty")
-	}
-	if err := urlvalidator.ValidateResolvedIP(host); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *httpUpstreamService) redirectChecker(req *http.Request, via []*http.Request) error {
-	if len(via) >= 10 {
-		return errors.New("stopped after 10 redirects")
-	}
-	return s.validateRequestHost(req)
 }
 
 // acquireClient 获取或创建客户端，并标记为进行中请求
@@ -719,9 +674,6 @@ func (s *httpUpstreamService) getClientEntry(proxyURL string, accountID int64, a
 		return nil, fmt.Errorf("build transport: %w", err)
 	}
 	client := &http.Client{Transport: transport}
-	if s.shouldValidateResolvedIP() {
-		client.CheckRedirect = s.redirectChecker
-	}
 	entry := &upstreamClientEntry{
 		client:       client,
 		proxyCloser:  proxyCloser,

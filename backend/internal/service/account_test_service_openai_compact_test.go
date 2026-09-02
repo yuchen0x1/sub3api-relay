@@ -144,7 +144,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactAPIKeyUsesCompact
 	svc := &AccountTestService{
 		accountRepo:  repo,
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 
 	rec := httptest.NewRecorder()
@@ -189,7 +189,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactAPIKeyDefaultBase
 	svc := &AccountTestService{
 		accountRepo:  repo,
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 
 	rec := httptest.NewRecorder()

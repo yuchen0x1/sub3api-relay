@@ -59,7 +59,7 @@ func (h *ProxyHandler) ParseSubscription(c *gin.Context) {
 
 func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parsedProxySubscription, error) {
 	cleaned := trimSubscriptionURLPunctuation(rawURL)
-	normalized, err := urlvalidator.ValidateHTTPSURL(cleaned, urlvalidator.ValidationOptions{})
+	normalized, err := validateSubscriptionURL(cleaned)
 	if err != nil {
 		return nil, errors.New("subscription URL must be a public HTTPS URL")
 	}
@@ -73,7 +73,7 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 			if len(via) >= 5 {
 				return errors.New("too many subscription redirects")
 			}
-			if _, err := urlvalidator.ValidateHTTPSURL(req.URL.String(), urlvalidator.ValidationOptions{}); err != nil {
+			if _, err := validateSubscriptionURL(req.URL.String()); err != nil {
 				return errors.New("subscription redirect is not allowed")
 			}
 			if len(via) == 0 || !sameSubscriptionOrigin(via[0].URL, req.URL) {
@@ -105,6 +105,28 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 		return nil, errors.New("subscription is too large")
 	}
 	return parseProxySubscriptionBody(body)
+}
+
+// validateSubscriptionURL 校验订阅地址：格式合法、必须为 https、host 不得为
+// localhost/私网字面量（解析后的 IP 由 safeSubscriptionDialContext 拦截）。
+func validateSubscriptionURL(raw string) (string, error) {
+	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	if err != nil {
+		return "", err
+	}
+	parsed, err := url.Parse(normalized)
+	if err != nil || !strings.EqualFold(parsed.Scheme, "https") {
+		return "", errors.New("subscription URL must be https")
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return "", errors.New("subscription URL host is not allowed")
+	}
+	if ip := net.ParseIP(host); ip != nil &&
+		(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified()) {
+		return "", errors.New("subscription URL host is not allowed")
+	}
+	return normalized, nil
 }
 
 func sameSubscriptionOrigin(left, right *url.URL) bool {

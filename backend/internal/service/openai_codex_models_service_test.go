@@ -124,9 +124,7 @@ func TestIsRetryableCodexModelsManifestTransportError(t *testing.T) {
 
 func newCodexModelsAPIKeyTestService(upstream HTTPUpstream) *OpenAIGatewayService {
 	return &OpenAIGatewayService{
-		cfg: &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{
-			Enabled: false,
-		}}},
+		cfg:          &config.Config{},
 		httpUpstream: upstream,
 	}
 }

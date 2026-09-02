@@ -186,9 +186,7 @@ func TestForwardAsRawChatCompletions_TransportErrorFailsOver(t *testing.T) {
 		accountRepo:  repo,
 		httpUpstream: upstream,
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 	}
 	account := &Account{

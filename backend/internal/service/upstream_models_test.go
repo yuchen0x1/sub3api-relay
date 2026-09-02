@@ -15,9 +15,7 @@ import (
 
 func upstreamModelSyncTestConfig() *config.Config {
 	return &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
+		Security: config.SecurityConfig{},
 	}
 }
 

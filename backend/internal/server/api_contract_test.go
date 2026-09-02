@@ -2036,6 +2036,10 @@ func (s *stubAccountRepo) RevertProxyFallback(ctx context.Context, accountID int
 	return nil
 }
 
+func (s *stubAccountRepo) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
+	return 0, nil
+}
+
 type stubProxyRepo struct{}
 
 func (stubProxyRepo) Create(ctx context.Context, proxy *service.Proxy) error {

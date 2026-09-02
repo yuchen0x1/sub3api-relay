@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -102,21 +101,7 @@ func NewAccountTestService(
 }
 
 func (s *AccountTestService) validateUpstreamBaseURL(raw string) (string, error) {
-	if s.cfg == nil {
-		return "", errors.New("config is not available")
-	}
-	if !s.cfg.Security.URLAllowlist.Enabled {
-		return urlvalidator.ValidateURLFormat(raw, s.cfg.Security.URLAllowlist.AllowInsecureHTTP)
-	}
-	normalized, err := urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowedHosts:     s.cfg.Security.URLAllowlist.UpstreamHosts,
-		RequireAllowlist: true,
-		AllowPrivate:     s.cfg.Security.URLAllowlist.AllowPrivateHosts,
-	})
-	if err != nil {
-		return "", err
-	}
-	return normalized, nil
+	return urlvalidator.ValidateURLFormat(raw)
 }
 
 // generateSessionString generates a Claude Code style session string.
@@ -2163,14 +2148,6 @@ func (s *AccountTestService) TestDraftConnection(ctx context.Context, platform, 
 	normalized, err := s.validateUpstreamBaseURL(baseURL)
 	if err != nil {
 		return nil, err
-	}
-	// A draft probe has no saved-account context, so it must never be usable
-	// to reach intranet targets: reject hosts resolving to loopback, private
-	// or reserved addresses regardless of the URL-allowlist configuration.
-	if probeTarget, err := url.Parse(normalized); err == nil && probeTarget.Hostname() != "" {
-		if err := urlvalidator.ValidateResolvedIP(probeTarget.Hostname()); err != nil {
-			return nil, fmt.Errorf("base url host is not allowed: %w", err)
-		}
 	}
 	probeURL := buildOpenAIEndpointURL(normalized, "/v1/models")
 	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)

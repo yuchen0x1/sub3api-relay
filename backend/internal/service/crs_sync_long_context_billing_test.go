@@ -157,7 +157,6 @@ func runCRSOpenAILongContextSync(t *testing.T, repo AccountRepository, source cr
 	t.Cleanup(server.Close)
 
 	cfg := &config.Config{}
-	cfg.Security.URLAllowlist.AllowInsecureHTTP = true
 	service := NewCRSSyncService(repo, nil, nil, nil, nil, cfg)
 	result, err := service.SyncFromCRS(context.Background(), SyncFromCRSInput{
 		BaseURL:  server.URL,

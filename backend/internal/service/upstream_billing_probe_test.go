@@ -218,10 +218,7 @@ func newUpstreamBillingProbeTestService(
 	upstream HTTPUpstream,
 	settingRepo SettingRepository,
 ) *UpstreamBillingProbeService {
-	cfg := &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{
-		Enabled:           false,
-		AllowInsecureHTTP: true,
-	}}}
+	cfg := &config.Config{}
 	accountTestService := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: cfg}
 	return NewUpstreamBillingProbeService(repo, accountTestService, NewSettingService(settingRepo, cfg))
 }

@@ -122,9 +122,7 @@ func TestOpenAIGatewayService_ForwardAsAnthropic_TempUnschedulableReturnsFailove
 	repo := &tempUnschedulableOpenAIAccountRepo{}
 	rateLimitService := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	svc := &OpenAIGatewayService{
-		cfg: &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{
-			Enabled: false, AllowInsecureHTTP: true,
-		}}},
+		cfg:              &config.Config{},
 		httpUpstream:     upstream,
 		rateLimitService: rateLimitService,
 	}
@@ -2753,14 +2751,9 @@ func TestOpenAIStreamingReuseScannerBufferAndStillWorks(t *testing.T) {
 	require.Equal(t, 3, result.usage.CacheReadInputTokens)
 }
 
-func TestOpenAIInvalidBaseURLWhenAllowlistDisabled(t *testing.T) {
+func TestOpenAIInvalidBaseURL(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
-	}
-	svc := &OpenAIGatewayService{cfg: cfg}
+	svc := &OpenAIGatewayService{cfg: &config.Config{}}
 
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
@@ -2774,66 +2767,31 @@ func TestOpenAIInvalidBaseURLWhenAllowlistDisabled(t *testing.T) {
 
 	_, err := svc.buildUpstreamRequest(c.Request.Context(), c, account, []byte("{}"), "token", false, "", false)
 	if err == nil {
-		t.Fatalf("expected error for invalid base_url when allowlist disabled")
+		t.Fatalf("expected error for invalid base_url")
 	}
 }
 
-func TestOpenAIValidateUpstreamBaseURLDisabledRequiresHTTPS(t *testing.T) {
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
-	}
-	svc := &OpenAIGatewayService{cfg: cfg}
+// 上游地址不设白名单/内网/http 限制：任意自定义域名均可通过校验。
+func TestOpenAIValidateUpstreamBaseURLAcceptsAnyUpstream(t *testing.T) {
+	svc := &OpenAIGatewayService{cfg: &config.Config{}}
 
-	if _, err := svc.validateUpstreamBaseURL("http://not-https.example.com"); err == nil {
-		t.Fatalf("expected http to be rejected when allow_insecure_http is false")
+	for _, raw := range []string{
+		"https://example.com",
+		"https://token.sensenova.cn/v1",
+		"http://not-https.example.com",
+		"http://127.0.0.1:8080/v1",
+	} {
+		normalized, err := svc.validateUpstreamBaseURL(raw)
+		if err != nil {
+			t.Fatalf("expected %q to pass, got %v", raw, err)
+		}
+		if normalized != raw {
+			t.Fatalf("expected raw url passthrough, got %q", normalized)
+		}
 	}
-	normalized, err := svc.validateUpstreamBaseURL("https://example.com")
-	if err != nil {
-		t.Fatalf("expected https to be allowed when allowlist disabled, got %v", err)
-	}
-	if normalized != "https://example.com" {
-		t.Fatalf("expected raw url passthrough, got %q", normalized)
-	}
-}
 
-func TestOpenAIValidateUpstreamBaseURLDisabledAllowsHTTP(t *testing.T) {
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{
-				Enabled:           false,
-				AllowInsecureHTTP: true,
-			},
-		},
-	}
-	svc := &OpenAIGatewayService{cfg: cfg}
-
-	normalized, err := svc.validateUpstreamBaseURL("http://not-https.example.com")
-	if err != nil {
-		t.Fatalf("expected http allowed when allow_insecure_http is true, got %v", err)
-	}
-	if normalized != "http://not-https.example.com" {
-		t.Fatalf("expected raw url passthrough, got %q", normalized)
-	}
-}
-
-func TestOpenAIValidateUpstreamBaseURLEnabledEnforcesAllowlist(t *testing.T) {
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{
-				Enabled:       true,
-				UpstreamHosts: []string{"example.com"},
-			},
-		},
-	}
-	svc := &OpenAIGatewayService{cfg: cfg}
-
-	if _, err := svc.validateUpstreamBaseURL("https://example.com"); err != nil {
-		t.Fatalf("expected allowlisted host to pass, got %v", err)
-	}
-	if _, err := svc.validateUpstreamBaseURL("https://evil.com"); err == nil {
-		t.Fatalf("expected non-allowlisted host to fail")
+	if _, err := svc.validateUpstreamBaseURL("://invalid-url"); err == nil {
+		t.Fatalf("expected invalid url to fail")
 	}
 }
 
@@ -2931,9 +2889,7 @@ func TestOpenAIBuildUpstreamRequestOpenAIPassthroughPreservesExplicitAPIKeyBetaH
 	c.Request.Header.Set("OpenAI-Beta", "api-key-specific-beta")
 
 	svc := &OpenAIGatewayService{cfg: &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
+		Security: config.SecurityConfig{},
 	}}
 	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 
@@ -2994,9 +2950,7 @@ func TestOpenAIBuildUpstreamRequestPreservesCompactPathForAPIKeyBaseURL(t *testi
 	c.Request = httptest.NewRequest(http.MethodPost, "/responses/compact", bytes.NewReader([]byte(`{"model":"gpt-5"}`)))
 
 	svc := &OpenAIGatewayService{cfg: &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
+		Security: config.SecurityConfig{},
 	}}
 	account := &Account{
 		Type:        AccountTypeAPIKey,
@@ -3021,9 +2975,7 @@ func TestOpenAIBuildUpstreamRequestPreservesCodexIdentityHeaders(t *testing.T) {
 
 	body := []byte(`{"model":"gpt-5","input":"hello"}`)
 	svc := &OpenAIGatewayService{cfg: &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-		},
+		Security: config.SecurityConfig{},
 	}}
 	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 

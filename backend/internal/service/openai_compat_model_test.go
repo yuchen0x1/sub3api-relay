@@ -150,7 +150,7 @@ func TestForwardAsAnthropic_UsesExactFableMessagesDispatchModel(t *testing.T) {
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -199,7 +199,7 @@ func TestForwardAsAnthropic_NormalizesRoutingAndEffortForGpt54XHigh(t *testing.T
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -298,7 +298,7 @@ func TestForwardAsAnthropic_PreservesMaxForFinalGPT56ResponsesModel(t *testing.T
 			upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_gpt56_"+tt.name, tt.wantModel)}
 			svc := &OpenAIGatewayService{
 				httpUpstream: upstream,
-				cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+				cfg:          &config.Config{Security: config.SecurityConfig{}},
 			}
 
 			result, err := svc.ForwardAsAnthropic(context.Background(), c, tt.account, []byte(body), "", tt.defaultMapped)
@@ -372,7 +372,7 @@ func TestForwardAsAnthropic_MappedClaudeModelAcceptsChatUsageShape(t *testing.T)
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -425,7 +425,7 @@ func TestForwardAsAnthropic_InjectsPromptCacheKeyForAPIKeyMessagesDispatch(t *te
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -471,7 +471,7 @@ func TestForwardAsAnthropic_AutoDerivesPromptCacheKeyWhenMessagesDispatchHasNoSe
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -518,7 +518,7 @@ func TestForwardAsAnthropic_DoesNotAutoDerivePromptCacheKeyForNonCodexModel(t *t
 
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -571,7 +571,7 @@ func TestForwardAsAnthropic_TrimsFullReplayOnlyForCodexCompatModels(t *testing.T
 
 		svc := &OpenAIGatewayService{
 			httpUpstream: upstream,
-			cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+			cfg:          &config.Config{Security: config.SecurityConfig{}},
 		}
 		account := &Account{
 			ID:          1,
@@ -621,7 +621,7 @@ func TestForwardAsAnthropic_OAuthCompatKeepsFullReplayForCacheGrowth(t *testing.
 	upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_oauth_trim", "gpt-5.4")}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -653,7 +653,7 @@ func TestForwardAsAnthropic_AttachesPreviousResponseIDForCompatContinuation(t *t
 	upstream := &httpUpstreamRecorder{}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -705,7 +705,7 @@ func TestForwardAsAnthropic_PreviousResponseIDKeepsMultiToolCallContext(t *testi
 	upstream := &httpUpstreamRecorder{}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -760,7 +760,7 @@ func TestForwardAsAnthropic_ReplaysWithoutContinuationWhenPreviousResponseMissin
 	upstream := &httpUpstreamRecorder{}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -811,7 +811,7 @@ func TestForwardAsAnthropic_DisablesAPIKeyContinuationWhenUpstreamRequiresWebSoc
 	upstream := &httpUpstreamRecorder{}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -882,7 +882,7 @@ func TestForwardAsAnthropic_APIKeyMetadataSessionSurvivesChangingCacheControlAnc
 	}}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -935,7 +935,7 @@ func TestForwardAsAnthropic_DoesNotAttachPreviousResponseIDForOAuthCompat(t *tes
 	upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_oauth_next", "gpt-5.4")}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -974,7 +974,7 @@ func TestForwardAsAnthropic_ReusesOAuthCodexTurnState(t *testing.T) {
 	}}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1046,7 +1046,7 @@ func TestForwardAsAnthropic_OAuthRestoresCodexIdentityHeaders(t *testing.T) {
 			upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_identity", "gpt-5.4")}
 			svc := &OpenAIGatewayService{
 				httpUpstream: upstream,
-				cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+				cfg:          &config.Config{Security: config.SecurityConfig{}},
 			}
 			account := &Account{
 				ID:          1,
@@ -1080,7 +1080,7 @@ func TestForwardAsAnthropic_OAuthDigestFallbackReusesTurnStateWithoutExplicitKey
 	}}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1138,7 +1138,7 @@ func TestForwardAsAnthropic_OAuthMetadataSessionSurvivesDigestPrefixRewrite(t *t
 	}}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1195,7 +1195,7 @@ func TestForwardAsAnthropic_OAuthMetadataSessionSurvivesChangingCacheControlAnch
 	}}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1247,7 +1247,7 @@ func TestForwardAsAnthropic_OAuthKeepsSystemAsDeveloperInput(t *testing.T) {
 	upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_oauth_system", "gpt-5.4")}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1286,7 +1286,7 @@ func TestForwardAsAnthropic_OAuthAddsClaudeCodeTodoGuardForCompatModel(t *testin
 	upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_oauth_todo_guard", "gpt-5.5")}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1323,7 +1323,7 @@ func TestForwardAsAnthropic_OAuthPreservesClaudeCodeToolCallID(t *testing.T) {
 	upstream := &httpUpstreamRecorder{resp: openAICompatSSECompletedResponse("resp_oauth_tool", "gpt-5.4")}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,
@@ -1360,7 +1360,7 @@ func TestForwardAsAnthropic_StoresStreamingResponseIDWithoutUsage(t *testing.T) 
 	upstream := &httpUpstreamRecorder{}
 	svc := &OpenAIGatewayService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          1,

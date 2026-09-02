@@ -273,9 +273,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_BearerAuthScheme(t *testing.T
 
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 	}
 	account := &Account{
@@ -749,11 +747,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_BuildRequestRejectsInvalidBas
 
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{
-					Enabled: false,
-				},
-			},
+			Security: config.SecurityConfig{},
 		},
 	}
 	account := &Account{
@@ -1198,9 +1192,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_ForwardDirect_UpstreamRequest
 	}
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 		httpUpstream: upstream,
 	}
@@ -1228,9 +1220,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_ForwardDirect_EmptyResponseBo
 	}
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 		httpUpstream: upstream,
 	}
@@ -1640,9 +1630,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_TransportErrorRecordsOllamaAc
 	upstream := &anthropicHTTPUpstreamRecorder{err: errors.New("dial tcp timeout")}
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 		httpUpstream:    upstream,
 		deferredService: deferred,
@@ -1682,9 +1670,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_ContextCanceledSkipsOllamaAct
 	upstream := &anthropicHTTPUpstreamRecorder{err: context.Canceled}
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 		httpUpstream:    upstream,
 		deferredService: deferred,
@@ -1720,9 +1706,7 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_Non2xxRecordsOllamaActivity(t
 	}
 	svc := &GatewayService{
 		cfg: &config.Config{
-			Security: config.SecurityConfig{
-				URLAllowlist: config.URLAllowlistConfig{Enabled: false},
-			},
+			Security: config.SecurityConfig{},
 		},
 		httpUpstream:     upstream,
 		deferredService:  deferred,

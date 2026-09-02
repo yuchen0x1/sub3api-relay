@@ -179,12 +179,7 @@ func chatToolCallChunkJSON(includeIdentity bool, arguments string) string {
 
 func passthroughArgsTestConfig() *config.Config {
 	return &config.Config{
-		Security: config.SecurityConfig{
-			URLAllowlist: config.URLAllowlistConfig{
-				Enabled:           false,
-				AllowInsecureHTTP: true,
-			},
-		},
+		Security: config.SecurityConfig{},
 	}
 }
 

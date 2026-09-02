@@ -433,7 +433,7 @@ func TestAccountTestService_OpenAIAPIKeyResponsesUsesCodexProbeHeaders(t *testin
 	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
 	svc := &AccountTestService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          95,
@@ -474,7 +474,7 @@ func TestAccountTestService_OpenAIAPIKeyResponsesUnsupportedUsesChatCompletionsP
 	}}
 	svc := &AccountTestService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          91,
@@ -513,7 +513,7 @@ func TestAccountTestService_OpenAIChatCompletionsPathReturns4xx(t *testing.T) {
 	upstream := &httpUpstreamRecorder{resp: newJSONResponse(http.StatusBadRequest, `{"error":{"message":"bad request"}}`)}
 	svc := &AccountTestService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          92,
@@ -542,7 +542,7 @@ func TestAccountTestService_OpenAIChatCompletionsPathTimeout(t *testing.T) {
 	upstream := &httpUpstreamRecorder{err: context.DeadlineExceeded}
 	svc := &AccountTestService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          93,
@@ -576,7 +576,7 @@ func TestAccountTestService_OpenAIChatCompletionsPathRejectsNonJSONStream(t *tes
 	}}
 	svc := &AccountTestService{
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 	account := &Account{
 		ID:          94,

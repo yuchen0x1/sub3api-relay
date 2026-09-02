@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -169,8 +170,8 @@ func ValidatedBaseURL(override string) (string, error) {
 
 // BaseURLValidator applies the caller's outbound URL trust policy before xAI
 // endpoint paths are appended. The service layer uses this for API-key accounts
-// so the global security.url_allowlist policy remains the single source of
-// truth; OAuth callers keep using the strict trusted-host validator.
+// (upstream base URLs accept any valid http/https address); OAuth callers keep
+// using the strict trusted-host validator.
 type BaseURLValidator func(string) (string, error)
 
 func validatedBaseURLWithValidator(override string, validator BaseURLValidator) (string, error) {
@@ -212,7 +213,7 @@ func RuntimeSanity() RuntimeSanityReport {
 		UnsafeURLOverrides:    AllowUnsafeURLOverrides(),
 		UnsafeHighConcurrency: AllowUnsafeHighConcurrency(),
 		PublicGatewayScope:    "responses_only",
-		ProxyPolicy:           "account_proxy_optional; OAuth URLs use trusted-host allowlists; API-key base URLs require public HTTPS unless unsafe overrides are enabled",
+		ProxyPolicy:           "account_proxy_optional; OAuth URLs use trusted-host allowlists; API-key base URLs accept any http/https host",
 	}
 }
 
@@ -231,7 +232,7 @@ func runtimeSanityCheck(value string, envKey string, validate func(string) (stri
 }
 
 func validateRedirectURI(raw string) (string, error) {
-	return urlvalidator.ValidateURLFormat(raw, true)
+	return urlvalidator.ValidateURLFormat(raw)
 }
 
 func sanitizeRuntimeURLValue(raw string) string {
@@ -263,22 +264,16 @@ func sanitizeRuntimeError(rawErr string, rawValue string) string {
 
 func ValidateOAuthEndpointURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw, true)
+		return urlvalidator.ValidateURLFormat(raw)
 	}
-	return urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowedHosts:     oauthEndpointAllowedHosts,
-		RequireAllowlist: true,
-		AllowPrivate:     false,
-	})
+	return validateHTTPSAgainstHosts(raw, oauthEndpointAllowedHosts)
 }
 
 func ValidateBaseURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw, true)
+		return urlvalidator.ValidateURLFormat(raw)
 	}
-	normalized, err := urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowPrivate: false,
-	})
+	normalized, err := validateHTTPSAgainstHosts(raw, nil)
 	if err != nil {
 		return "", err
 	}
@@ -287,17 +282,63 @@ func ValidateBaseURL(raw string) (string, error) {
 
 func ValidateTrustedBaseURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw, true)
+		return urlvalidator.ValidateURLFormat(raw)
 	}
-	normalized, err := urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowedHosts:     baseURLAllowedHosts,
-		RequireAllowlist: true,
-		AllowPrivate:     false,
-	})
+	normalized, err := validateHTTPSAgainstHosts(raw, baseURLAllowedHosts)
 	if err != nil {
 		return "", err
 	}
 	return normalizeKnownBaseURLPath(normalized)
+}
+
+// validateHTTPSAgainstHosts 强制 https 并按静态信任列表（支持 *.suffix 通配）
+// 校验 host，同时拒绝 localhost/私网字面量。allowedHosts 为 nil 时仅做
+// https + 非内网校验（任意公网第三方域名可过）。该边界服务于 OAuth 端点
+// 信任校验，与运行时上游 Base URL 的开放策略无关。
+func validateHTTPSAgainstHosts(raw string, allowedHosts []string) (string, error) {
+	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	if err != nil {
+		return "", err
+	}
+	parsed, err := url.Parse(normalized)
+	if err != nil || !strings.EqualFold(parsed.Scheme, "https") {
+		return "", fmt.Errorf("https is required for x.ai OAuth endpoints")
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if host == "" || isBlockedStaticHost(host) {
+		return "", fmt.Errorf("host is not allowed: %s", host)
+	}
+	if allowedHosts != nil && !isHostInStaticList(host, allowedHosts) {
+		return "", fmt.Errorf("host is not allowed: %s", host)
+	}
+	return normalized, nil
+}
+
+func isBlockedStaticHost(host string) bool {
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+			ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+	}
+	return false
+}
+
+func isHostInStaticList(host string, allowedHosts []string) bool {
+	for _, entry := range allowedHosts {
+		if strings.HasPrefix(entry, "*.") {
+			suffix := strings.TrimPrefix(entry, "*.")
+			if host == suffix || strings.HasSuffix(host, "."+suffix) {
+				return true
+			}
+			continue
+		}
+		if host == entry {
+			return true
+		}
+	}
+	return false
 }
 
 // normalizeKnownBaseURLPath 规范化 base URL 的 path 部分：

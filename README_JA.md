@@ -425,10 +425,6 @@ default:
 `config.yaml` では追加のセキュリティ関連オプションも利用できます:
 
 - `cors.allowed_origins` - CORS 許可リスト
-- `security.url_allowlist` - 上流/価格/CRS ホストの許可リスト
-- `security.url_allowlist.enabled` - URL バリデーションの無効化（注意して使用）
-- `security.url_allowlist.allow_insecure_http` - バリデーション無効時に HTTP URL を許可
-- `security.url_allowlist.allow_private_hosts` - プライベート/ローカル IP アドレスを許可
 - `security.response_headers.enabled` - 設定可能なレスポンスヘッダーフィルタリングを有効化（無効時はデフォルトの許可リストを使用）
 - `security.csp` - Content-Security-Policy ヘッダーの制御
 - `billing.circuit_breaker` - 課金エラー時にフェイルクローズ
@@ -444,42 +440,11 @@ SECURITY_FORWARDED_CLIENT_IP_HEADERS=True-Client-IP,X-CDN-Client-IP
 
 ヘッダー名は検証、正規化、大小文字を区別しない重複排除が行われます。管理画面のセキュリティ設定から再起動せずに更新でき、新規インストールでは YAML/環境変数の既定値を保存し、既存環境ではデータベース値がない場合に補完します。従来モードを無効にするとカスタムおよび組み込みの生転送ヘッダーはすべて無視され、`server.trusted_proxies` のみを使用します。有効にする場合はオリジンへの接続元を CDN/プロキシに制限し、エッジで信頼する全クライアント IP ヘッダーを上書きしてください。移行規則と信頼境界の詳細は [`deploy/EDGE_SECURITY.md`](deploy/EDGE_SECURITY.md) を参照してください。
 
-**⚠️ セキュリティ警告: HTTP URL 設定**
+**上流 Base URL について**
 
-`security.url_allowlist.enabled=false` の場合、システムは最小限の URL バリデーションのみを行い、**デフォルトで HTTP URL を許可**します（開発フレンドリーモード。Docker Compose デプロイのデフォルトも同じです）。本番環境では、以下のように明示的に HTTPS のみに制限することを推奨します:
+上流アドレスは有効な http/https URL であればよく、ドメイン許可リストやプライベートアドレスの制限はありません。公式 API・サードパーティ中継・自己ホスト型ゲートウェイ（`http://localhost` や内部 IP を含む）をそのまま設定できます。本番環境では API キーの平文送信や中間者攻撃を避けるため、HTTPS 上流を推奨します。
 
-```yaml
-security:
-  url_allowlist:
-    enabled: false                # 許可リストチェックを無効化
-    allow_insecure_http: false    # HTTPS のみ許可（本番環境推奨）
-```
-
-**または環境変数で設定:**
-
-```bash
-SECURITY_URL_ALLOWLIST_ENABLED=false
-SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
-```
-
-**HTTP を許可するリスク:**
-- API キーとデータが**平文**で送信される（傍受の危険性）
-- **中間者攻撃（MITM）**を受けやすい
-- **本番環境には不適切**
-
-**HTTP を使用すべき場面:**
-- ✅ ローカルサーバーでの開発・テスト（http://localhost）
-- ✅ 信頼できるエンドポイントを持つ内部ネットワーク
-- ✅ HTTPS 取得前のアカウント接続テスト
-- ❌ 本番環境（HTTPS のみを使用）
-
-**`allow_insecure_http: false` 設定時に HTTP URL で表示されるエラー例:**
-```
-Invalid base URL: invalid url scheme: http
-```
-
-URL バリデーションまたはレスポンスヘッダーフィルタリングを無効にする場合は、ネットワーク層を強化してください:
-- 上流ドメイン/IP のエグレス許可リストを適用
+レスポンスヘッダーフィルタリングを無効にする場合は、ネットワーク層を強化してください:
 - プライベート/ループバック/リンクローカル範囲をブロック
 - TLS のみのアウトバウンドトラフィックを強制
 - プロキシで機密性の高い上流レスポンスヘッダーを除去

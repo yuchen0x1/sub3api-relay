@@ -29,7 +29,7 @@ func (r *manusHTTPUpstreamRecorder) DoWithTLS(req *http.Request, proxyURL string
 
 func TestManusGatewayForwardAPIKeyStripsClientCredentialsAndUsesProxy(t *testing.T) {
 	recorder := &manusHTTPUpstreamRecorder{}
-	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{AllowInsecureHTTP: true}}}, nil)
+	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{}}, nil)
 	proxyID := int64(9)
 	account := &Account{
 		ID: 42, Platform: PlatformManus, Type: AccountTypeAPIKey, Concurrency: 3,
@@ -57,7 +57,7 @@ func TestManusGatewayForwardAPIKeyStripsClientCredentialsAndUsesProxy(t *testing
 
 func TestManusGatewayForwardOAuthUsesBearerOnly(t *testing.T) {
 	recorder := &manusHTTPUpstreamRecorder{}
-	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{AllowInsecureHTTP: true}}}, nil)
+	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{}}, nil)
 	account := &Account{ID: 7, Platform: PlatformManus, Type: AccountTypeOAuth, Credentials: map[string]any{"base_url": "http://manus.test", "access_token": "oauth-token"}}
 
 	_, err := svc.Forward(t.Context(), account, http.MethodGet, "task.list", "limit=1", nil, nil)
@@ -68,7 +68,7 @@ func TestManusGatewayForwardOAuthUsesBearerOnly(t *testing.T) {
 
 func TestManusGatewayForwardRejectsInvalidEndpointAndMissingCredential(t *testing.T) {
 	recorder := &manusHTTPUpstreamRecorder{}
-	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{AllowInsecureHTTP: true}}}, nil)
+	svc := NewManusGatewayService(recorder, &config.Config{Security: config.SecurityConfig{}}, nil)
 	account := &Account{Platform: PlatformManus, Type: AccountTypeAPIKey, Credentials: map[string]any{"base_url": "http://manus.test"}}
 
 	_, err := svc.Forward(t.Context(), account, http.MethodGet, "../task.list", "", nil, nil)

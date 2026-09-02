@@ -3,27 +3,24 @@ package urlvalidator
 import "testing"
 
 func TestValidateURLFormat(t *testing.T) {
-	if _, err := ValidateURLFormat("", false); err == nil {
+	if _, err := ValidateURLFormat(""); err == nil {
 		t.Fatalf("expected empty url to fail")
 	}
-	if _, err := ValidateURLFormat("://bad", false); err == nil {
+	if _, err := ValidateURLFormat("://bad"); err == nil {
 		t.Fatalf("expected invalid url to fail")
 	}
-	if _, err := ValidateURLFormat("http://example.com", false); err == nil {
-		t.Fatalf("expected http to fail when allow_insecure_http is false")
+	if _, err := ValidateURLFormat("ftp://example.com"); err == nil {
+		t.Fatalf("expected non-http scheme to fail")
 	}
-	if _, err := ValidateURLFormat("https://example.com", false); err != nil {
+	if _, err := ValidateURLFormat("https://example.com"); err != nil {
 		t.Fatalf("expected https to pass, got %v", err)
 	}
-	if _, err := ValidateURLFormat("http://example.com", true); err != nil {
-		t.Fatalf("expected http to pass when allow_insecure_http is true, got %v", err)
-	}
-	if _, err := ValidateURLFormat("https://example.com:bad", true); err == nil {
+	if _, err := ValidateURLFormat("https://example.com:bad"); err == nil {
 		t.Fatalf("expected invalid port to fail")
 	}
 
 	// 验证末尾斜杠被移除
-	normalized, err := ValidateURLFormat("https://example.com/", false)
+	normalized, err := ValidateURLFormat("https://example.com/")
 	if err != nil {
 		t.Fatalf("expected trailing slash url to pass, got %v", err)
 	}
@@ -32,7 +29,7 @@ func TestValidateURLFormat(t *testing.T) {
 	}
 
 	// 验证多个末尾斜杠被移除
-	normalized, err = ValidateURLFormat("https://example.com///", false)
+	normalized, err = ValidateURLFormat("https://example.com///")
 	if err != nil {
 		t.Fatalf("expected multiple trailing slashes to pass, got %v", err)
 	}
@@ -41,7 +38,7 @@ func TestValidateURLFormat(t *testing.T) {
 	}
 
 	// 验证带路径的 URL 末尾斜杠被移除
-	normalized, err = ValidateURLFormat("https://example.com/api/v1/", false)
+	normalized, err = ValidateURLFormat("https://example.com/api/v1/")
 	if err != nil {
 		t.Fatalf("expected trailing slash url with path to pass, got %v", err)
 	}
@@ -50,26 +47,22 @@ func TestValidateURLFormat(t *testing.T) {
 	}
 }
 
-func TestValidateHTTPURL(t *testing.T) {
-	if _, err := ValidateHTTPURL("http://example.com", false, ValidationOptions{}); err == nil {
-		t.Fatalf("expected http to fail when allow_insecure_http is false")
+// 上游地址不再受域名白名单、内网拦截或 http 明文限制：
+// 任意公网域名、第三方中转、localhost/局域网自建网关、http 明文均可用。
+func TestValidateURLFormatAllowsAnyUpstream(t *testing.T) {
+	cases := []string{
+		"https://token.sensenova.cn/v1", // 任意第三方公网域名
+		"https://relay.example.test/v1", // 未收录的自定义域名
+		"http://example.com/v1",         // http 明文
+		"http://127.0.0.1:8080/v1",      // 回环地址
+		"http://localhost:3000",         // localhost
+		"http://192.168.1.10:3000/v1",   // 局域网 IPv4
+		"https://10.0.0.5:8443",         // 私网 IPv4
+		"https://[fd00::1]:9000/v1",     // IPv6 ULA
 	}
-	if _, err := ValidateHTTPURL("http://example.com", true, ValidationOptions{}); err != nil {
-		t.Fatalf("expected http to pass when allow_insecure_http is true, got %v", err)
-	}
-	if _, err := ValidateHTTPURL("https://example.com", false, ValidationOptions{RequireAllowlist: true}); err == nil {
-		t.Fatalf("expected require allowlist to fail when empty")
-	}
-	if _, err := ValidateHTTPURL("https://example.com", false, ValidationOptions{AllowedHosts: []string{"api.example.com"}}); err == nil {
-		t.Fatalf("expected host not in allowlist to fail")
-	}
-	if _, err := ValidateHTTPURL("https://api.example.com", false, ValidationOptions{AllowedHosts: []string{"api.example.com"}}); err != nil {
-		t.Fatalf("expected allowlisted host to pass, got %v", err)
-	}
-	if _, err := ValidateHTTPURL("https://sub.api.example.com", false, ValidationOptions{AllowedHosts: []string{"*.example.com"}}); err != nil {
-		t.Fatalf("expected wildcard allowlist to pass, got %v", err)
-	}
-	if _, err := ValidateHTTPURL("https://localhost", false, ValidationOptions{AllowPrivate: false}); err == nil {
-		t.Fatalf("expected localhost to be blocked when allow_private_hosts is false")
+	for _, raw := range cases {
+		if _, err := ValidateURLFormat(raw); err != nil {
+			t.Fatalf("expected %q to pass, got %v", raw, err)
+		}
 	}
 }

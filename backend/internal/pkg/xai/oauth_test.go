@@ -247,7 +247,7 @@ func TestValidateBaseURLsRejectEmptyQueryDelimiter(t *testing.T) {
 
 func TestBuildResponsesURLWithValidatorUsesCallerPolicy(t *testing.T) {
 	validator := func(raw string) (string, error) {
-		return urlvalidator.ValidateURLFormat(raw, true)
+		return urlvalidator.ValidateURLFormat(raw)
 	}
 
 	target, err := BuildResponsesURLWithValidator("http://grok.example.test/v1/", validator)
@@ -315,7 +315,7 @@ func TestRuntimeSanityReportsSafeDefaults(t *testing.T) {
 	require.False(t, report.UnsafeHighConcurrency)
 	require.Equal(t, "responses_only", report.PublicGatewayScope)
 	require.Contains(t, report.ProxyPolicy, "account_proxy_optional")
-	require.Contains(t, report.ProxyPolicy, "API-key base URLs require public HTTPS")
+	require.Contains(t, report.ProxyPolicy, "API-key base URLs accept any http/https host")
 }
 
 func TestRuntimeSanityReportsInvalidOverridesWithoutSecrets(t *testing.T) {
@@ -329,7 +329,7 @@ func TestRuntimeSanityReportsInvalidOverridesWithoutSecrets(t *testing.T) {
 	report := RuntimeSanity()
 	require.False(t, report.BaseURL.Valid)
 	require.False(t, report.BaseURL.IsDefault)
-	require.Contains(t, report.BaseURL.Error, "invalid url")
+	require.Contains(t, report.BaseURL.Error, "https is required")
 	require.NotContains(t, report.BaseURL.Value, "secret")
 	require.False(t, report.OAuthAuthorizeURL.Valid)
 	require.False(t, report.OAuthTokenURL.Valid)

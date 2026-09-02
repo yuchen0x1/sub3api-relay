@@ -23,7 +23,7 @@ func grokBaseURLValidator(account *Account, cfg *config.Config) (xai.BaseURLVali
 		// ValidateTrustedBaseURL: that validator relaxes to accept-any under the
 		// XAI_ALLOW_UNSAFE_URL_OVERRIDES debug switch, which must never let an
 		// OAuth bearer token reach an arbitrary custom host.
-		policyValidator := grokOperatorPolicyValidator(cfg)
+		policyValidator := grokOperatorPolicyValidator()
 		return redactedGrokBaseURLValidator(func(raw string) (string, error) {
 			if xai.IsOfficialBaseURL(raw) {
 				return xai.ValidateTrustedBaseURL(raw)
@@ -31,29 +31,17 @@ func grokBaseURLValidator(account *Account, cfg *config.Config) (xai.BaseURLVali
 			return policyValidator(raw)
 		}), nil
 	case AccountTypeAPIKey:
-		return redactedGrokBaseURLValidator(grokOperatorPolicyValidator(cfg)), nil
+		return redactedGrokBaseURLValidator(grokOperatorPolicyValidator()), nil
 	default:
 		return nil, fmt.Errorf("unsupported grok account type: %s", account.Type)
 	}
 }
 
-// grokOperatorPolicyValidator 按全局出站 URL 安全策略校验自定义 base_url：
-// 白名单开启时强制 UpstreamHosts；关闭时仅做格式校验（HTTP 允许与否跟随配置）。
-func grokOperatorPolicyValidator(cfg *config.Config) xai.BaseURLValidator {
-	if cfg == nil {
-		return xai.ValidateBaseURL
-	}
-	if !cfg.Security.URLAllowlist.Enabled {
-		return func(raw string) (string, error) {
-			return urlvalidator.ValidateURLFormat(raw, cfg.Security.URLAllowlist.AllowInsecureHTTP)
-		}
-	}
+// grokOperatorPolicyValidator 校验自定义 base_url 的基本格式（http/https 均可，
+// 不再做域名白名单或内网限制）。
+func grokOperatorPolicyValidator() xai.BaseURLValidator {
 	return func(raw string) (string, error) {
-		return urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-			AllowedHosts:     cfg.Security.URLAllowlist.UpstreamHosts,
-			RequireAllowlist: true,
-			AllowPrivate:     cfg.Security.URLAllowlist.AllowPrivateHosts,
-		})
+		return urlvalidator.ValidateURLFormat(raw)
 	}
 }
 

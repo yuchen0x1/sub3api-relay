@@ -116,8 +116,6 @@ func newPassthroughLifecycleService(cfg *config.Config, upstream *stagedPassthro
 
 func passthroughLifecycleConfig() *config.Config {
 	cfg := &config.Config{}
-	cfg.Security.URLAllowlist.Enabled = false
-	cfg.Security.URLAllowlist.AllowInsecureHTTP = true
 	cfg.Gateway.OpenAIFirstOutputTimeoutSeconds = 1
 	cfg.Gateway.OpenAIWS.Enabled = true
 	cfg.Gateway.OpenAIWS.APIKeyEnabled = true

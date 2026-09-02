@@ -458,10 +458,6 @@ gateway:
 `config.yaml` 还支持以下安全相关配置：
 
 - `cors.allowed_origins` 配置 CORS 白名单
-- `security.url_allowlist` 配置上游/价格数据/CRS 主机白名单
-- `security.url_allowlist.enabled` 可关闭 URL 校验（慎用）
-- `security.url_allowlist.allow_insecure_http` 关闭校验时允许 HTTP URL
-- `security.url_allowlist.allow_private_hosts` 允许私有/本地 IP 地址
 - `security.response_headers.enabled` 可启用可配置响应头过滤（关闭时使用默认白名单）
 - `security.csp` 配置 Content-Security-Policy
 - `billing.circuit_breaker` 计费异常时 fail-closed
@@ -485,42 +481,11 @@ SECURITY_FORWARDED_CLIENT_IP_HEADERS=True-Client-IP,X-CDN-Client-IP
 - `/auth/register`、`/auth/login`、`/auth/login/2fa`、`/auth/send-verify-code` 已提供服务端兜底限流（Redis 故障时 fail-close）。
 - 推荐将 WAF/CDN 作为第一层防护，服务端限流与响应读取上限作为第二层兜底；两层同时保留，避免旁路流量与误配置风险。
 
-**⚠️ 安全警告：HTTP URL 配置**
+**上游 Base URL 说明**
 
-当 `security.url_allowlist.enabled=false` 时，系统仅执行最小 URL 校验，且**默认允许 HTTP URL**（开发友好模式，Docker Compose 部署的默认值一致）。生产环境建议显式收紧为仅允许 HTTPS：
+上游地址只需是合法的 http/https URL，不设域名白名单或内网限制：官方 API、第三方中转、自建网关（含 `http://localhost`、内网 IP）均可直接配置。生产环境建议优先使用 HTTPS 上游，避免 API 密钥明文传输与中间人攻击风险。
 
-```yaml
-security:
-  url_allowlist:
-    enabled: false                # 禁用白名单检查
-    allow_insecure_http: false    # 仅允许 HTTPS（生产环境推荐）
-```
-
-**或通过环境变量：**
-
-```bash
-SECURITY_URL_ALLOWLIST_ENABLED=false
-SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
-```
-
-**允许 HTTP 的风险：**
-- API 密钥和数据以**明文传输**（可被截获）
-- 易受**中间人攻击 (MITM)**
-- **不适合生产环境**
-
-**适用场景：**
-- ✅ 开发/测试环境的本地服务器（http://localhost）
-- ✅ 内网可信端点
-- ✅ 获取 HTTPS 前测试账号连通性
-- ❌ 生产环境（仅使用 HTTPS）
-
-**设置 `allow_insecure_http: false` 后，HTTP URL 会返回如下错误：**
-```
-Invalid base URL: invalid url scheme: http
-```
-
-如关闭 URL 校验或响应头过滤，请加强网络层防护：
-- 出站访问白名单限制上游域名/IP
+如关闭响应头过滤，请加强网络层防护：
 - 阻断私网/回环/链路本地地址
 - 强制仅允许 TLS 出站
 - 在反向代理层移除敏感响应头

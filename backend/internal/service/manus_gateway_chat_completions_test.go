@@ -56,7 +56,7 @@ func (f *fakeManusUpstream) DoWithTLS(req *http.Request, p string, id int64, c i
 
 func newManusChatTestService(upstream HTTPUpstream) (*ManusGatewayService, *Account) {
 	svc := NewManusGatewayService(upstream, &config.Config{
-		Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{AllowInsecureHTTP: true}},
+		Security: config.SecurityConfig{},
 	}, nil)
 	account := &Account{
 		ID: 7, Platform: PlatformManus, Type: AccountTypeAPIKey,

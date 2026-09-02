@@ -19,9 +19,8 @@ const defaultClaudeUsageURL = "https://api.anthropic.com/api/oauth/usage"
 const defaultUsageUserAgent = "claude-code/2.1.7"
 
 type claudeUsageService struct {
-	usageURL          string
-	allowPrivateHosts bool
-	httpUpstream      service.HTTPUpstream
+	usageURL     string
+	httpUpstream service.HTTPUpstream
 }
 
 // NewClaudeUsageFetcher 创建 Claude 用量获取服务
@@ -77,10 +76,8 @@ func (s *claudeUsageService) FetchUsageWithOptions(ctx context.Context, opts *se
 	} else {
 		// 不启用 TLS 指纹，使用普通 HTTP 客户端
 		client, err := httpclient.GetClient(httpclient.Options{
-			ProxyURL:           opts.ProxyURL,
-			Timeout:            30 * time.Second,
-			ValidateResolvedIP: true,
-			AllowPrivateHosts:  s.allowPrivateHosts,
+			ProxyURL: opts.ProxyURL,
+			Timeout:  30 * time.Second,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("create http client failed: %w", err)

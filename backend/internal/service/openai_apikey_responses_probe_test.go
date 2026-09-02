@@ -37,7 +37,7 @@ func TestProbeOpenAIAPIKeyResponsesSupportUsesCodexProbeHeaders(t *testing.T) {
 	svc := &AccountTestService{
 		accountRepo:  repo,
 		httpUpstream: upstream,
-		cfg:          &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false}}},
+		cfg:          &config.Config{Security: config.SecurityConfig{}},
 	}
 
 	svc.ProbeOpenAIAPIKeyResponsesSupport(context.Background(), account.ID)
