@@ -76,6 +76,8 @@ temp/
 .cache/
 .dev/
 .serena/
+# i18n 扫描临时工作目录
+frontend/.i18n-scan-tmp/
 
 # ===================
 # 构建产物
