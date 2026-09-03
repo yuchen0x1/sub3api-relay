@@ -62,9 +62,15 @@ type OpsAlertEvaluatorService struct {
 	emailLimiter *slidingWindowLimiter
 	barkLimiter  *slidingWindowLimiter
 	webhookLmt   *slidingWindowLimiter
+	tgLimiter    *slidingWindowLimiter
+	wecomLimiter *slidingWindowLimiter
+	discordLmt   *slidingWindowLimiter
 
 	barkProvider    *BarkAlertProvider
 	webhookProvider *WebhookAlertProvider
+	tgProvider      *TelegramAlertProvider
+	wecomProvider   *WecomAlertProvider
+	discordProvider *DiscordAlertProvider
 
 	skipLogMu sync.Mutex
 	skipLogAt time.Time
@@ -97,9 +103,15 @@ func NewOpsAlertEvaluatorService(
 		emailLimiter: newSlidingWindowLimiter(0, time.Hour),
 		barkLimiter:  newSlidingWindowLimiter(0, time.Hour),
 		webhookLmt:   newSlidingWindowLimiter(0, time.Hour),
+		tgLimiter:    newSlidingWindowLimiter(0, time.Hour),
+		wecomLimiter: newSlidingWindowLimiter(0, time.Hour),
+		discordLmt:   newSlidingWindowLimiter(0, time.Hour),
 
 		barkProvider:    NewBarkAlertProvider(),
 		webhookProvider: NewWebhookAlertProvider(),
+		tgProvider:      NewTelegramAlertProvider(),
+		wecomProvider:   NewWecomAlertProvider(),
+		discordProvider: NewDiscordAlertProvider(),
 	}
 }
 
@@ -707,9 +719,10 @@ func (s *OpsAlertEvaluatorService) maybeDispatchAlert(ctx context.Context, runti
 	if err != nil || emailCfg == nil {
 		return false
 	}
-	// 邮件通知仍受规则开关控制；Bark / Webhook 作为补充渠道，
+	// 邮件通知仍受规则开关控制；Bark / Webhook / Telegram / 企微 / Discord 作为补充渠道，
 	// 只要任一渠道启用即可分发（无需规则勾选邮件）。
-	if !rule.NotifyEmail && !emailCfg.Channels.Bark.Enabled && !emailCfg.Channels.Webhook.Enabled {
+	if !rule.NotifyEmail && !emailCfg.Channels.Bark.Enabled && !emailCfg.Channels.Webhook.Enabled &&
+		!emailCfg.Channels.Telegram.Enabled && !emailCfg.Channels.Wecom.Enabled && !emailCfg.Channels.Discord.Enabled {
 		return false
 	}
 
@@ -724,6 +737,9 @@ func (s *OpsAlertEvaluatorService) maybeDispatchAlert(ctx context.Context, runti
 	anySent := s.sendAlertByEmail(ctx, emailCfg, rule, event, msg, now)
 	anySent = s.sendAlertByBark(ctx, emailCfg, rule, msg, now) || anySent
 	anySent = s.sendAlertByWebhook(ctx, emailCfg, rule, msg, now) || anySent
+	anySent = s.sendAlertByTelegram(ctx, emailCfg, rule, msg, now) || anySent
+	anySent = s.sendAlertByWecom(ctx, emailCfg, rule, msg, now) || anySent
+	anySent = s.sendAlertByDiscord(ctx, emailCfg, rule, msg, now) || anySent
 
 	if anySent && s.opsRepo != nil {
 		_ = s.opsRepo.UpdateAlertEventEmailSent(context.Background(), event.ID, true)
@@ -819,6 +835,69 @@ func (s *OpsAlertEvaluatorService) sendAlertByWebhook(ctx context.Context, email
 	s.webhookProvider.SetConfig(webhookCfg)
 	if err := s.webhookProvider.Send(ctx, msg); err != nil {
 		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] webhook notify failed (rule=%d): %v", rule.ID, err)
+		return false
+	}
+	return true
+}
+
+// sendAlertByTelegram 按 Telegram 渠道配置发送告警。
+func (s *OpsAlertEvaluatorService) sendAlertByTelegram(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Channels.Telegram.Enabled || s.tgProvider == nil {
+		return false
+	}
+	tgCfg := emailCfg.Channels.Telegram
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(tgCfg.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
+	}
+	s.tgLimiter.SetLimit(tgCfg.RateLimitPerHour)
+	if !s.tgLimiter.Allow(now) {
+		return false
+	}
+	s.tgProvider.SetConfig(tgCfg)
+	if err := s.tgProvider.Send(ctx, msg); err != nil {
+		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] telegram notify failed (rule=%d): %v", rule.ID, err)
+		return false
+	}
+	return true
+}
+
+// sendAlertByWecom 按企业微信渠道配置发送告警。
+func (s *OpsAlertEvaluatorService) sendAlertByWecom(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Channels.Wecom.Enabled || s.wecomProvider == nil {
+		return false
+	}
+	wecomCfg := emailCfg.Channels.Wecom
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(wecomCfg.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
+	}
+	s.wecomLimiter.SetLimit(wecomCfg.RateLimitPerHour)
+	if !s.wecomLimiter.Allow(now) {
+		return false
+	}
+	s.wecomProvider.SetConfig(wecomCfg)
+	if err := s.wecomProvider.Send(ctx, msg); err != nil {
+		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] wecom notify failed (rule=%d): %v", rule.ID, err)
+		return false
+	}
+	return true
+}
+
+// sendAlertByDiscord 按 Discord 渠道配置发送告警。
+func (s *OpsAlertEvaluatorService) sendAlertByDiscord(ctx context.Context, emailCfg *OpsEmailNotificationConfig, rule *OpsAlertRule, msg AlertNotificationMessage, now time.Time) bool {
+	if emailCfg == nil || !emailCfg.Channels.Discord.Enabled || s.discordProvider == nil {
+		return false
+	}
+	discordCfg := emailCfg.Channels.Discord
+	if !shouldSendOpsAlertByMinSeverity(strings.TrimSpace(discordCfg.MinSeverity), strings.TrimSpace(rule.Severity)) {
+		return false
+	}
+	s.discordLmt.SetLimit(discordCfg.RateLimitPerHour)
+	if !s.discordLmt.Allow(now) {
+		return false
+	}
+	s.discordProvider.SetConfig(discordCfg)
+	if err := s.discordProvider.Send(ctx, msg); err != nil {
+		logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] discord notify failed (rule=%d): %v", rule.ID, err)
 		return false
 	}
 	return true

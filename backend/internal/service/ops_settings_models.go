@@ -140,8 +140,39 @@ type OpsAggregationSettings struct {
 
 // OpsNotificationChannelsConfig 告警事件在邮件之外的补充通知渠道。
 type OpsNotificationChannelsConfig struct {
-	Bark    OpsBarkNotificationConfig    `json:"bark"`
-	Webhook OpsWebhookNotificationConfig `json:"webhook"`
+	Bark     OpsBarkNotificationConfig     `json:"bark"`
+	Webhook  OpsWebhookNotificationConfig  `json:"webhook"`
+	Telegram OpsTelegramNotificationConfig `json:"telegram"`
+	Wecom    OpsWecomNotificationConfig    `json:"wecom"`
+	Discord  OpsDiscordNotificationConfig  `json:"discord"`
+}
+
+// OpsTelegramNotificationConfig Telegram Bot 推送配置。
+// 通过 Bot API 的 sendMessage 以纯文本推送告警。
+type OpsTelegramNotificationConfig struct {
+	Enabled          bool   `json:"enabled"`
+	BotToken         string `json:"bot_token"`
+	ChatID           string `json:"chat_id"`
+	MinSeverity      string `json:"min_severity"`
+	RateLimitPerHour int    `json:"rate_limit_per_hour"`
+}
+
+// OpsWecomNotificationConfig 企业微信群机器人配置。
+// WebhookURL 为群机器人 webhook 地址（https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...）。
+type OpsWecomNotificationConfig struct {
+	Enabled          bool   `json:"enabled"`
+	WebhookURL       string `json:"webhook_url"`
+	MinSeverity      string `json:"min_severity"`
+	RateLimitPerHour int    `json:"rate_limit_per_hour"`
+}
+
+// OpsDiscordNotificationConfig Discord Webhook 配置。
+// WebhookURL 为频道 webhook 地址（https://discord.com/api/webhooks/...）。
+type OpsDiscordNotificationConfig struct {
+	Enabled          bool   `json:"enabled"`
+	WebhookURL       string `json:"webhook_url"`
+	MinSeverity      string `json:"min_severity"`
+	RateLimitPerHour int    `json:"rate_limit_per_hour"`
 }
 
 // OpsBarkNotificationConfig Bark 推送配置（https://day.app）。

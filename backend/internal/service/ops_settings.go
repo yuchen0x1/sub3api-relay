@@ -136,6 +136,22 @@ func defaultOpsEmailNotificationConfig() *OpsEmailNotificationConfig {
 				Headers:     map[string]string{},
 				MinSeverity: "",
 			},
+			Telegram: OpsTelegramNotificationConfig{
+				Enabled:     false,
+				BotToken:    "",
+				ChatID:      "",
+				MinSeverity: "",
+			},
+			Wecom: OpsWecomNotificationConfig{
+				Enabled:     false,
+				WebhookURL:  "",
+				MinSeverity: "",
+			},
+			Discord: OpsDiscordNotificationConfig{
+				Enabled:     false,
+				WebhookURL:  "",
+				MinSeverity: "",
+			},
 		},
 		Report: OpsEmailReportConfig{
 			Enabled:                         false,
@@ -217,7 +233,7 @@ func validateOpsEmailNotificationConfig(cfg *OpsEmailNotificationConfig) error {
 	return nil
 }
 
-// normalizeOpsNotificationChannels 归一化 Bark / Webhook 渠道配置。
+// normalizeOpsNotificationChannels 归一化 Bark / Webhook / Telegram / 企微 / Discord 渠道配置。
 func normalizeOpsNotificationChannels(ch *OpsNotificationChannelsConfig) {
 	if ch == nil {
 		return
@@ -230,6 +246,13 @@ func normalizeOpsNotificationChannels(ch *OpsNotificationChannelsConfig) {
 	if ch.Webhook.Headers == nil {
 		ch.Webhook.Headers = map[string]string{}
 	}
+	ch.Telegram.BotToken = strings.TrimSpace(ch.Telegram.BotToken)
+	ch.Telegram.ChatID = strings.TrimSpace(ch.Telegram.ChatID)
+	ch.Telegram.MinSeverity = strings.TrimSpace(ch.Telegram.MinSeverity)
+	ch.Wecom.WebhookURL = strings.TrimSpace(ch.Wecom.WebhookURL)
+	ch.Wecom.MinSeverity = strings.TrimSpace(ch.Wecom.MinSeverity)
+	ch.Discord.WebhookURL = strings.TrimSpace(ch.Discord.WebhookURL)
+	ch.Discord.MinSeverity = strings.TrimSpace(ch.Discord.MinSeverity)
 }
 
 // validateOpsNotificationChannels 校验渠道配置：启用的渠道必须有完整的目标地址与合法 severity。
@@ -261,6 +284,39 @@ func validateOpsNotificationChannels(ch *OpsNotificationChannelsConfig) error {
 		}
 		if ch.Webhook.RateLimitPerHour < 0 {
 			return errors.New("channels.webhook.rate_limit_per_hour must be >= 0")
+		}
+	}
+	if ch.Telegram.Enabled {
+		if strings.TrimSpace(ch.Telegram.BotToken) == "" || strings.TrimSpace(ch.Telegram.ChatID) == "" {
+			return errors.New("channels.telegram.bot_token and chat_id are required when telegram enabled")
+		}
+		if err := validateOpsNotificationMinSeverity(ch.Telegram.MinSeverity, "channels.telegram.min_severity"); err != nil {
+			return err
+		}
+		if ch.Telegram.RateLimitPerHour < 0 {
+			return errors.New("channels.telegram.rate_limit_per_hour must be >= 0")
+		}
+	}
+	if ch.Wecom.Enabled {
+		if !strings.HasPrefix(strings.TrimSpace(ch.Wecom.WebhookURL), "https://qyapi.weixin.qq.com/") {
+			return errors.New("channels.wecom.webhook_url must be a wecom bot webhook (https://qyapi.weixin.qq.com/...)")
+		}
+		if err := validateOpsNotificationMinSeverity(ch.Wecom.MinSeverity, "channels.wecom.min_severity"); err != nil {
+			return err
+		}
+		if ch.Wecom.RateLimitPerHour < 0 {
+			return errors.New("channels.wecom.rate_limit_per_hour must be >= 0")
+		}
+	}
+	if ch.Discord.Enabled {
+		if !strings.HasPrefix(strings.TrimSpace(ch.Discord.WebhookURL), "https://") {
+			return errors.New("channels.discord.webhook_url must start with https://")
+		}
+		if err := validateOpsNotificationMinSeverity(ch.Discord.MinSeverity, "channels.discord.min_severity"); err != nil {
+			return err
+		}
+		if ch.Discord.RateLimitPerHour < 0 {
+			return errors.New("channels.discord.rate_limit_per_hour must be >= 0")
 		}
 	}
 	return nil

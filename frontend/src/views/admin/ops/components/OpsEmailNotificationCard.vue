@@ -68,7 +68,10 @@ function normalizeChannelsDraft(draft: EmailNotificationConfig) {
   if (!draft.channels) {
     draft.channels = {
       bark: { enabled: false, server_url: '', key: '', min_severity: '', rate_limit_per_hour: 0 },
-      webhook: { enabled: false, url: '', headers: {}, min_severity: '', rate_limit_per_hour: 0 }
+      webhook: { enabled: false, url: '', headers: {}, min_severity: '', rate_limit_per_hour: 0 },
+      telegram: { enabled: false, bot_token: '', chat_id: '', min_severity: '', rate_limit_per_hour: 0 },
+      wecom: { enabled: false, webhook_url: '', min_severity: '', rate_limit_per_hour: 0 },
+      discord: { enabled: false, webhook_url: '', min_severity: '', rate_limit_per_hour: 0 }
     }
   }
   if (!draft.channels.bark) {
@@ -76,6 +79,15 @@ function normalizeChannelsDraft(draft: EmailNotificationConfig) {
   }
   if (!draft.channels.webhook) {
     draft.channels.webhook = { enabled: false, url: '', headers: {}, min_severity: '', rate_limit_per_hour: 0 }
+  }
+  if (!draft.channels.telegram) {
+    draft.channels.telegram = { enabled: false, bot_token: '', chat_id: '', min_severity: '', rate_limit_per_hour: 0 }
+  }
+  if (!draft.channels.wecom) {
+    draft.channels.wecom = { enabled: false, webhook_url: '', min_severity: '', rate_limit_per_hour: 0 }
+  }
+  if (!draft.channels.discord) {
+    draft.channels.discord = { enabled: false, webhook_url: '', min_severity: '', rate_limit_per_hour: 0 }
   }
   if (!draft.channels.webhook.headers) {
     draft.channels.webhook.headers = {}
@@ -307,6 +319,24 @@ onMounted(() => {
               {{ config.channels?.webhook?.enabled ? t('common.enabled') : t('common.disabled') }}
             </span>
           </div>
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            Telegram:
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+              {{ config.channels?.telegram?.enabled ? t('common.enabled') : t('common.disabled') }}
+            </span>
+          </div>
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            {{ t('admin.ops.email.wecomTitle') }}:
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+              {{ config.channels?.wecom?.enabled ? t('common.enabled') : t('common.disabled') }}
+            </span>
+          </div>
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            Discord:
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+              {{ config.channels?.discord?.enabled ? t('common.enabled') : t('common.disabled') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -515,6 +545,43 @@ onMounted(() => {
             <div class="grid grid-cols-2 gap-2">
               <Select v-model="draft.channels.webhook.min_severity" :options="severityOptions" />
               <input v-model.number="draft.channels.webhook.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
+            </div>
+          </div>
+          <div>
+            <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Telegram</div>
+            <label class="mb-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="draft.channels.telegram!.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300" />
+              <span>{{ draft.channels.telegram!.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+            </label>
+            <input v-model="draft.channels.telegram!.bot_token" type="password" autocomplete="off" class="input mb-2" :placeholder="t('admin.ops.email.telegramBotToken')" />
+            <input v-model="draft.channels.telegram!.chat_id" type="text" class="input mb-2" :placeholder="t('admin.ops.email.telegramChatId')" />
+            <div class="grid grid-cols-2 gap-2">
+              <Select v-model="draft.channels.telegram!.min_severity" :options="severityOptions" />
+              <input v-model.number="draft.channels.telegram!.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
+            </div>
+          </div>
+          <div>
+            <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('admin.ops.email.wecomTitle') }}</div>
+            <label class="mb-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="draft.channels.wecom!.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300" />
+              <span>{{ draft.channels.wecom!.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+            </label>
+            <input v-model="draft.channels.wecom!.webhook_url" type="text" class="input mb-2" :placeholder="t('admin.ops.email.wecomWebhookUrl')" />
+            <div class="grid grid-cols-2 gap-2">
+              <Select v-model="draft.channels.wecom!.min_severity" :options="severityOptions" />
+              <input v-model.number="draft.channels.wecom!.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
+            </div>
+          </div>
+          <div>
+            <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Discord</div>
+            <label class="mb-2 inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="draft.channels.discord!.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300" />
+              <span>{{ draft.channels.discord!.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+            </label>
+            <input v-model="draft.channels.discord!.webhook_url" type="text" class="input mb-2" :placeholder="t('admin.ops.email.discordWebhookUrl')" />
+            <div class="grid grid-cols-2 gap-2">
+              <Select v-model="draft.channels.discord!.min_severity" :options="severityOptions" />
+              <input v-model.number="draft.channels.discord!.rate_limit_per_hour" type="number" min="0" class="input" :placeholder="t('admin.ops.email.rateLimitPerHour')" />
             </div>
           </div>
         </div>

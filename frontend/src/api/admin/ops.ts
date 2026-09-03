@@ -744,6 +744,25 @@ export interface EmailNotificationConfig {
       min_severity: AlertSeverity | ''
       rate_limit_per_hour: number
     }
+    telegram: {
+      enabled: boolean
+      bot_token: string
+      chat_id: string
+      min_severity: AlertSeverity | ''
+      rate_limit_per_hour: number
+    }
+    wecom: {
+      enabled: boolean
+      webhook_url: string
+      min_severity: AlertSeverity | ''
+      rate_limit_per_hour: number
+    }
+    discord: {
+      enabled: boolean
+      webhook_url: string
+      min_severity: AlertSeverity | ''
+      rate_limit_per_hour: number
+    }
   }
   alert: {
     enabled: boolean
