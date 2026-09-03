@@ -50,7 +50,10 @@ func (s *GatewayBodyLogCleanupService) Stop() {
 		return
 	}
 	s.stopOnce.Do(func() {
-		close(s.stopCh)
+		// stopCh 由构造函数初始化；零值服务（未经过构造函数）没有 channel 可关。
+		if s.stopCh != nil {
+			close(s.stopCh)
+		}
 		logger.LegacyPrintf("service.gateway_body_log_cleanup", "[GatewayBodyLogCleanup] stopped")
 	})
 }
