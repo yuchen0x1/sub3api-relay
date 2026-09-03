@@ -668,6 +668,9 @@ export interface SystemSettings {
   // 网关请求体记录与重放调试开关（默认关闭）
   gateway_body_log_enabled: boolean;
 
+  // 请求体日志保留天数（默认 7，0 = 永久保留）
+  gateway_body_log_retention_days: number;
+
   // 余额、订阅到期与账号限额通知
   balance_low_notify_enabled: boolean;
   balance_low_notify_threshold: number;
@@ -967,6 +970,9 @@ export interface UpdateSettingsRequest {
 
   // 网关请求体记录与重放调试开关（默认关闭）
   gateway_body_log_enabled?: boolean;
+
+  // 请求体日志保留天数（默认 7，0 = 永久保留）
+  gateway_body_log_retention_days?: number;
   // 余额、订阅到期与账号限额通知
   balance_low_notify_enabled?: boolean;
   balance_low_notify_threshold?: number;

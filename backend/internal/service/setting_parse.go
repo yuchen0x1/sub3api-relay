@@ -266,6 +266,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky:         "",
 		SettingKeyGatewaySchedulingSelectionMode:                     "",
 		SettingKeyGatewayBodyLogEnabled:                              "false",
+		SettingKeyGatewayBodyLogRetentionDays:                        "7",
 
 		SettingKeyAllowUserViewErrorRequests: "false",
 	}
@@ -917,6 +918,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.OpenAIAdvancedSchedulerWeightSessionSticky = strings.TrimSpace(settings[SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky])
 	result.GatewaySchedulingSelectionMode = normalizeSchedulingSelectionMode(settings[SettingKeyGatewaySchedulingSelectionMode])
 	result.GatewayBodyLogEnabled = settings[SettingKeyGatewayBodyLogEnabled] == "true"
+	result.GatewayBodyLogRetentionDays = normalizeGatewayBodyLogRetentionDays(settings[SettingKeyGatewayBodyLogRetentionDays])
 	result.OpenAIAdvancedSchedulerEffectiveLBTopK = s.openAIAdvancedSchedulerEffectiveLBTopK()
 	effectiveWeights := s.openAIAdvancedSchedulerEffectiveWeights()
 	result.OpenAIAdvancedSchedulerEffectiveWeightPriority = formatOpenAIAdvancedSchedulerFloat(effectiveWeights.Priority)

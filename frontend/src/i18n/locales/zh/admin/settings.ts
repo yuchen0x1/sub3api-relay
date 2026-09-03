@@ -422,7 +422,9 @@ export default {
         selectionModeRandom: '随机',
         selectionModeWeighted: '按流量权重',
         bodyLogTitle: '请求体记录与重放',
-        bodyLogHint: '开启后网关请求体会被记录（截断至 256KB，默认关闭），可在用量明细中查看并一键重放调试。'
+        bodyLogHint: '开启后网关请求体会被记录（截断至 256KB，默认关闭），可在用量明细中查看并一键重放调试。',
+        bodyLogRetentionTitle: '请求体日志保留天数',
+        bodyLogRetentionHint: '超过保留期的请求体日志会被自动清理；填 0 表示永久保留（默认 7 天）。'
       },
       upstreamBillingProbe: {
         title: '上游倍率自动探测',

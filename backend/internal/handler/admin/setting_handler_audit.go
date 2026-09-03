@@ -557,6 +557,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.GatewayBodyLogEnabled != after.GatewayBodyLogEnabled {
 		changed = append(changed, "gateway_body_log_enabled")
 	}
+	if before.GatewayBodyLogRetentionDays != after.GatewayBodyLogRetentionDays {
+		changed = append(changed, "gateway_body_log_retention_days")
+	}
 	// 余额、订阅到期与账号限额通知
 	if before.BalanceLowNotifyEnabled != after.BalanceLowNotifyEnabled {
 		changed = append(changed, "balance_low_notify_enabled")

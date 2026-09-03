@@ -429,7 +429,9 @@ export default {
         selectionModeRandom: 'Random',
         selectionModeWeighted: 'Weighted',
         bodyLogTitle: 'Request Body Logging & Replay',
-        bodyLogHint: 'When enabled, gateway request bodies are recorded (capped at 256KB, off by default) and can be inspected and replayed from the usage details view.'
+        bodyLogHint: 'When enabled, gateway request bodies are recorded (capped at 256KB, off by default) and can be inspected and replayed from the usage details view.',
+        bodyLogRetentionTitle: 'Body Log Retention (days)',
+        bodyLogRetentionHint: 'Body logs older than the retention window are purged automatically; set 0 to keep them forever (default 7 days).'
       },
       upstreamBillingProbe: {
         title: 'Upstream Rate Auto Detection',

@@ -296,6 +296,9 @@ type UpdateSettingsRequest struct {
 	// 网关请求体记录与重放调试开关（默认关闭）
 	GatewayBodyLogEnabled *bool `json:"gateway_body_log_enabled"`
 
+	// 请求体日志保留天数（默认 7，0 = 永久保留）
+	GatewayBodyLogRetentionDays *int `json:"gateway_body_log_retention_days"`
+
 	// 余额不足提醒
 	BalanceLowNotifyEnabled         *bool                   `json:"balance_low_notify_enabled"`
 	BalanceLowNotifyThreshold       *float64                `json:"balance_low_notify_threshold"`
@@ -1828,6 +1831,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		OpenAIAdvancedSchedulerWeightSessionSticky:    stringSetting(req.OpenAIAdvancedSchedulerWeightSessionSticky, previousSettings.OpenAIAdvancedSchedulerWeightSessionSticky),
 		GatewaySchedulingSelectionMode:                stringSetting(req.GatewaySchedulingSelectionMode, previousSettings.GatewaySchedulingSelectionMode),
 		GatewayBodyLogEnabled:                         boolSetting(req.GatewayBodyLogEnabled, previousSettings.GatewayBodyLogEnabled),
+		GatewayBodyLogRetentionDays: func() int {
+			if req.GatewayBodyLogRetentionDays != nil {
+				return *req.GatewayBodyLogRetentionDays
+			}
+			return previousSettings.GatewayBodyLogRetentionDays
+		}(),
 		BalanceLowNotifyEnabled: func() bool {
 			if req.BalanceLowNotifyEnabled != nil {
 				return *req.BalanceLowNotifyEnabled
@@ -2281,6 +2290,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		OpenAIAdvancedSchedulerWeightSessionSticky:             updatedSettings.OpenAIAdvancedSchedulerWeightSessionSticky,
 		GatewaySchedulingSelectionMode:                         updatedSettings.GatewaySchedulingSelectionMode,
 		GatewayBodyLogEnabled:                                  updatedSettings.GatewayBodyLogEnabled,
+		GatewayBodyLogRetentionDays:                            updatedSettings.GatewayBodyLogRetentionDays,
 		OpenAIAdvancedSchedulerEffectiveLBTopK:                 updatedSettings.OpenAIAdvancedSchedulerEffectiveLBTopK,
 		OpenAIAdvancedSchedulerEffectiveWeightPriority:         updatedSettings.OpenAIAdvancedSchedulerEffectiveWeightPriority,
 		OpenAIAdvancedSchedulerEffectiveWeightLoad:             updatedSettings.OpenAIAdvancedSchedulerEffectiveWeightLoad,

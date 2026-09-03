@@ -269,6 +269,9 @@ type SystemSettings struct {
 	// 网关请求体记录与重放调试开关（默认关闭）
 	GatewayBodyLogEnabled bool `json:"gateway_body_log_enabled"`
 
+	// 请求体日志保留天数（默认 7，0 = 永久保留）
+	GatewayBodyLogRetentionDays int `json:"gateway_body_log_retention_days"`
+
 	// Payment configuration
 	PaymentEnabled                   bool     `json:"payment_enabled"`
 	PaymentMinAmount                 float64  `json:"payment_min_amount"`

@@ -1768,6 +1768,28 @@
               </div>
 
               <div
+                class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.scheduling.bodyLogRetentionTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.scheduling.bodyLogRetentionHint") }}
+                  </p>
+                </div>
+                <input
+                  v-model.number="form.gateway_body_log_retention_days"
+                  type="number"
+                  min="0"
+                  max="365"
+                  class="input w-24"
+                />
+              </div>
+
+              <div
                 v-if="!form.openai_advanced_scheduler_enabled"
                 class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
               >
@@ -3760,6 +3782,7 @@ const form = reactive<SettingsForm>({
   openai_advanced_scheduler_weight_session_sticky: "",
   gateway_scheduling_selection_mode: "",
   gateway_body_log_enabled: false,
+  gateway_body_log_retention_days: 7,
   // Gateway forwarding behavior
   enable_fingerprint_unification: true,
   enable_metadata_passthrough: false,
@@ -4941,6 +4964,8 @@ async function saveSettings() {
         form.openai_advanced_scheduler_weight_session_sticky.trim(),
       gateway_scheduling_selection_mode: form.gateway_scheduling_selection_mode,
       gateway_body_log_enabled: form.gateway_body_log_enabled,
+      gateway_body_log_retention_days:
+        Number(form.gateway_body_log_retention_days) || 0,
       // 余额、订阅到期与账号限额通知
       balance_low_notify_enabled: form.balance_low_notify_enabled,
       balance_low_notify_threshold:

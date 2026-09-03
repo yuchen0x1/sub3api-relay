@@ -503,6 +503,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky] = settings.OpenAIAdvancedSchedulerWeightSessionSticky
 	updates[SettingKeyGatewaySchedulingSelectionMode] = normalizeSchedulingSelectionMode(settings.GatewaySchedulingSelectionMode)
 	updates[SettingKeyGatewayBodyLogEnabled] = strconv.FormatBool(settings.GatewayBodyLogEnabled)
+	updates[SettingKeyGatewayBodyLogRetentionDays] = strconv.Itoa(normalizeGatewayBodyLogRetentionDays(strconv.Itoa(settings.GatewayBodyLogRetentionDays)))
 
 	// 余额、订阅到期与账号限额通知
 	updates[SettingKeyBalanceLowNotifyEnabled] = strconv.FormatBool(settings.BalanceLowNotifyEnabled)

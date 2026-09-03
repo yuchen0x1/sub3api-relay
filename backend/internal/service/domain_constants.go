@@ -525,6 +525,10 @@ const (
 	// 开启后网关会把请求体（截断至 256KB）落库供管理台查看与环回重放。
 	SettingKeyGatewayBodyLogEnabled = "gateway_body_log_enabled"
 
+	// SettingKeyGatewayBodyLogRetentionDays 请求体日志保留天数（默认 7，0 = 永久保留）。
+	// 超过保留期的记录由后台清理任务定期删除。
+	SettingKeyGatewayBodyLogRetentionDays = "gateway_body_log_retention_days"
+
 	// SettingKeyBackendModeEnabled Backend 模式：禁用用户注册和自助服务，仅管理员可登录
 	SettingKeyBackendModeEnabled = "backend_mode_enabled"
 

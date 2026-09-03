@@ -287,6 +287,9 @@ type SystemSettings struct {
 	// 网关请求体记录与重放调试开关（默认关闭）
 	GatewayBodyLogEnabled bool
 
+	// 请求体日志保留天数（默认 7，0 = 永久保留）
+	GatewayBodyLogRetentionDays int
+
 	// 余额不足提醒
 	BalanceLowNotifyEnabled     bool
 	BalanceLowNotifyThreshold   float64

@@ -935,6 +935,79 @@ func normalizeSchedulingSelectionMode(raw string) string {
 	}
 }
 
+// GatewayBodyLogRetentionDaysDefault 请求体日志默认保留天数。
+const GatewayBodyLogRetentionDaysDefault = 7
+
+// GatewayBodyLogRetentionDaysMax 请求体日志保留天数上限。
+const GatewayBodyLogRetentionDaysMax = 365
+
+// normalizeGatewayBodyLogRetentionDays 把设置值规范化为 [0, 365] 的整数天数，
+// 0 表示永久保留；非法或负值回退默认 7 天。
+func normalizeGatewayBodyLogRetentionDays(raw string) int {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return GatewayBodyLogRetentionDaysDefault
+	}
+	days, err := strconv.Atoi(raw)
+	if err != nil || days < 0 {
+		return GatewayBodyLogRetentionDaysDefault
+	}
+	if days > GatewayBodyLogRetentionDaysMax {
+		return GatewayBodyLogRetentionDaysMax
+	}
+	return days
+}
+
+// cachedBodyLogRetentionDays 缓存请求体日志保留天数（进程内缓存，60s TTL）
+type cachedBodyLogRetentionDays struct {
+	value     int
+	expiresAt int64 // unix nano
+}
+
+var bodyLogRetentionDaysCache atomic.Value // *cachedBodyLogRetentionDays
+var bodyLogRetentionDaysSF singleflight.Group
+
+const bodyLogRetentionDaysCacheTTL = 60 * time.Second
+const bodyLogRetentionDaysErrorTTL = 5 * time.Second
+
+// GetGatewayBodyLogRetentionDays 返回请求体日志保留天数（默认 7，0 = 永久保留）。
+func (s *SettingService) GetGatewayBodyLogRetentionDays(ctx context.Context) int {
+	if cached, ok := bodyLogRetentionDaysCache.Load().(*cachedBodyLogRetentionDays); ok && cached != nil {
+		if time.Now().UnixNano() < cached.expiresAt {
+			return cached.value
+		}
+	}
+	if s == nil || s.settingRepo == nil {
+		return GatewayBodyLogRetentionDaysDefault
+	}
+	result, _, _ := bodyLogRetentionDaysSF.Do("body_log_retention_days", func() (any, error) {
+		if cached, ok := bodyLogRetentionDaysCache.Load().(*cachedBodyLogRetentionDays); ok && cached != nil {
+			if time.Now().UnixNano() < cached.expiresAt {
+				return cached.value, nil
+			}
+		}
+		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), bodyLogEnabledDBTimeout)
+		defer cancel()
+		value, err := s.settingRepo.GetValue(dbCtx, SettingKeyGatewayBodyLogRetentionDays)
+		if err != nil {
+			slog.Warn("failed to get gateway body log retention setting", "error", err)
+			bodyLogRetentionDaysCache.Store(&cachedBodyLogRetentionDays{
+				value:     GatewayBodyLogRetentionDaysDefault,
+				expiresAt: time.Now().Add(bodyLogRetentionDaysErrorTTL).UnixNano(),
+			})
+			return GatewayBodyLogRetentionDaysDefault, nil
+		}
+		days := normalizeGatewayBodyLogRetentionDays(value)
+		bodyLogRetentionDaysCache.Store(&cachedBodyLogRetentionDays{
+			value:     days,
+			expiresAt: time.Now().Add(bodyLogRetentionDaysCacheTTL).UnixNano(),
+		})
+		return days, nil
+	})
+	days, _ := result.(int)
+	return days
+}
+
 // cachedBodyLogEnabled 缓存请求体记录开关（进程内缓存，60s TTL）
 type cachedBodyLogEnabled struct {
 	value     bool
