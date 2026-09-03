@@ -662,6 +662,12 @@ export interface SystemSettings {
   openai_advanced_scheduler_effective_weight_previous_response?: string;
   openai_advanced_scheduler_effective_weight_session_sticky?: string;
 
+  // 主调度器候选选择模式：last_used / random / weighted；空=跟随 config.yaml
+  gateway_scheduling_selection_mode: string;
+
+  // 网关请求体记录与重放调试开关（默认关闭）
+  gateway_body_log_enabled: boolean;
+
   // 余额、订阅到期与账号限额通知
   balance_low_notify_enabled: boolean;
   balance_low_notify_threshold: number;
@@ -956,6 +962,11 @@ export interface UpdateSettingsRequest {
   openai_advanced_scheduler_weight_upstream_cost?: string;
   openai_advanced_scheduler_weight_previous_response?: string;
   openai_advanced_scheduler_weight_session_sticky?: string;
+  // 主调度器候选选择模式：last_used / random / weighted；空=跟随 config.yaml
+  gateway_scheduling_selection_mode?: string;
+
+  // 网关请求体记录与重放调试开关（默认关闭）
+  gateway_body_log_enabled?: boolean;
   // 余额、订阅到期与账号限额通知
   balance_low_notify_enabled?: boolean;
   balance_low_notify_threshold?: number;

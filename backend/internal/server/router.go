@@ -34,6 +34,7 @@ func SetupRouter(
 	opsService *service.OpsService,
 	settingService *service.SettingService,
 	compositeResolver *service.CompositeRouteResolver,
+	bodyLogService *service.GatewayBodyLogService,
 	cfg *config.Config,
 	redisClient *redis.Client,
 ) *gin.Engine {
@@ -87,7 +88,7 @@ func SetupRouter(
 	}
 
 	// 注册路由
-	registerRoutes(r, handlers, jwtAuth, optionalJWTAuth, adminAuth, apiKeyAuth, auditLog, stepUpAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, cfg, redisClient)
+	registerRoutes(r, handlers, jwtAuth, optionalJWTAuth, adminAuth, apiKeyAuth, auditLog, stepUpAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, bodyLogService, cfg, redisClient)
 
 	return r
 }
@@ -107,6 +108,7 @@ func registerRoutes(
 	opsService *service.OpsService,
 	settingService *service.SettingService,
 	compositeResolver *service.CompositeRouteResolver,
+	bodyLogService *service.GatewayBodyLogService,
 	cfg *config.Config,
 	redisClient *redis.Client,
 ) {
@@ -125,6 +127,31 @@ func registerRoutes(
 	routes.RegisterUserRoutes(v1, h, jwtAuth, optionalJWTAuth, auditLog, settingService, panelRateLimiter)
 	routes.RegisterModelPlazaRoutes(v1, h, optionalJWTAuth, settingService, panelRateLimiter)
 	routes.RegisterAdminRoutes(v1, h, adminAuth, auditLog, stepUpAuth, settingService, panelRateLimiter)
-	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, cfg)
+	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, bodyLogService, cfg)
+
+	// 配置版本历史（列表/一键回滚）管理端点
+	settingRevisionHandler := handler.NewSettingRevisionHandler(settingService)
+	settingRevisionGroup := v1.Group("/admin/setting-revisions")
+	settingRevisionGroup.Use(gin.HandlerFunc(adminAuth))
+	settingRevisionGroup.Use(panelRateLimiter.Global())
+	settingRevisionGroup.Use(gin.HandlerFunc(auditLog))
+	{
+		settingRevisionGroup.GET("", gin.HandlerFunc(settingRevisionHandler.List))
+		settingRevisionGroup.POST("/:id/rollback", gin.HandlerFunc(settingRevisionHandler.Rollback))
+	}
+
+	// 网关请求体日志（查看/重放）管理端点
+	if bodyLogService != nil {
+		bodyLogHandler := handler.NewGatewayBodyLogHandler(bodyLogService)
+		bodyLogGroup := v1.Group("/admin/gateway-body-logs")
+		bodyLogGroup.Use(gin.HandlerFunc(adminAuth))
+		bodyLogGroup.Use(panelRateLimiter.Global())
+		bodyLogGroup.Use(gin.HandlerFunc(auditLog))
+		{
+			bodyLogGroup.GET("", gin.HandlerFunc(bodyLogHandler.List))
+			bodyLogGroup.GET("/:id", gin.HandlerFunc(bodyLogHandler.Get))
+			bodyLogGroup.POST("/:id/replay", gin.HandlerFunc(bodyLogHandler.Replay))
+		}
+	}
 	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
 }

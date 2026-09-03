@@ -400,11 +400,29 @@ export default {
         maxVersionPlaceholder: '例如 2.5.0',
         maxVersionHint: '拒绝高于此版本的 Claude Code 客户端请求（semver 格式）。留空则不限制最高版本。'
       },
+      revisions: {
+        title: '配置历史与回滚',
+        hint: '每次保存设置前会自动记录一份全量配置快照。回滚会立即将所有设置恢复为该版本，并即时生效。',
+        empty: '暂无配置版本记录',
+        autoNote: '保存设置前自动记录',
+        rollback: '回滚到此版本',
+        rollingBack: '回滚中...',
+        rollbackSuccess: '配置已回滚，正在生效',
+        rollbackFailed: '回滚失败'
+      },
       scheduling: {
         title: '网关调度设置',
         description: '控制 API Key 的调度行为',
         allowUngroupedKey: '允许未分组 Key 调度',
-        allowUngroupedKeyHint: '关闭后，未分配到任何分组的 API Key 将无法发起请求（返回 403）。建议保持关闭以确保所有 Key 都归属明确的分组。'
+        allowUngroupedKeyHint: '关闭后，未分配到任何分组的 API Key 将无法发起请求（返回 403）。建议保持关闭以确保所有 Key 都归属明确的分组。',
+        selectionModeTitle: '账号选择模式',
+        selectionModeHint: '同优先级账号的选取方式：按最后使用（LRU 轮转，默认）、随机，或按账号「流量权重」加权随机。留空跟随 config.yaml。',
+        selectionModeDefault: '跟随配置（last_used）',
+        selectionModeLastUsed: '按最后使用（LRU）',
+        selectionModeRandom: '随机',
+        selectionModeWeighted: '按流量权重',
+        bodyLogTitle: '请求体记录与重放',
+        bodyLogHint: '开启后网关请求体会被记录（截断至 256KB，默认关闭），可在用量明细中查看并一键重放调试。'
       },
       upstreamBillingProbe: {
         title: '上游倍率自动探测',

@@ -54,6 +54,16 @@
 
         <template #cell-model="{ row }">
           <div class="space-y-0.5 text-xs">
+            <div class="flex items-start gap-1">
+              <button
+                type="button"
+                class="ml-0.5 shrink-0 rounded border border-gray-200 px-1 py-px text-[10px] leading-4 text-gray-500 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600 dark:border-dark-600 dark:text-gray-400 dark:hover:bg-primary-900/30"
+                :title="t('usage.viewBody')"
+                @click="$emit('bodyClick', row)"
+              >
+                {'{}'}
+              </button>
+              <div class="min-w-0 flex-1 space-y-0.5">
             <div v-if="row.model_mapping_chain && row.model_mapping_chain.includes('→')" class="space-y-0.5">
               <div v-for="(step, i) in (row.model_mapping_chain || '').split('→')" :key="i"
                    class="break-all"
@@ -71,6 +81,8 @@
               </div>
             </div>
             <span v-else class="font-medium text-gray-900 dark:text-white">{{ row.model }}</span>
+              </div>
+            </div>
             <div
               v-if="row.upstream_model_mismatch === true && row.upstream_response_model"
               class="break-all pl-3 text-[11px]"
@@ -558,6 +570,7 @@ const emit = defineEmits<{
   userClick: [userID: number, email?: string]
   sort: [key: string, order: 'asc' | 'desc']
   ipGeoBatchFailed: []
+  bodyClick: [row: AdminUsageLog]
 }>()
 const { t } = useI18n()
 const showAccountBilling = props.showAccountBilling

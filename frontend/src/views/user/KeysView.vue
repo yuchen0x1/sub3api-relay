@@ -833,6 +833,20 @@
               </button>
             </div>
           </div>
+
+          <!-- QPS Limit（独立于美元限额窗口：0 表示不限制） -->
+          <div class="pt-2">
+            <label class="input-label">{{ t('keys.qpsLimit') }}</label>
+            <input
+              v-model.number="formData.qps_limit"
+              type="number"
+              min="0"
+              step="1"
+              class="input"
+              :placeholder="'0'"
+            />
+            <p class="input-hint">{{ t('keys.qpsLimitHint') }}</p>
+          </div>
         </div>
 
         <!-- Expiration Section -->
@@ -1344,6 +1358,7 @@ const formData = ref({
   rate_limit_5h: null as number | null,
   rate_limit_1d: null as number | null,
   rate_limit_7d: null as number | null,
+  qps_limit: null as number | null,
   enable_expiration: false,
   expiration_preset: '30' as '7' | '30' | '90' | 'custom',
   expiration_date: ''
@@ -1576,6 +1591,7 @@ const editKey = (key: ApiKey) => {
     rate_limit_5h: key.rate_limit_5h || null,
     rate_limit_1d: key.rate_limit_1d || null,
     rate_limit_7d: key.rate_limit_7d || null,
+    qps_limit: key.qps_limit > 0 ? key.qps_limit : null,
     enable_expiration: hasExpiration,
     expiration_preset: 'custom',
     expiration_date: key.expires_at ? formatDateTimeLocal(key.expires_at) : ''
@@ -1715,6 +1731,11 @@ const handleSubmit = async () => {
     rate_limit_7d: formData.value.rate_limit_7d && formData.value.rate_limit_7d > 0 ? formData.value.rate_limit_7d : 0,
   } : { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 }
 
+  // QPS 限流独立于美元限额窗口：留空/<=0 视为不限制
+  const qpsLimit = formData.value.qps_limit && formData.value.qps_limit > 0
+    ? Math.trunc(formData.value.qps_limit)
+    : 0
+
   submitting.value = true
   try {
     if (showEditModal.value && selectedKey.value) {
@@ -1728,6 +1749,7 @@ const handleSubmit = async () => {
         rate_limit_5h: rateLimitData.rate_limit_5h,
         rate_limit_1d: rateLimitData.rate_limit_1d,
         rate_limit_7d: rateLimitData.rate_limit_7d,
+        qps_limit: qpsLimit,
       }
       if (shouldSubmitEditStatus(selectedKey.value, formData.value.status)) {
         updates.status = formData.value.status
@@ -1744,7 +1766,7 @@ const handleSubmit = async () => {
         ipBlacklist,
         quota,
         expiresInDays,
-        rateLimitData
+        { ...rateLimitData, qps_limit: qpsLimit }
       )
       appStore.showSuccess(t('keys.keyCreatedSuccess'))
       // Only advance tour if active, on submit step, and creation succeeded
@@ -1802,6 +1824,7 @@ const closeModals = () => {
     rate_limit_5h: null,
     rate_limit_1d: null,
     rate_limit_7d: null,
+    qps_limit: null,
     enable_expiration: false,
     expiration_preset: '30',
     expiration_date: ''

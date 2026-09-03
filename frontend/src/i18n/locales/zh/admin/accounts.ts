@@ -931,6 +931,8 @@ export default {
       loadFactorHint: '提高负载因子可以提高对账号的调度频率',
       priority: '优先级',
       priorityHint: '优先级越小的账号优先使用',
+      weight: '流量权重',
+      weightHint: '同优先级内按权重分流，仅在调度选择模式为"按权重"时生效（需≥1）',
       billingRateMultiplier: '账号计费倍率',
       billingRateMultiplierHint: '0 表示不计费，仅影响账号计费',
       expiresAt: '过期时间',

@@ -706,6 +706,7 @@ export interface ApiKey {
   rate_limit_5h: number
   rate_limit_1d: number
   rate_limit_7d: number
+  qps_limit: number // Max requests per second (0 = unlimited)
   usage_5h: number
   usage_1d: number
   usage_7d: number
@@ -728,6 +729,7 @@ export interface CreateApiKeyRequest {
   rate_limit_5h?: number
   rate_limit_1d?: number
   rate_limit_7d?: number
+  qps_limit?: number // Max requests per second (0 = unlimited)
 }
 
 export interface UpdateApiKeyRequest {
@@ -742,6 +744,7 @@ export interface UpdateApiKeyRequest {
   rate_limit_5h?: number
   rate_limit_1d?: number
   rate_limit_7d?: number
+  qps_limit?: number // Max requests per second (0 = unlimited)
   reset_rate_limit_usage?: boolean
 }
 
@@ -1192,6 +1195,7 @@ export interface Account {
   } | null
   scheduler_scores?: AccountSchedulerGroupScore[] | null
   priority: number
+  weight?: number // 同优先级流量权重（weighted 调度模式生效），缺省 1
   rate_multiplier?: number // Account billing multiplier (>=0, 0 means free)
   status: 'active' | 'inactive' | 'error'
   error_message: string | null
@@ -1455,6 +1459,7 @@ export interface CreateAccountRequest {
   concurrency?: number
   load_factor?: number | null
   priority?: number
+  weight?: number
   rate_multiplier?: number // Account billing multiplier (>=0, 0 means free)
   group_ids?: number[]
   expires_at?: number | null
@@ -1473,6 +1478,7 @@ export interface UpdateAccountRequest {
   concurrency?: number
   load_factor?: number | null
   priority?: number
+  weight?: number
   rate_multiplier?: number // Account billing multiplier (>=0, 0 means free)
   schedulable?: boolean
   status?: 'active' | 'inactive' | 'error'

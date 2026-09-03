@@ -872,6 +872,8 @@ export default {
       loadFactorHint: 'Higher load factor increases scheduling frequency',
       priority: 'Priority',
       priorityHint: 'Lower value accounts are used first',
+      weight: 'Traffic Weight',
+      weightHint: 'Distributes traffic proportionally within the same priority tier; only applies when the scheduling selection mode is "Weighted" (min 1)',
       billingRateMultiplier: 'Billing Rate Multiplier',
       billingRateMultiplierHint: '0 = free, affects account billing only',
       expiresAt: 'Expires At',

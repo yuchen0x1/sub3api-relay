@@ -1239,6 +1239,12 @@
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
         </div>
         <div>
+          <label class="input-label">{{ t('admin.accounts.weight') }}</label>
+          <input v-model.number="form.weight" type="number" min="1" class="input"
+            @input="form.weight = Math.max(1, form.weight || 1)" />
+          <p class="input-hint">{{ t('admin.accounts.weightHint') }}</p>
+        </div>
+        <div>
           <label class="input-label">{{ t('admin.accounts.billingRateMultiplier') }}</label>
           <input
             v-model.number="form.rate_multiplier"
@@ -2501,6 +2507,7 @@ const form = reactive({
   concurrency: 1,
   load_factor: null as number | null,
   priority: 1,
+  weight: 1,
   rate_multiplier: 1,
   status: 'active' as 'active' | 'inactive' | 'error',
   group_ids: [] as number[],
@@ -2604,6 +2611,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   form.concurrency = newAccount.concurrency
   form.load_factor = newAccount.load_factor ?? null
   form.priority = newAccount.priority
+  form.weight = newAccount.weight ?? 1
   form.rate_multiplier = newAccount.rate_multiplier ?? 1
   form.status = (newAccount.status === 'active' || newAccount.status === 'inactive' || newAccount.status === 'error')
     ? newAccount.status

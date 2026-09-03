@@ -407,11 +407,29 @@ export default {
         maxVersionHint:
           'Reject Claude Code clients above this version (semver format). Leave empty to allow any version.'
       },
+      revisions: {
+        title: 'Config History & Rollback',
+        hint: 'A full snapshot of all settings is recorded before each save. Rolling back restores every setting to that version and takes effect immediately.',
+        empty: 'No config revisions recorded yet',
+        autoNote: 'Auto-recorded before saving settings',
+        rollback: 'Rollback to this version',
+        rollingBack: 'Rolling back...',
+        rollbackSuccess: 'Config rolled back and applied',
+        rollbackFailed: 'Rollback failed'
+      },
       scheduling: {
         title: 'Gateway Scheduling Settings',
         description: 'Control API Key scheduling behavior',
         allowUngroupedKey: 'Allow Ungrouped Key Scheduling',
-        allowUngroupedKeyHint: 'When disabled, API Keys not assigned to any group cannot make requests (403 Forbidden). Keep disabled to ensure all Keys belong to a specific group.'
+        allowUngroupedKeyHint: 'When disabled, API Keys not assigned to any group cannot make requests (403 Forbidden). Keep disabled to ensure all Keys belong to a specific group.',
+        selectionModeTitle: 'Account Selection Mode',
+        selectionModeHint: 'How candidates within the same priority tier are chosen: last-used (LRU rotation, default), random, or weighted random by account "Traffic Weight". Leave empty to follow config.yaml.',
+        selectionModeDefault: 'Follow config (last_used)',
+        selectionModeLastUsed: 'Last Used (LRU)',
+        selectionModeRandom: 'Random',
+        selectionModeWeighted: 'Weighted',
+        bodyLogTitle: 'Request Body Logging & Replay',
+        bodyLogHint: 'When enabled, gateway request bodies are recorded (capped at 256KB, off by default) and can be inspected and replayed from the usage details view.'
       },
       upstreamBillingProbe: {
         title: 'Upstream Rate Auto Detection',

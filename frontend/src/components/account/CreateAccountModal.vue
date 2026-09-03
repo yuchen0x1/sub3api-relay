@@ -1978,7 +1978,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <div>
           <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
           <input v-model.number="form.concurrency" type="number" min="1" class="input"
@@ -2001,6 +2001,12 @@
             data-tour="account-form-priority"
           />
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{ t('admin.accounts.weight') }}</label>
+          <input v-model.number="form.weight" type="number" min="1" class="input"
+            @input="form.weight = Math.max(1, form.weight || 1)" />
+          <p class="input-hint">{{ t('admin.accounts.weightHint') }}</p>
         </div>
         <div>
           <label class="input-label">{{ t('admin.accounts.billingRateMultiplier') }}</label>
@@ -3322,6 +3328,7 @@ const form = reactive({
   concurrency: 10,
   load_factor: null as number | null,
   priority: 1,
+  weight: 1,
   rate_multiplier: 1,
   group_ids: [] as number[],
   expires_at: null as number | null
@@ -3877,6 +3884,7 @@ const resetForm = () => {
   form.concurrency = 10
   form.load_factor = null
   form.priority = 1
+  form.weight = 1
   form.rate_multiplier = 1
   form.group_ids = []
   form.expires_at = null
@@ -4414,6 +4422,7 @@ const createAccountAndFinish = async (
     concurrency: form.concurrency,
     load_factor: form.load_factor ?? undefined,
     priority: form.priority,
+    weight: form.weight,
     rate_multiplier: form.rate_multiplier,
     group_ids: form.group_ids,
     expires_at: form.expires_at,
@@ -4482,6 +4491,7 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
           concurrency: form.concurrency,
           load_factor: form.load_factor ?? undefined,
           priority: form.priority,
+          weight: form.weight,
           rate_multiplier: form.rate_multiplier,
           group_ids: form.group_ids,
           expires_at: form.expires_at,
@@ -4673,6 +4683,7 @@ const handleOpenAIExchange = async (authCode: string) => {
         concurrency: form.concurrency,
         load_factor: form.load_factor ?? undefined,
         priority: form.priority,
+        weight: form.weight,
         rate_multiplier: form.rate_multiplier,
         group_ids: form.group_ids,
         expires_at: form.expires_at,
@@ -4954,6 +4965,7 @@ const handleOpenAIBatchRT = async (refreshTokenInput: string, clientId?: string)
             concurrency: form.concurrency,
             load_factor: form.load_factor ?? undefined,
             priority: form.priority,
+            weight: form.weight,
             rate_multiplier: form.rate_multiplier,
             group_ids: form.group_ids,
             expires_at: form.expires_at,
@@ -5053,6 +5065,7 @@ const handleAntigravityValidateRT = async (refreshTokenInput: string) => {
           concurrency: form.concurrency,
           load_factor: form.load_factor ?? undefined,
           priority: form.priority,
+          weight: form.weight,
           rate_multiplier: form.rate_multiplier,
           group_ids: form.group_ids,
           expires_at: form.expires_at,

@@ -10,6 +10,14 @@
 
       <!-- Settings Form -->
       <form v-else @submit.prevent="saveSettings" class="space-y-6" novalidate>
+        <!-- Config revisions -->
+        <div class="flex justify-end">
+          <button type="button" class="btn btn-secondary btn-sm" @click="showRevisionsModal = true">
+            {{ t("admin.settings.revisions.title") }}
+          </button>
+        </div>
+        <SettingRevisionsModal :show="showRevisionsModal" @close="showRevisionsModal = false" />
+
         <!-- Tab Navigation -->
         <div class="settings-tabs-shell">
           <nav
@@ -1716,6 +1724,50 @@
               </div>
 
               <div
+                class="flex flex-col items-stretch gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 dark:border-dark-700"
+              >
+                <div class="min-w-0">
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    for="gateway-scheduling-selection-mode"
+                  >
+                    {{ t("admin.settings.scheduling.selectionModeTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.scheduling.selectionModeHint") }}
+                  </p>
+                </div>
+                <div class="w-full shrink-0 sm:w-52">
+                  <select
+                    id="gateway-scheduling-selection-mode"
+                    v-model="form.gateway_scheduling_selection_mode"
+                    class="input"
+                  >
+                    <option value="">{{ t("admin.settings.scheduling.selectionModeDefault") }}</option>
+                    <option value="last_used">{{ t("admin.settings.scheduling.selectionModeLastUsed") }}</option>
+                    <option value="random">{{ t("admin.settings.scheduling.selectionModeRandom") }}</option>
+                    <option value="weighted">{{ t("admin.settings.scheduling.selectionModeWeighted") }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
+              >
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.scheduling.bodyLogTitle") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.scheduling.bodyLogHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.gateway_body_log_enabled" />
+              </div>
+
+              <div
                 v-if="!form.openai_advanced_scheduler_enabled"
                 class="flex items-center justify-between border-t border-gray-100 pt-5 dark:border-dark-700"
               >
@@ -2992,6 +3044,7 @@ function handleSettingsTabKeydown(event: KeyboardEvent, tab: SettingsTab): void 
 }
 
 
+const showRevisionsModal = ref(false);
 const loading = ref(true);
 const loadFailed = ref(false);
 const saving = ref(false);
@@ -3705,6 +3758,8 @@ const form = reactive<SettingsForm>({
   openai_advanced_scheduler_weight_upstream_cost: "",
   openai_advanced_scheduler_weight_previous_response: "",
   openai_advanced_scheduler_weight_session_sticky: "",
+  gateway_scheduling_selection_mode: "",
+  gateway_body_log_enabled: false,
   // Gateway forwarding behavior
   enable_fingerprint_unification: true,
   enable_metadata_passthrough: false,
@@ -4884,6 +4939,8 @@ async function saveSettings() {
         form.openai_advanced_scheduler_weight_previous_response.trim(),
       openai_advanced_scheduler_weight_session_sticky:
         form.openai_advanced_scheduler_weight_session_sticky.trim(),
+      gateway_scheduling_selection_mode: form.gateway_scheduling_selection_mode,
+      gateway_body_log_enabled: form.gateway_body_log_enabled,
       // 余额、订阅到期与账号限额通知
       balance_low_notify_enabled: form.balance_low_notify_enabled,
       balance_low_notify_threshold:
