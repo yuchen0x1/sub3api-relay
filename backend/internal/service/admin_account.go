@@ -297,6 +297,7 @@ func (s *adminServiceImpl) DuplicateAccount(ctx context.Context, id int64, actor
 		ProxyID:               cloneAccountValuePointer(proxyID),
 		Concurrency:           source.Concurrency,
 		Priority:              source.Priority,
+		Weight:                source.Weight,
 		RateMultiplier:        cloneAccountValuePointer(source.RateMultiplier),
 		LoadFactor:            cloneAccountValuePointer(source.LoadFactor),
 		GroupIDs:              groupIDs,
@@ -339,6 +340,21 @@ func normalizeAccountConcurrency(platform, accountType string, concurrency int) 
 		}
 	}
 	return concurrency
+}
+
+// MaxAccountWeight 权重上限，避免极端值让加权随机退化为单账号固定命中。
+const MaxAccountWeight = 10000
+
+// normalizeAccountWeight 把权重归一到 [1, MaxAccountWeight]。
+// 0/缺字段（旧调度缓存）视为默认权重 1，保证未配置权重的账号行为不变。
+func normalizeAccountWeight(weight int) int {
+	if weight < 1 {
+		return 1
+	}
+	if weight > MaxAccountWeight {
+		return MaxAccountWeight
+	}
+	return weight
 }
 
 // ValidateOpenAILongContextBillingExtra validates the OpenAI account billing flag when present.
@@ -473,6 +489,7 @@ func buildAccountForCreate(input *CreateAccountInput, accountExtra map[string]an
 		ProxyID:     input.ProxyID,
 		Concurrency: normalizeAccountConcurrency(input.Platform, input.Type, input.Concurrency),
 		Priority:    input.Priority,
+		Weight:      normalizeAccountWeight(input.Weight),
 		Status:      StatusActive,
 		Schedulable: true,
 	}
@@ -790,6 +807,10 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	// 只在指针非 nil 时更新 Priority（支持设置为 0）
 	if input.Priority != nil {
 		account.Priority = *input.Priority
+	}
+	// 权重仅在 weighted 调度模式下生效，始终归一到合法区间
+	if input.Weight != nil {
+		account.Weight = normalizeAccountWeight(*input.Weight)
 	}
 	if input.RateMultiplier != nil {
 		if *input.RateMultiplier < 0 {
@@ -1110,6 +1131,10 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 	if input.Priority != nil {
 		repoUpdates.Priority = input.Priority
 	}
+	if input.Weight != nil {
+		normalized := normalizeAccountWeight(*input.Weight)
+		repoUpdates.Weight = &normalized
+	}
 	if input.RateMultiplier != nil {
 		repoUpdates.RateMultiplier = input.RateMultiplier
 	}
@@ -1397,6 +1422,7 @@ func (s *adminServiceImpl) CreateShadow(ctx context.Context, parentID int64, opt
 	if priority <= 0 {
 		priority = parent.Priority
 	}
+	// 影子透传母账号凭据，调度上也是同一条流量的延续，权重直接继承母账号。
 	shadow := &Account{
 		Name:            name,
 		Platform:        PlatformOpenAI,
@@ -1407,6 +1433,7 @@ func (s *adminServiceImpl) CreateShadow(ctx context.Context, parentID int64, opt
 		QuotaDimension:  QuotaDimensionSpark,
 		ProxyID:         parent.ProxyID,
 		Priority:        priority,
+		Weight:          normalizeAccountWeight(parent.Weight),
 		Concurrency:     concurrency,
 		Schedulable:     true,
 		Extra: map[string]any{

@@ -709,6 +709,7 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 		}
 
 		// 分层过滤选择：优先级 →（可选）最早重置 → 负载率 → LRU
+		selectionMode := s.effectiveSchedulingSelectionMode(ctx, cfg)
 		for len(available) > 0 {
 			// 1. 取优先级最小的集合
 			candidates := filterByMinPriority(available)
@@ -718,8 +719,8 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 			}
 			// 3. 取负载率最低的集合
 			candidates = filterByMinLoadRate(candidates)
-			// 4. LRU 选择最久未用的账号
-			selected := selectByLRU(candidates, preferOAuth)
+			// 4. LRU 选择最久未用的账号；weighted 模式改为按账号权重加权随机
+			selected := s.selectLayeredCandidate(candidates, preferOAuth, selectionMode)
 			if selected == nil {
 				break
 			}
@@ -750,7 +751,7 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 	}
 
 	// ============ Layer 3: 兜底排队 ============
-	s.sortCandidatesForFallback(candidates, preferOAuth, cfg.FallbackSelectionMode)
+	s.sortCandidatesForFallback(candidates, preferOAuth, s.effectiveSchedulingSelectionMode(ctx, cfg))
 	for _, acc := range candidates {
 		// 会话数量限制检查（等待计划也需要占用会话配额）
 		if !s.checkAndRegisterSession(ctx, acc, sessionHash) {
@@ -1597,6 +1598,92 @@ func selectByLRU(accounts []accountWithLoad, preferOAuth bool) *accountWithLoad 
 	return &accounts[selectedIdx]
 }
 
+// effectiveSchedulingSelectionMode 返回生效的候选选择模式：
+// 设置中心（gateway_scheduling_selection_mode）优先，其次 config.yaml 的
+// fallback_selection_mode，默认 last_used。
+func (s *GatewayService) effectiveSchedulingSelectionMode(ctx context.Context, cfg config.GatewaySchedulingConfig) string {
+	if s.settingService != nil {
+		if mode := s.settingService.GetGatewaySchedulingSelectionMode(ctx); mode != "" {
+			return mode
+		}
+	}
+	switch cfg.FallbackSelectionMode {
+	case SchedulingSelectionModeRandom, SchedulingSelectionModeWeighted:
+		return cfg.FallbackSelectionMode
+	default:
+		return SchedulingSelectionModeLastUsed
+	}
+}
+
+// selectLayeredCandidate 在分层过滤（优先级/最早重置/负载率）后的候选集中选出最终账号。
+// weighted 模式按账号权重加权随机（权重越大被选中概率越高）；
+// 其余模式保持 LRU 语义（最久未用优先，同秒内随机）。
+func (s *GatewayService) selectLayeredCandidate(candidates []accountWithLoad, preferOAuth bool, mode string) *accountWithLoad {
+	if mode == SchedulingSelectionModeWeighted {
+		if selected := selectByWeightedRandom(candidates); selected != nil {
+			return selected
+		}
+	}
+	return selectByLRU(candidates, preferOAuth)
+}
+
+// selectByWeightedRandom 按账号权重做加权随机；权重 <=0 视为默认 1。
+func selectByWeightedRandom(accounts []accountWithLoad) *accountWithLoad {
+	if len(accounts) == 0 {
+		return nil
+	}
+	if len(accounts) == 1 {
+		return &accounts[0]
+	}
+	weights := make([]int, len(accounts))
+	total := 0
+	for i, acc := range accounts {
+		weights[i] = normalizeAccountWeight(acc.account.Weight)
+		total += weights[i]
+	}
+	point := mathrand.Intn(total)
+	for i, w := range weights {
+		point -= w
+		if point < 0 {
+			return &accounts[i]
+		}
+	}
+	return &accounts[len(accounts)-1]
+}
+
+// weightedShuffleAccounts 生成按权重的加权随机排列（无放回抽样，O(n²)，
+// 候选集规模小可接受）。从前向后逐位抽样：排列越靠前的账号被排队等待的概率越高。
+func weightedShuffleAccounts(accounts []*Account) {
+	for i := 0; i < len(accounts)-1; i++ {
+		total := 0
+		weights := make([]int, len(accounts)-i)
+		for j := i; j < len(accounts); j++ {
+			weights[j-i] = normalizeAccountWeight(accounts[j].Weight)
+			total += weights[j-i]
+		}
+		point := mathrand.Intn(total)
+		pick := len(accounts) - 1
+		for j := i; j < len(accounts); j++ {
+			point -= weights[j-i]
+			if point < 0 {
+				pick = j
+				break
+			}
+		}
+		if pick != i {
+			accounts[pick], accounts[i] = accounts[i], accounts[pick]
+		}
+	}
+}
+
+// 调度候选选择模式：设置中心 gateway_scheduling_selection_mode 与
+// config fallback_selection_mode 共用的取值。
+const (
+	SchedulingSelectionModeLastUsed = "last_used"
+	SchedulingSelectionModeRandom   = "random"
+	SchedulingSelectionModeWeighted = "weighted"
+)
+
 func sortAccountsByPriorityAndLastUsed(accounts []*Account, preferOAuth bool) {
 	sort.SliceStable(accounts, func(i, j int) bool {
 		a, b := accounts[i], accounts[j]
@@ -1718,15 +1805,39 @@ func sameLastUsedAt(a, b *time.Time) bool {
 }
 
 // sortCandidatesForFallback 根据配置选择排序策略
-// mode: "last_used"(按最后使用时间) 或 "random"(随机)
+// mode: "last_used"(按最后使用时间)、"random"(随机) 或 "weighted"(按账号权重加权随机)
 func (s *GatewayService) sortCandidatesForFallback(accounts []*Account, preferOAuth bool, mode string) {
-	if mode == "random" {
+	switch mode {
+	case SchedulingSelectionModeRandom:
 		// 先按优先级排序，然后在同优先级内随机打乱
 		sortAccountsByPriorityOnly(accounts, preferOAuth)
 		shuffleWithinPriority(accounts)
-	} else {
+	case SchedulingSelectionModeWeighted:
+		// 先按优先级排序，同优先级内按账号权重加权随机打乱（无权重视同 1）
+		sortAccountsByPriorityOnly(accounts, preferOAuth)
+		weightedShuffleWithinPriority(accounts)
+	default:
 		// 默认按最后使用时间排序
 		sortAccountsByPriorityAndLastUsed(accounts, preferOAuth)
+	}
+}
+
+// weightedShuffleWithinPriority 对同优先级段内的账号做加权随机打乱。
+func weightedShuffleWithinPriority(accounts []*Account) {
+	if len(accounts) <= 1 {
+		return
+	}
+	start := 0
+	for start < len(accounts) {
+		priority := accounts[start].Priority
+		end := start + 1
+		for end < len(accounts) && accounts[end].Priority == priority {
+			end++
+		}
+		if end-start > 1 {
+			weightedShuffleAccounts(accounts[start:end])
+		}
+		start = end
 	}
 }
 

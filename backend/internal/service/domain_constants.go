@@ -516,6 +516,15 @@ const (
 	SettingKeyOpenAIAdvancedSchedulerWeightPreviousResponse      = "openai_advanced_scheduler_weight_previous_response"
 	SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky         = "openai_advanced_scheduler_weight_session_sticky"
 
+	// SettingKeyGatewaySchedulingSelectionMode 主调度器同优先级候选的选择模式：
+	// "last_used"（默认，LRU）/ "random"（随机）/ "weighted"（按账号 weight 加权随机）。
+	// 空值表示跟随 config.yaml 的 fallback_selection_mode。
+	SettingKeyGatewaySchedulingSelectionMode = "gateway_scheduling_selection_mode"
+
+	// SettingKeyGatewayBodyLogEnabled 网关请求体记录与重放调试开关（默认关闭）。
+	// 开启后网关会把请求体（截断至 256KB）落库供管理台查看与环回重放。
+	SettingKeyGatewayBodyLogEnabled = "gateway_body_log_enabled"
+
 	// SettingKeyBackendModeEnabled Backend 模式：禁用用户注册和自助服务，仅管理员可登录
 	SettingKeyBackendModeEnabled = "backend_mode_enabled"
 

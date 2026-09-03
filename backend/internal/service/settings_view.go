@@ -281,6 +281,12 @@ type SystemSettings struct {
 	OpenAIAdvancedSchedulerEffectiveWeightPreviousResponse string
 	OpenAIAdvancedSchedulerEffectiveWeightSessionSticky    string
 
+	// 主调度器候选选择模式：last_used / random / weighted；空=跟随 config.yaml
+	GatewaySchedulingSelectionMode string
+
+	// 网关请求体记录与重放调试开关（默认关闭）
+	GatewayBodyLogEnabled bool
+
 	// 余额不足提醒
 	BalanceLowNotifyEnabled     bool
 	BalanceLowNotifyThreshold   float64

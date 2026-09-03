@@ -31,6 +31,9 @@ type Account struct {
 	ProxyFallbackOriginName *string // 仅展示用
 	Concurrency             int
 	Priority                int
+	// Weight 同优先级内的流量权重；旧调度缓存可能缺字段（反序列化为 0），
+	// 调度侧一律经 normalizeAccountWeight 归一到 >=1 再使用。
+	Weight int
 	// RateMultiplier 账号计费倍率（>=0，允许 0 表示该账号计费为 0）。
 	// 使用指针用于兼容旧版本调度缓存（Redis）中缺字段的情况：nil 表示按 1.0 处理。
 	RateMultiplier     *float64

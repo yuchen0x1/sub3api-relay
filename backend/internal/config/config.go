@@ -1335,7 +1335,9 @@ type GatewaySchedulingConfig struct {
 	FallbackWaitTimeout time.Duration `mapstructure:"fallback_wait_timeout"`
 	FallbackMaxWaiting  int           `mapstructure:"fallback_max_waiting"`
 
-	// 兜底层账户选择策略: "last_used"(按最后使用时间排序，默认) 或 "random"(随机)
+	// 兜底层账户选择策略: "last_used"(按最后使用时间排序，默认)、"random"(随机)
+	// 或 "weighted"(按账号 weight 加权随机)。设置中心的 gateway_scheduling_selection_mode
+	// 优先于本配置。
 	FallbackSelectionMode string `mapstructure:"fallback_selection_mode"`
 
 	// PreferSoonestReset 开启后，负载感知选择会优先选用「会话窗口最早重置」的账号

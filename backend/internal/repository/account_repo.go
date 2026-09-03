@@ -113,6 +113,7 @@ func createAccountRecord(ctx context.Context, client *dbent.Client, account *ser
 		SetExtra(normalizeJSONMap(account.Extra)).
 		SetConcurrency(account.Concurrency).
 		SetPriority(account.Priority).
+		SetWeight(normalizeAccountWeightForRepo(account.Weight)).
 		SetStatus(account.Status).
 		SetErrorMessage(account.ErrorMessage).
 		SetSchedulable(account.Schedulable).
@@ -502,6 +503,7 @@ func (r *accountRepository) updateLockedAccount(
 		SetExtra(extra).
 		SetConcurrency(account.Concurrency).
 		SetPriority(account.Priority).
+		SetWeight(normalizeAccountWeightForRepo(account.Weight)).
 		SetStatus(account.Status).
 		SetErrorMessage(account.ErrorMessage).
 		SetSchedulable(schedulable).
@@ -1079,6 +1081,9 @@ func accountListOrder(params pagination.PaginationParams) []func(*entsql.Selecto
 		defaultOrder = false
 	case "priority":
 		field = dbaccount.FieldPriority
+		defaultOrder = false
+	case "weight":
+		field = dbaccount.FieldWeight
 		defaultOrder = false
 	case "rate_multiplier":
 		field = dbaccount.FieldRateMultiplier
@@ -2874,6 +2879,11 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 		args = append(args, *updates.Priority)
 		idx++
 	}
+	if updates.Weight != nil {
+		setClauses = append(setClauses, "weight = $"+itoa(idx))
+		args = append(args, *updates.Weight)
+		idx++
+	}
 	if updates.RateMultiplier != nil {
 		setClauses = append(setClauses, "rate_multiplier = $"+itoa(idx))
 		args = append(args, *updates.RateMultiplier)
@@ -3367,6 +3377,19 @@ func buildSchedulerGroupPayload(groupIDs []int64) any {
 	return map[string]any{"group_ids": groupIDs}
 }
 
+// normalizeAccountWeightForRepo 与 service.normalizeAccountWeight 同口径：权重
+// 缺失（旧数据/旧调度缓存为 0）时回落默认 1，上限与 service.MaxAccountWeight 一致。
+func normalizeAccountWeightForRepo(weight int) int {
+	const maxAccountWeight = 10000
+	if weight < 1 {
+		return 1
+	}
+	if weight > maxAccountWeight {
+		return maxAccountWeight
+	}
+	return weight
+}
+
 func accountEntityToService(m *dbent.Account) *service.Account {
 	if m == nil {
 		return nil
@@ -3386,6 +3409,7 @@ func accountEntityToService(m *dbent.Account) *service.Account {
 		ProxyFallbackOriginID:   m.ProxyFallbackOriginID,
 		Concurrency:             m.Concurrency,
 		Priority:                m.Priority,
+		Weight:                  normalizeAccountWeightForRepo(m.Weight),
 		RateMultiplier:          &rateMultiplier,
 		LoadFactor:              m.LoadFactor,
 		Status:                  m.Status,

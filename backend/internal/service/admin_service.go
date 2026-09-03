@@ -347,6 +347,7 @@ type CreateAccountInput struct {
 	ProxyID            *int64
 	Concurrency        int
 	Priority           int
+	Weight             int      // 同优先级流量权重；<=0 视为 1
 	RateMultiplier     *float64 // 账号计费倍率（>=0，允许 0）
 	LoadFactor         *int
 	GroupIDs           []int64
@@ -378,6 +379,7 @@ type UpdateAccountInput struct {
 	ProxyID               *int64
 	Concurrency           *int     // 使用指针区分"未提供"和"设置为0"
 	Priority              *int     // 使用指针区分"未提供"和"设置为0"
+	Weight                *int     // 同优先级流量权重；nil 表示未提供
 	RateMultiplier        *float64 // 账号计费倍率（>=0，允许 0）
 	LoadFactor            *int
 	Status                string
@@ -397,6 +399,7 @@ type BulkUpdateAccountsInput struct {
 	ProxyID        *int64
 	Concurrency    *int
 	Priority       *int
+	Weight         *int
 	RateMultiplier *float64 // 账号计费倍率（>=0，允许 0）
 	LoadFactor     *int
 	Status         string

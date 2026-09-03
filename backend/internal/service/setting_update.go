@@ -44,6 +44,8 @@ func (s *SettingService) UpdateSettingsOmitting(ctx context.Context, settings *S
 	}
 	omitted.dropFrom(updates)
 
+	s.RecordSettingRevision(ctx, 0, "settings update")
+
 	if err := s.settingRepo.SetMultiple(ctx, updates); err != nil {
 		return err
 	}
@@ -73,6 +75,8 @@ func (s *SettingService) UpdateSettingsWithAuthSourceDefaultsOmitting(ctx contex
 		updates[key] = value
 	}
 	omitted.dropFrom(updates)
+
+	s.RecordSettingRevision(ctx, 0, "settings update (with auth source defaults)")
 
 	if err := s.settingRepo.SetMultiple(ctx, updates); err != nil {
 		return err
@@ -497,6 +501,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyOpenAIAdvancedSchedulerWeightUpstreamCost] = settings.OpenAIAdvancedSchedulerWeightUpstreamCost
 	updates[SettingKeyOpenAIAdvancedSchedulerWeightPreviousResponse] = settings.OpenAIAdvancedSchedulerWeightPreviousResponse
 	updates[SettingKeyOpenAIAdvancedSchedulerWeightSessionSticky] = settings.OpenAIAdvancedSchedulerWeightSessionSticky
+	updates[SettingKeyGatewaySchedulingSelectionMode] = normalizeSchedulingSelectionMode(settings.GatewaySchedulingSelectionMode)
+	updates[SettingKeyGatewayBodyLogEnabled] = strconv.FormatBool(settings.GatewayBodyLogEnabled)
 
 	// 余额、订阅到期与账号限额通知
 	updates[SettingKeyBalanceLowNotifyEnabled] = strconv.FormatBool(settings.BalanceLowNotifyEnabled)

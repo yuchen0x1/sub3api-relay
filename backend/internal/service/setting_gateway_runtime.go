@@ -72,6 +72,19 @@ const gatewayForwardingCacheTTL = 60 * time.Second
 const gatewayForwardingErrorTTL = 5 * time.Second
 const gatewayForwardingDBTimeout = 5 * time.Second
 
+// cachedSchedulingSelectionMode 缓存主调度器选择模式设置（进程内缓存，60s TTL）
+type cachedSchedulingSelectionMode struct {
+	value     string // "" = 未设置，跟随 config.yaml
+	expiresAt int64  // unix nano
+}
+
+var schedulingSelectionModeCache atomic.Value // *cachedSchedulingSelectionMode
+var schedulingSelectionModeSF singleflight.Group
+
+const schedulingSelectionModeCacheTTL = 60 * time.Second
+const schedulingSelectionModeErrorTTL = 5 * time.Second
+const schedulingSelectionModeDBTimeout = 5 * time.Second
+
 // cachedAntigravityUserAgentVersion 缓存 Antigravity UA 版本号（进程内缓存，60s TTL）
 type cachedAntigravityUserAgentVersion struct {
 	version   string
@@ -193,7 +206,6 @@ func (s *SettingService) GetStaticIPPoolEnabled(ctx context.Context) bool {
 	}
 	return true
 }
-
 
 const openAIQuotaAutoPauseSettingsCacheTTL = 60 * time.Second
 const openAIQuotaAutoPauseSettingsErrorTTL = 5 * time.Second
@@ -872,6 +884,106 @@ func (s *SettingService) getGatewayForwardingSettingsCached(ctx context.Context)
 func (s *SettingService) GetGatewayForwardingSettings(ctx context.Context) (fingerprintUnification, metadataPassthrough, cchSigning bool) {
 	result := s.getGatewayForwardingSettingsCached(ctx)
 	return result.fp, result.mp, result.cch
+}
+
+// GetGatewaySchedulingSelectionMode 返回主调度器同优先级候选的选择模式设置。
+// 返回值为规范化后的 "last_used" / "random" / "weighted"；
+// 未设置或值非法时返回 ""，由调用方回落到 config.yaml。
+func (s *SettingService) GetGatewaySchedulingSelectionMode(ctx context.Context) string {
+	if cached, ok := schedulingSelectionModeCache.Load().(*cachedSchedulingSelectionMode); ok && cached != nil {
+		if time.Now().UnixNano() < cached.expiresAt {
+			return cached.value
+		}
+	}
+	if s == nil || s.settingRepo == nil {
+		return ""
+	}
+	result, _, _ := schedulingSelectionModeSF.Do("scheduling_selection_mode", func() (any, error) {
+		if cached, ok := schedulingSelectionModeCache.Load().(*cachedSchedulingSelectionMode); ok && cached != nil {
+			if time.Now().UnixNano() < cached.expiresAt {
+				return cached.value, nil
+			}
+		}
+		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), schedulingSelectionModeDBTimeout)
+		defer cancel()
+		values, err := s.settingRepo.GetMultiple(dbCtx, []string{SettingKeyGatewaySchedulingSelectionMode})
+		if err != nil {
+			slog.Warn("failed to get scheduling selection mode setting", "error", err)
+			schedulingSelectionModeCache.Store(&cachedSchedulingSelectionMode{
+				expiresAt: time.Now().Add(schedulingSelectionModeErrorTTL).UnixNano(),
+			})
+			return "", nil
+		}
+		value := normalizeSchedulingSelectionMode(values[SettingKeyGatewaySchedulingSelectionMode])
+		schedulingSelectionModeCache.Store(&cachedSchedulingSelectionMode{
+			value:     value,
+			expiresAt: time.Now().Add(schedulingSelectionModeCacheTTL).UnixNano(),
+		})
+		return value, nil
+	})
+	mode, _ := result.(string)
+	return mode
+}
+
+// normalizeSchedulingSelectionMode 把设置值规范化为三种合法模式之一，非法值返回 ""。
+func normalizeSchedulingSelectionMode(raw string) string {
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case "last_used", "random", "weighted":
+		return strings.TrimSpace(strings.ToLower(raw))
+	default:
+		return ""
+	}
+}
+
+// cachedBodyLogEnabled 缓存请求体记录开关（进程内缓存，60s TTL）
+type cachedBodyLogEnabled struct {
+	value     bool
+	expiresAt int64 // unix nano
+}
+
+var bodyLogEnabledCache atomic.Value // *cachedBodyLogEnabled
+var bodyLogEnabledSF singleflight.Group
+
+const bodyLogEnabledCacheTTL = 60 * time.Second
+const bodyLogEnabledErrorTTL = 5 * time.Second
+const bodyLogEnabledDBTimeout = 5 * time.Second
+
+// GetGatewayBodyLogEnabled 返回网关请求体记录开关（默认关闭）。
+func (s *SettingService) GetGatewayBodyLogEnabled(ctx context.Context) bool {
+	if cached, ok := bodyLogEnabledCache.Load().(*cachedBodyLogEnabled); ok && cached != nil {
+		if time.Now().UnixNano() < cached.expiresAt {
+			return cached.value
+		}
+	}
+	if s == nil || s.settingRepo == nil {
+		return false
+	}
+	result, _, _ := bodyLogEnabledSF.Do("body_log_enabled", func() (any, error) {
+		if cached, ok := bodyLogEnabledCache.Load().(*cachedBodyLogEnabled); ok && cached != nil {
+			if time.Now().UnixNano() < cached.expiresAt {
+				return cached.value, nil
+			}
+		}
+		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), bodyLogEnabledDBTimeout)
+		defer cancel()
+		value, err := s.settingRepo.GetValue(dbCtx, SettingKeyGatewayBodyLogEnabled)
+		if err != nil {
+			slog.Warn("failed to get gateway body log setting", "error", err)
+			bodyLogEnabledCache.Store(&cachedBodyLogEnabled{
+				value:     false,
+				expiresAt: time.Now().Add(bodyLogEnabledErrorTTL).UnixNano(),
+			})
+			return false, nil
+		}
+		enabled := value == "true"
+		bodyLogEnabledCache.Store(&cachedBodyLogEnabled{
+			value:     enabled,
+			expiresAt: time.Now().Add(bodyLogEnabledCacheTTL).UnixNano(),
+		})
+		return enabled, nil
+	})
+	enabled, _ := result.(bool)
+	return enabled
 }
 
 // IsAnthropicCacheTTL1hInjectionEnabled 检查是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl。

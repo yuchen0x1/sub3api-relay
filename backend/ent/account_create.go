@@ -181,6 +181,20 @@ func (_c *AccountCreate) SetNillablePriority(v *int) *AccountCreate {
 	return _c
 }
 
+// SetWeight sets the "weight" field.
+func (_c *AccountCreate) SetWeight(v int) *AccountCreate {
+	_c.mutation.SetWeight(v)
+	return _c
+}
+
+// SetNillableWeight sets the "weight" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableWeight(v *int) *AccountCreate {
+	if v != nil {
+		_c.SetWeight(*v)
+	}
+	return _c
+}
+
 // SetRateMultiplier sets the "rate_multiplier" field.
 func (_c *AccountCreate) SetRateMultiplier(v float64) *AccountCreate {
 	_c.mutation.SetRateMultiplier(v)
@@ -561,6 +575,10 @@ func (_c *AccountCreate) defaults() error {
 		v := account.DefaultPriority
 		_c.mutation.SetPriority(v)
 	}
+	if _, ok := _c.mutation.Weight(); !ok {
+		v := account.DefaultWeight
+		_c.mutation.SetWeight(v)
+	}
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		v := account.DefaultRateMultiplier
 		_c.mutation.SetRateMultiplier(v)
@@ -627,6 +645,9 @@ func (_c *AccountCreate) check() error {
 	}
 	if _, ok := _c.mutation.Priority(); !ok {
 		return &ValidationError{Name: "priority", err: errors.New(`ent: missing required field "Account.priority"`)}
+	}
+	if _, ok := _c.mutation.Weight(); !ok {
+		return &ValidationError{Name: "weight", err: errors.New(`ent: missing required field "Account.weight"`)}
 	}
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		return &ValidationError{Name: "rate_multiplier", err: errors.New(`ent: missing required field "Account.rate_multiplier"`)}
@@ -736,6 +757,10 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(account.FieldPriority, field.TypeInt, value)
 		_node.Priority = value
+	}
+	if value, ok := _c.mutation.Weight(); ok {
+		_spec.SetField(account.FieldWeight, field.TypeInt, value)
+		_node.Weight = value
 	}
 	if value, ok := _c.mutation.RateMultiplier(); ok {
 		_spec.SetField(account.FieldRateMultiplier, field.TypeFloat64, value)
@@ -1146,6 +1171,24 @@ func (u *AccountUpsert) UpdatePriority() *AccountUpsert {
 // AddPriority adds v to the "priority" field.
 func (u *AccountUpsert) AddPriority(v int) *AccountUpsert {
 	u.Add(account.FieldPriority, v)
+	return u
+}
+
+// SetWeight sets the "weight" field.
+func (u *AccountUpsert) SetWeight(v int) *AccountUpsert {
+	u.Set(account.FieldWeight, v)
+	return u
+}
+
+// UpdateWeight sets the "weight" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateWeight() *AccountUpsert {
+	u.SetExcluded(account.FieldWeight)
+	return u
+}
+
+// AddWeight adds v to the "weight" field.
+func (u *AccountUpsert) AddWeight(v int) *AccountUpsert {
+	u.Add(account.FieldWeight, v)
 	return u
 }
 
@@ -1718,6 +1761,27 @@ func (u *AccountUpsertOne) AddPriority(v int) *AccountUpsertOne {
 func (u *AccountUpsertOne) UpdatePriority() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdatePriority()
+	})
+}
+
+// SetWeight sets the "weight" field.
+func (u *AccountUpsertOne) SetWeight(v int) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetWeight(v)
+	})
+}
+
+// AddWeight adds v to the "weight" field.
+func (u *AccountUpsertOne) AddWeight(v int) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddWeight(v)
+	})
+}
+
+// UpdateWeight sets the "weight" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateWeight() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateWeight()
 	})
 }
 
@@ -2503,6 +2567,27 @@ func (u *AccountUpsertBulk) AddPriority(v int) *AccountUpsertBulk {
 func (u *AccountUpsertBulk) UpdatePriority() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdatePriority()
+	})
+}
+
+// SetWeight sets the "weight" field.
+func (u *AccountUpsertBulk) SetWeight(v int) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetWeight(v)
+	})
+}
+
+// AddWeight adds v to the "weight" field.
+func (u *AccountUpsertBulk) AddWeight(v int) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddWeight(v)
+	})
+}
+
+// UpdateWeight sets the "weight" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateWeight() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateWeight()
 	})
 }
 

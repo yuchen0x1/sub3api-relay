@@ -163,6 +163,7 @@ type AccountBulkUpdate struct {
 	ProxyID        *int64
 	Concurrency    *int
 	Priority       *int
+	Weight         *int
 	RateMultiplier *float64
 	LoadFactor     *int
 	Status         *string

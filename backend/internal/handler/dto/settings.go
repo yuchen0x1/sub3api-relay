@@ -263,6 +263,12 @@ type SystemSettings struct {
 	OpenAIAdvancedSchedulerEffectiveWeightPreviousResponse string  `json:"openai_advanced_scheduler_effective_weight_previous_response"`
 	OpenAIAdvancedSchedulerEffectiveWeightSessionSticky    string  `json:"openai_advanced_scheduler_effective_weight_session_sticky"`
 
+	// 主调度器候选选择模式：last_used / random / weighted；空=跟随 config.yaml
+	GatewaySchedulingSelectionMode string `json:"gateway_scheduling_selection_mode"`
+
+	// 网关请求体记录与重放调试开关（默认关闭）
+	GatewayBodyLogEnabled bool `json:"gateway_body_log_enabled"`
+
 	// Payment configuration
 	PaymentEnabled                   bool     `json:"payment_enabled"`
 	PaymentMinAmount                 float64  `json:"payment_min_amount"`
