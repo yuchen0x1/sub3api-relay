@@ -145,6 +145,16 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			}
 		}
 
+		// 检查 Key 级 QPS 限流（qps_limit = 0 表示不限制；计数器不可用时放行）
+		if apiKey.QPSLimit > 0 {
+			if err := apiKeyService.CheckAndIncrementKeyQPS(c.Request.Context(), apiKey); err != nil {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonQPSLimit)
+				MarkIngressRejected(c, IngressRejectQPSLimited)
+				AbortWithError(c, http.StatusTooManyRequests, "API_KEY_QPS_LIMITED", "API key QPS limit exceeded; retry later")
+				return
+			}
+		}
+
 		// 检查关联的用户
 		if apiKey.User == nil {
 			AbortWithError(c, 401, "USER_NOT_FOUND", "User associated with API key not found")

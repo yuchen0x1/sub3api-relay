@@ -201,6 +201,18 @@ func (f ErrorPassthroughRuleFunc) Mutate(ctx context.Context, m ent.Mutation) (e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ErrorPassthroughRuleMutation", m)
 }
 
+// The GatewayBodyLogFunc type is an adapter to allow the use of ordinary
+// function as GatewayBodyLog mutator.
+type GatewayBodyLogFunc func(context.Context, *ent.GatewayBodyLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GatewayBodyLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GatewayBodyLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GatewayBodyLogMutation", m)
+}
+
 // The GroupFunc type is an adapter to allow the use of ordinary
 // function as Group mutator.
 type GroupFunc func(context.Context, *ent.GroupMutation) (ent.Value, error)
@@ -355,6 +367,18 @@ func (f SettingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SettingMutation", m)
+}
+
+// The SettingRevisionFunc type is an adapter to allow the use of ordinary
+// function as SettingRevision mutator.
+type SettingRevisionFunc func(context.Context, *ent.SettingRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SettingRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SettingRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SettingRevisionMutation", m)
 }
 
 // The StaticProxyFunc type is an adapter to allow the use of ordinary

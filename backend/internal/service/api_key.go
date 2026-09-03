@@ -56,6 +56,7 @@ type APIKey struct {
 	RateLimit5h   float64    // Rate limit in USD per 5h (0 = unlimited)
 	RateLimit1d   float64    // Rate limit in USD per 1d (0 = unlimited)
 	RateLimit7d   float64    // Rate limit in USD per 7d (0 = unlimited)
+	QPSLimit      int        // Max requests per second (0 = unlimited)
 	Usage5h       float64    // Used amount in current 5h window
 	Usage1d       float64    // Used amount in current 1d window
 	Usage7d       float64    // Used amount in current 7d window

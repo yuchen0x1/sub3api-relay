@@ -31,6 +31,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/channelmonitorrequesttemplate"
 	"github.com/yuchen0x1/sub3api-relay/ent/compositemodelroute"
 	"github.com/yuchen0x1/sub3api-relay/ent/errorpassthroughrule"
+	"github.com/yuchen0x1/sub3api-relay/ent/gatewaybodylog"
 	"github.com/yuchen0x1/sub3api-relay/ent/group"
 	"github.com/yuchen0x1/sub3api-relay/ent/idempotencyrecord"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
@@ -44,6 +45,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/settingrevision"
 	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
@@ -96,6 +98,8 @@ type Client struct {
 	CompositeModelRoute *CompositeModelRouteClient
 	// ErrorPassthroughRule is the client for interacting with the ErrorPassthroughRule builders.
 	ErrorPassthroughRule *ErrorPassthroughRuleClient
+	// GatewayBodyLog is the client for interacting with the GatewayBodyLog builders.
+	GatewayBodyLog *GatewayBodyLogClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// IdempotencyRecord is the client for interacting with the IdempotencyRecord builders.
@@ -122,6 +126,8 @@ type Client struct {
 	SecuritySecret *SecuritySecretClient
 	// Setting is the client for interacting with the Setting builders.
 	Setting *SettingClient
+	// SettingRevision is the client for interacting with the SettingRevision builders.
+	SettingRevision *SettingRevisionClient
 	// StaticProxy is the client for interacting with the StaticProxy builders.
 	StaticProxy *StaticProxyClient
 	// SubscriptionPlan is the client for interacting with the SubscriptionPlan builders.
@@ -171,6 +177,7 @@ func (c *Client) init() {
 	c.ChannelMonitorRequestTemplate = NewChannelMonitorRequestTemplateClient(c.config)
 	c.CompositeModelRoute = NewCompositeModelRouteClient(c.config)
 	c.ErrorPassthroughRule = NewErrorPassthroughRuleClient(c.config)
+	c.GatewayBodyLog = NewGatewayBodyLogClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
@@ -184,6 +191,7 @@ func (c *Client) init() {
 	c.RedeemCode = NewRedeemCodeClient(c.config)
 	c.SecuritySecret = NewSecuritySecretClient(c.config)
 	c.Setting = NewSettingClient(c.config)
+	c.SettingRevision = NewSettingRevisionClient(c.config)
 	c.StaticProxy = NewStaticProxyClient(c.config)
 	c.SubscriptionPlan = NewSubscriptionPlanClient(c.config)
 	c.TLSFingerprintProfile = NewTLSFingerprintProfileClient(c.config)
@@ -303,6 +311,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChannelMonitorRequestTemplate: NewChannelMonitorRequestTemplateClient(cfg),
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
+		GatewayBodyLog:                NewGatewayBodyLogClient(cfg),
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
@@ -316,6 +325,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RedeemCode:                    NewRedeemCodeClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
 		Setting:                       NewSettingClient(cfg),
+		SettingRevision:               NewSettingRevisionClient(cfg),
 		StaticProxy:                   NewStaticProxyClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
@@ -362,6 +372,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChannelMonitorRequestTemplate: NewChannelMonitorRequestTemplateClient(cfg),
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
+		GatewayBodyLog:                NewGatewayBodyLogClient(cfg),
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
@@ -375,6 +386,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RedeemCode:                    NewRedeemCodeClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
 		Setting:                       NewSettingClient(cfg),
+		SettingRevision:               NewSettingRevisionClient(cfg),
 		StaticProxy:                   NewStaticProxyClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
@@ -419,13 +431,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.StaticProxy,
-		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
-		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.GatewayBodyLog, c.Group,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
+		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SettingRevision, c.StaticProxy, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -439,13 +452,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.StaticProxy,
-		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
-		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.GatewayBodyLog, c.Group,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
+		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SettingRevision, c.StaticProxy, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -486,6 +500,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CompositeModelRoute.mutate(ctx, m)
 	case *ErrorPassthroughRuleMutation:
 		return c.ErrorPassthroughRule.mutate(ctx, m)
+	case *GatewayBodyLogMutation:
+		return c.GatewayBodyLog.mutate(ctx, m)
 	case *GroupMutation:
 		return c.Group.mutate(ctx, m)
 	case *IdempotencyRecordMutation:
@@ -512,6 +528,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SecuritySecret.mutate(ctx, m)
 	case *SettingMutation:
 		return c.Setting.mutate(ctx, m)
+	case *SettingRevisionMutation:
+		return c.SettingRevision.mutate(ctx, m)
 	case *StaticProxyMutation:
 		return c.StaticProxy.mutate(ctx, m)
 	case *SubscriptionPlanMutation:
@@ -3024,6 +3042,139 @@ func (c *ErrorPassthroughRuleClient) mutate(ctx context.Context, m *ErrorPassthr
 	}
 }
 
+// GatewayBodyLogClient is a client for the GatewayBodyLog schema.
+type GatewayBodyLogClient struct {
+	config
+}
+
+// NewGatewayBodyLogClient returns a client for the GatewayBodyLog from the given config.
+func NewGatewayBodyLogClient(c config) *GatewayBodyLogClient {
+	return &GatewayBodyLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `gatewaybodylog.Hooks(f(g(h())))`.
+func (c *GatewayBodyLogClient) Use(hooks ...Hook) {
+	c.hooks.GatewayBodyLog = append(c.hooks.GatewayBodyLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `gatewaybodylog.Intercept(f(g(h())))`.
+func (c *GatewayBodyLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GatewayBodyLog = append(c.inters.GatewayBodyLog, interceptors...)
+}
+
+// Create returns a builder for creating a GatewayBodyLog entity.
+func (c *GatewayBodyLogClient) Create() *GatewayBodyLogCreate {
+	mutation := newGatewayBodyLogMutation(c.config, OpCreate)
+	return &GatewayBodyLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GatewayBodyLog entities.
+func (c *GatewayBodyLogClient) CreateBulk(builders ...*GatewayBodyLogCreate) *GatewayBodyLogCreateBulk {
+	return &GatewayBodyLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GatewayBodyLogClient) MapCreateBulk(slice any, setFunc func(*GatewayBodyLogCreate, int)) *GatewayBodyLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GatewayBodyLogCreateBulk{err: fmt.Errorf("calling to GatewayBodyLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GatewayBodyLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GatewayBodyLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GatewayBodyLog.
+func (c *GatewayBodyLogClient) Update() *GatewayBodyLogUpdate {
+	mutation := newGatewayBodyLogMutation(c.config, OpUpdate)
+	return &GatewayBodyLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GatewayBodyLogClient) UpdateOne(_m *GatewayBodyLog) *GatewayBodyLogUpdateOne {
+	mutation := newGatewayBodyLogMutation(c.config, OpUpdateOne, withGatewayBodyLog(_m))
+	return &GatewayBodyLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GatewayBodyLogClient) UpdateOneID(id int64) *GatewayBodyLogUpdateOne {
+	mutation := newGatewayBodyLogMutation(c.config, OpUpdateOne, withGatewayBodyLogID(id))
+	return &GatewayBodyLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GatewayBodyLog.
+func (c *GatewayBodyLogClient) Delete() *GatewayBodyLogDelete {
+	mutation := newGatewayBodyLogMutation(c.config, OpDelete)
+	return &GatewayBodyLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GatewayBodyLogClient) DeleteOne(_m *GatewayBodyLog) *GatewayBodyLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GatewayBodyLogClient) DeleteOneID(id int64) *GatewayBodyLogDeleteOne {
+	builder := c.Delete().Where(gatewaybodylog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GatewayBodyLogDeleteOne{builder}
+}
+
+// Query returns a query builder for GatewayBodyLog.
+func (c *GatewayBodyLogClient) Query() *GatewayBodyLogQuery {
+	return &GatewayBodyLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGatewayBodyLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GatewayBodyLog entity by its id.
+func (c *GatewayBodyLogClient) Get(ctx context.Context, id int64) (*GatewayBodyLog, error) {
+	return c.Query().Where(gatewaybodylog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GatewayBodyLogClient) GetX(ctx context.Context, id int64) *GatewayBodyLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GatewayBodyLogClient) Hooks() []Hook {
+	return c.hooks.GatewayBodyLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *GatewayBodyLogClient) Interceptors() []Interceptor {
+	return c.inters.GatewayBodyLog
+}
+
+func (c *GatewayBodyLogClient) mutate(ctx context.Context, m *GatewayBodyLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GatewayBodyLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GatewayBodyLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GatewayBodyLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GatewayBodyLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GatewayBodyLog mutation op: %q", m.Op())
+	}
+}
+
 // GroupClient is a client for the Group schema.
 type GroupClient struct {
 	config
@@ -5077,6 +5228,139 @@ func (c *SettingClient) mutate(ctx context.Context, m *SettingMutation) (Value, 
 	}
 }
 
+// SettingRevisionClient is a client for the SettingRevision schema.
+type SettingRevisionClient struct {
+	config
+}
+
+// NewSettingRevisionClient returns a client for the SettingRevision from the given config.
+func NewSettingRevisionClient(c config) *SettingRevisionClient {
+	return &SettingRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `settingrevision.Hooks(f(g(h())))`.
+func (c *SettingRevisionClient) Use(hooks ...Hook) {
+	c.hooks.SettingRevision = append(c.hooks.SettingRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `settingrevision.Intercept(f(g(h())))`.
+func (c *SettingRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SettingRevision = append(c.inters.SettingRevision, interceptors...)
+}
+
+// Create returns a builder for creating a SettingRevision entity.
+func (c *SettingRevisionClient) Create() *SettingRevisionCreate {
+	mutation := newSettingRevisionMutation(c.config, OpCreate)
+	return &SettingRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SettingRevision entities.
+func (c *SettingRevisionClient) CreateBulk(builders ...*SettingRevisionCreate) *SettingRevisionCreateBulk {
+	return &SettingRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SettingRevisionClient) MapCreateBulk(slice any, setFunc func(*SettingRevisionCreate, int)) *SettingRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SettingRevisionCreateBulk{err: fmt.Errorf("calling to SettingRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SettingRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SettingRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SettingRevision.
+func (c *SettingRevisionClient) Update() *SettingRevisionUpdate {
+	mutation := newSettingRevisionMutation(c.config, OpUpdate)
+	return &SettingRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SettingRevisionClient) UpdateOne(_m *SettingRevision) *SettingRevisionUpdateOne {
+	mutation := newSettingRevisionMutation(c.config, OpUpdateOne, withSettingRevision(_m))
+	return &SettingRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SettingRevisionClient) UpdateOneID(id int64) *SettingRevisionUpdateOne {
+	mutation := newSettingRevisionMutation(c.config, OpUpdateOne, withSettingRevisionID(id))
+	return &SettingRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SettingRevision.
+func (c *SettingRevisionClient) Delete() *SettingRevisionDelete {
+	mutation := newSettingRevisionMutation(c.config, OpDelete)
+	return &SettingRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SettingRevisionClient) DeleteOne(_m *SettingRevision) *SettingRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SettingRevisionClient) DeleteOneID(id int64) *SettingRevisionDeleteOne {
+	builder := c.Delete().Where(settingrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SettingRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for SettingRevision.
+func (c *SettingRevisionClient) Query() *SettingRevisionQuery {
+	return &SettingRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSettingRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SettingRevision entity by its id.
+func (c *SettingRevisionClient) Get(ctx context.Context, id int64) (*SettingRevision, error) {
+	return c.Query().Where(settingrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SettingRevisionClient) GetX(ctx context.Context, id int64) *SettingRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SettingRevisionClient) Hooks() []Hook {
+	return c.hooks.SettingRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *SettingRevisionClient) Interceptors() []Interceptor {
+	return c.inters.SettingRevision
+}
+
+func (c *SettingRevisionClient) mutate(ctx context.Context, m *SettingRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SettingRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SettingRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SettingRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SettingRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SettingRevision mutation op: %q", m.Op())
+	}
+}
+
 // StaticProxyClient is a client for the StaticProxy schema.
 type StaticProxyClient struct {
 	config
@@ -7004,24 +7288,24 @@ type (
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, StaticProxy,
-		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,
-		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
-		UserPlatformQuota, UserSubscription []ent.Hook
+		GatewayBodyLog, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
+		PromoCode, PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting,
+		SettingRevision, StaticProxy, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, StaticProxy,
-		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,
-		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
-		UserPlatformQuota, UserSubscription []ent.Interceptor
+		GatewayBodyLog, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
+		PromoCode, PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting,
+		SettingRevision, StaticProxy, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 

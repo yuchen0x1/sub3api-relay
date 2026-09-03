@@ -42,6 +42,9 @@ type CreateAPIKeyRequest struct {
 	RateLimit5h *float64 `json:"rate_limit_5h"`
 	RateLimit1d *float64 `json:"rate_limit_1d"`
 	RateLimit7d *float64 `json:"rate_limit_7d"`
+
+	// QPSLimit 每秒最大请求数（0 = 不限制）
+	QPSLimit *int `json:"qps_limit"`
 }
 
 // UpdateAPIKeyRequest represents the update API key request payload
@@ -60,6 +63,9 @@ type UpdateAPIKeyRequest struct {
 	RateLimit1d         *float64 `json:"rate_limit_1d"`
 	RateLimit7d         *float64 `json:"rate_limit_7d"`
 	ResetRateLimitUsage *bool    `json:"reset_rate_limit_usage"` // 重置限速用量
+
+	// QPSLimit 每秒最大请求数（nil = 不修改，0 = 不限制）
+	QPSLimit *int `json:"qps_limit"`
 }
 
 // List handles listing user's API keys with pagination
@@ -173,6 +179,9 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 	if req.RateLimit7d != nil {
 		svcReq.RateLimit7d = *req.RateLimit7d
 	}
+	if req.QPSLimit != nil {
+		svcReq.QPSLimit = *req.QPSLimit
+	}
 
 	executeUserIdempotentJSON(c, "user.api_keys.create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
 		key, err := h.apiKeyService.Create(ctx, subject.UserID, svcReq)
@@ -213,6 +222,7 @@ func (h *APIKeyHandler) Update(c *gin.Context) {
 		RateLimit1d:         req.RateLimit1d,
 		RateLimit7d:         req.RateLimit7d,
 		ResetRateLimitUsage: req.ResetRateLimitUsage,
+		QPSLimit:            req.QPSLimit,
 	}
 	if req.Name != "" {
 		svcReq.Name = &req.Name

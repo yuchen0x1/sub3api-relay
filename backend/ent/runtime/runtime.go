@@ -21,6 +21,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/channelmonitorrequesttemplate"
 	"github.com/yuchen0x1/sub3api-relay/ent/compositemodelroute"
 	"github.com/yuchen0x1/sub3api-relay/ent/errorpassthroughrule"
+	"github.com/yuchen0x1/sub3api-relay/ent/gatewaybodylog"
 	"github.com/yuchen0x1/sub3api-relay/ent/group"
 	"github.com/yuchen0x1/sub3api-relay/ent/idempotencyrecord"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
@@ -35,6 +36,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/schema"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/settingrevision"
 	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
@@ -134,16 +136,20 @@ func init() {
 	apikeyDescRateLimit7d := apikeyFields[13].Descriptor()
 	// apikey.DefaultRateLimit7d holds the default value on creation for the rate_limit_7d field.
 	apikey.DefaultRateLimit7d = apikeyDescRateLimit7d.Default.(float64)
+	// apikeyDescQPSLimit is the schema descriptor for qps_limit field.
+	apikeyDescQPSLimit := apikeyFields[14].Descriptor()
+	// apikey.DefaultQPSLimit holds the default value on creation for the qps_limit field.
+	apikey.DefaultQPSLimit = apikeyDescQPSLimit.Default.(int)
 	// apikeyDescUsage5h is the schema descriptor for usage_5h field.
-	apikeyDescUsage5h := apikeyFields[14].Descriptor()
+	apikeyDescUsage5h := apikeyFields[15].Descriptor()
 	// apikey.DefaultUsage5h holds the default value on creation for the usage_5h field.
 	apikey.DefaultUsage5h = apikeyDescUsage5h.Default.(float64)
 	// apikeyDescUsage1d is the schema descriptor for usage_1d field.
-	apikeyDescUsage1d := apikeyFields[15].Descriptor()
+	apikeyDescUsage1d := apikeyFields[16].Descriptor()
 	// apikey.DefaultUsage1d holds the default value on creation for the usage_1d field.
 	apikey.DefaultUsage1d = apikeyDescUsage1d.Default.(float64)
 	// apikeyDescUsage7d is the schema descriptor for usage_7d field.
-	apikeyDescUsage7d := apikeyFields[16].Descriptor()
+	apikeyDescUsage7d := apikeyFields[17].Descriptor()
 	// apikey.DefaultUsage7d holds the default value on creation for the usage_7d field.
 	apikey.DefaultUsage7d = apikeyDescUsage7d.Default.(float64)
 	accountMixin := schema.Account{}.Mixin()
@@ -235,26 +241,30 @@ func init() {
 	accountDescPriority := accountFields[10].Descriptor()
 	// account.DefaultPriority holds the default value on creation for the priority field.
 	account.DefaultPriority = accountDescPriority.Default.(int)
+	// accountDescWeight is the schema descriptor for weight field.
+	accountDescWeight := accountFields[11].Descriptor()
+	// account.DefaultWeight holds the default value on creation for the weight field.
+	account.DefaultWeight = accountDescWeight.Default.(int)
 	// accountDescRateMultiplier is the schema descriptor for rate_multiplier field.
-	accountDescRateMultiplier := accountFields[11].Descriptor()
+	accountDescRateMultiplier := accountFields[12].Descriptor()
 	// account.DefaultRateMultiplier holds the default value on creation for the rate_multiplier field.
 	account.DefaultRateMultiplier = accountDescRateMultiplier.Default.(float64)
 	// accountDescStatus is the schema descriptor for status field.
-	accountDescStatus := accountFields[12].Descriptor()
+	accountDescStatus := accountFields[13].Descriptor()
 	// account.DefaultStatus holds the default value on creation for the status field.
 	account.DefaultStatus = accountDescStatus.Default.(string)
 	// account.StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	account.StatusValidator = accountDescStatus.Validators[0].(func(string) error)
 	// accountDescAutoPauseOnExpired is the schema descriptor for auto_pause_on_expired field.
-	accountDescAutoPauseOnExpired := accountFields[16].Descriptor()
+	accountDescAutoPauseOnExpired := accountFields[17].Descriptor()
 	// account.DefaultAutoPauseOnExpired holds the default value on creation for the auto_pause_on_expired field.
 	account.DefaultAutoPauseOnExpired = accountDescAutoPauseOnExpired.Default.(bool)
 	// accountDescSchedulable is the schema descriptor for schedulable field.
-	accountDescSchedulable := accountFields[17].Descriptor()
+	accountDescSchedulable := accountFields[18].Descriptor()
 	// account.DefaultSchedulable holds the default value on creation for the schedulable field.
 	account.DefaultSchedulable = accountDescSchedulable.Default.(bool)
 	// accountDescSessionWindowStatus is the schema descriptor for session_window_status field.
-	accountDescSessionWindowStatus := accountFields[25].Descriptor()
+	accountDescSessionWindowStatus := accountFields[26].Descriptor()
 	// account.SessionWindowStatusValidator is a validator for the "session_window_status" field. It is called by the builders before save.
 	account.SessionWindowStatusValidator = accountDescSessionWindowStatus.Validators[0].(func(string) error)
 	accountgroupFields := schema.AccountGroup{}.Fields()
@@ -995,6 +1005,68 @@ func init() {
 	errorpassthroughruleDescSkipMonitoring := errorpassthroughruleFields[11].Descriptor()
 	// errorpassthroughrule.DefaultSkipMonitoring holds the default value on creation for the skip_monitoring field.
 	errorpassthroughrule.DefaultSkipMonitoring = errorpassthroughruleDescSkipMonitoring.Default.(bool)
+	gatewaybodylogFields := schema.GatewayBodyLog{}.Fields()
+	_ = gatewaybodylogFields
+	// gatewaybodylogDescRequestID is the schema descriptor for request_id field.
+	gatewaybodylogDescRequestID := gatewaybodylogFields[0].Descriptor()
+	// gatewaybodylog.RequestIDValidator is a validator for the "request_id" field. It is called by the builders before save.
+	gatewaybodylog.RequestIDValidator = func() func(string) error {
+		validators := gatewaybodylogDescRequestID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(request_id string) error {
+			for _, fn := range fns {
+				if err := fn(request_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// gatewaybodylogDescMethod is the schema descriptor for method field.
+	gatewaybodylogDescMethod := gatewaybodylogFields[1].Descriptor()
+	// gatewaybodylog.DefaultMethod holds the default value on creation for the method field.
+	gatewaybodylog.DefaultMethod = gatewaybodylogDescMethod.Default.(string)
+	// gatewaybodylog.MethodValidator is a validator for the "method" field. It is called by the builders before save.
+	gatewaybodylog.MethodValidator = gatewaybodylogDescMethod.Validators[0].(func(string) error)
+	// gatewaybodylogDescPath is the schema descriptor for path field.
+	gatewaybodylogDescPath := gatewaybodylogFields[2].Descriptor()
+	// gatewaybodylog.PathValidator is a validator for the "path" field. It is called by the builders before save.
+	gatewaybodylog.PathValidator = func() func(string) error {
+		validators := gatewaybodylogDescPath.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(_path string) error {
+			for _, fn := range fns {
+				if err := fn(_path); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// gatewaybodylogDescAPIKeyID is the schema descriptor for api_key_id field.
+	gatewaybodylogDescAPIKeyID := gatewaybodylogFields[3].Descriptor()
+	// gatewaybodylog.DefaultAPIKeyID holds the default value on creation for the api_key_id field.
+	gatewaybodylog.DefaultAPIKeyID = gatewaybodylogDescAPIKeyID.Default.(int64)
+	// gatewaybodylogDescUserID is the schema descriptor for user_id field.
+	gatewaybodylogDescUserID := gatewaybodylogFields[4].Descriptor()
+	// gatewaybodylog.DefaultUserID holds the default value on creation for the user_id field.
+	gatewaybodylog.DefaultUserID = gatewaybodylogDescUserID.Default.(int64)
+	// gatewaybodylogDescModel is the schema descriptor for model field.
+	gatewaybodylogDescModel := gatewaybodylogFields[5].Descriptor()
+	// gatewaybodylog.DefaultModel holds the default value on creation for the model field.
+	gatewaybodylog.DefaultModel = gatewaybodylogDescModel.Default.(string)
+	// gatewaybodylog.ModelValidator is a validator for the "model" field. It is called by the builders before save.
+	gatewaybodylog.ModelValidator = gatewaybodylogDescModel.Validators[0].(func(string) error)
+	// gatewaybodylogDescCreatedAt is the schema descriptor for created_at field.
+	gatewaybodylogDescCreatedAt := gatewaybodylogFields[7].Descriptor()
+	// gatewaybodylog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	gatewaybodylog.DefaultCreatedAt = gatewaybodylogDescCreatedAt.Default.(func() time.Time)
 	groupMixin := schema.Group{}.Mixin()
 	groupMixinHooks1 := groupMixin[1].Hooks()
 	group.Hooks[0] = groupMixinHooks1[0]
@@ -1799,6 +1871,22 @@ func init() {
 	setting.DefaultUpdatedAt = settingDescUpdatedAt.Default.(func() time.Time)
 	// setting.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	setting.UpdateDefaultUpdatedAt = settingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	settingrevisionFields := schema.SettingRevision{}.Fields()
+	_ = settingrevisionFields
+	// settingrevisionDescChangedBy is the schema descriptor for changed_by field.
+	settingrevisionDescChangedBy := settingrevisionFields[1].Descriptor()
+	// settingrevision.DefaultChangedBy holds the default value on creation for the changed_by field.
+	settingrevision.DefaultChangedBy = settingrevisionDescChangedBy.Default.(int64)
+	// settingrevisionDescNote is the schema descriptor for note field.
+	settingrevisionDescNote := settingrevisionFields[2].Descriptor()
+	// settingrevision.DefaultNote holds the default value on creation for the note field.
+	settingrevision.DefaultNote = settingrevisionDescNote.Default.(string)
+	// settingrevision.NoteValidator is a validator for the "note" field. It is called by the builders before save.
+	settingrevision.NoteValidator = settingrevisionDescNote.Validators[0].(func(string) error)
+	// settingrevisionDescCreatedAt is the schema descriptor for created_at field.
+	settingrevisionDescCreatedAt := settingrevisionFields[3].Descriptor()
+	// settingrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	settingrevision.DefaultCreatedAt = settingrevisionDescCreatedAt.Default.(func() time.Time)
 	staticproxyMixin := schema.StaticProxy{}.Mixin()
 	staticproxyMixinHooks1 := staticproxyMixin[1].Hooks()
 	staticproxy.Hooks[0] = staticproxyMixinHooks1[0]

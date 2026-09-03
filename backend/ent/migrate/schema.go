@@ -27,6 +27,7 @@ var (
 		{Name: "rate_limit_5h", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "rate_limit_1d", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "rate_limit_7d", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "qps_limit", Type: field.TypeInt, Default: 0},
 		{Name: "usage_5h", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "usage_1d", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
 		{Name: "usage_7d", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
@@ -44,13 +45,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "api_keys_groups_api_keys",
-				Columns:    []*schema.Column{APIKeysColumns[22]},
+				Columns:    []*schema.Column{APIKeysColumns[23]},
 				RefColumns: []*schema.Column{GroupsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "api_keys_users_api_keys",
-				Columns:    []*schema.Column{APIKeysColumns[23]},
+				Columns:    []*schema.Column{APIKeysColumns[24]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -59,12 +60,12 @@ var (
 			{
 				Name:    "apikey_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{APIKeysColumns[23]},
+				Columns: []*schema.Column{APIKeysColumns[24]},
 			},
 			{
 				Name:    "apikey_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{APIKeysColumns[22]},
+				Columns: []*schema.Column{APIKeysColumns[23]},
 			},
 			{
 				Name:    "apikey_status",
@@ -109,6 +110,7 @@ var (
 		{Name: "concurrency", Type: field.TypeInt, Default: 3},
 		{Name: "load_factor", Type: field.TypeInt, Nullable: true},
 		{Name: "priority", Type: field.TypeInt, Default: 50},
+		{Name: "weight", Type: field.TypeInt, Default: 1},
 		{Name: "rate_multiplier", Type: field.TypeFloat64, Default: 1, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
 		{Name: "error_message", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
@@ -136,13 +138,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "accounts_proxies_proxy",
-				Columns:    []*schema.Column{AccountsColumns[30]},
+				Columns:    []*schema.Column{AccountsColumns[31]},
 				RefColumns: []*schema.Column{ProxiesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "accounts_accounts_children",
-				Columns:    []*schema.Column{AccountsColumns[31]},
+				Columns:    []*schema.Column{AccountsColumns[32]},
 				RefColumns: []*schema.Column{AccountsColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
@@ -161,12 +163,12 @@ var (
 			{
 				Name:    "account_status",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[15]},
+				Columns: []*schema.Column{AccountsColumns[16]},
 			},
 			{
 				Name:    "account_proxy_id",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[30]},
+				Columns: []*schema.Column{AccountsColumns[31]},
 			},
 			{
 				Name:    "account_priority",
@@ -176,27 +178,27 @@ var (
 			{
 				Name:    "account_last_used_at",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[17]},
+				Columns: []*schema.Column{AccountsColumns[18]},
 			},
 			{
 				Name:    "account_schedulable",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[20]},
+				Columns: []*schema.Column{AccountsColumns[21]},
 			},
 			{
 				Name:    "account_rate_limited_at",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[21]},
+				Columns: []*schema.Column{AccountsColumns[22]},
 			},
 			{
 				Name:    "account_rate_limit_reset_at",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[22]},
+				Columns: []*schema.Column{AccountsColumns[23]},
 			},
 			{
 				Name:    "account_overload_until",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[23]},
+				Columns: []*schema.Column{AccountsColumns[24]},
 			},
 			{
 				Name:    "account_platform_priority",
@@ -206,7 +208,7 @@ var (
 			{
 				Name:    "account_priority_status",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[13], AccountsColumns[15]},
+				Columns: []*schema.Column{AccountsColumns[13], AccountsColumns[16]},
 			},
 			{
 				Name:    "account_deleted_at",
@@ -216,7 +218,7 @@ var (
 			{
 				Name:    "account_parent_account_id",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[31]},
+				Columns: []*schema.Column{AccountsColumns[32]},
 			},
 		},
 	}
@@ -892,6 +894,46 @@ var (
 			},
 		},
 	}
+	// GatewayBodyLogsColumns holds the columns for the "gateway_body_logs" table.
+	GatewayBodyLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "request_id", Type: field.TypeString, Size: 64},
+		{Name: "method", Type: field.TypeString, Size: 10, Default: "POST"},
+		{Name: "path", Type: field.TypeString, Size: 255},
+		{Name: "api_key_id", Type: field.TypeInt64, Nullable: true, Default: 0},
+		{Name: "user_id", Type: field.TypeInt64, Nullable: true, Default: 0},
+		{Name: "model", Type: field.TypeString, Nullable: true, Size: 255, Default: ""},
+		{Name: "body", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// GatewayBodyLogsTable holds the schema information for the "gateway_body_logs" table.
+	GatewayBodyLogsTable = &schema.Table{
+		Name:       "gateway_body_logs",
+		Columns:    GatewayBodyLogsColumns,
+		PrimaryKey: []*schema.Column{GatewayBodyLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "gatewaybodylog_request_id",
+				Unique:  true,
+				Columns: []*schema.Column{GatewayBodyLogsColumns[1]},
+			},
+			{
+				Name:    "gatewaybodylog_api_key_id",
+				Unique:  false,
+				Columns: []*schema.Column{GatewayBodyLogsColumns[4]},
+			},
+			{
+				Name:    "gatewaybodylog_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{GatewayBodyLogsColumns[5]},
+			},
+			{
+				Name:    "gatewaybodylog_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{GatewayBodyLogsColumns[8]},
+			},
+		},
+	}
 	// GroupsColumns holds the columns for the "groups" table.
 	GroupsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1516,6 +1558,20 @@ var (
 		Name:       "settings",
 		Columns:    SettingsColumns,
 		PrimaryKey: []*schema.Column{SettingsColumns[0]},
+	}
+	// SettingRevisionsColumns holds the columns for the "setting_revisions" table.
+	SettingRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "snapshot", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "changed_by", Type: field.TypeInt64, Nullable: true, Default: 0},
+		{Name: "note", Type: field.TypeString, Nullable: true, Size: 255, Default: ""},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// SettingRevisionsTable holds the schema information for the "setting_revisions" table.
+	SettingRevisionsTable = &schema.Table{
+		Name:       "setting_revisions",
+		Columns:    SettingRevisionsColumns,
+		PrimaryKey: []*schema.Column{SettingRevisionsColumns[0]},
 	}
 	// AccountStaticProxyExitsColumns holds the columns for the "account_static_proxy_exits" table.
 	AccountStaticProxyExitsColumns = []*schema.Column{
@@ -2160,6 +2216,7 @@ var (
 		ChannelMonitorRequestTemplatesTable,
 		CompositeModelRoutesTable,
 		ErrorPassthroughRulesTable,
+		GatewayBodyLogsTable,
 		GroupsTable,
 		IdempotencyRecordsTable,
 		IdentityAdoptionDecisionsTable,
@@ -2173,6 +2230,7 @@ var (
 		RedeemCodesTable,
 		SecuritySecretsTable,
 		SettingsTable,
+		SettingRevisionsTable,
 		AccountStaticProxyExitsTable,
 		SubscriptionPlansTable,
 		TLSFingerprintProfilesTable,
@@ -2250,6 +2308,9 @@ func init() {
 	ErrorPassthroughRulesTable.Annotation = &entsql.Annotation{
 		Table: "error_passthrough_rules",
 	}
+	GatewayBodyLogsTable.Annotation = &entsql.Annotation{
+		Table: "gateway_body_logs",
+	}
 	GroupsTable.Annotation = &entsql.Annotation{
 		Table: "groups",
 	}
@@ -2297,6 +2358,9 @@ func init() {
 	}
 	SettingsTable.Annotation = &entsql.Annotation{
 		Table: "settings",
+	}
+	SettingRevisionsTable.Annotation = &entsql.Annotation{
+		Table: "setting_revisions",
 	}
 	AccountStaticProxyExitsTable.ForeignKeys[0].RefTable = AccountsTable
 	AccountStaticProxyExitsTable.ForeignKeys[1].RefTable = ProxiesTable

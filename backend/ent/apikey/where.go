@@ -130,6 +130,11 @@ func RateLimit7d(v float64) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldRateLimit7d, v))
 }
 
+// QPSLimit applies equality check predicate on the "qps_limit" field. It's identical to QPSLimitEQ.
+func QPSLimit(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldQPSLimit, v))
+}
+
 // Usage5h applies equality check predicate on the "usage_5h" field. It's identical to Usage5hEQ.
 func Usage5h(v float64) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldUsage5h, v))
@@ -853,6 +858,46 @@ func RateLimit7dLT(v float64) predicate.APIKey {
 // RateLimit7dLTE applies the LTE predicate on the "rate_limit_7d" field.
 func RateLimit7dLTE(v float64) predicate.APIKey {
 	return predicate.APIKey(sql.FieldLTE(FieldRateLimit7d, v))
+}
+
+// QPSLimitEQ applies the EQ predicate on the "qps_limit" field.
+func QPSLimitEQ(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldQPSLimit, v))
+}
+
+// QPSLimitNEQ applies the NEQ predicate on the "qps_limit" field.
+func QPSLimitNEQ(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldNEQ(FieldQPSLimit, v))
+}
+
+// QPSLimitIn applies the In predicate on the "qps_limit" field.
+func QPSLimitIn(vs ...int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldIn(FieldQPSLimit, vs...))
+}
+
+// QPSLimitNotIn applies the NotIn predicate on the "qps_limit" field.
+func QPSLimitNotIn(vs ...int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldNotIn(FieldQPSLimit, vs...))
+}
+
+// QPSLimitGT applies the GT predicate on the "qps_limit" field.
+func QPSLimitGT(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldGT(FieldQPSLimit, v))
+}
+
+// QPSLimitGTE applies the GTE predicate on the "qps_limit" field.
+func QPSLimitGTE(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldGTE(FieldQPSLimit, v))
+}
+
+// QPSLimitLT applies the LT predicate on the "qps_limit" field.
+func QPSLimitLT(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldLT(FieldQPSLimit, v))
+}
+
+// QPSLimitLTE applies the LTE predicate on the "qps_limit" field.
+func QPSLimitLTE(v int) predicate.APIKey {
+	return predicate.APIKey(sql.FieldLTE(FieldQPSLimit, v))
 }
 
 // Usage5hEQ applies the EQ predicate on the "usage_5h" field.

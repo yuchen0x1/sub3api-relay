@@ -315,6 +315,27 @@ func (_u *APIKeyUpdate) AddRateLimit7d(v float64) *APIKeyUpdate {
 	return _u
 }
 
+// SetQPSLimit sets the "qps_limit" field.
+func (_u *APIKeyUpdate) SetQPSLimit(v int) *APIKeyUpdate {
+	_u.mutation.ResetQPSLimit()
+	_u.mutation.SetQPSLimit(v)
+	return _u
+}
+
+// SetNillableQPSLimit sets the "qps_limit" field if the given value is not nil.
+func (_u *APIKeyUpdate) SetNillableQPSLimit(v *int) *APIKeyUpdate {
+	if v != nil {
+		_u.SetQPSLimit(*v)
+	}
+	return _u
+}
+
+// AddQPSLimit adds value to the "qps_limit" field.
+func (_u *APIKeyUpdate) AddQPSLimit(v int) *APIKeyUpdate {
+	_u.mutation.AddQPSLimit(v)
+	return _u
+}
+
 // SetUsage5h sets the "usage_5h" field.
 func (_u *APIKeyUpdate) SetUsage5h(v float64) *APIKeyUpdate {
 	_u.mutation.ResetUsage5h()
@@ -659,6 +680,12 @@ func (_u *APIKeyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedRateLimit7d(); ok {
 		_spec.AddField(apikey.FieldRateLimit7d, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.QPSLimit(); ok {
+		_spec.SetField(apikey.FieldQPSLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedQPSLimit(); ok {
+		_spec.AddField(apikey.FieldQPSLimit, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Usage5h(); ok {
 		_spec.SetField(apikey.FieldUsage5h, field.TypeFloat64, value)
@@ -1102,6 +1129,27 @@ func (_u *APIKeyUpdateOne) AddRateLimit7d(v float64) *APIKeyUpdateOne {
 	return _u
 }
 
+// SetQPSLimit sets the "qps_limit" field.
+func (_u *APIKeyUpdateOne) SetQPSLimit(v int) *APIKeyUpdateOne {
+	_u.mutation.ResetQPSLimit()
+	_u.mutation.SetQPSLimit(v)
+	return _u
+}
+
+// SetNillableQPSLimit sets the "qps_limit" field if the given value is not nil.
+func (_u *APIKeyUpdateOne) SetNillableQPSLimit(v *int) *APIKeyUpdateOne {
+	if v != nil {
+		_u.SetQPSLimit(*v)
+	}
+	return _u
+}
+
+// AddQPSLimit adds value to the "qps_limit" field.
+func (_u *APIKeyUpdateOne) AddQPSLimit(v int) *APIKeyUpdateOne {
+	_u.mutation.AddQPSLimit(v)
+	return _u
+}
+
 // SetUsage5h sets the "usage_5h" field.
 func (_u *APIKeyUpdateOne) SetUsage5h(v float64) *APIKeyUpdateOne {
 	_u.mutation.ResetUsage5h()
@@ -1476,6 +1524,12 @@ func (_u *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err erro
 	}
 	if value, ok := _u.mutation.AddedRateLimit7d(); ok {
 		_spec.AddField(apikey.FieldRateLimit7d, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.QPSLimit(); ok {
+		_spec.SetField(apikey.FieldQPSLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedQPSLimit(); ok {
+		_spec.AddField(apikey.FieldQPSLimit, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Usage5h(); ok {
 		_spec.SetField(apikey.FieldUsage5h, field.TypeFloat64, value)

@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
@@ -100,6 +101,16 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonIPRestriction)
 				MarkIngressRejected(c, IngressRejectIPRestricted)
 				abortWithGoogleError(c, 403, fmt.Sprintf("Access denied. Your IP is %s", clientIP))
+				return
+			}
+		}
+
+		// 检查 Key 级 QPS 限流（与主中间件一致，防止 Gemini 端点绕过 Key 的 QPS 限制）
+		if apiKey.QPSLimit > 0 {
+			if err := apiKeyService.CheckAndIncrementKeyQPS(c.Request.Context(), apiKey); err != nil {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonQPSLimit)
+				MarkIngressRejected(c, IngressRejectQPSLimited)
+				abortWithGoogleError(c, http.StatusTooManyRequests, "API key QPS limit exceeded; retry later")
 				return
 			}
 		}

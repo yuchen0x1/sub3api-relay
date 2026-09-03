@@ -223,6 +223,20 @@ func (_c *APIKeyCreate) SetNillableRateLimit7d(v *float64) *APIKeyCreate {
 	return _c
 }
 
+// SetQPSLimit sets the "qps_limit" field.
+func (_c *APIKeyCreate) SetQPSLimit(v int) *APIKeyCreate {
+	_c.mutation.SetQPSLimit(v)
+	return _c
+}
+
+// SetNillableQPSLimit sets the "qps_limit" field if the given value is not nil.
+func (_c *APIKeyCreate) SetNillableQPSLimit(v *int) *APIKeyCreate {
+	if v != nil {
+		_c.SetQPSLimit(*v)
+	}
+	return _c
+}
+
 // SetUsage5h sets the "usage_5h" field.
 func (_c *APIKeyCreate) SetUsage5h(v float64) *APIKeyCreate {
 	_c.mutation.SetUsage5h(v)
@@ -407,6 +421,10 @@ func (_c *APIKeyCreate) defaults() error {
 		v := apikey.DefaultRateLimit7d
 		_c.mutation.SetRateLimit7d(v)
 	}
+	if _, ok := _c.mutation.QPSLimit(); !ok {
+		v := apikey.DefaultQPSLimit
+		_c.mutation.SetQPSLimit(v)
+	}
 	if _, ok := _c.mutation.Usage5h(); !ok {
 		v := apikey.DefaultUsage5h
 		_c.mutation.SetUsage5h(v)
@@ -471,6 +489,9 @@ func (_c *APIKeyCreate) check() error {
 	}
 	if _, ok := _c.mutation.RateLimit7d(); !ok {
 		return &ValidationError{Name: "rate_limit_7d", err: errors.New(`ent: missing required field "APIKey.rate_limit_7d"`)}
+	}
+	if _, ok := _c.mutation.QPSLimit(); !ok {
+		return &ValidationError{Name: "qps_limit", err: errors.New(`ent: missing required field "APIKey.qps_limit"`)}
 	}
 	if _, ok := _c.mutation.Usage5h(); !ok {
 		return &ValidationError{Name: "usage_5h", err: errors.New(`ent: missing required field "APIKey.usage_5h"`)}
@@ -570,6 +591,10 @@ func (_c *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.RateLimit7d(); ok {
 		_spec.SetField(apikey.FieldRateLimit7d, field.TypeFloat64, value)
 		_node.RateLimit7d = value
+	}
+	if value, ok := _c.mutation.QPSLimit(); ok {
+		_spec.SetField(apikey.FieldQPSLimit, field.TypeInt, value)
+		_node.QPSLimit = value
 	}
 	if value, ok := _c.mutation.Usage5h(); ok {
 		_spec.SetField(apikey.FieldUsage5h, field.TypeFloat64, value)
@@ -952,6 +977,24 @@ func (u *APIKeyUpsert) UpdateRateLimit7d() *APIKeyUpsert {
 // AddRateLimit7d adds v to the "rate_limit_7d" field.
 func (u *APIKeyUpsert) AddRateLimit7d(v float64) *APIKeyUpsert {
 	u.Add(apikey.FieldRateLimit7d, v)
+	return u
+}
+
+// SetQPSLimit sets the "qps_limit" field.
+func (u *APIKeyUpsert) SetQPSLimit(v int) *APIKeyUpsert {
+	u.Set(apikey.FieldQPSLimit, v)
+	return u
+}
+
+// UpdateQPSLimit sets the "qps_limit" field to the value that was provided on create.
+func (u *APIKeyUpsert) UpdateQPSLimit() *APIKeyUpsert {
+	u.SetExcluded(apikey.FieldQPSLimit)
+	return u
+}
+
+// AddQPSLimit adds v to the "qps_limit" field.
+func (u *APIKeyUpsert) AddQPSLimit(v int) *APIKeyUpsert {
+	u.Add(apikey.FieldQPSLimit, v)
 	return u
 }
 
@@ -1406,6 +1449,27 @@ func (u *APIKeyUpsertOne) AddRateLimit7d(v float64) *APIKeyUpsertOne {
 func (u *APIKeyUpsertOne) UpdateRateLimit7d() *APIKeyUpsertOne {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.UpdateRateLimit7d()
+	})
+}
+
+// SetQPSLimit sets the "qps_limit" field.
+func (u *APIKeyUpsertOne) SetQPSLimit(v int) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetQPSLimit(v)
+	})
+}
+
+// AddQPSLimit adds v to the "qps_limit" field.
+func (u *APIKeyUpsertOne) AddQPSLimit(v int) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.AddQPSLimit(v)
+	})
+}
+
+// UpdateQPSLimit sets the "qps_limit" field to the value that was provided on create.
+func (u *APIKeyUpsertOne) UpdateQPSLimit() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateQPSLimit()
 	})
 }
 
@@ -2044,6 +2108,27 @@ func (u *APIKeyUpsertBulk) AddRateLimit7d(v float64) *APIKeyUpsertBulk {
 func (u *APIKeyUpsertBulk) UpdateRateLimit7d() *APIKeyUpsertBulk {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.UpdateRateLimit7d()
+	})
+}
+
+// SetQPSLimit sets the "qps_limit" field.
+func (u *APIKeyUpsertBulk) SetQPSLimit(v int) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetQPSLimit(v)
+	})
+}
+
+// AddQPSLimit adds v to the "qps_limit" field.
+func (u *APIKeyUpsertBulk) AddQPSLimit(v int) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.AddQPSLimit(v)
+	})
+}
+
+// UpdateQPSLimit sets the "qps_limit" field to the value that was provided on create.
+func (u *APIKeyUpsertBulk) UpdateQPSLimit() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateQPSLimit()
 	})
 }
 

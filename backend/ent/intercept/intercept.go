@@ -24,6 +24,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/channelmonitorrequesttemplate"
 	"github.com/yuchen0x1/sub3api-relay/ent/compositemodelroute"
 	"github.com/yuchen0x1/sub3api-relay/ent/errorpassthroughrule"
+	"github.com/yuchen0x1/sub3api-relay/ent/gatewaybodylog"
 	"github.com/yuchen0x1/sub3api-relay/ent/group"
 	"github.com/yuchen0x1/sub3api-relay/ent/idempotencyrecord"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
@@ -38,6 +39,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/settingrevision"
 	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
@@ -539,6 +541,33 @@ func (f TraverseErrorPassthroughRule) Traverse(ctx context.Context, q ent.Query)
 	return fmt.Errorf("unexpected query type %T. expect *ent.ErrorPassthroughRuleQuery", q)
 }
 
+// The GatewayBodyLogFunc type is an adapter to allow the use of ordinary function as a Querier.
+type GatewayBodyLogFunc func(context.Context, *ent.GatewayBodyLogQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f GatewayBodyLogFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.GatewayBodyLogQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.GatewayBodyLogQuery", q)
+}
+
+// The TraverseGatewayBodyLog type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseGatewayBodyLog func(context.Context, *ent.GatewayBodyLogQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseGatewayBodyLog) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseGatewayBodyLog) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.GatewayBodyLogQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.GatewayBodyLogQuery", q)
+}
+
 // The GroupFunc type is an adapter to allow the use of ordinary function as a Querier.
 type GroupFunc func(context.Context, *ent.GroupQuery) (ent.Value, error)
 
@@ -890,6 +919,33 @@ func (f TraverseSetting) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.SettingQuery", q)
 }
 
+// The SettingRevisionFunc type is an adapter to allow the use of ordinary function as a Querier.
+type SettingRevisionFunc func(context.Context, *ent.SettingRevisionQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f SettingRevisionFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.SettingRevisionQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.SettingRevisionQuery", q)
+}
+
+// The TraverseSettingRevision type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseSettingRevision func(context.Context, *ent.SettingRevisionQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseSettingRevision) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseSettingRevision) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.SettingRevisionQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.SettingRevisionQuery", q)
+}
+
 // The StaticProxyFunc type is an adapter to allow the use of ordinary function as a Querier.
 type StaticProxyFunc func(context.Context, *ent.StaticProxyQuery) (ent.Value, error)
 
@@ -1222,6 +1278,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.CompositeModelRouteQuery, predicate.CompositeModelRoute, compositemodelroute.OrderOption]{typ: ent.TypeCompositeModelRoute, tq: q}, nil
 	case *ent.ErrorPassthroughRuleQuery:
 		return &query[*ent.ErrorPassthroughRuleQuery, predicate.ErrorPassthroughRule, errorpassthroughrule.OrderOption]{typ: ent.TypeErrorPassthroughRule, tq: q}, nil
+	case *ent.GatewayBodyLogQuery:
+		return &query[*ent.GatewayBodyLogQuery, predicate.GatewayBodyLog, gatewaybodylog.OrderOption]{typ: ent.TypeGatewayBodyLog, tq: q}, nil
 	case *ent.GroupQuery:
 		return &query[*ent.GroupQuery, predicate.Group, group.OrderOption]{typ: ent.TypeGroup, tq: q}, nil
 	case *ent.IdempotencyRecordQuery:
@@ -1248,6 +1306,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.SecuritySecretQuery, predicate.SecuritySecret, securitysecret.OrderOption]{typ: ent.TypeSecuritySecret, tq: q}, nil
 	case *ent.SettingQuery:
 		return &query[*ent.SettingQuery, predicate.Setting, setting.OrderOption]{typ: ent.TypeSetting, tq: q}, nil
+	case *ent.SettingRevisionQuery:
+		return &query[*ent.SettingRevisionQuery, predicate.SettingRevision, settingrevision.OrderOption]{typ: ent.TypeSettingRevision, tq: q}, nil
 	case *ent.StaticProxyQuery:
 		return &query[*ent.StaticProxyQuery, predicate.StaticProxy, staticproxy.OrderOption]{typ: ent.TypeStaticProxy, tq: q}, nil
 	case *ent.SubscriptionPlanQuery:

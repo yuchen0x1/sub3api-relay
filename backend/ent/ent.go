@@ -28,6 +28,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/channelmonitorrequesttemplate"
 	"github.com/yuchen0x1/sub3api-relay/ent/compositemodelroute"
 	"github.com/yuchen0x1/sub3api-relay/ent/errorpassthroughrule"
+	"github.com/yuchen0x1/sub3api-relay/ent/gatewaybodylog"
 	"github.com/yuchen0x1/sub3api-relay/ent/group"
 	"github.com/yuchen0x1/sub3api-relay/ent/idempotencyrecord"
 	"github.com/yuchen0x1/sub3api-relay/ent/identityadoptiondecision"
@@ -41,6 +42,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/ent/redeemcode"
 	"github.com/yuchen0x1/sub3api-relay/ent/securitysecret"
 	"github.com/yuchen0x1/sub3api-relay/ent/setting"
+	"github.com/yuchen0x1/sub3api-relay/ent/settingrevision"
 	"github.com/yuchen0x1/sub3api-relay/ent/staticproxy"
 	"github.com/yuchen0x1/sub3api-relay/ent/subscriptionplan"
 	"github.com/yuchen0x1/sub3api-relay/ent/tlsfingerprintprofile"
@@ -128,6 +130,7 @@ func checkColumn(t, c string) error {
 			channelmonitorrequesttemplate.Table: channelmonitorrequesttemplate.ValidColumn,
 			compositemodelroute.Table:           compositemodelroute.ValidColumn,
 			errorpassthroughrule.Table:          errorpassthroughrule.ValidColumn,
+			gatewaybodylog.Table:                gatewaybodylog.ValidColumn,
 			group.Table:                         group.ValidColumn,
 			idempotencyrecord.Table:             idempotencyrecord.ValidColumn,
 			identityadoptiondecision.Table:      identityadoptiondecision.ValidColumn,
@@ -141,6 +144,7 @@ func checkColumn(t, c string) error {
 			redeemcode.Table:                    redeemcode.ValidColumn,
 			securitysecret.Table:                securitysecret.ValidColumn,
 			setting.Table:                       setting.ValidColumn,
+			settingrevision.Table:               settingrevision.ValidColumn,
 			staticproxy.Table:                   staticproxy.ValidColumn,
 			subscriptionplan.Table:              subscriptionplan.ValidColumn,
 			tlsfingerprintprofile.Table:         tlsfingerprintprofile.ValidColumn,

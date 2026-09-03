@@ -54,6 +54,9 @@ type CompositeModelRoute func(*sql.Selector)
 // ErrorPassthroughRule is the predicate function for errorpassthroughrule builders.
 type ErrorPassthroughRule func(*sql.Selector)
 
+// GatewayBodyLog is the predicate function for gatewaybodylog builders.
+type GatewayBodyLog func(*sql.Selector)
+
 // Group is the predicate function for group builders.
 type Group func(*sql.Selector)
 
@@ -92,6 +95,9 @@ type SecuritySecret func(*sql.Selector)
 
 // Setting is the predicate function for setting builders.
 type Setting func(*sql.Selector)
+
+// SettingRevision is the predicate function for settingrevision builders.
+type SettingRevision func(*sql.Selector)
 
 // StaticProxy is the predicate function for staticproxy builders.
 type StaticProxy func(*sql.Selector)

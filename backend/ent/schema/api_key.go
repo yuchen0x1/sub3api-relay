@@ -89,6 +89,11 @@ func (APIKey) Fields() []ent.Field {
 			SchemaType(map[string]string{dialect.Postgres: "decimal(20,8)"}).
 			Default(0).
 			Comment("Rate limit in USD per 7 days (0 = unlimited)"),
+		// qps_limit: 该 Key 每秒允许的请求数（0 = 不限制）。
+		// 认证中间件按 Redis 秒级固定窗口计数强制执行。
+		field.Int("qps_limit").
+			Default(0).
+			Comment("Max requests per second for this API key (0 = unlimited)"),
 		// Rate limit usage tracking
 		field.Float("usage_5h").
 			SchemaType(map[string]string{dialect.Postgres: "decimal(20,8)"}).

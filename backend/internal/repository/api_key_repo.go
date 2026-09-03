@@ -53,7 +53,8 @@ func (r *apiKeyRepository) Create(ctx context.Context, key *service.APIKey) erro
 		SetNillableExpiresAt(key.ExpiresAt).
 		SetRateLimit5h(key.RateLimit5h).
 		SetRateLimit1d(key.RateLimit1d).
-		SetRateLimit7d(key.RateLimit7d)
+		SetRateLimit7d(key.RateLimit7d).
+		SetQPSLimit(key.QPSLimit)
 
 	if len(key.IPWhitelist) > 0 {
 		builder.SetIPWhitelist(key.IPWhitelist)
@@ -142,6 +143,7 @@ func (r *apiKeyRepository) GetByKeyForAuth(ctx context.Context, key string) (*se
 			apikey.FieldRateLimit5h,
 			apikey.FieldRateLimit1d,
 			apikey.FieldRateLimit7d,
+			apikey.FieldQPSLimit,
 		).
 		WithUser(func(q *dbent.UserQuery) {
 			q.Select(
@@ -261,6 +263,9 @@ func (r *apiKeyRepository) Update(ctx context.Context, key *service.APIKey, fiel
 			SetRateLimit5h(key.RateLimit5h).
 			SetRateLimit1d(key.RateLimit1d).
 			SetRateLimit7d(key.RateLimit7d)
+	}
+	if fields.QPSLimit {
+		builder.SetQPSLimit(key.QPSLimit)
 	}
 	if fields.RateLimitUsage {
 		builder.
@@ -876,6 +881,7 @@ func apiKeyEntityToService(m *dbent.APIKey) *service.APIKey {
 		RateLimit5h:   m.RateLimit5h,
 		RateLimit1d:   m.RateLimit1d,
 		RateLimit7d:   m.RateLimit7d,
+		QPSLimit:      m.QPSLimit,
 		Usage5h:       m.Usage5h,
 		Usage1d:       m.Usage1d,
 		Usage7d:       m.Usage7d,

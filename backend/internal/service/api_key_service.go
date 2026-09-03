@@ -69,6 +69,8 @@ type APIKeyUpdateFields struct {
 	QuotaUsed bool
 	// RateLimits 覆盖 rate_limit_5h / _1d / _7d 三个阈值。
 	RateLimits bool
+	// QPSLimit 覆盖 qps_limit（每秒请求数上限，0 = 不限制）。
+	QPSLimit bool
 	// RateLimitUsage 覆盖 usage_5h/_1d/_7d 与三个窗口起点，
 	// 仅供"重置限流用量"路径声明；常规计费走 IncrementRateLimitUsage。
 	RateLimitUsage bool
@@ -222,6 +224,9 @@ type CreateAPIKeyRequest struct {
 	RateLimit5h float64 `json:"rate_limit_5h"`
 	RateLimit1d float64 `json:"rate_limit_1d"`
 	RateLimit7d float64 `json:"rate_limit_7d"`
+
+	// QPSLimit 每秒最大请求数（0 = 不限制，负值按 0 处理）
+	QPSLimit int `json:"qps_limit"`
 }
 
 // UpdateAPIKeyRequest 更新API Key请求
@@ -243,6 +248,9 @@ type UpdateAPIKeyRequest struct {
 	RateLimit1d         *float64 `json:"rate_limit_1d"`
 	RateLimit7d         *float64 `json:"rate_limit_7d"`
 	ResetRateLimitUsage *bool    `json:"reset_rate_limit_usage"` // Reset all usage counters to 0
+
+	// QPSLimit 每秒最大请求数（nil = 不修改，0 = 不限制，负值按 0 处理）
+	QPSLimit *int `json:"qps_limit"`
 }
 
 // APIKeyService API Key服务
@@ -259,6 +267,7 @@ type APIKeyService struct {
 	userGroupRateRepo         UserGroupRateRepository
 	cache                     APIKeyCache
 	rateLimitCacheInvalid     RateLimitCacheInvalidator // optional: invalidate Redis rate limit cache
+	qpsCounter                APIKeyQPSCache            // optional: key 级 QPS 秒级计数器
 	concurrencyService        *ConcurrencyService
 	cfg                       *config.Config
 	authCacheL1               *ristretto.Cache
@@ -510,6 +519,7 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		RateLimit5h: req.RateLimit5h,
 		RateLimit1d: req.RateLimit1d,
 		RateLimit7d: req.RateLimit7d,
+		QPSLimit:    normalizeAPIKeyQPSLimit(req.QPSLimit),
 	}
 
 	// Set expiration time if specified
@@ -861,6 +871,10 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	if req.RateLimit7d != nil {
 		apiKey.RateLimit7d = *req.RateLimit7d
 		fields.RateLimits = true
+	}
+	if req.QPSLimit != nil {
+		apiKey.QPSLimit = normalizeAPIKeyQPSLimit(*req.QPSLimit)
+		fields.QPSLimit = true
 	}
 	resetRateLimit := req.ResetRateLimitUsage != nil && *req.ResetRateLimitUsage
 	if resetRateLimit {
