@@ -90,10 +90,9 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 		return nil, nil, errors.New("invalid subscription request")
 	}
 	httpReq.Header.Set("Accept", "text/plain, application/octet-stream;q=0.9, */*;q=0.1")
-	httpReq.Header.Set("User-Agent", "sub3api-proxy-subscription/1.0")
-	resp, err := client.Do(httpReq)
+	resp, err := fetchSubscriptionWithClientUA(client, httpReq)
 	if err != nil {
-		return nil, nil, errors.New("failed to fetch subscription")
+		return nil, nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
@@ -107,6 +106,40 @@ func fetchAndParseProxySubscription(ctx context.Context, rawURL string) ([]parse
 		return nil, nil, errors.New("subscription is too large")
 	}
 	return parseProxySubscriptionBody(body)
+}
+
+// 订阅商面板普遍按 User-Agent 分发内容：未知 UA 常被直接 404/403（实测
+// xship 面板对自定义 UA 返回 404），clash 系 UA 返回 Clash YAML，v2ray 系
+// UA 返回 base64 节点列表。两种格式解析器都已支持，因此先用 clash UA 请求，
+// 被 403/404 拒绝时再用 v2rayN UA 重试一次。
+const (
+	proxySubscriptionPrimaryUA  = "clash-verge/1.6.6"
+	proxySubscriptionFallbackUA = "v2rayN/6.45"
+)
+
+// fetchSubscriptionWithClientUA 以真实客户端 UA 拉取订阅，403/404 时换备用 UA 重试。
+// 错误响应体被消费干净，避免连接无法复用。
+func fetchSubscriptionWithClientUA(client *http.Client, httpReq *http.Request) (*http.Response, error) {
+	userAgents := []string{proxySubscriptionPrimaryUA, proxySubscriptionFallbackUA}
+	var lastStatus int
+	for _, ua := range userAgents {
+		req := httpReq.Clone(httpReq.Context())
+		req.Header.Set("User-Agent", ua)
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, errors.New("failed to fetch subscription")
+		}
+		if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+			return resp, nil
+		}
+		lastStatus = resp.StatusCode
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
+		_ = resp.Body.Close()
+		if lastStatus != http.StatusForbidden && lastStatus != http.StatusNotFound {
+			return nil, fmt.Errorf("subscription returned HTTP %d", lastStatus)
+		}
+	}
+	return nil, fmt.Errorf("subscription returned HTTP %d", lastStatus)
 }
 
 // validateSubscriptionURL 校验订阅地址：格式合法、必须为 https、host 不得为
@@ -203,13 +236,36 @@ func parseProxySubscriptionBody(body []byte) ([]parsedProxySubscription, map[str
 	if text == "" {
 		return nil, nil, errors.New("subscription is empty")
 	}
-	if !containsSupportedProxyURI(text) {
-		decoded, err := decodeProxySubscriptionBase64(text)
-		if err != nil {
-			return nil, nil, errors.New("subscription is not a supported proxy list")
-		}
-		text = decoded
+	if containsSupportedProxyURI(text) {
+		return parseProxySubscriptionLines(text)
 	}
+	if nodes, skipped, ok := parseClashProxyYAML(text); ok {
+		return finishClashProxyYAML(nodes, skipped)
+	}
+	if decoded, err := decodeProxySubscriptionBase64(text); err == nil {
+		// base64 载荷可能是 URI 列表，也可能是整个 Clash YAML 配置。
+		if nodes, skipped, ok := parseClashProxyYAML(decoded); ok {
+			return finishClashProxyYAML(nodes, skipped)
+		}
+		return parseProxySubscriptionLines(decoded)
+	}
+	return nil, nil, errors.New("subscription is not a supported proxy list")
+}
+
+// finishClashProxyYAML 汇总 Clash 路径的结果：无可用节点时给出带跳过原因的错误。
+func finishClashProxyYAML(nodes []parsedProxySubscription, skipped map[string]int) ([]parsedProxySubscription, map[string]int, error) {
+	if len(nodes) == 0 {
+		detail := summarizeSkippedNodes(skipped)
+		if detail != "" {
+			return nil, skipped, fmt.Errorf("subscription contains no supported proxy nodes; skipped: %s", detail)
+		}
+		return nil, skipped, errors.New("subscription contains no supported proxy nodes")
+	}
+	return nodes, skipped, nil
+}
+
+// parseProxySubscriptionLines 逐行解析分享链接列表（URI 路径）。
+func parseProxySubscriptionLines(text string) ([]parsedProxySubscription, map[string]int, error) {
 	lines := strings.Fields(text)
 	nodes := make([]parsedProxySubscription, 0, len(lines))
 	seen := make(map[string]struct{}, len(lines))

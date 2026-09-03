@@ -165,7 +165,7 @@ export default {
       batchInput: '代理列表',
       batchInputPlaceholder:
         "每行输入一个代理，支持以下格式：\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
-	batchInputHint: "支持 http、https、socks5、VLESS (WS/TLS)、Shadowsocks、Trojan 和 VMess；订阅地址会自动解析节点。",
+	batchInputHint: "支持 http、https、socks5、VLESS (WS/TLS)、Shadowsocks、Trojan、VMess 和 Clash 订阅；订阅地址会自动解析节点（不支持的节点类型会逐个标注原因跳过）。",
       parsedCount: '有效 {count} 个',
       invalidCount: '无效 {count} 个',
       duplicateCount: '重复 {count} 个',

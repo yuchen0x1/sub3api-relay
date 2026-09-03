@@ -166,7 +166,7 @@ export default {
       batchInputPlaceholder:
         "Enter one proxy per line in the following formats:\nsocks5://user:pass{'@'}192.168.1.1:1080\nhttp://192.168.1.1:8080\nhttps://user:pass{'@'}proxy.example.com:443",
       batchInputHint:
-        'Supports HTTP, HTTPS, SOCKS5, VLESS (WS/TLS), Shadowsocks, Trojan, and VMess; subscription URLs are parsed automatically.',
+        'Supports HTTP, HTTPS, SOCKS5, VLESS (WS/TLS), Shadowsocks, Trojan, VMess, and Clash subscriptions; subscription URLs are parsed automatically (unsupported node types are skipped with a reason).',
       parsedCount: '{count} valid',
       invalidCount: '{count} invalid',
       duplicateCount: '{count} duplicate',
