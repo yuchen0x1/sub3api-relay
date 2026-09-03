@@ -143,6 +143,9 @@ docs/*
 !docs/LOADTEST.md
 !docs/legal/
 !docs/legal/*.md
+!docs/RELEASING.md
+!docs/release-notes/
+!docs/release-notes/*.md
 .serena/
 .codex/
 aicodex
