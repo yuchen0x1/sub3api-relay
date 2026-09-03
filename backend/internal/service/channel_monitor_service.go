@@ -562,9 +562,10 @@ func (s *ChannelMonitorService) maybeAutoDisable(ctx context.Context, m *Channel
 		s.scheduler.Unschedule(m.ID)
 	}
 	if cfg.AffectsAccounts && s.accountPauser != nil && m.Provider != "" {
-		// 同 Provider 的可调度账号本应服务于同一上游端点；监控连续失败说明
-		// 该上游持续不可用，一并临时取消它们的调度资格，避免流量继续打到
-		// 已知故障端点。15 分钟后 temp_unschedulable_until 过期自动恢复。
+		// 监控探测的是官方端点；连续失败说明该平台官方上游持续不可用，对仍指向
+		// 官方端点（credentials.base_url 为空）的可调度账号一并临时取消调度资格，
+		// 避免流量继续打到已知故障端点。自定义 base_url 的账号连接的是独立上游
+		// （中转等），不受影响。15 分钟后 temp_unschedulable_until 过期自动恢复。
 		until := time.Now().Add(channelMonitorAccountPauseDuration)
 		reason := fmt.Sprintf("channel_monitor:%d", m.ID)
 		paused, err := s.accountPauser.SuspendAccountsByPlatform(ctx, m.Provider, until, reason)

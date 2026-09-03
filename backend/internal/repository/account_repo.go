@@ -2366,6 +2366,9 @@ func (r *accountRepository) ClearTempUnschedulable(ctx context.Context, id int64
 // SuspendAccountsByPlatform 对指定平台的 active 可调度账号批量写入临时调度暂停。
 // 只影响存在新暂停窗口的账号（已有更长/更新的暂停窗口不会被缩短）
 // 返回受影响数量，用于监控联动日志。
+//
+// 自定义 base_url 的账号（credentials.base_url 非空）连接的是独立上游（中转等），
+// 与监控探测的官方端点无关，不参与平台级联动暂停，避免被官方端点故障误伤。
 func (r *accountRepository) SuspendAccountsByPlatform(ctx context.Context, platform string, until time.Time, reason string) (int64, error) {
 	rows, err := r.sql.QueryContext(ctx, `
 		UPDATE accounts
@@ -2381,6 +2384,7 @@ func (r *accountRepository) SuspendAccountsByPlatform(ctx context.Context, platf
 		WHERE platform = $3
 			AND status = $4
 			AND deleted_at IS NULL
+			AND COALESCE(credentials ->> 'base_url', '') = ''
 		RETURNING id
 	`, until, reason, platform, service.StatusActive)
 	if err != nil {

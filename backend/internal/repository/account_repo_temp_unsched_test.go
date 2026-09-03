@@ -409,6 +409,8 @@ func TestAccountRepository_SuspendAccountsByPlatform_EnqueuesPerAccountOutboxEve
 	normalized := normalizeSQLWhitespace(exec.queries[0])
 	require.Contains(t, normalized, "temp_unschedulable_reason = CASE",
 		"an existing longer pause window must keep its original reason")
+	require.Contains(t, normalized, "COALESCE(credentials ->> 'base_url', '') = ''",
+		"platform-wide pause must spare custom base_url accounts (independent upstream)")
 	require.Contains(t, normalized, "RETURNING id")
 	for i, wantID := range []int64{11, 12, 13} {
 		require.Equal(t, service.SchedulerOutboxEventAccountChanged, exec.execArgs[i][0])
