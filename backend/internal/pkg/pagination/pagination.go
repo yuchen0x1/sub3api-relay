@@ -38,7 +38,12 @@ func (p PaginationParams) Offset() int {
 	if p.Page < 1 {
 		p.Page = 1
 	}
-	return (p.Page - 1) * p.Limit()
+	offset := (p.Page - 1) * p.Limit()
+	// page 异常巨大时乘法可能溢出回绕为负数，传入 SQL 会直接报错
+	if offset < 0 {
+		return 0
+	}
+	return offset
 }
 
 // Limit 获取限制数

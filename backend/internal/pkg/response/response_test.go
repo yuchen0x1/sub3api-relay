@@ -691,6 +691,24 @@ func TestParsePagination(t *testing.T) {
 			wantPage:     1,
 			wantPageSize: 20,
 		},
+		{
+			name:         "page溢出回绕_使用默认值",
+			query:        "page=99999999999999999999",
+			wantPage:     1,
+			wantPageSize: 20,
+		},
+		{
+			name:         "page超过上界_使用默认值",
+			query:        "page=100001",
+			wantPage:     1,
+			wantPageSize: 20,
+		},
+		{
+			name:         "page恰好上界_有效",
+			query:        "page=100000",
+			wantPage:     100000,
+			wantPageSize: 20,
+		},
 	}
 
 	for _, tt := range tests {
@@ -737,39 +755,51 @@ func Test_parseInt(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "包含字母_返回0",
+			name:    "包含字母_非法",
 			input:   "abc",
 			wantVal: 0,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name:    "数字开头接字母_返回0",
+			name:    "数字开头接字母_非法",
 			input:   "12a",
 			wantVal: 0,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name:    "包含负号_返回0",
+			name:    "包含负号_非法",
 			input:   "-1",
 			wantVal: 0,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name:    "包含小数点_返回0",
+			name:    "包含小数点_非法",
 			input:   "1.5",
 			wantVal: 0,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name:    "包含空格_返回0",
+			name:    "包含空格_非法",
 			input:   "1 2",
 			wantVal: 0,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "空字符串",
 			input:   "",
 			wantVal: 0,
+			wantErr: true,
+		},
+		{
+			name:    "超出int范围_溢出必须拒绝",
+			input:   "99999999999999999999",
+			wantVal: 0,
+			wantErr: true,
+		},
+		{
+			name:    "int64最大值附近_仍可解析",
+			input:   "9223372036854775807",
+			wantVal: 9223372036854775807,
 			wantErr: false,
 		},
 	}

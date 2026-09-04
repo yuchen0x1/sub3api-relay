@@ -500,6 +500,10 @@ func (h *DashboardHandler) GetAPIKeyUsageTrend(c *gin.Context) {
 	if err != nil || limit <= 0 {
 		limit = 5
 	}
+	// limit 直通 SQL LIMIT 且参与缓存 key，无上界会让单请求拖垮聚合查询
+	if limit > 100 {
+		limit = 100
+	}
 
 	trend, hit, err := h.getAPIKeyUsageTrendCached(c.Request.Context(), startTime, endTime, granularity, limit)
 	if err != nil {
@@ -526,6 +530,9 @@ func (h *DashboardHandler) GetUserUsageTrend(c *gin.Context) {
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 12
+	}
+	if limit > 100 {
+		limit = 100
 	}
 
 	trend, hit, err := h.getUserUsageTrendCached(c.Request.Context(), startTime, endTime, granularity, limit)

@@ -2,9 +2,11 @@
 package response
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
@@ -171,8 +173,11 @@ func ParsePagination(c *gin.Context) (page, pageSize int) {
 	page = 1
 	pageSize = 20
 
+	// page 上界防止 offset = (page-1)*pageSize 溢出为负数（Postgres 会直接报错），
+	// 同时避免超大 offset 全表扫描式查询。
+	const maxPage = 100000
 	if p := c.Query("page"); p != "" {
-		if val, err := parseInt(p); err == nil && val > 0 {
+		if val, err := parseInt(p); err == nil && val >= 1 && val <= maxPage {
 			page = val
 		}
 	}
@@ -191,13 +196,11 @@ func ParsePagination(c *gin.Context) (page, pageSize int) {
 	return page, pageSize
 }
 
+// parseInt 解析非负十进制整数；非数字或超出 int 范围（溢出回绕）都视为非法。
 func parseInt(s string) (int, error) {
-	var result int
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return 0, nil
-		}
-		result = result*10 + int(c-'0')
+	val, err := strconv.Atoi(s)
+	if err != nil || val < 0 {
+		return 0, fmt.Errorf("invalid non-negative integer: %q", s)
 	}
-	return result, nil
+	return val, nil
 }
