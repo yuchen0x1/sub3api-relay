@@ -262,6 +262,11 @@ type ConcurrencyService struct {
 	accountLoadCacheMu  sync.RWMutex
 	accountLoadCache    map[string]cachedAccountLoadBatch
 	accountLoadGroup    singleflight.Group
+
+	slotCleanupStop   chan struct{}
+	slotCleanupDone   chan struct{}
+	slotCleanupStopMu sync.Mutex
+	slotCleanupOnce   sync.Once
 }
 
 type cachedAccountLoadBatch struct {
@@ -763,15 +768,53 @@ func (s *ConcurrencyService) StartSlotCleanupWorker(_ AccountRepository, interva
 		}
 	}
 
+	s.slotCleanupStopMu.Lock()
+	defer s.slotCleanupStopMu.Unlock()
+	if s.slotCleanupStop != nil {
+		// worker 已在运行，忽略重复启动。
+		return
+	}
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	s.slotCleanupStop = stop
+	s.slotCleanupDone = done
+	s.slotCleanupOnce = sync.Once{}
+
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
+		defer close(done)
 
 		runCleanup()
-		for range ticker.C {
-			runCleanup()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				runCleanup()
+			}
 		}
 	}()
+}
+
+// StopSlotCleanupWorker 停止后台槽位清理 worker（幂等，等待 goroutine 退出；
+// 之后允许再次 Start 重建 worker）。
+func (s *ConcurrencyService) StopSlotCleanupWorker() {
+	if s == nil {
+		return
+	}
+	s.slotCleanupStopMu.Lock()
+	stop := s.slotCleanupStop
+	done := s.slotCleanupDone
+	s.slotCleanupStop = nil
+	s.slotCleanupDone = nil
+	s.slotCleanupOnce = sync.Once{}
+	s.slotCleanupStopMu.Unlock()
+	if stop == nil {
+		return
+	}
+	s.slotCleanupOnce.Do(func() { close(stop) })
+	<-done
 }
 
 // GetAccountConcurrencyBatch gets current concurrency counts for multiple accounts.

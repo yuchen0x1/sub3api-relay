@@ -1068,7 +1068,16 @@ retryAcquire:
 		ap.mu.Unlock()
 		closeOpenAIWSConns(evicted)
 
-		conn, dialErr := p.dialConn(ctx, req)
+		// dialConn 会执行账号自定义 HeadersFactory 与代理解析，任何 panic 都不能
+		// 跳过 creating-- ：计数器卡死会让该账号永久损失一个并发拨号额度。
+		conn, dialErr := func() (c *openAIWSConn, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("dial conn panicked: %v", r)
+				}
+			}()
+			return p.dialConn(ctx, req)
+		}()
 
 		ap = p.getOrCreateAccountPool(accountID)
 		ap.mu.Lock()

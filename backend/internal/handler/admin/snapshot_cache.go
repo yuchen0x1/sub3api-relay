@@ -17,6 +17,11 @@ type snapshotCacheEntry struct {
 	ExpiresAt time.Time
 }
 
+// snapshotCacheMaxEntries 限制单个缓存实例的条目数。
+// key 由查询参数拼出（模型、粒度、时间范围等），恶意或好奇的请求能造出无限多的
+// unique key，没有上限时 map 只增不减，形成内存泄漏。
+const snapshotCacheMaxEntries = 1024
+
 type snapshotCache struct {
 	mu    sync.RWMutex
 	ttl   time.Duration
@@ -73,9 +78,38 @@ func (c *snapshotCache) Set(key string, payload any) snapshotCacheEntry {
 		return entry
 	}
 	c.mu.Lock()
+	c.evictLocked()
 	c.items[key] = entry
 	c.mu.Unlock()
 	return entry
+}
+
+// evictLocked 在条目数达到上限时先清理过期项，仍超限则淘汰最早过期的条目。
+// 调用方必须持有 c.mu 写锁。
+func (c *snapshotCache) evictLocked() {
+	if len(c.items) < snapshotCacheMaxEntries {
+		return
+	}
+	now := time.Now()
+	for key, item := range c.items {
+		if now.After(item.ExpiresAt) {
+			delete(c.items, key)
+		}
+	}
+	if len(c.items) < snapshotCacheMaxEntries {
+		return
+	}
+	oldestKey := ""
+	var oldest time.Time
+	for key, item := range c.items {
+		if oldestKey == "" || item.ExpiresAt.Before(oldest) {
+			oldestKey = key
+			oldest = item.ExpiresAt
+		}
+	}
+	if oldestKey != "" {
+		delete(c.items, oldestKey)
+	}
 }
 
 func (c *snapshotCache) GetOrLoad(key string, load func() (any, error)) (snapshotCacheEntry, bool, error) {

@@ -201,7 +201,10 @@ func flushOpsErrorLogBatch(batch []opsErrorLogJob) {
 			continue
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), opsErrorLogTimeout)
-		_ = opsSvc.RecordErrorBatch(ctx, entries)
+		if err := opsSvc.RecordErrorBatch(ctx, entries); err != nil {
+			// 落库失败静默丢弃会让错误率/告警看板出现无痕缺口，至少要留下失败痕迹。
+			log.Printf("[OpsErrorLogger] batch flush failed, dropped %d entries: %v", len(entries), err)
+		}
 		cancel()
 	}
 	opsErrorLogProcessed.Add(processed)

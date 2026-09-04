@@ -635,6 +635,12 @@ func (s *TokenRefreshService) processCandidatePage(
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				// gin 的 recovery 不覆盖自建 goroutine；后台刷新 panic 会带走整个网关进程。
+				if r := recover(); r != nil {
+					slog.Error("token_refresh.provider_worker_panic", "platform", platform, "panic", r)
+				}
+			}()
 			refreshed, skipped, failed := s.processProviderAccounts(ctx, state, group, refreshWindow)
 			results <- providerResult{refreshed: refreshed, skipped: skipped, failed: failed}
 		}()
@@ -673,6 +679,11 @@ func (s *TokenRefreshService) processProviderAccounts(
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("token_refresh.account_worker_panic", "platform", state.registration.platform, "panic", r)
+				}
+			}()
 			for account := range jobs {
 				if ctx.Err() != nil || state.isTripped() {
 					results <- refreshResult{accountID: account.ID, err: errRefreshSkipped}

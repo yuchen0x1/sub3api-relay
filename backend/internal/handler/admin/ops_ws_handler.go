@@ -174,6 +174,12 @@ func (c *opsWSQPSCache) start(opsService *service.OpsService) {
 
 		go func() {
 			defer close(done)
+			defer func() {
+				// 常驻刷新循环 panic 会终止整个进程，这里兜底记录并让 done 关闭以便后续可重启。
+				if r := recover(); r != nil {
+					logger.LegacyPrintf("handler.admin.ops_ws", "qps refresh loop panic: %v", r)
+				}
+			}()
 			c.refreshLoop(ctx)
 		}()
 		return
