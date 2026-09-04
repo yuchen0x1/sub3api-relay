@@ -990,7 +990,10 @@ func (s *SettingService) GetGatewayBodyLogRetentionDays(ctx context.Context) int
 		defer cancel()
 		value, err := s.settingRepo.GetValue(dbCtx, SettingKeyGatewayBodyLogRetentionDays)
 		if err != nil {
-			slog.Warn("failed to get gateway body log retention setting", "error", err)
+			// 键未配置（升级后的既有库）属正常状态，静默走默认值，不刷告警日志。
+			if !errors.Is(err, ErrSettingNotFound) {
+				slog.Warn("failed to get gateway body log retention setting", "error", err)
+			}
 			bodyLogRetentionDaysCache.Store(&cachedBodyLogRetentionDays{
 				value:     GatewayBodyLogRetentionDaysDefault,
 				expiresAt: time.Now().Add(bodyLogRetentionDaysErrorTTL).UnixNano(),
