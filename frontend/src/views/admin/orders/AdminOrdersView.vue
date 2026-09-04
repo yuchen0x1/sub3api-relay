@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { adminPaymentAPI } from '@/api/admin/payment'
@@ -169,7 +169,10 @@ function debounceLoadOrders() {
   debounceTimer = setTimeout(() => loadOrders(), 300)
 }
 
+// 请求序号守卫：避免慢的旧响应覆盖新的筛选/分页结果
+let loadOrdersSequence = 0
 async function loadOrders() {
+  const sequence = ++loadOrdersSequence
   ordersLoading.value = true
   try {
     const res = await adminPaymentAPI.getOrders({
@@ -177,11 +180,13 @@ async function loadOrders() {
       keyword: orderSearch.value || undefined, status: orderFilters.status || undefined,
       payment_type: orderFilters.payment_type || undefined, order_type: orderFilters.order_type || undefined,
     })
+    if (sequence !== loadOrdersSequence) return
     orders.value = res.data.items || []
     orderPagination.total = res.data.total || 0
   } catch (err: unknown) {
+    if (sequence !== loadOrdersSequence) return
     appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error')))
-  } finally { ordersLoading.value = false }
+  } finally { if (sequence === loadOrdersSequence) ordersLoading.value = false }
 }
 
 function handleOrderPageChange(page: number) { orderPagination.page = page; loadOrders() }
@@ -308,4 +313,8 @@ async function handleQueryRefund(order: PaymentOrder) {
 function formatDateTime(dateStr: string): string { return formatOrderDateTime(dateStr) }
 
 onMounted(() => loadOrders())
+
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+})
 </script>

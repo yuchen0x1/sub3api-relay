@@ -259,10 +259,14 @@ export async function testAPIKeys(
 }
 
 export async function listLogs(
-  params: ListContentModerationLogsParams = {}
+  params: ListContentModerationLogsParams = {},
+  options?: {
+    signal?: AbortSignal
+  }
 ): Promise<ContentModerationLogsResponse> {
   const { data } = await apiClient.get<ContentModerationLogsResponse>('/admin/risk-control/logs', {
     params,
+    signal: options?.signal,
   })
   return data
 }

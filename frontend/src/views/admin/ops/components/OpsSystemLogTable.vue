@@ -204,17 +204,37 @@ const buildQuery = () => {
   return query
 }
 
+// 请求级 AbortController 守卫：中止上一个请求，防止重叠请求乱序覆盖结果。
+let logsController: AbortController | null = null
+
 const fetchLogs = async () => {
+  logsController?.abort()
+  const requestController = new AbortController()
+  logsController = requestController
+  const { signal } = requestController
+
   loading.value = true
   try {
-    const res = await opsAPI.listSystemLogs(buildQuery())
+    const res = await opsAPI.listSystemLogs(buildQuery(), { signal })
+    if (signal.aborted || logsController !== requestController) return
     logs.value = res.items || []
     total.value = res.total || 0
   } catch (err: any) {
+    if (
+      signal.aborted ||
+      logsController !== requestController ||
+      err?.name === 'AbortError' ||
+      err?.code === 'ERR_CANCELED'
+    ) {
+      return
+    }
     console.error('[OpsSystemLogTable] Failed to fetch logs', err)
-    appStore.showError(err?.response?.data?.detail || t('admin.ops.systemLogs.loadFailed'))
+    appStore.showError(extractApiErrorMessage(err, t('admin.ops.systemLogs.loadFailed')))
   } finally {
-    loading.value = false
+    if (logsController === requestController) {
+      loading.value = false
+      logsController = null
+    }
   }
 }
 

@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, reactive, ref, type PropType } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -262,16 +262,24 @@ async function fetchRecords(params: ListAffiliateRecordsParams): Promise<Paginat
   return affiliatesAPI.listTransferRecords(params)
 }
 
+// 请求序号守卫：避免慢的旧响应覆盖新的筛选/分页结果
+let loadRecordsSequence = 0
+
 async function loadRecords() {
+  const sequence = ++loadRecordsSequence
   loading.value = true
   try {
     const res = await fetchRecords(buildParams())
+    if (sequence !== loadRecordsSequence) return
     records.value = res.items || []
     pagination.total = res.total || 0
   } catch (error) {
+    if (sequence !== loadRecordsSequence) return
     appStore.showError(extractI18nErrorMessage(error, t, 'admin.affiliates.errors', t('common.error')))
   } finally {
-    loading.value = false
+    if (sequence === loadRecordsSequence) {
+      loading.value = false
+    }
   }
 }
 
@@ -403,5 +411,9 @@ const OverviewStat = defineComponent({
 
 onMounted(() => {
   void loadRecords()
+})
+
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
 })
 </script>

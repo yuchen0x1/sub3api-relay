@@ -249,6 +249,7 @@ const apiKeyKeyword = ref('')
 const apiKeyResults = ref<SimpleApiKey[]>([])
 const showApiKeyDropdown = ref(false)
 let apiKeySearchTimeout: ReturnType<typeof setTimeout> | null = null
+let apiKeySearchSequence = 0
 
 interface SimpleAccount {
   id: number
@@ -258,6 +259,7 @@ const accountKeyword = ref('')
 const accountResults = ref<SimpleAccount[]>([])
 const showAccountDropdown = ref(false)
 let accountSearchTimeout: ReturnType<typeof setTimeout> | null = null
+let accountSearchSequence = 0
 
 const modelOptions = computed<SelectOption[]>(() => [
   { value: null, label: t('admin.usage.allModels') },
@@ -328,6 +330,22 @@ const clearPendingUserSearch = () => {
   userSearchSequence += 1
 }
 
+const clearPendingApiKeySearch = () => {
+  if (apiKeySearchTimeout) {
+    clearTimeout(apiKeySearchTimeout)
+    apiKeySearchTimeout = null
+  }
+  apiKeySearchSequence += 1
+}
+
+const clearPendingAccountSearch = () => {
+  if (accountSearchTimeout) {
+    clearTimeout(accountSearchTimeout)
+    accountSearchTimeout = null
+  }
+  accountSearchSequence += 1
+}
+
 const debounceUserSearch = () => {
   clearPendingUserSearch()
   const query = userKeyword.value.trim()
@@ -353,15 +371,22 @@ const debounceUserSearch = () => {
 }
 
 const debounceApiKeySearch = () => {
-  if (apiKeySearchTimeout) clearTimeout(apiKeySearchTimeout)
+  clearPendingApiKeySearch()
+  const sequence = apiKeySearchSequence
   apiKeySearchTimeout = setTimeout(async () => {
+    apiKeySearchTimeout = null
     try {
-      apiKeyResults.value = await adminAPI.usage.searchApiKeys(
+      const results = await adminAPI.usage.searchApiKeys(
         filters.value.user_id,
         apiKeyKeyword.value || ''
       )
+      if (sequence === apiKeySearchSequence) {
+        apiKeyResults.value = results
+      }
     } catch {
-      apiKeyResults.value = []
+      if (sequence === apiKeySearchSequence) {
+        apiKeyResults.value = []
+      }
     }
   }, 300)
 }
@@ -394,6 +419,7 @@ const clearUser = () => {
 }
 
 const selectApiKey = (k: SimpleApiKey) => {
+  clearPendingApiKeySearch()
   apiKeyKeyword.value = k.name || String(k.id)
   showApiKeyDropdown.value = false
   filters.value.api_key_id = k.id
@@ -401,6 +427,7 @@ const selectApiKey = (k: SimpleApiKey) => {
 }
 
 const clearApiKey = () => {
+  clearPendingApiKeySearch()
   apiKeyKeyword.value = ''
   apiKeyResults.value = []
   showApiKeyDropdown.value = false
@@ -413,17 +440,25 @@ const onClearApiKey = () => {
 }
 
 const debounceAccountSearch = () => {
-  if (accountSearchTimeout) clearTimeout(accountSearchTimeout)
+  clearPendingAccountSearch()
+  const sequence = accountSearchSequence
   accountSearchTimeout = setTimeout(async () => {
+    accountSearchTimeout = null
     if (!accountKeyword.value) {
-      accountResults.value = []
+      if (sequence === accountSearchSequence) {
+        accountResults.value = []
+      }
       return
     }
     try {
       const res = await adminAPI.accounts.list(1, 20, { search: accountKeyword.value })
-      accountResults.value = res.items.map((a) => ({ id: a.id, name: a.name }))
+      if (sequence === accountSearchSequence) {
+        accountResults.value = res.items.map((a) => ({ id: a.id, name: a.name }))
+      }
     } catch {
-      accountResults.value = []
+      if (sequence === accountSearchSequence) {
+        accountResults.value = []
+      }
     }
   }, 300)
 }
@@ -436,6 +471,7 @@ const selectAccount = (a: SimpleAccount) => {
 }
 
 const clearAccount = () => {
+  clearPendingAccountSearch()
   accountKeyword.value = ''
   accountResults.value = []
   showAccountDropdown.value = false
@@ -495,6 +531,7 @@ watch(
   () => filters.value.api_key_id,
   (apiKeyId) => {
     if (!apiKeyId) {
+      clearPendingApiKeySearch()
       apiKeyKeyword.value = ''
       apiKeyResults.value = []
     }
@@ -505,6 +542,7 @@ watch(
   () => filters.value.account_id,
   (accountId) => {
     if (!accountId) {
+      clearPendingAccountSearch()
       accountKeyword.value = ''
       accountResults.value = []
     }
@@ -523,6 +561,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearPendingUserSearch()
+  clearPendingApiKeySearch()
+  clearPendingAccountSearch()
   document.removeEventListener('click', onDocumentClick)
 })
 

@@ -116,7 +116,11 @@ describe('OpsSystemLogTable host support', () => {
     await searchButton!.trigger('click')
     await flushPromises()
 
-    expect(mockListSystemLogs).toHaveBeenLastCalledWith(expect.objectContaining({ host: 'api-node-2' }))
+    // fetchLogs 会附带 AbortSignal（stale-response 守卫），第二个参数是请求选项
+    expect(mockListSystemLogs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ host: 'api-node-2' }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
 
     const cleanupButton = wrapper.findAll('button').find((button) => button.text() === 'admin.ops.systemLogs.cleanCurrentFilters')
     expect(cleanupButton).toBeDefined()

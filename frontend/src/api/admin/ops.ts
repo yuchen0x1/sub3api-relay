@@ -1311,8 +1311,16 @@ export async function resetRuntimeLogConfig(): Promise<OpsRuntimeLogConfig> {
   return data
 }
 
-export async function listSystemLogs(params: OpsSystemLogQuery): Promise<OpsSystemLogListResponse> {
-  const { data } = await apiClient.get<OpsSystemLogListResponse>('/admin/ops/system-logs', { params })
+export async function listSystemLogs(
+  params: OpsSystemLogQuery,
+  options?: {
+    signal?: AbortSignal
+  }
+): Promise<OpsSystemLogListResponse> {
+  const { data } = await apiClient.get<OpsSystemLogListResponse>('/admin/ops/system-logs', {
+    params,
+    signal: options?.signal
+  })
   return data
 }
 

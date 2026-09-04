@@ -1850,7 +1850,14 @@ async function saveConfig() {
   }
 }
 
+let logsController: AbortController | null = null
+
 async function loadLogs() {
+  logsController?.abort()
+  const requestController = new AbortController()
+  logsController = requestController
+  const { signal } = requestController
+
   logsLoading.value = true
   try {
     const params = {
@@ -1863,16 +1870,29 @@ async function loadLogs() {
       from: normalizeDateTimeLocal(filters.from),
       to: normalizeDateTimeLocal(filters.to),
     }
-    const result = await adminAPI.riskControl.listLogs(params)
+    const result = await adminAPI.riskControl.listLogs(params, { signal })
+    if (signal.aborted || logsController !== requestController) return
     logs.value = result.items
     pagination.total = result.total
     pagination.page = result.page
     pagination.page_size = result.page_size
     pagination.pages = result.pages
   } catch (err: unknown) {
+    const abortErr = err as { name?: string; code?: string } | null
+    if (
+      signal.aborted ||
+      logsController !== requestController ||
+      abortErr?.name === 'AbortError' ||
+      abortErr?.code === 'ERR_CANCELED'
+    ) {
+      return
+    }
     appStore.showError(extractApiErrorMessage(err, t('admin.riskControl.logsFailed')))
   } finally {
-    logsLoading.value = false
+    if (logsController === requestController) {
+      logsLoading.value = false
+      logsController = null
+    }
   }
 }
 
