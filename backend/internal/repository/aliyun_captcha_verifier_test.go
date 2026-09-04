@@ -16,6 +16,11 @@ import (
 // newAliyunCaptchaTestTarget 起一个假的阿里云端点，让真实 SDK 走完整的签名/序列化链路。
 func newAliyunCaptchaTestTarget(t *testing.T, handler http.HandlerFunc) (*aliyunCaptchaVerifier, service.AliyunCaptchaCredentials) {
 	t.Helper()
+	// tea SDK 会继承宿主代理环境变量，且无法解析不带 scheme 的代理地址
+	// （如本机 Clash 常见的 http_proxy=127.0.0.1:7897），导致与被测逻辑无关的失败。
+	for _, key := range []string{"http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"} {
+		t.Setenv(key, "")
+	}
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
@@ -74,6 +79,9 @@ func TestAliyunCaptchaVerifier_APIErrorNormalized(t *testing.T) {
 }
 
 func TestAliyunCaptchaVerifier_TransportError(t *testing.T) {
+	for _, key := range []string{"http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"} {
+		t.Setenv(key, "")
+	}
 	server := httptest.NewServer(http.NotFoundHandler())
 	endpoint := strings.TrimPrefix(server.URL, "http://")
 	server.Close() // 立即关闭，制造连接失败
