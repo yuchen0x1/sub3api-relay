@@ -78,8 +78,13 @@ func parseLegacyPaymentOrderID(orderID string, lookupErr error) (int64, bool) {
 func (s *PaymentService) confirmPayment(ctx context.Context, oid int64, tradeNo string, paid float64, pk string, metadata map[string]string) error {
 	o, err := s.entClient.PaymentOrder.Get(ctx, oid)
 	if err != nil {
-		slog.Error("order not found", "orderID", oid)
-		return nil
+		// 真正不存在的订单才允许向上 ACK（ErrOrderNotFound → 渠道停止重试）；
+		// DB 临时故障必须原样返回，让 webhook 以 5xx 触发渠道重试，否则已支付订单会永久卡在 Pending。
+		if dbent.IsNotFound(err) {
+			slog.Error("order not found", "orderID", oid)
+			return fmt.Errorf("%w: order_id=%d", ErrOrderNotFound, oid)
+		}
+		return fmt.Errorf("load order %d: %w", oid, err)
 	}
 	instanceProviderKey := ""
 	if inst, instErr := s.getOrderProviderInstance(ctx, o); instErr == nil && inst != nil {
