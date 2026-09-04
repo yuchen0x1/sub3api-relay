@@ -241,7 +241,7 @@ export default {
     passwordLabel: '密码',
     passwordPlaceholder: '请输入密码',
     createPasswordPlaceholder: '创建一个安全的密码',
-    passwordHint: '至少 6 个字符',
+    passwordHint: '至少 8 个字符',
     emailRequired: '请输入邮箱',
     invalidEmail: '请输入有效的邮箱地址',
     loginIdentifierRequired: '请输入账号或邮箱',

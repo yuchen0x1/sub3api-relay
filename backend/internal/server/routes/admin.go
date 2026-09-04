@@ -57,6 +57,11 @@ func RegisterAdminRoutes(
 		// 代理管理
 		registerProxyRoutes(admin, h, stepUpAuth)
 
+		// 管理员合规确认（GET /admin/compliance、POST /admin/compliance/accept）。
+		// GET /pages 等端点受 ADMIN_COMPLIANCE_ACK_REQUIRED(423) 门禁，
+		// 缺失本组路由会把尚未确认的部署永久锁死在 423。
+		registerAdminComplianceRoutes(admin, h)
+
 		// 静态代理出口管理
 		registerStaticProxyExitRoutes(admin, h)
 
@@ -139,7 +144,6 @@ func registerAuditLogRoutes(admin *gin.RouterGroup, h *handler.Handlers, _ middl
 	}
 }
 
-//nolint:unused // Retained for compatibility with deployments that still expose compliance routes.
 func registerAdminComplianceRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	compliance := admin.Group("/compliance")
 	{

@@ -186,6 +186,8 @@ services:
     image: postgres:18-alpine
     container_name: sub3api-postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ulimits:
       nofile:
         soft: 100000
@@ -217,6 +219,8 @@ services:
     image: redis:8-alpine
     container_name: sub3api-redis
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ulimits:
       nofile:
         soft: 100000

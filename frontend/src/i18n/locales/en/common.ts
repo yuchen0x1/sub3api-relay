@@ -247,7 +247,7 @@ export default {
     loginIdentifierRequired: 'Account or email is required',
     invalidLoginIdentifier: 'Enter a valid username (letters, numbers, ._-), or email address',
     passwordRequired: 'Password is required',
-    passwordMinLength: 'Password must be at least 6 characters',
+    passwordMinLength: 'Password must be at least 8 characters',
     loginFailed: 'Login failed. Please check your credentials and try again.',
     errors: {
       USER_NOT_ACTIVE: 'Account has been disabled.',

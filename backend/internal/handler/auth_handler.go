@@ -634,7 +634,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 type ResetPasswordRequest struct {
 	Email       string `json:"email" binding:"required,email"`
 	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
 // ResetPasswordResponse 重置密码响应

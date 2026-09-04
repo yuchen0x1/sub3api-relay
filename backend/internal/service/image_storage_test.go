@@ -1,12 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -73,16 +74,21 @@ func TestImageResultUploaderRewritesB64JSON(t *testing.T) {
 }
 
 func TestImageResultUploaderRewritesURL(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "image/png")
-		_, _ = w.Write(pngBytes)
-	}))
-	defer upstream.Close()
+	// 下载走注入的 stub transport（避免真实网络）；URL 必须是公网地址，
+	// 因为生产默认客户端会拦截内网/保留地址（见 safefetch 与下方回归测试）。
+	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"image/png"}},
+			Body:       io.NopCloser(bytes.NewReader(pngBytes)),
+			Request:    req,
+		}, nil
+	})}
 
 	storage := &fakeImageStorage{}
-	uploader := NewImageResultUploader(storage, "images/", 0, nil)
+	uploader := NewImageResultUploader(storage, "images/", 0, client)
 
-	result := json.RawMessage(`{"created":1,"data":[{"url":"` + upstream.URL + `/pic.png"}]}`)
+	result := json.RawMessage(`{"created":1,"data":[{"url":"https://cdn.upstream.test/pic.png"}]}`)
 	out, err := uploader.Rewrite(context.Background(), "imgtask_xyz", result)
 	require.NoError(t, err)
 
@@ -95,6 +101,28 @@ func TestImageResultUploaderRewritesURL(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(out, &parsed))
 	require.JSONEq(t, `"https://cdn.test/images/imgtask_xyz-0.png"`, string(parsed.Data[0]["url"]))
+}
+
+// SSRF 回归：来自上游响应体的 URL 若指向本机/内网/保留地址或非 http(s)
+// scheme，必须在拨号前被拒绝，且不向对象存储写入任何内容。
+func TestImageResultUploaderRejectsUnsafeURL(t *testing.T) {
+	storage := &fakeImageStorage{}
+	uploader := NewImageResultUploader(storage, "images/", 0, nil)
+	for _, rawURL := range []string{
+		"http://127.0.0.1:8080/x.png",
+		"http://localhost/x.png",
+		"http://169.254.169.254/latest/meta-data/",
+		"http://10.0.0.5/a.png",
+		"http://192.168.1.10/a.png",
+		"http://[::1]/a.png",
+		"file:///etc/passwd",
+	} {
+		result, err := json.Marshal(map[string]any{"data": []map[string]string{{"url": rawURL}}})
+		require.NoError(t, err)
+		_, err = uploader.Rewrite(context.Background(), "imgtask_ssrf", result)
+		require.ErrorContains(t, err, "download image:", rawURL)
+		require.Empty(t, storage.saved, rawURL)
+	}
 }
 
 func TestImageResultUploaderRewritesImageDataURLWithoutHTTP(t *testing.T) {

@@ -14,6 +14,9 @@ const (
 	refreshTokenKeyPrefix   = "refresh_token:"
 	userRefreshTokensPrefix = "user_refresh_tokens:"
 	tokenFamilyPrefix       = "token_family:"
+	// rotatedTokenKeyPrefix 记录"已轮转使用"的 Token 哈希 -> 家族 ID，
+	// 用于旧 Token 被重放时定位并撤销整个家族（reuse detection）。
+	rotatedTokenKeyPrefix = "refresh_token_rotated:"
 )
 
 // refreshTokenKey generates the Redis key for a refresh token.
@@ -155,4 +158,24 @@ func (c *refreshTokenCache) GetFamilyTokenHashes(ctx context.Context, familyID s
 func (c *refreshTokenCache) IsTokenInFamily(ctx context.Context, familyID string, tokenHash string) (bool, error) {
 	key := tokenFamilyKey(familyID)
 	return c.rdb.SIsMember(ctx, key, tokenHash).Result()
+}
+
+// MarkRefreshTokenRotated 记录轮转墓碑：旧 Token 哈希 -> 家族 ID，ttl 后自动过期。
+func (c *refreshTokenCache) MarkRefreshTokenRotated(ctx context.Context, tokenHash, familyID string, ttl time.Duration) error {
+	if ttl <= 0 {
+		ttl = time.Hour
+	}
+	return c.rdb.Set(ctx, rotatedTokenKeyPrefix+tokenHash, familyID, ttl).Err()
+}
+
+// RotatedRefreshTokenFamily 返回轮转墓碑中的家族 ID；无记录时返回空串。
+func (c *refreshTokenCache) RotatedRefreshTokenFamily(ctx context.Context, tokenHash string) (string, error) {
+	val, err := c.rdb.Get(ctx, rotatedTokenKeyPrefix+tokenHash).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return "", nil
+		}
+		return "", err
+	}
+	return val, nil
 }

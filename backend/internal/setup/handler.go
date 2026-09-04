@@ -269,9 +269,8 @@ func validateAdminIdentifier(identifier string) bool {
 
 // validatePassword checks password strength
 func validatePassword(password string) error {
-	if password == defaultAdminPassword {
-		return nil
-	}
+	// 不对默认口令做白名单：任何路径（包括潜在绕过 validateOwnerAdmin 的
+	// 调用方）都不得接受弱默认值 "admin"，交由下方的长度与复杂度检查兜底。
 	if len(password) < 8 {
 		return fmt.Errorf("password must be at least 8 characters")
 	}

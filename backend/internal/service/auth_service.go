@@ -552,12 +552,27 @@ func (s *AuthService) IsEmailVerifyEnabled(ctx context.Context) bool {
 	return s.settingService.IsEmailVerifyEnabled(ctx)
 }
 
+// dummyPasswordHash 对固定哑口令做一次 bcrypt 的结果，仅用于登录
+// "用户不存在"分支的等时比较。哑口令随源码公开无妨——这里关心的只是
+// 比较耗时与真实校验路径一致，不涉及任何真实凭证。
+var dummyPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("sub3api-login-timing-equalizer"), bcrypt.DefaultCost)
+	if err != nil {
+		// bcrypt 对合法长度口令不会失败；兜底保证仍可进行比较调用。
+		return []byte("$2a$10$sub3apidummyhashfallbackinvalidinvalidinvalidinvalidin")
+	}
+	return hash
+}()
+
 // Login 用户登录，返回JWT token
 func (s *AuthService) Login(ctx context.Context, email, password string) (string, *User, error) {
 	// 查找用户
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
+			// 等时比较：消耗与真实 bcrypt 校验相同的时间，避免响应时序
+			// 泄露"邮箱是否已注册"（用户枚举侧信道）。
+			_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 			return "", nil, ErrInvalidCredentials
 		}
 		// 记录数据库错误但不暴露给用户
@@ -1688,7 +1703,9 @@ func (s *AuthService) RefreshTokenPair(ctx context.Context, refreshToken string)
 	data, err := s.refreshTokenCache.GetRefreshToken(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, ErrRefreshTokenNotFound) {
-			// Token不存在，可能是已被使用（Token轮转）或已过期
+			// Token不存在：可能是已被轮转使用或已过期。若缓存中留有该哈希
+			// 的轮转墓碑，说明旧 Token 正被重放——立即撤销整个家族。
+			s.revokeFamilyOnReuse(ctx, tokenHash)
 			logger.LegacyPrintf("service.auth", "[Auth] Refresh token not found, possible reuse attack")
 			return nil, ErrRefreshTokenInvalid
 		}
@@ -1743,6 +1760,16 @@ func (s *AuthService) RefreshTokenPair(ctx context.Context, refreshToken string)
 	if err := s.refreshTokenCache.DeleteRefreshToken(ctx, tokenHash); err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Failed to delete old refresh token: %v", err)
 		// 继续处理，不影响主流程
+	} else if marker, ok := s.refreshTokenCache.(RefreshTokenRotationTombstones); ok {
+		// 记录轮转墓碑（旧Token哈希 -> 家族ID，TTL 与家族剩余寿命一致），
+		// 该旧Token之后再次出现即为重放，可据此撤销整个家族。
+		ttl := time.Until(data.ExpiresAt)
+		if ttl <= 0 {
+			ttl = time.Duration(s.cfg.JWT.RefreshTokenExpireDays) * 24 * time.Hour
+		}
+		if err := marker.MarkRefreshTokenRotated(ctx, tokenHash, data.FamilyID, ttl); err != nil {
+			logger.LegacyPrintf("service.auth", "[Auth] Failed to mark rotated refresh token: %v", err)
+		}
 	}
 
 	// 生成新的Token对，保持同一个家族ID
@@ -1754,6 +1781,25 @@ func (s *AuthService) RefreshTokenPair(ctx context.Context, refreshToken string)
 		TokenPair: *pair,
 		UserRole:  user.Role,
 	}, nil
+}
+
+// revokeFamilyOnReuse 在检测到已轮转的旧 Refresh Token 被重放时，
+// 依据轮转墓碑定位家族并整体撤销，使持有更新 Token 的攻击者同样失效。
+// 缓存不支持墓碑扩展时静默跳过（保持旧行为）。
+func (s *AuthService) revokeFamilyOnReuse(ctx context.Context, tokenHash string) {
+	marker, ok := s.refreshTokenCache.(RefreshTokenRotationTombstones)
+	if !ok {
+		return
+	}
+	familyID, err := marker.RotatedRefreshTokenFamily(ctx, tokenHash)
+	if err != nil || familyID == "" {
+		return
+	}
+	if err := s.refreshTokenCache.DeleteTokenFamily(ctx, familyID); err != nil {
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to revoke family %s on token reuse: %v", familyID, err)
+		return
+	}
+	logger.LegacyPrintf("service.auth", "[Auth] Refresh token reuse detected, family %s revoked", familyID)
 }
 
 // RevokeRefreshToken 撤销单个Refresh Token

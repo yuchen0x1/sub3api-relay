@@ -72,3 +72,15 @@ type RefreshTokenCache interface {
 	// 用于验证Token家族关系
 	IsTokenInFamily(ctx context.Context, familyID string, tokenHash string) (bool, error)
 }
+
+// RefreshTokenRotationTombstones 是 RefreshTokenCache 的可选扩展能力：
+// 记录"已轮转使用"的 Token 哈希到家族 ID 的墓碑，使得旧 Token 之后再被
+// 提交（重放）时能定位并撤销整个家族（OAuth BCP 的 reuse detection）。
+// 缓存实现可以不支持该扩展；AuthService 通过类型断言探测，未实现时
+// 退回仅记录日志的旧行为。
+type RefreshTokenRotationTombstones interface {
+	// MarkRefreshTokenRotated 在轮转成功后记录墓碑，ttl 建议与家族剩余寿命一致。
+	MarkRefreshTokenRotated(ctx context.Context, tokenHash, familyID string, ttl time.Duration) error
+	// RotatedRefreshTokenFamily 返回该哈希对应的家族 ID；无记录时返回空串。
+	RotatedRefreshTokenFamily(ctx context.Context, tokenHash string) (string, error)
+}

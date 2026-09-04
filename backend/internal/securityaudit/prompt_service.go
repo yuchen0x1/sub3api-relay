@@ -238,7 +238,7 @@ func (s *PromptService) Probe(ctx context.Context, request ProbeRequest) ProbeRe
 	LogInfo(EventProbeStarted, map[string]any{"guard_endpoint_id": endpoint.ID, "status": "started"})
 	client, err := NewSecureHTTPClient(endpoint)
 	if err != nil {
-		return s.finishProbe(endpoint.ID, started, ProbeResult{Status: "failed", ErrorCode: "endpoint_unsafe", Message: "审计节点地址不在允许范围", TokenApplied: tokenApplied})
+		return s.finishProbe(endpoint.ID, started, ProbeResult{Status: "failed", ErrorCode: "endpoint_unsafe", Message: "审计节点地址无效（仅支持可解析的 http/https 地址）", TokenApplied: tokenApplied})
 	}
 	modelsURL, _ := ModelsURL(endpoint.BaseURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)

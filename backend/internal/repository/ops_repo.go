@@ -996,14 +996,14 @@ func buildOpsErrorLogsWhere(filter *service.OpsErrorLogFilter) (string, []any) {
 	}
 
 	if q := strings.TrimSpace(filter.Query); q != "" {
-		like := "%" + q + "%"
+		like := "%" + escapeLikePattern(q) + "%"
 		args = append(args, like)
 		n := itoa(len(args))
 		clauses = append(clauses, "(e.request_id ILIKE $"+n+" OR e.client_request_id ILIKE $"+n+" OR e.error_message ILIKE $"+n+")")
 	}
 
 	if userQuery := strings.TrimSpace(filter.UserQuery); userQuery != "" {
-		like := "%" + userQuery + "%"
+		like := "%" + escapeLikePattern(userQuery) + "%"
 		args = append(args, like)
 		n := itoa(len(args))
 		clauses = append(clauses, "EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_id AND u.email ILIKE $"+n+")")

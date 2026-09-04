@@ -16,7 +16,11 @@ Restart=always
 RestartSec=5s
 LimitNOFILE=100000
 NoNewPrivileges=true
-PrivateTmp=false
+# PrivateTmp 必须保持 false：与主服务通过 /tmp 下的共享套接字通信。
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sub3api /tmp
+RestrictSUIDSGID=true
 
 [Install]
 WantedBy=multi-user.target

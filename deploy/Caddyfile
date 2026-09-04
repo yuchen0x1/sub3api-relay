@@ -20,9 +20,21 @@ api.sub3api.com {
 		# 仅使用 TLS 1.2 和 1.3
 		protocols tls1.2 tls1.3
 
-		# 优先使用的加密套件
-		ciphers TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	}
+	# 优先使用的加密套件
+	ciphers TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+}
+
+# =========================================================================
+# 安全响应头（应用层已设 nosniff/DENY/Referrer-Policy/CSP，这里在边缘统一补齐；
+# HSTS 需要直连 TLS，若站点位于 CDN 后请改在 CDN 侧下发）
+# =========================================================================
+header {
+	Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	X-Content-Type-Options "nosniff"
+	X-Frame-Options "DENY"
+	Referrer-Policy "strict-origin-when-cross-origin"
+	-Server
+}
 
 	# =========================================================================
 	# 反向代理配置

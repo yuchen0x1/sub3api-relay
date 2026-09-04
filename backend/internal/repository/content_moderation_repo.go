@@ -271,7 +271,7 @@ func buildContentModerationLogWhere(filter service.ContentModerationLogFilter) (
 		add("l.endpoint = $%d", endpoint)
 	}
 	if search := strings.TrimSpace(filter.Search); search != "" {
-		like := "%" + search + "%"
+		like := "%" + escapeLikePattern(search) + "%"
 		args = append(args, like, like, like, like, like)
 		idx := len(args) - 4
 		where = append(where, fmt.Sprintf("(l.request_id ILIKE $%d OR l.user_email ILIKE $%d OR l.api_key_name ILIKE $%d OR l.model ILIKE $%d OR l.input_excerpt ILIKE $%d)", idx, idx+1, idx+2, idx+3, idx+4))

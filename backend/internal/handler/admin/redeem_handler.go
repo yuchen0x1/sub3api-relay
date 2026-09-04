@@ -530,12 +530,12 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 		}
 		if err := writer.Write([]string{
 			fmt.Sprintf("%d", code.ID),
-			code.Code,
-			code.Type,
+			csvSafeCell(code.Code),
+			csvSafeCell(code.Type),
 			fmt.Sprintf("%.2f", code.Value),
-			code.Status,
+			csvSafeCell(code.Status),
 			usedBy,
-			usedByEmail,
+			csvSafeCell(usedByEmail),
 			usedAt,
 			expiresAt,
 			code.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -554,4 +554,17 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 	c.Header("Content-Type", "text/csv")
 	c.Header("Content-Disposition", "attachment; filename=redeem_codes.csv")
 	c.Data(200, "text/csv", buf.Bytes())
+}
+
+// csvSafeCell 中和 CSV 公式注入：以 = + - @ 或制表/回车开头的单元格会被
+// Excel/WPS 当作公式执行，前置单引号使其按文本处理（OWASP CSV Injection）。
+func csvSafeCell(v string) string {
+	if v == "" {
+		return v
+	}
+	switch v[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + v
+	}
+	return v
 }

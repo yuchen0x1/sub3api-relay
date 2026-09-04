@@ -2823,12 +2823,17 @@
                   :key="rIdx"
                   class="mt-2 border-t border-gray-200 pt-2 first:mt-0 first:border-0 first:pt-0 dark:border-dark-600"
                 >
+                  <!-- 结果 URL 来自外部搜索提供方（不可信），仅允许 http/https；
+                       其余 scheme 会被 sanitizeUrl 置空，链接退化为纯文本 -->
                   <a
-                    :href="r.url"
+                    v-if="sanitizeUrl(r.url)"
+                    :href="sanitizeUrl(r.url)"
                     target="_blank"
+                    rel="noopener noreferrer"
                     class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                     >{{ r.title }}</a
                   >
+                  <span v-else class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ r.title }}</span>
                   <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                     {{ r.snippet }}
                   </p>
@@ -2985,6 +2990,7 @@ import { extractApiErrorMessage } from "@/utils/apiError";
 import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
 import { normalizeRegistrationEmailSuffixDomains } from "@/utils/registrationEmailPolicy";
+import { sanitizeUrl } from "@/utils/url";
 import {
   parseFingerprintSignalsToRows,
   serializeFingerprintRowsToJSON,

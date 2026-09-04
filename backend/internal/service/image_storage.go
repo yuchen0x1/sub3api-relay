@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/safefetch"
 )
 
 const defaultImageMaxDownloadBytes int64 = 32 << 20 // 32 MiB
@@ -53,8 +55,11 @@ func NewImageResultUploader(storage ImageStorage, prefix string, maxDownloadByte
 	}
 }
 
+// defaultImageDownloadHTTPClient 使用 safefetch 防护客户端：图片 URL 来自
+// 上游响应体（不可信数据），且抓取结果会转存后透出给终端用户，必须拦截
+// 内网/保留地址并防 DNS 重绑定，否则上游可借 data[i].url 探测内网服务。
 func defaultImageDownloadHTTPClient() *http.Client {
-	return &http.Client{Timeout: 60 * time.Second}
+	return safefetch.NewClient(60 * time.Second)
 }
 
 // Rewrite 将 result（上游生图响应 JSON）里的每张图片转存到对象存储，
@@ -192,6 +197,9 @@ func (u *ImageResultUploader) decodeImageDataURL(rawURL string) ([]byte, string,
 }
 
 func (u *ImageResultUploader) download(ctx context.Context, rawURL string) ([]byte, string, error) {
+	if err := safefetch.ValidatePublicHTTPURL(rawURL); err != nil {
+		return nil, "", fmt.Errorf("download image: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("build download request: %w", err)

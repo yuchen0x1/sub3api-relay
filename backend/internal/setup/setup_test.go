@@ -333,10 +333,12 @@ func TestValidateInitialAdminRejectsMissingOrWeakPassword(t *testing.T) {
 	}
 }
 
-func TestValidateInitialAdminAcceptsDefaultPassword(t *testing.T) {
+// 默认口令 "admin" 不得通过任何校验路径（含 validateInitialAdmin），
+// 即使它长度不足 8 也应有明确拒绝，防止弱默认凭证被引导出来。
+func TestValidateInitialAdminRejectsDefaultPassword(t *testing.T) {
 	admin := AdminConfig{Email: defaultAdminLogin, Password: defaultAdminPassword}
-	if err := validateInitialAdmin(admin); err != nil {
-		t.Fatalf("validateInitialAdmin() error = %v", err)
+	if err := validateInitialAdmin(admin); err == nil {
+		t.Fatal("validateInitialAdmin() accepted the public default password")
 	}
 }
 

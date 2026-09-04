@@ -43,6 +43,9 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
       RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+      # step 级 if 里的 env 上下文只读取 job/workflow 级 env，
+      # 因此 DockerHub 用户名必须在这里注入，下方 `if:` 才能生效。
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

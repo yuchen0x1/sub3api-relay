@@ -1329,7 +1329,10 @@ func crsLogin(ctx context.Context, client *http.Client, baseURL, username, passw
 
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("crs login failed: status=%d body=%s", resp.StatusCode, string(raw))
+		// 远端响应体可能来自任意 CRS 兼容服务，只回传状态码；
+		// 详细响应体仅进服务端日志（截断），避免把内网响应回显给调用方。
+		slog.Warn("crs_login_failed_reflects_status_only", "status", resp.StatusCode, "body", truncateString(string(raw), 500))
+		return "", fmt.Errorf("crs login failed: status=%d", resp.StatusCode)
 	}
 
 	var parsed crsLoginResponse
@@ -1364,7 +1367,8 @@ func crsExportAccounts(ctx context.Context, client *http.Client, baseURL, adminT
 
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 5<<20))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("crs export failed: status=%d body=%s", resp.StatusCode, string(raw))
+		slog.Warn("crs_export_failed_reflects_status_only", "status", resp.StatusCode, "body", truncateString(string(raw), 500))
+		return nil, fmt.Errorf("crs export failed: status=%d", resp.StatusCode)
 	}
 
 	var parsed crsExportResponse

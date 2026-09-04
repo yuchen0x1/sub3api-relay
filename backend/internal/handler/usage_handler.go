@@ -383,9 +383,9 @@ func (h *UsageHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	// 验证所有权
+	// 验证所有权：与他人生成 404 一致，避免向已认证用户泄露记录是否存在
 	if record.UserID != subject.UserID {
-		response.Forbidden(c, "Not authorized to access this record")
+		response.NotFound(c, "Usage record not found")
 		return
 	}
 
