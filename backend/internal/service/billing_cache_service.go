@@ -114,13 +114,14 @@ type BillingCacheService struct {
 	circuitBreaker        *billingCircuitBreaker
 	userPlatformQuotaRepo UserPlatformQuotaRepository
 
-	cacheWriteChan     chan cacheWriteTask
+	cacheWriteChans    []chan cacheWriteTask
 	cacheWriteWg       sync.WaitGroup
 	cacheWriteStopOnce sync.Once
 	cacheWriteMu       sync.RWMutex
 	stopped            atomic.Bool
 	balanceLoadSF      singleflight.Group
 	quotaLoadSF        singleflight.Group
+	rateLimitResetSF   singleflight.Group
 	// 丢弃日志节流计数器（减少高负载下日志噪音）
 	cacheWriteDropFullCount     uint64
 	cacheWriteDropFullLastLog   int64
@@ -160,32 +161,42 @@ func (s *BillingCacheService) Stop() {
 		s.stopped.Store(true)
 
 		s.cacheWriteMu.Lock()
-		ch := s.cacheWriteChan
-		if ch != nil {
-			close(ch)
-		}
+		chans := s.cacheWriteChans
+		s.cacheWriteChans = nil
 		s.cacheWriteMu.Unlock()
 
-		if ch == nil {
+		if len(chans) == 0 {
 			return
 		}
-		s.cacheWriteWg.Wait()
-
-		s.cacheWriteMu.Lock()
-		if s.cacheWriteChan == ch {
-			s.cacheWriteChan = nil
+		for _, ch := range chans {
+			close(ch)
 		}
-		s.cacheWriteMu.Unlock()
+		s.cacheWriteWg.Wait()
 	})
 }
 
 func (s *BillingCacheService) startCacheWriteWorkers() {
-	ch := make(chan cacheWriteTask, cacheWriteBufferSize)
-	s.cacheWriteChan = ch
+	// 每个分片一个独立 channel + worker：同一用户（或 API Key）的任务严格按入队顺序执行。
+	// 共享单队列时 10 个 worker 会乱序执行，典型故障是"缓存 miss 回源的 Set"
+	// 落在之后入队的 Deduct 之后，把扣减前的旧余额写回缓存，资格检查持续放行造成超额透支。
+	s.cacheWriteChans = make([]chan cacheWriteTask, cacheWriteWorkerCount)
 	for i := 0; i < cacheWriteWorkerCount; i++ {
+		s.cacheWriteChans[i] = make(chan cacheWriteTask, cacheWriteBufferSize)
 		s.cacheWriteWg.Add(1)
-		go s.cacheWriteWorker(ch)
+		go s.cacheWriteWorker(s.cacheWriteChans[i])
 	}
+}
+
+// cacheWriteShard 按任务所属实体（优先用户，其次 API Key）选择分片，保证同实体任务串行。
+func cacheWriteShard(task cacheWriteTask) int {
+	id := task.userID
+	if id <= 0 {
+		id = task.apiKeyID
+	}
+	if id <= 0 {
+		return 0
+	}
+	return int(id % cacheWriteWorkerCount)
 }
 
 // enqueueCacheWrite 尝试将任务入队，队列满时返回 false（并记录告警）。
@@ -198,13 +209,13 @@ func (s *BillingCacheService) enqueueCacheWrite(task cacheWriteTask) (enqueued b
 	s.cacheWriteMu.RLock()
 	defer s.cacheWriteMu.RUnlock()
 
-	if s.cacheWriteChan == nil {
+	if len(s.cacheWriteChans) == 0 {
 		s.logCacheWriteDrop(task, "closed")
 		return false
 	}
 
 	select {
-	case s.cacheWriteChan <- task:
+	case s.cacheWriteChans[cacheWriteShard(task)] <- task:
 		return true
 	default:
 		// 队列满时不阻塞主流程，交由调用方决定是否同步回退。
@@ -649,7 +660,9 @@ func (s *BillingCacheService) evaluateRateLimits(ctx context.Context, apiKey *AP
 		needsReset = true
 	}
 
-	// Trigger async DB reset if any window expired
+	// Trigger async DB reset if any window expired.
+	// singleflight 按 key 合并：高 QPS 下窗口过期的瞬间，每个并发请求都会看到
+	// needsReset，不做合并会对同一 key 触发风暴式的 DB UPDATE + 缓存失效。
 	if needsReset {
 		keyID := apiKey.ID
 		go func() {
@@ -658,24 +671,27 @@ func (s *BillingCacheService) evaluateRateLimits(ctx context.Context, apiKey *AP
 					logger.LegacyPrintf("service.billing_cache", "panic in rate limit reset goroutine: %v", r)
 				}
 			}()
-			resetCtx, cancel := context.WithTimeout(context.Background(), cacheWriteTimeout)
-			defer cancel()
-			if s.apiKeyRateLimitLoader != nil {
-				// Use the repo directly - reset then reload cache
-				if loader, ok := s.apiKeyRateLimitLoader.(interface {
-					ResetRateLimitWindows(ctx context.Context, id int64) error
-				}); ok {
-					if err := loader.ResetRateLimitWindows(resetCtx, keyID); err != nil {
-						logger.LegacyPrintf("service.billing_cache", "Warning: reset rate limit windows failed for api key %d: %v", keyID, err)
+			_, _, _ = s.rateLimitResetSF.Do(strconv.FormatInt(keyID, 10), func() (any, error) {
+				resetCtx, cancel := context.WithTimeout(context.Background(), cacheWriteTimeout)
+				defer cancel()
+				if s.apiKeyRateLimitLoader != nil {
+					// Use the repo directly - reset then reload cache
+					if loader, ok := s.apiKeyRateLimitLoader.(interface {
+						ResetRateLimitWindows(ctx context.Context, id int64) error
+					}); ok {
+						if err := loader.ResetRateLimitWindows(resetCtx, keyID); err != nil {
+							logger.LegacyPrintf("service.billing_cache", "Warning: reset rate limit windows failed for api key %d: %v", keyID, err)
+						}
 					}
 				}
-			}
-			// Invalidate cache so next request loads fresh data
-			if s.cache != nil {
-				if err := s.cache.InvalidateAPIKeyRateLimit(resetCtx, keyID); err != nil {
-					logger.LegacyPrintf("service.billing_cache", "Warning: invalidate rate limit cache failed for api key %d: %v", keyID, err)
+				// Invalidate cache so next request loads fresh data
+				if s.cache != nil {
+					if err := s.cache.InvalidateAPIKeyRateLimit(resetCtx, keyID); err != nil {
+						logger.LegacyPrintf("service.billing_cache", "Warning: invalidate rate limit cache failed for api key %d: %v", keyID, err)
+					}
 				}
-			}
+				return nil, nil
+			})
 		}()
 	}
 

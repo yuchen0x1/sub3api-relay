@@ -345,6 +345,18 @@ func releaseUsageBillingBatchImageBalance(ctx context.Context, tx *sql.Tx, cmd *
 		logger.LegacyPrintf("repository.usage_billing", "[BatchImage] release skipped, hold was never reserved: batch=%s", cmd.BatchID)
 		return &service.BatchImageBalanceHoldResult{}, nil
 	}
+	// capture 已提交说明资金已按实际用量结算（用户已扣款、冻结已划转），
+	// 此后任何结算重试走到释放出口都必须幂等跳过退款，
+	// 否则会把整笔 hold 再次退回余额，形成"已扣款又全额退款"的双重退款，
+	// 并掏空同用户其他批次共享的 frozen_balance 池。
+	captured, capturedErr := batchImageHoldClaimExists(ctx, tx, service.BatchImageCaptureRequestID(cmd.BatchID), cmd.APIKeyID)
+	if capturedErr != nil {
+		return nil, capturedErr
+	}
+	if captured {
+		logger.LegacyPrintf("repository.usage_billing", "[BatchImage] release skipped, capture already settled: batch=%s", cmd.BatchID)
+		return &service.BatchImageBalanceHoldResult{}, nil
+	}
 	var balance, frozen float64
 	err := tx.QueryRowContext(ctx, `
 		UPDATE users
