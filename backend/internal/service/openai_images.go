@@ -14,6 +14,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -24,6 +25,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/safefetch"
 	"github.com/yuchen0x1/sub3api-relay/internal/util/responseheaders"
 )
 
@@ -1485,7 +1487,17 @@ func fetchOpenAIImageDownloadURL(
 }
 
 func downloadOpenAIImageBytes(ctx context.Context, client *req.Client, headers http.Header, downloadURL string, errorBodyReadLimit int64) ([]byte, error) {
-	request := client.R().
+	if err := safefetch.ValidatePublicHTTPURLResolved(ctx, downloadURL); err != nil {
+		return nil, fmt.Errorf("download image url is not allowed: %w", err)
+	}
+	if client == nil {
+		return nil, fmt.Errorf("download image client is required")
+	}
+
+	// Clone the account client so the one-request redirect policy does not mutate
+	// the shared client used by other upstream calls.
+	downloadClient := client.Clone().SetRedirectPolicy(openAIImageRedirectPolicy())
+	request := downloadClient.R().
 		SetContext(ctx).
 		DisableAutoReadResponse()
 
@@ -1514,7 +1526,62 @@ func downloadOpenAIImageBytes(ctx context.Context, client *req.Client, headers h
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, newOpenAIImageStatusError(resp, "download image bytes failed", errorBodyReadLimit)
 	}
-	return io.ReadAll(io.LimitReader(resp.Body, openAIImageMaxDownloadBytes))
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, int64(openAIImageMaxDownloadBytes)+1))
+	if err != nil {
+		return nil, fmt.Errorf("read image body: %w", err)
+	}
+	if int64(len(data)) > openAIImageMaxDownloadBytes {
+		return nil, fmt.Errorf("downloaded image exceeds %d bytes", openAIImageMaxDownloadBytes)
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("downloaded image is empty")
+	}
+	contentType := http.DetectContentType(data)
+	if !strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		return nil, fmt.Errorf("downloaded content is not an image: %s", contentType)
+	}
+	return data, nil
+}
+
+func openAIImageRedirectPolicy() req.RedirectPolicy {
+	return func(next *http.Request, via []*http.Request) error {
+		if next == nil || next.URL == nil {
+			return fmt.Errorf("redirect target is missing url")
+		}
+		if len(via) >= 5 {
+			return fmt.Errorf("too many redirects")
+		}
+		if err := safefetch.ValidatePublicHTTPURLResolved(next.Context(), next.URL.String()); err != nil {
+			return fmt.Errorf("redirect target is not allowed: %w", err)
+		}
+		if len(via) == 0 || via[0] == nil || via[0].URL == nil {
+			return nil
+		}
+		if sameHTTPOrigin(via[0].URL, next.URL) {
+			return nil
+		}
+
+		// req forwards custom headers across redirects. Strip all caller/account
+		// headers when the redirect changes origin; retain only safe download hints.
+		userAgent := next.Header.Get("User-Agent")
+		accept := next.Header.Get("Accept")
+		next.Header = make(http.Header)
+		if userAgent != "" {
+			next.Header.Set("User-Agent", userAgent)
+		}
+		if accept != "" {
+			next.Header.Set("Accept", accept)
+		}
+		return nil
+	}
+}
+
+func sameHTTPOrigin(left, right *url.URL) bool {
+	if left == nil || right == nil {
+		return false
+	}
+	return strings.EqualFold(left.Scheme, right.Scheme) && strings.EqualFold(left.Host, right.Host)
 }
 
 type openAIImageStatusError struct {

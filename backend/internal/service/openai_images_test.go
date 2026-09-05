@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/safefetch"
 )
 
 type failingOpenAIImageWriter struct {
@@ -425,6 +426,143 @@ func TestResolveOpenAIImageBytes_PrefersInlineBase64(t *testing.T) {
 	}, openAIUpstreamErrorBodyReadLimit)
 	require.NoError(t, err)
 	require.Equal(t, []byte("ABC"), data)
+}
+
+func TestDownloadOpenAIImageBytesRejectsUnsafeURLBeforeRequest(t *testing.T) {
+	client := req.C()
+	client.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) req.HttpRoundTripFunc {
+		return func(r *http.Request) (*http.Response, error) {
+			t.Fatal("unsafe image URL must be rejected before the request")
+			return nil, nil
+		}
+	})
+
+	_, err := downloadOpenAIImageBytes(context.Background(), client, http.Header{}, "http://127.0.0.1/image.png", openAIUpstreamErrorBodyReadLimit)
+	require.Error(t, err)
+	require.ErrorIs(t, err, safefetch.ErrBlockedHost)
+}
+
+func TestDownloadOpenAIImageBytesStrictlyRejectsOversizedBody(t *testing.T) {
+	client := req.C()
+	client.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) req.HttpRoundTripFunc {
+		return func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"image/png"}},
+				Body:       io.NopCloser(strings.NewReader(strings.Repeat("x", openAIImageMaxDownloadBytes+1))),
+				Request:    r,
+			}, nil
+		}
+	})
+
+	_, err := downloadOpenAIImageBytes(context.Background(), client, http.Header{}, "https://example.com/image.png", openAIUpstreamErrorBodyReadLimit)
+	require.ErrorContains(t, err, "downloaded image exceeds")
+}
+
+func TestDownloadOpenAIImageBytesRejectsEmptyBody(t *testing.T) {
+	client := req.C()
+	client.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) req.HttpRoundTripFunc {
+		return func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"image/png"}},
+				Body:       io.NopCloser(strings.NewReader("")),
+				Request:    r,
+			}, nil
+		}
+	})
+
+	_, err := downloadOpenAIImageBytes(context.Background(), client, http.Header{}, "https://example.com/image.png", openAIUpstreamErrorBodyReadLimit)
+	require.ErrorContains(t, err, "downloaded image is empty")
+}
+
+func TestDownloadOpenAIImageBytesRejectsNonImageBody(t *testing.T) {
+	client := req.C()
+	client.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) req.HttpRoundTripFunc {
+		return func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"image/png"}},
+				Body:       io.NopCloser(strings.NewReader("not an image")),
+				Request:    r,
+			}, nil
+		}
+	})
+
+	_, err := downloadOpenAIImageBytes(context.Background(), client, http.Header{}, "https://example.com/image.png", openAIUpstreamErrorBodyReadLimit)
+	require.ErrorContains(t, err, "downloaded content is not an image")
+}
+
+func TestDownloadOpenAIImageBytesAcceptsImageDetectedFromBytes(t *testing.T) {
+	client := req.C()
+	client.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) req.HttpRoundTripFunc {
+		return func(r *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"text/plain"}},
+				Body:       io.NopCloser(bytes.NewReader([]byte("\x89PNG\r\n\x1a\n"))),
+				Request:    r,
+			}, nil
+		}
+	})
+
+	data, err := downloadOpenAIImageBytes(context.Background(), client, http.Header{}, "https://example.com/image.png", openAIUpstreamErrorBodyReadLimit)
+	require.NoError(t, err)
+	require.Equal(t, []byte("\x89PNG\r\n\x1a\n"), data)
+}
+
+func TestOpenAIImageRedirectPolicyStripsHeadersAcrossOrigins(t *testing.T) {
+	next, err := http.NewRequest(http.MethodGet, "https://example.com/image.png", nil)
+	require.NoError(t, err)
+	next.Header.Set("Authorization", "Bearer secret")
+	next.Header.Set("Cookie", "session=secret")
+	next.Header.Set("X-Account-Token", "secret")
+	next.Header.Set("Accept", "image/*")
+	next.Header.Set("User-Agent", "test-agent")
+	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file/download", nil)
+	require.NoError(t, err)
+	via.Header = next.Header.Clone()
+
+	require.NoError(t, openAIImageRedirectPolicy()(next, []*http.Request{via}))
+	require.Empty(t, next.Header.Get("Authorization"))
+	require.Empty(t, next.Header.Get("Cookie"))
+	require.Empty(t, next.Header.Get("X-Account-Token"))
+	require.Equal(t, "image/*", next.Header.Get("Accept"))
+	require.Equal(t, "test-agent", next.Header.Get("User-Agent"))
+}
+
+func TestOpenAIImageRedirectPolicyKeepsHeadersSameOrigin(t *testing.T) {
+	next, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file/download", nil)
+	require.NoError(t, err)
+	next.Header.Set("Authorization", "Bearer secret")
+	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file", nil)
+	require.NoError(t, err)
+	via.Header = next.Header.Clone()
+
+	require.NoError(t, openAIImageRedirectPolicy()(next, []*http.Request{via}))
+	require.Equal(t, "Bearer secret", next.Header.Get("Authorization"))
+}
+
+func TestOpenAIImageRedirectPolicyRejectsPrivateTarget(t *testing.T) {
+	next, err := http.NewRequest(http.MethodGet, "http://127.0.0.1/image.png", nil)
+	require.NoError(t, err)
+	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file", nil)
+	require.NoError(t, err)
+
+	err = openAIImageRedirectPolicy()(next, []*http.Request{via})
+	require.ErrorIs(t, err, safefetch.ErrBlockedHost)
+}
+
+func TestOpenAIImageRedirectPolicyRejectsSixthRedirect(t *testing.T) {
+	next, err := http.NewRequest(http.MethodGet, "https://example.com/image.png", nil)
+	require.NoError(t, err)
+	via := make([]*http.Request, 5)
+	for i := range via {
+		via[i], err = http.NewRequest(http.MethodGet, "https://example.com/redirect", nil)
+		require.NoError(t, err)
+	}
+
+	require.ErrorContains(t, openAIImageRedirectPolicy()(next, via), "too many redirects")
 }
 
 func TestNewOpenAIImageStatusError_UsesProvidedReadLimit(t *testing.T) {

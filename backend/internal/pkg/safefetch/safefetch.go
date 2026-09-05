@@ -99,6 +99,33 @@ func ValidatePublicHTTPURL(raw string) error {
 	return nil
 }
 
+// ValidatePublicHTTPURLResolved 校验 URL，并解析域名后检查全部结果。
+// 它适用于无法直接使用 NewClient 的场景，例如必须保留上游账号客户端
+// 的代理、TLS 指纹或认证配置时；调用方仍应在请求客户端上配置逐跳校验。
+func ValidatePublicHTTPURLResolved(ctx context.Context, raw string) error {
+	if err := ValidatePublicHTTPURL(raw); err != nil {
+		return err
+	}
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return errors.New("invalid url")
+	}
+	host := strings.TrimSpace(parsed.Hostname())
+	if net.ParseIP(host) != nil {
+		return nil
+	}
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	if err != nil || len(ips) == 0 {
+		return errors.New("failed to resolve target host")
+	}
+	for _, ip := range ips {
+		if BlockedIP(ip) {
+			return ErrBlockedHost
+		}
+	}
+	return nil
+}
+
 // DialContext 解析 host 并校验全部解析结果，随后直连已校验的 IP
 // （而非域名），使"校验"与"拨号"使用同一地址，防 DNS 重绑定。
 func DialContext(ctx context.Context, network, address string) (net.Conn, error) {
