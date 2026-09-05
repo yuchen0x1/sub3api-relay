@@ -245,6 +245,32 @@ func applyToolNameRewriteToBody(body []byte, rw *ToolNameRewrite) []byte {
 }
 
 // applyToolsLastCacheBreakpoint 在 tools 数组最后一个工具上注入 cache_control
+// isDeferredLoadingTool 判断工具是否为延迟加载：字面 JSON 布尔 true 才启用，
+// 兼容官方顶层 defer_loading 与 Claude Code 使用的 custom.defer_loading 字段。
+func isDeferredLoadingTool(tool gjson.Result) bool {
+	return tool.Get("defer_loading").Type == gjson.True ||
+		tool.Get("custom.defer_loading").Type == gjson.True
+}
+
+// stripDeferredToolCacheControl 移除延迟加载工具上的 cache_control 标记——
+// Anthropic 不允许 defer_loading=true 的工具携带 cache_control，携带会被整请求拒收。
+func stripDeferredToolCacheControl(body []byte) []byte {
+	tools := gjson.GetBytes(body, "tools")
+	if !tools.IsArray() {
+		return body
+	}
+	for idx, tool := range tools.Array() {
+		if !isDeferredLoadingTool(tool) || !tool.Get("cache_control").Exists() {
+			continue
+		}
+		if next, err := sjson.DeleteBytes(body, fmt.Sprintf("tools.%d.cache_control", idx)); err == nil {
+			body = next
+		}
+	}
+	return body
+}
+
+// applyToolsLastCacheBreakpoint 在最后一个非延迟加载工具上注入 cache_control
 // 断点，对齐 Parrot `tools[-1]["cache_control"] = {"type":"ephemeral","ttl":"1h"}`
 // 行为，但 ttl 按本仓规则：
 //   - 客户端已为该 tool 显式设置 cache_control.ttl → 完全透传不覆盖
@@ -260,7 +286,18 @@ func applyToolsLastCacheBreakpoint(body []byte) []byte {
 	if len(arr) == 0 {
 		return body
 	}
-	lastIdx := len(arr) - 1
+	// Anthropic 拒绝 defer_loading 工具携带 cache_control，断点只能落在
+	// 最后一个非延迟加载工具上；全部为延迟加载工具时不注入。
+	lastIdx := -1
+	for idx := len(arr) - 1; idx >= 0; idx-- {
+		if !isDeferredLoadingTool(arr[idx]) {
+			lastIdx = idx
+			break
+		}
+	}
+	if lastIdx < 0 {
+		return body
+	}
 	existingCC := arr[lastIdx].Get("cache_control")
 
 	if existingCC.Exists() && existingCC.Get("ttl").String() != "" {

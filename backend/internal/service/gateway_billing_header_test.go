@@ -7,6 +7,10 @@ import (
 )
 
 func TestSyncBillingHeaderVersion(t *testing.T) {
+	// 指纹后缀是 body+版本 的函数：版本变化时后缀必须重算（对齐上游行为）。
+	fingerprintBody := `{"system":[{"type":"text","text":"x-anthropic-billing-header: cc_version=2.1.81.df2; cc_entrypoint=cli; cch=00000;"},{"type":"text","text":"You are Claude Code.","cache_control":{"type":"ephemeral"}}],"messages":[]}`
+	recomputedSuffix := computeClaudeCodeFingerprint([]byte(fingerprintBody), "2.1.22")
+
 	tests := []struct {
 		name      string
 		body      string
@@ -15,10 +19,10 @@ func TestSyncBillingHeaderVersion(t *testing.T) {
 		unchanged bool   // expect body to remain the same
 	}{
 		{
-			name:      "replaces cc_version preserving message-derived suffix",
-			body:      `{"system":[{"type":"text","text":"x-anthropic-billing-header: cc_version=2.1.81.df2; cc_entrypoint=cli; cch=00000;"},{"type":"text","text":"You are Claude Code.","cache_control":{"type":"ephemeral"}}],"messages":[]}`,
+			name:      "replaces cc_version and recomputes fingerprint suffix",
+			body:      fingerprintBody,
 			userAgent: "claude-cli/2.1.22 (external, cli)",
-			wantSub:   "cc_version=2.1.22.df2",
+			wantSub:   "cc_version=2.1.22." + recomputedSuffix,
 		},
 		{
 			name:      "no billing header in system",
