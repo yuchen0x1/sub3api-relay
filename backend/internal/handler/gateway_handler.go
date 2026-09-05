@@ -303,6 +303,22 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	// 判断是否真的绑定了粘性会话：有 sessionKey 且已经绑定到某个账号
 	hasBoundSession := sessionKey != "" && sessionBoundAccountID > 0
 
+	// （checkAndRegisterSession）。若请求最终失败（转发失败/客户端中断/换号耗尽），
+	// 须立即释放本次会话注册——上游从未真正服务该会话，继续占槽会让 max_sessions
+	// 受限的账号被失败请求的 session hash 卡满整个空闲窗口，后续新会话全部被拒。
+	// 成功请求保持既有空闲超时语义（会话按最后活动时间过期）。
+	sessionSlotAccounts := make(map[int64]*service.Account)
+	upstreamServedSession := false
+	defer func() {
+		if upstreamServedSession {
+			return
+		}
+		// 客户端可能已断开、请求 ctx 已取消，用独立 ctx 执行释放
+		for _, acc := range sessionSlotAccounts {
+			h.gatewayService.ReleaseAccountSession(context.Background(), acc, sessionKey)
+		}
+	}()
+
 	if platform == service.PlatformGemini {
 		fs := NewFailoverState(h.maxAccountSwitchesGemini, hasBoundSession)
 
@@ -355,6 +371,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			}
 			account := selection.Account
 			setOpsSelectedAccount(c, account.ID, account.Platform)
+			sessionSlotAccounts[account.ID] = account
 
 			// 检查请求拦截（预热请求、SUGGESTION MODE等）
 			if account.IsInterceptWarmupEnabled() {
@@ -477,6 +494,10 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			}
 			if accountReleaseFunc != nil {
 				accountReleaseFunc()
+			}
+			if err == nil || result != nil {
+				// 上游已实际服务该会话，保留既有空闲超时语义，不再释放会话槽。
+				upstreamServedSession = true
 			}
 			if err != nil {
 				var failoverErr *service.UpstreamFailoverError
@@ -668,6 +689,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			}
 			account := selection.Account
 			setOpsSelectedAccount(c, account.ID, account.Platform)
+			sessionSlotAccounts[account.ID] = account
 
 			// [DEBUG-STICKY] 打印账号选择结果
 			reqLog.Info("sticky.account_selected",
@@ -869,6 +891,11 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 
 			if accountReleaseFunc != nil {
 				accountReleaseFunc()
+			}
+			if err == nil || result != nil {
+				// 上游已实际服务该会话（含流中断但已观测 usage 的部分结果），
+				// 保留既有空闲超时语义，不再释放会话槽。
+				upstreamServedSession = true
 			}
 
 			// 提交 usage 记录。成功路径与"流中断但 Forward 已观测到 usage 的部分结果"
@@ -2071,6 +2098,8 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	if err := h.gatewayService.ForwardCountTokens(c.Request.Context(), c, account, parsedReq); err != nil {
 		reqLog.Error("gateway.count_tokens_forward_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 		// 错误响应已在 ForwardCountTokens 中处理
+		// 上游未服务该会话，立即释放选号时注册的会话槽（客户端可能已断开，用独立 ctx）
+		h.gatewayService.ReleaseAccountSession(context.Background(), account, sessionHash)
 		return
 	}
 }
