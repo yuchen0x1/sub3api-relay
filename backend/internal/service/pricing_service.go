@@ -189,6 +189,12 @@ func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient) *Pr
 
 // Initialize 初始化价格服务
 func (s *PricingService) Initialize() error {
+	// 校验自定义定价文件（fallback/override）：配置了但读不了/不是 JSON 对象时
+	// 启动即报错，避免运行期被静默跳过造成"已改价"与实际计费脱节。
+	if err := s.validateCustomPricingFiles(); err != nil {
+		return fmt.Errorf("invalid custom pricing file: %w", err)
+	}
+
 	// 确保数据目录存在
 	if err := os.MkdirAll(s.cfg.Pricing.DataDir, 0755); err != nil {
 		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to create data directory: %v", err)
@@ -388,6 +394,7 @@ func (s *PricingService) downloadPricingData() error {
 		return fmt.Errorf("parse pricing data: %w", err)
 	}
 	data = s.mergeFallbackPricingData(data)
+	data = s.mergeOverrideOnlyModels(data)
 
 	// 保存到本地文件
 	pricingFile := s.getPricingFilePath()
@@ -424,6 +431,8 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 	if err := json.Unmarshal(body, &rawData); err != nil {
 		return nil, fmt.Errorf("parse raw JSON: %w", err)
 	}
+	// override 层做字段级修补（值 null 删除字段），在类型化解析之前生效
+	rawData = s.applyPricingOverrides(rawData)
 
 	result := make(map[string]*LiteLLMModelPricing)
 	skipped := 0
@@ -527,6 +536,7 @@ func (s *PricingService) loadPricingData(filePath string) error {
 		return fmt.Errorf("parse pricing data: %w", err)
 	}
 	pricingData = s.mergeFallbackPricingData(pricingData)
+	pricingData = s.mergeOverrideOnlyModels(pricingData)
 
 	// 计算哈希
 	hash := sha256.Sum256(data)

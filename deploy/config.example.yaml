@@ -1116,6 +1116,15 @@ pricing:
   # Fallback pricing file
   # 备用定价文件
   fallback_file: "./resources/model-pricing/model_prices_and_context_window.json"
+  # Field-level pricing override file (optional). JSON object keyed by model name;
+  # entries are shallow-merged over the catalog/fallback layers, a field set to
+  # null removes that field, and models unknown to both layers are added as new
+  # entries (they must carry their own price fields). Re-read on every pricing
+  # update tick, so edits take effect without restarting.
+  # 字段级定价覆盖文件（可选）。按模型名组织的 JSON 对象；条目对目录/回退层做浅合并，
+  # 字段值为 null 表示删除该字段；两层都不存在的模型会作为新条目并入（须自带价格字段）。
+  # 每次定价定时刷新都会重新读取，修改后无需重启。
+  # override_file: "./resources/model-pricing/pricing_override.json"
   # Update interval in hours
   # 更新间隔（小时）
   update_interval_hours: 24

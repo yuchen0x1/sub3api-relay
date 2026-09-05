@@ -658,6 +658,10 @@ type PricingConfig struct {
 	DataDir string `mapstructure:"data_dir"`
 	// 回退文件路径
 	FallbackFile string `mapstructure:"fallback_file"`
+	// 字段级覆盖文件路径：JSON 浅合并到目录/回退层之上，字段值为 null 表示删除该字段；
+	// 目录与回退两层都不存在的模型作为独立条目并入（须自带价格字段）。
+	// 定时定价刷新会重新读取本文件，修改后无需重启。
+	OverrideFile string `mapstructure:"override_file"`
 	// 更新间隔（小时）
 	UpdateIntervalHours int `mapstructure:"update_interval_hours"`
 	// 哈希校验间隔（分钟）
