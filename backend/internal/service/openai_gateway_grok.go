@@ -182,11 +182,13 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		return s.handleErrorResponse(ctx, resp, c, account, patchedBody, upstreamModel)
 	}
 
-	s.updateGrokUsageFromResponse(ctx, account, resp.Header, resp.StatusCode)
+	s.updateGrokUsageFromResponse(withGrokTeamRateLimitModel(ctx, upstreamModel), account, resp.Header, resp.StatusCode)
 
 	var usage *OpenAIUsage
 	var firstTokenMs *int
 	responseID := ""
+	imageCount := 0
+	var imageOutputSizes []string
 	if reqStream {
 		maxLineSize := defaultMaxLineSize
 		if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
@@ -203,6 +205,8 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		usage = streamResult.usage
 		firstTokenMs = streamResult.firstTokenMs
 		responseID = strings.TrimSpace(streamResult.responseID)
+		imageCount = streamResult.imageCount
+		imageOutputSizes = streamResult.imageOutputSizes
 	} else {
 		nonStreamResult, err := s.handleNonStreamingResponse(ctx, resp, c, account, originalModel, upstreamModel)
 		if err != nil {
@@ -210,13 +214,15 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		}
 		usage = nonStreamResult.usage
 		responseID = strings.TrimSpace(nonStreamResult.responseID)
+		imageCount = nonStreamResult.imageCount
+		imageOutputSizes = nonStreamResult.imageOutputSizes
 	}
 
 	if usage == nil {
 		usage = &OpenAIUsage{}
 	}
 	reasoningEffort := extractOpenAIReasoningEffortFromBody(patchedBody, originalModel)
-	return &OpenAIForwardResult{
+	result := &OpenAIForwardResult{
 		RequestID:       firstNonEmpty(resp.Header.Get("x-request-id"), resp.Header.Get("xai-request-id")),
 		ResponseID:      responseID,
 		Usage:           *usage,
@@ -228,7 +234,15 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		ResponseHeaders: resp.Header.Clone(),
 		Duration:        time.Since(startTime),
 		FirstTokenMs:    firstTokenMs,
-	}, nil
+	}
+	// 传播共享 Responses handler 统计的图片计数——否则流式/JSON 路径虽已计数，
+	// 图片计费（CalculateImageCost / image_size 分层）永远不会生效。
+	// 搜索计费本地为按成功请求计（WebSearchCalls=1），不走该逐调用计数。
+	if imageCount > 0 {
+		result.ImageCount = imageCount
+		result.ImageOutputSizes = imageOutputSizes
+	}
+	return result, nil
 }
 
 func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
