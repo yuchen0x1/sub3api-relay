@@ -179,6 +179,16 @@ WHERE ns.nspname = 'public'
 
 	// user_allowed_groups: created_at should be timestamptz
 	requireColumn(t, tx, "user_allowed_groups", "created_at", "timestamp with time zone", 0, false)
+
+	// channel_model_pricing: max reasoning effort billing multiplier (nullable, positive)
+	requireColumn(t, tx, "channel_model_pricing", "max_reasoning_effort_multiplier", "numeric", 0, true)
+	requireConstraintDefinitionContains(
+		t,
+		tx,
+		"channel_model_pricing",
+		"chk_channel_model_pricing_max_reasoning_effort_multiplier_positive",
+		"max_reasoning_effort_multiplier IS NULL OR max_reasoning_effort_multiplier > 0",
+	)
 }
 
 func TestMigrationsRunner_AuthIdentityAndPaymentSchemaStayAligned(t *testing.T) {

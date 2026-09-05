@@ -26,6 +26,7 @@ func resolveAccountStatsCost(
 	tokens UsageTokens,
 	requestCount int,
 	totalCost float64,
+	reasoningEffort string,
 ) *float64 {
 	if channelService == nil || upstreamModel == "" {
 		return nil
@@ -38,7 +39,7 @@ func resolveAccountStatsCost(
 	platform := channelService.GetGroupPlatform(ctx, groupID)
 
 	// 优先级 1：自定义规则（始终尝试）
-	if cost := tryCustomRules(channel, accountID, groupID, platform, upstreamModel, tokens, requestCount); cost != nil {
+	if cost := tryCustomRules(channel, accountID, groupID, platform, upstreamModel, tokens, requestCount, reasoningEffort); cost != nil {
 		return cost
 	}
 
@@ -53,14 +54,15 @@ func resolveAccountStatsCost(
 
 	// 优先级 3：模型定价文件（LiteLLM）默认价格
 	if billingService != nil {
-		return tryModelFilePricing(billingService, upstreamModel, tokens)
+		return tryModelFilePricing(billingService, upstreamModel, tokens, reasoningEffort)
 	}
 
 	return nil
 }
 
 // tryModelFilePricing 使用模型定价文件（LiteLLM/fallback）中的标准价格计算费用。
-func tryModelFilePricing(billingService *BillingService, model string, tokens UsageTokens) *float64 {
+// reasoningEffort 非空且为 max 时，叠加 max 推理等级倍率（与用户计费口径一致）。
+func tryModelFilePricing(billingService *BillingService, model string, tokens UsageTokens, reasoningEffort string) *float64 {
 	pricing, err := billingService.GetModelPricing(model)
 	if err != nil || pricing == nil {
 		return nil
@@ -70,6 +72,7 @@ func tryModelFilePricing(billingService *BillingService, model string, tokens Us
 		if err != nil || breakdown == nil || breakdown.TotalCost <= 0 {
 			return nil
 		}
+		applyCostBreakdownMultiplier(breakdown, maxReasoningEffortBillingMultiplier(model, reasoningEffort, nil))
 		return &breakdown.TotalCost
 	}
 	cost := float64(tokens.InputTokens)*pricing.InputPricePerToken +
@@ -80,13 +83,16 @@ func tryModelFilePricing(billingService *BillingService, model string, tokens Us
 	if cost <= 0 {
 		return nil
 	}
+	cost *= maxReasoningEffortBillingMultiplier(model, reasoningEffort, nil)
 	return &cost
 }
 
 // tryCustomRules 遍历自定义规则，按数组顺序先命中为准。
+// reasoningEffort 为 max 时，命中的规则费用叠加 max 推理等级倍率。
 func tryCustomRules(
 	channel *Channel, accountID, groupID int64,
 	platform, model string, tokens UsageTokens, requestCount int,
+	reasoningEffort string,
 ) *float64 {
 	modelLower := strings.ToLower(model)
 	for _, rule := range channel.AccountStatsPricingRules {
@@ -97,7 +103,11 @@ func tryCustomRules(
 		if pricing == nil {
 			continue // 规则匹配但模型不在规则定价中，继续下一条
 		}
-		return calculateStatsCost(pricing, tokens, requestCount)
+		cost := calculateStatsCost(pricing, tokens, requestCount)
+		if cost != nil {
+			*cost *= maxReasoningEffortBillingMultiplier(model, reasoningEffort, nil)
+		}
+		return cost
 	}
 	return nil
 }
@@ -241,7 +251,11 @@ func applyAccountStatsCost(
 	if usageLog != nil && usageLog.ImageCount > 0 {
 		requestCount = usageLog.ImageCount
 	}
+	reasoningEffort := ""
+	if usageLog != nil && usageLog.ReasoningEffort != nil {
+		reasoningEffort = strings.TrimSpace(*usageLog.ReasoningEffort)
+	}
 	usageLog.AccountStatsCost = resolveAccountStatsCost(
-		ctx, cs, bs, accountID, groupID, model, tokens, requestCount, totalCost,
+		ctx, cs, bs, accountID, groupID, model, tokens, requestCount, totalCost, reasoningEffort,
 	)
 }

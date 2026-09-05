@@ -74,7 +74,9 @@ type userSupportedModelPricing struct {
 	ImageInputPrice  *float64                 `json:"image_input_price"`
 	ImageOutputPrice *float64                 `json:"image_output_price"`
 	PerRequestPrice  *float64                 `json:"per_request_price"`
-	Intervals        []userPricingIntervalDTO `json:"intervals"`
+	// MaxReasoningEffortMultiplier 为 max 推理等级的公开计费倍率提示；nil 表示未配置。
+	MaxReasoningEffortMultiplier *float64                 `json:"max_reasoning_effort_multiplier,omitempty"`
+	Intervals                    []userPricingIntervalDTO `json:"intervals"`
 }
 
 // userPricingIntervalDTO 定价区间白名单（去掉内部 ID、SortOrder 等前端不渲染的字段）。
@@ -315,6 +317,7 @@ func toUserPricing(p *service.ChannelModelPricing) *userSupportedModelPricing {
 		ImageInputPrice:  p.ImageInputPrice,
 		ImageOutputPrice: p.ImageOutputPrice,
 		PerRequestPrice:  p.PerRequestPrice,
+		MaxReasoningEffortMultiplier: p.MaxReasoningEffortMultiplier,
 		Intervals:        intervals,
 	}
 }

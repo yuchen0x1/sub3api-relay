@@ -42,6 +42,7 @@ export interface UserSupportedModelPricing {
   image_input_price: number | null
   image_output_price: number | null
   per_request_price: number | null
+  max_reasoning_effort_multiplier?: number | null
   intervals: UserPricingInterval[]
 }
 

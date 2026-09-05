@@ -24,6 +24,8 @@ export interface PricingFormEntry {
   image_input_price: number | string | null
   image_output_price: number | string | null
   per_request_price: number | string | null
+  /** max 推理等级计费倍率；非价格字段，不做 $/MTok 换算 */
+  max_reasoning_effort_multiplier: number | string | null
   intervals: IntervalFormEntry[]
 }
 

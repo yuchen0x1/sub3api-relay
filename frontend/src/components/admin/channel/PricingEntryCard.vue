@@ -132,6 +132,11 @@
               <input :value="entry.image_output_price" @input="emitField('image_output_price', ($event.target as HTMLInputElement).value)"
                 type="number" step="any" min="0" class="input mt-0.5 text-sm" :placeholder="t('admin.channels.form.pricePlaceholder')" />
             </div>
+            <div>
+              <label class="text-xs text-gray-400">{{ t('admin.channels.form.maxReasoningEffortMultiplier') }}</label>
+              <input :value="entry.max_reasoning_effort_multiplier" @input="emitField('max_reasoning_effort_multiplier', ($event.target as HTMLInputElement).value)"
+                type="number" step="any" min="0.000001" class="input mt-0.5 text-sm" :placeholder="maxReasoningEffortMultiplierPlaceholder" />
+            </div>
           </div>
 
           <!-- Token intervals -->
@@ -269,6 +274,13 @@ const billingModeLabel = computed(() => {
   return opt ? opt.label : props.entry.billing_mode
 })
 
+// fable-5.1 系列有内置 3x max 推理倍率默认值，占位符提示管理员可不配置。
+const maxReasoningEffortMultiplierPlaceholder = computed(() =>
+  props.entry.models.some(model => /fable(?:-5-1|-5\.1|5\.1|51)(?!\d)/i.test(model))
+    ? t('admin.channels.form.fable51DefaultMaxReasoningMultiplier')
+    : t('admin.channels.form.multiplierPlaceholder')
+)
+
 function emitField(field: keyof PricingFormEntry, value: string) {
   emit('update', { ...props.entry, [field]: value === '' ? null : value })
 }
@@ -335,6 +347,7 @@ async function onModelsUpdate(newModels: string[]) {
         cache_read_price: perTokenToMTok(result.cache_read_price ?? null),
         image_input_price: perTokenToMTok(result.image_input_price ?? null),
         image_output_price: perTokenToMTok(result.image_output_price ?? null),
+        max_reasoning_effort_multiplier: result.max_reasoning_effort_multiplier ?? null,
       })
     }
   } catch {
