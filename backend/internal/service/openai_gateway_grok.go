@@ -112,24 +112,32 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 			return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
 		}
 
-		// xAI can reject encrypted reasoning copied from a response produced under
-		// another account or cache identity. Retry once with the same routing and
-		// credential after removing only the rejected encrypted reasoning payload.
-		if attempt > 0 || resp.StatusCode != http.StatusBadRequest {
+		// xAI can reject encrypted reasoning or a compaction blob copied from a
+		// different decoder/cache context. Retry once on the same account after
+		// preserving visible summaries and removing only opaque replay state.
+		if attempt > 0 || (resp.StatusCode != http.StatusBadRequest && resp.StatusCode != http.StatusUnprocessableEntity) {
 			break
 		}
 		respBody := s.readUpstreamErrorBody(resp)
 		if resp.Body != nil {
 			_ = resp.Body.Close()
 		}
-		if !isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody) {
+		invalidEncryptedContent := isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody)
+		if !invalidEncryptedContent && !isGrokCompactionReplayDecodeError(resp.StatusCode, respBody) {
 			resp.Body = io.NopCloser(bytes.NewReader(respBody))
 			break
 		}
 
-		retryBody, changed, trimErr := trimGrokInvalidEncryptedContentRetryBody(patchedBody)
+		var retryBody []byte
+		var changed bool
+		var trimErr error
+		if invalidEncryptedContent {
+			retryBody, changed, trimErr = trimGrokInvalidEncryptedContentRetryBody(patchedBody)
+		} else {
+			retryBody, changed, trimErr = sanitizeGrokCompactionReplayBody(patchedBody)
+		}
 		if trimErr != nil {
-			return nil, fmt.Errorf("prepare Grok invalid encrypted_content retry: %w", trimErr)
+			return nil, fmt.Errorf("prepare Grok replay decode retry: %w", trimErr)
 		}
 		if !changed {
 			resp.Body = io.NopCloser(bytes.NewReader(respBody))
@@ -137,7 +145,7 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		}
 
 		patchedBody = retryBody
-		slog.Info("grok_invalid_encrypted_content_retry", "account_id", account.ID, "cache_identity_present", cacheIdentity != "")
+		slog.Info("grok_replay_decode_retry", "account_id", account.ID, "cache_identity_present", cacheIdentity != "")
 	}
 	defer func() { _ = resp.Body.Close() }()
 
