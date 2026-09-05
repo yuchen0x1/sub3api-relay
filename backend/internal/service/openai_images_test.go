@@ -519,7 +519,7 @@ func TestOpenAIImageRedirectPolicyStripsHeadersAcrossOrigins(t *testing.T) {
 	next.Header.Set("X-Account-Token", "secret")
 	next.Header.Set("Accept", "image/*")
 	next.Header.Set("User-Agent", "test-agent")
-	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file/download", nil)
+	via, err := http.NewRequest(http.MethodGet, "https://93.184.216.34/backend-api/files/file/download", nil)
 	require.NoError(t, err)
 	via.Header = next.Header.Clone()
 
@@ -532,10 +532,10 @@ func TestOpenAIImageRedirectPolicyStripsHeadersAcrossOrigins(t *testing.T) {
 }
 
 func TestOpenAIImageRedirectPolicyKeepsHeadersSameOrigin(t *testing.T) {
-	next, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file/download", nil)
+	next, err := http.NewRequest(http.MethodGet, "https://93.184.216.34/backend-api/files/file/download", nil)
 	require.NoError(t, err)
 	next.Header.Set("Authorization", "Bearer secret")
-	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file", nil)
+	via, err := http.NewRequest(http.MethodGet, "https://93.184.216.34/backend-api/files/file", nil)
 	require.NoError(t, err)
 	via.Header = next.Header.Clone()
 
@@ -546,7 +546,7 @@ func TestOpenAIImageRedirectPolicyKeepsHeadersSameOrigin(t *testing.T) {
 func TestOpenAIImageRedirectPolicyRejectsPrivateTarget(t *testing.T) {
 	next, err := http.NewRequest(http.MethodGet, "http://127.0.0.1/image.png", nil)
 	require.NoError(t, err)
-	via, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/backend-api/files/file", nil)
+	via, err := http.NewRequest(http.MethodGet, "https://93.184.216.34/backend-api/files/file", nil)
 	require.NoError(t, err)
 
 	err = openAIImageRedirectPolicy()(next, []*http.Request{via})

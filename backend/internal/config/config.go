@@ -716,6 +716,7 @@ type ForwardedClientIPSettings struct {
 }
 
 type SecurityConfig struct {
+	URLAllowlist    URLAllowlistConfig   `mapstructure:"url_allowlist"`
 	ResponseHeaders ResponseHeaderConfig `mapstructure:"response_headers"`
 	CSP             CSPConfig            `mapstructure:"csp"`
 	ProxyFallback   ProxyFallbackConfig  `mapstructure:"proxy_fallback"`
@@ -725,6 +726,18 @@ type SecurityConfig struct {
 	TrustForwardedIPForAPIKeyACL  bool                                       `mapstructure:"trust_forwarded_ip_for_api_key_acl"`
 	ForwardedClientIPHeaders      []string                                   `mapstructure:"forwarded_client_ip_headers" json:"forwarded_client_ip_headers" yaml:"forwarded_client_ip_headers"`
 	forwardedClientIPSettingsLive *atomic.Pointer[ForwardedClientIPSettings] `mapstructure:"-" json:"-" yaml:"-"`
+}
+
+// URLAllowlistConfig 上游/定价/CRS 等出站 URL 白名单。
+// 未启用（enabled=false）时保持历史行为：仅校验 URL 格式与 HTTPS。
+type URLAllowlistConfig struct {
+	Enabled           bool     `mapstructure:"enabled"`
+	UpstreamHosts     []string `mapstructure:"upstream_hosts"`
+	PricingHosts      []string `mapstructure:"pricing_hosts"`
+	CRSHosts          []string `mapstructure:"crs_hosts"`
+	AllowPrivateHosts bool     `mapstructure:"allow_private_hosts"`
+	// 关闭 URL 白名单校验时，是否允许 http URL（默认只允许 https）
+	AllowInsecureHTTP bool `mapstructure:"allow_insecure_http"`
 }
 
 func NormalizeForwardedClientIPHeaders(headers []string) ([]string, error) {

@@ -478,7 +478,7 @@ func (s *GeminiMessagesCompatService) listSchedulableAccountsOnce(ctx context.Co
 }
 
 func (s *GeminiMessagesCompatService) validateUpstreamBaseURL(raw string) (string, error) {
-	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	normalized, err := urlvalidator.ValidateURLFormat(raw, true)
 	if err != nil {
 		return "", fmt.Errorf("invalid base_url: %w", err)
 	}

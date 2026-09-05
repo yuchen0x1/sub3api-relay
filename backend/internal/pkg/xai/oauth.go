@@ -232,7 +232,7 @@ func runtimeSanityCheck(value string, envKey string, validate func(string) (stri
 }
 
 func validateRedirectURI(raw string) (string, error) {
-	return urlvalidator.ValidateURLFormat(raw)
+	return urlvalidator.ValidateURLFormat(raw, true)
 }
 
 func sanitizeRuntimeURLValue(raw string) string {
@@ -264,14 +264,14 @@ func sanitizeRuntimeError(rawErr string, rawValue string) string {
 
 func ValidateOAuthEndpointURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw)
+		return urlvalidator.ValidateURLFormat(raw, true)
 	}
 	return validateHTTPSAgainstHosts(raw, oauthEndpointAllowedHosts)
 }
 
 func ValidateBaseURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw)
+		return urlvalidator.ValidateURLFormat(raw, true)
 	}
 	normalized, err := validateHTTPSAgainstHosts(raw, nil)
 	if err != nil {
@@ -282,7 +282,7 @@ func ValidateBaseURL(raw string) (string, error) {
 
 func ValidateTrustedBaseURL(raw string) (string, error) {
 	if AllowUnsafeURLOverrides() {
-		return urlvalidator.ValidateURLFormat(raw)
+		return urlvalidator.ValidateURLFormat(raw, true)
 	}
 	normalized, err := validateHTTPSAgainstHosts(raw, baseURLAllowedHosts)
 	if err != nil {
@@ -296,7 +296,7 @@ func ValidateTrustedBaseURL(raw string) (string, error) {
 // https + 非内网校验（任意公网第三方域名可过）。该边界服务于 OAuth 端点
 // 信任校验，与运行时上游 Base URL 的开放策略无关。
 func validateHTTPSAgainstHosts(raw string, allowedHosts []string) (string, error) {
-	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	normalized, err := urlvalidator.ValidateURLFormat(raw, true)
 	if err != nil {
 		return "", err
 	}

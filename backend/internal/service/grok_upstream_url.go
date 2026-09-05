@@ -41,7 +41,7 @@ func grokBaseURLValidator(account *Account, cfg *config.Config) (xai.BaseURLVali
 // 不再做域名白名单或内网限制）。
 func grokOperatorPolicyValidator() xai.BaseURLValidator {
 	return func(raw string) (string, error) {
-		return urlvalidator.ValidateURLFormat(raw)
+		return urlvalidator.ValidateURLFormat(raw, true)
 	}
 }
 

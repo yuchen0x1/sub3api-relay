@@ -156,7 +156,7 @@ func fetchSubscriptionWithClientUA(client *http.Client, httpReq *http.Request) (
 // validateSubscriptionURL 校验订阅地址：格式合法、必须为 https、host 不得为
 // localhost/私网字面量（解析后的 IP 由 safeSubscriptionDialContext 拦截）。
 func validateSubscriptionURL(raw string) (string, error) {
-	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	normalized, err := urlvalidator.ValidateURLFormat(raw, true)
 	if err != nil {
 		return "", err
 	}

@@ -147,7 +147,7 @@ func (s *ManusGatewayService) WriteResponse(dst http.ResponseWriter, resp *http.
 }
 
 func (s *ManusGatewayService) validateBaseURL(raw string) (string, error) {
-	normalized, err := urlvalidator.ValidateURLFormat(raw)
+	normalized, err := urlvalidator.ValidateURLFormat(raw, true)
 	if err != nil {
 		return "", fmt.Errorf("invalid Manus base_url: %w", err)
 	}

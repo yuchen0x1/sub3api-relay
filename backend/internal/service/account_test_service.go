@@ -103,7 +103,7 @@ func NewAccountTestService(
 }
 
 func (s *AccountTestService) validateUpstreamBaseURL(raw string) (string, error) {
-	return urlvalidator.ValidateURLFormat(raw)
+	return urlvalidator.ValidateURLFormat(raw, true)
 }
 
 // generateSessionString generates a Claude Code style session string.
