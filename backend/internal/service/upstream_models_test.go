@@ -438,3 +438,43 @@ func TestFetchUpstreamSupportedModelsDoesNotExposeUpstreamBody(t *testing.T) {
 	require.NotContains(t, syncErr.SafeMessage(), "SECRET_TOKEN")
 	require.Contains(t, syncErr.SafeMessage(), "HTTP 502")
 }
+
+func TestExtractCodexManifestModelIDs(t *testing.T) {
+	body := []byte(`{"models":[
+		{"slug":"gpt-5.6","display_name":"GPT-5.6"},
+		{"slug":"gpt-5.3-codex-spark"},
+		{"slug":"  gpt-5.6  "},
+		{"slug":""},
+		{"display_name":"missing slug"}
+	],"payment_source":{}}`)
+
+	models, err := extractCodexManifestModelIDs(body)
+	require.NoError(t, err)
+	require.Equal(t, []string{"gpt-5.3-codex-spark", "gpt-5.6"}, models)
+
+	_, err = extractCodexManifestModelIDs([]byte("not json"))
+	require.Error(t, err)
+
+	empty, err := extractCodexManifestModelIDs([]byte(`{"models":[]}`))
+	require.NoError(t, err)
+	require.Empty(t, empty)
+}
+
+// OpenAI OAuth 账号必须走 Codex manifest 路径，而不是被当作不支持。
+func TestFetchUpstreamSupportedModelsOpenAIOAuthRoutesToCodexManifest(t *testing.T) {
+	svc := &AccountTestService{}
+
+	_, err := svc.FetchUpstreamSupportedModels(context.Background(), &Account{
+		ID:       12,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeOAuth,
+	})
+
+	var syncErr *UpstreamModelSyncError
+	require.Error(t, err)
+	require.True(t, errors.As(err, &syncErr))
+	// 未配置网关服务时应得到 configuration 错误（而非旧行为的 unsupported），
+	// 说明请求已被路由到 Codex manifest 同步分支。
+	require.Equal(t, UpstreamModelSyncErrorConfiguration, syncErr.Kind)
+	require.Contains(t, syncErr.SafeMessage(), "OpenAI gateway service is not configured")
+}

@@ -231,6 +231,7 @@ func ProvideAccountTestService(
 		tlsFPProfileService,
 	)
 	service.agentIdentityWS = openAIGatewayService
+	service.openaiGatewayService = openAIGatewayService
 	return service
 }
 

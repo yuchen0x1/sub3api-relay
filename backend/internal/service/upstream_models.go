@@ -12,6 +12,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/geminicli"
+	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 )
 
 const upstreamModelsBodyLimit int64 = 8 << 20
@@ -83,6 +84,12 @@ func (s *AccountTestService) FetchUpstreamSupportedModels(ctx context.Context, a
 
 	if account.Platform == PlatformAntigravity && account.Type != AccountTypeAPIKey {
 		return s.fetchAntigravityOAuthUpstreamModels(ctx, account)
+	}
+
+	// OpenAI OAuth/Codex 账号没有 API key，无法调用标准 /v1/models；改走
+	// ChatGPT 后端的 Codex models manifest（与 Codex 客户端选模型同源）。
+	if account.IsOpenAI() && account.Type != AccountTypeAPIKey {
+		return s.fetchOpenAIOAuthUpstreamModels(ctx, account)
 	}
 
 	if s.httpUpstream == nil {
@@ -425,6 +432,52 @@ func (s *AccountTestService) buildGeminiUpstreamModelsRequest(ctx context.Contex
 	}
 
 	return req, nil
+}
+
+// fetchOpenAIOAuthUpstreamModels syncs the live Codex models manifest from the
+// ChatGPT backend. OAuth accounts cannot call the standard /v1/models endpoint
+// (no API key), so the manifest that Codex clients use for model discovery is
+// the authoritative upstream source instead.
+func (s *AccountTestService) fetchOpenAIOAuthUpstreamModels(ctx context.Context, account *Account) ([]string, error) {
+	if s.openaiGatewayService == nil {
+		return nil, newUpstreamModelSyncConfigError("OpenAI gateway service is not configured", nil)
+	}
+	manifest, err := s.openaiGatewayService.FetchCodexModelsManifest(ctx, account, "", "")
+	if err != nil {
+		message := fmt.Sprintf("Failed to fetch OpenAI Codex models manifest: %s", infraerrors.Message(err))
+		return nil, newUpstreamModelSyncUpstreamError(message, err)
+	}
+	if manifest == nil || len(manifest.Body) == 0 {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream returned an empty Codex models manifest", nil)
+	}
+	models, err := extractCodexManifestModelIDs(manifest.Body)
+	if err != nil {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream Codex models manifest was not valid JSON", err)
+	}
+	if len(models) == 0 {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream returned no supported models", nil)
+	}
+	return models, nil
+}
+
+// extractCodexManifestModelIDs parses the Codex models manifest envelope
+// ({"models":[{"slug":...},...]}) into deduplicated model IDs.
+func extractCodexManifestModelIDs(body []byte) ([]string, error) {
+	var envelope struct {
+		Models []struct {
+			Slug string `json:"slug"`
+		} `json:"models"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, err
+	}
+	models := make([]string, 0, len(envelope.Models))
+	for _, model := range envelope.Models {
+		if id := strings.TrimSpace(model.Slug); id != "" {
+			models = append(models, id)
+		}
+	}
+	return dedupeAndSortModelIDs(models), nil
 }
 
 func (s *AccountTestService) fetchAntigravityOAuthUpstreamModels(ctx context.Context, account *Account) ([]string, error) {
