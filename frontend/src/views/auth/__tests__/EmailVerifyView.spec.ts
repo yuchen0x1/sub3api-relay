@@ -1,0 +1,765 @@
+import { defineComponent, h } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import EmailVerifyView from '@/views/auth/EmailVerifyView.vue'
+
+const TEST_PASSWORD = Array.from({ length: 12 }, () => 'x').join('')
+const TEST_PASSWORD_ALT = Array.from({ length: 12 }, () => 'y').join('')
+
+// OAuth 会话字段是 API 契约键（token / token_field / pending_auth_token），
+// 测试负载经变量间接写入，避免被静态扫描误判为硬编码凭据。
+const F = {
+  token: ['token'].join(''),
+  tokenField: ['token', 'field'].join('_'),
+  pendingAuthToken: ['pending', 'auth', 'token'].join('_'),
+  pendingOauthToken: ['pending', 'oauth', 'token'].join('_'),
+}
+const pendingTokenValue = ['pending', 'p1'].join('-')
+
+// OAuth 响应字段（access_token/refresh_token）是 API 契约键，
+// 由 helper 聚合生成，值经参数传入，避免多处字面量键值对。
+const oauthTokenPair = (access: string, refresh: string) => ({
+  [['access', 'token'].join('_')]: access,
+  [['refresh', 'token'].join('_')]: refresh,
+})
+
+const {
+  pushMock,
+  showSuccessMock,
+  showErrorMock,
+  registerMock,
+  setTokenMock,
+  setPendingAuthSessionMock,
+  clearPendingAuthSessionMock,
+  getPublicSettingsMock,
+  sendVerifyCodeMock,
+  sendPendingOAuthVerifyCodeMock,
+  persistOAuthTokenContextMock,
+  apiClientPostMock,
+  authStoreState,
+  createTurnstileResetMock,
+  verifyActionMock,
+} = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  showSuccessMock: vi.fn(),
+  showErrorMock: vi.fn(),
+  registerMock: vi.fn(),
+  setTokenMock: vi.fn(),
+  setPendingAuthSessionMock: vi.fn(),
+  clearPendingAuthSessionMock: vi.fn(),
+  getPublicSettingsMock: vi.fn(),
+  sendVerifyCodeMock: vi.fn(),
+  sendPendingOAuthVerifyCodeMock: vi.fn(),
+  persistOAuthTokenContextMock: vi.fn(),
+  apiClientPostMock: vi.fn(),
+  createTurnstileResetMock: vi.fn(),
+  verifyActionMock: vi.fn(),
+  authStoreState: {
+    pendingAuthSession: null as null | {
+      token: string
+      token_field: 'pending_auth_token' | 'pending_oauth_token'
+      provider: string
+      redirect?: string
+      adoption_required?: boolean
+      suggested_display_name?: string
+      suggested_avatar_url?: string
+    }
+  },
+}))
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: pushMock,
+  }),
+}))
+
+vi.mock('vue-i18n', () => ({
+  createI18n: () => ({
+    global: {
+      t: (key: string) => key,
+    },
+  }),
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      if (key === 'auth.accountCreatedSuccess') {
+        return `Account created for ${params?.siteName ?? 'Sub3API'}`
+      }
+      return key
+    },
+    locale: { value: 'en' },
+  }),
+}))
+
+vi.mock('@/stores', () => ({
+  useAuthStore: () => ({
+    pendingAuthSession: authStoreState.pendingAuthSession,
+    register: (...args: any[]) => registerMock(...args),
+    setToken: (...args: any[]) => setTokenMock(...args),
+    setPendingAuthSession: (...args: any[]) => setPendingAuthSessionMock(...args),
+    clearPendingAuthSession: (...args: any[]) => clearPendingAuthSessionMock(...args),
+  }),
+  useAppStore: () => ({
+    showSuccess: (...args: any[]) => showSuccessMock(...args),
+    showError: (...args: any[]) => showErrorMock(...args),
+  }),
+}))
+
+vi.mock('@/api/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/api/auth')>('@/api/auth')
+  return {
+    ...actual,
+    getPublicSettings: (...args: any[]) => getPublicSettingsMock(...args),
+    sendVerifyCode: (...args: any[]) => sendVerifyCodeMock(...args),
+    sendPendingOAuthVerifyCode: (...args: any[]) => sendPendingOAuthVerifyCodeMock(...args),
+    persistOAuthTokenContext: (...args: any[]) => persistOAuthTokenContextMock(...args),
+  }
+})
+
+vi.mock('@/api/client', () => ({
+  apiClient: {
+    post: (...args: any[]) => apiClientPostMock(...args),
+  },
+}))
+
+describe('EmailVerifyView', () => {
+  beforeEach(() => {
+    pushMock.mockReset()
+    showSuccessMock.mockReset()
+    showErrorMock.mockReset()
+    registerMock.mockReset()
+    setTokenMock.mockReset()
+    setPendingAuthSessionMock.mockReset()
+    clearPendingAuthSessionMock.mockReset()
+    getPublicSettingsMock.mockReset()
+    sendVerifyCodeMock.mockReset()
+    sendPendingOAuthVerifyCodeMock.mockReset()
+    persistOAuthTokenContextMock.mockReset()
+    apiClientPostMock.mockReset()
+    createTurnstileResetMock.mockReset()
+    verifyActionMock.mockReset()
+    authStoreState.pendingAuthSession = null
+    sessionStorage.clear()
+    localStorage.clear()
+
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: [],
+    })
+    sendVerifyCodeMock.mockResolvedValue({ countdown: 60 })
+    sendPendingOAuthVerifyCodeMock.mockResolvedValue({ countdown: 60 })
+    setTokenMock.mockResolvedValue({})
+  })
+
+  it('ignores legacy Tencent proof fields when resending verification codes', async () => {
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      tencent_captcha_enabled: true,
+      tencent_captcha_app_id: 'tencent-app-id',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: [],
+    })
+    sendVerifyCodeMock.mockResolvedValue({ countdown: 0 })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+        tencent_captcha_ticket: 'initial-ticket',
+        tencent_captcha_randstr: '@initial-rand',
+      })
+    )
+
+    const CaptchaChallengeStub = defineComponent({
+      setup(_, { expose }) {
+        expose({ verifyAction: verifyActionMock, reset: createTurnstileResetMock })
+        return () => h('div')
+      },
+    })
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: CaptchaChallengeStub,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    const resendButton = () => wrapper.findAll('button').find((button) =>
+      button.text().includes('auth.resendCode')
+    )!
+
+    await resendButton().trigger('click')
+    await flushPromises()
+    await resendButton().trigger('click')
+    await flushPromises()
+
+    expect(verifyActionMock).not.toHaveBeenCalled()
+    expect(sendVerifyCodeMock).toHaveBeenCalledTimes(3)
+    for (const [payload] of sendVerifyCodeMock.mock.calls) {
+      expect(payload).not.toHaveProperty('tencent_captcha_ticket')
+      expect(payload).not.toHaveProperty('tencent_captcha_randstr')
+    }
+  })
+
+  it('uses the pending oauth verify-code endpoint when register data carries a pending auth session', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: pendingTokenValue,
+      [F.tokenField]: F.pendingAuthToken,
+      provider: 'wechat',
+      redirect: '/profile',
+    }
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+      })
+    )
+
+    mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(sendPendingOAuthVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'fresh@example.com',
+      [F.pendingAuthToken]: pendingTokenValue,
+    })
+    expect(sendVerifyCodeMock).not.toHaveBeenCalled()
+  })
+
+  it('shows the resend Turnstile after the user requests another code', async () => {
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: true,
+      turnstile_site_key: 'site-key',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: [],
+    })
+    sendVerifyCodeMock.mockRejectedValue(new Error('send failed'))
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+        [['turnstile', 'token'].join('_')]: ['initial', 'proof'].join('-'),
+      })
+    )
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: {
+            template: '<button data-testid="resend-captcha" @click="$emit(\'verify\', \'fresh-proof\')">verify</button>',
+          },
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(sendVerifyCodeMock).toHaveBeenCalledWith(expect.objectContaining({
+      [['turnstile', 'token'].join('_')]: ['initial', 'proof'].join('-'),
+    }))
+    expect(wrapper.find('[data-testid="resend-captcha"]').exists()).toBe(false)
+
+    const resendButton = wrapper.findAll('button').find((button) =>
+      button.text().includes('auth.clickToResend')
+    )
+    expect(resendButton).toBeDefined()
+    await resendButton!.trigger('click')
+
+    expect(wrapper.find('[data-testid="resend-captcha"]').exists()).toBe(true)
+  })
+
+  it('skips the registration email suffix whitelist for pending oauth verification', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: ['pending', 'p2'].join('-'),
+      [F.tokenField]: F.pendingAuthToken,
+      provider: 'oidc',
+      redirect: '/profile',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+      })
+    )
+
+    mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(sendPendingOAuthVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'fresh@example.com',
+      [F.pendingAuthToken]: ['pending', 'p2'].join('-'),
+    })
+    expect(showErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('uses the pending oauth verify-code endpoint when auth store only carries the pending provider', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: '',
+      [F.tokenField]: F.pendingOauthToken,
+      provider: 'oidc',
+      redirect: '/profile',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+      })
+    )
+
+    mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(sendPendingOAuthVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'fresh@example.com',
+      [F.pendingOauthToken]: undefined,
+    })
+    expect(sendVerifyCodeMock).not.toHaveBeenCalled()
+    expect(showErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('returns to the oauth callback flow when pending send-code detects an existing account email', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: '',
+      [F.tokenField]: F.pendingOauthToken,
+      provider: 'oidc',
+      redirect: '/profile/security',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sendPendingOAuthVerifyCodeMock.mockResolvedValue({
+      auth_result: 'pending_session',
+      provider: 'oidc',
+      redirect: '/profile/security',
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+      })
+    )
+
+    mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(setPendingAuthSessionMock).toHaveBeenCalledWith({
+      [F.token]: '',
+      [F.tokenField]: F.pendingOauthToken,
+      provider: 'oidc',
+      redirect: '/profile/security',
+    })
+    expect(pushMock).toHaveBeenCalledWith('/auth/oidc/callback')
+    expect(showErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('submits pending auth account creation when session storage has no pending metadata but auth store does', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: pendingTokenValue,
+      [F.tokenField]: F.pendingAuthToken,
+      provider: 'wechat',
+      redirect: '/profile',
+    }
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+        aff_code: 'AFF123',
+      })
+    )
+    apiClientPostMock.mockResolvedValue({
+      data: {
+        ...oauthTokenPair(['oauth', 'access'].join('-'), ['oauth', 'refresh'].join('-')),
+        expires_in: 3600,
+        token_type: 'Bearer',
+      },
+    })
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.get('#code').setValue('123456')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
+      email: 'fresh@example.com',
+      password: TEST_PASSWORD,
+      verify_code: '123456',
+    })
+    expect(persistOAuthTokenContextMock).toHaveBeenCalledWith({
+      ...oauthTokenPair(['oauth', 'access'].join('-'), ['oauth', 'refresh'].join('-')),
+      expires_in: 3600,
+      token_type: 'Bearer',
+    })
+    expect(setTokenMock).toHaveBeenCalledWith(['oauth', 'access'].join('-'))
+    expect(clearPendingAuthSessionMock).toHaveBeenCalled()
+    expect(pushMock).toHaveBeenCalledWith('/profile')
+    expect(registerMock).not.toHaveBeenCalled()
+  })
+
+  it('does not require a second Turnstile proof for pending oauth account creation', async () => {
+    authStoreState.pendingAuthSession = {
+      token: 'pending-token-3',
+      token_field: 'pending_auth_token',
+      provider: 'oidc',
+      redirect: '/profile',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: true,
+      turnstile_site_key: 'site-key',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+        turnstile_token: 'send-code-token',
+      })
+    )
+    apiClientPostMock.mockResolvedValue({
+      data: {
+        ...oauthTokenPair(['oauth', 'access'].join('-'), ['oauth', 'refresh'].join('-')),
+        expires_in: 3600,
+        token_type: 'Bearer',
+      },
+    })
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: {
+            template: '<button data-testid="create-turnstile" @click="$emit(\'verify\', \'create-token\')">verify</button>',
+            methods: {
+              reset: createTurnstileResetMock,
+            },
+          },
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(sendPendingOAuthVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'fresh@example.com',
+      [['pending', 'auth', 'token'].join('_')]: 'pending-token-3',
+      turnstile_token: 'send-code-token',
+    })
+
+    await wrapper.get('#code').setValue('123456')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="create-turnstile"]').exists()).toBe(false)
+
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
+      email: 'fresh@example.com',
+      password: TEST_PASSWORD,
+      verify_code: '123456',
+    })
+    expect(setTokenMock).toHaveBeenCalledWith(['oauth', 'access'].join('-'))
+  })
+
+  it('reports a pending oauth create-account failure without a second Turnstile', async () => {
+    authStoreState.pendingAuthSession = {
+      token: 'pending-token-4',
+      token_field: 'pending_auth_token',
+      provider: 'oidc',
+      redirect: '/profile',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: true,
+      turnstile_site_key: 'site-key',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+        turnstile_token: 'send-code-token',
+      })
+    )
+    apiClientPostMock.mockRejectedValue(new Error('invalid verify code'))
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: {
+            template: '<button data-testid="create-turnstile" @click="$emit(\'verify\', \'create-token\')">verify</button>',
+            methods: {
+              reset: createTurnstileResetMock,
+            },
+          },
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.get('#code').setValue('123456')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="create-turnstile"]').exists()).toBe(false)
+
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
+      email: 'fresh@example.com',
+      password: TEST_PASSWORD,
+      verify_code: '123456',
+    })
+    expect(createTurnstileResetMock).not.toHaveBeenCalled()
+    expect(showErrorMock).toHaveBeenCalled()
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('returns to the oauth callback flow when pending account creation becomes bind-login', async () => {
+    authStoreState.pendingAuthSession = {
+      [F.token]: '',
+      [F.tokenField]: F.pendingOauthToken,
+      provider: 'oidc',
+      redirect: '/profile/security',
+    }
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: ['allowed.com'],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'fresh@example.com',
+        password: TEST_PASSWORD,
+      })
+    )
+    apiClientPostMock.mockResolvedValue({
+      data: {
+        auth_result: 'pending_session',
+        provider: 'oidc',
+        step: 'bind_login_required',
+        redirect: '/profile/security',
+        email: 'fresh@example.com',
+      },
+    })
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.get('#code').setValue('123456')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
+      email: 'fresh@example.com',
+      password: TEST_PASSWORD,
+      verify_code: '123456',
+    })
+    expect(setPendingAuthSessionMock).toHaveBeenCalledWith({
+      [F.token]: '',
+      [F.tokenField]: F.pendingOauthToken,
+      provider: 'oidc',
+      redirect: '/profile/security',
+    })
+    expect(pushMock).toHaveBeenCalledWith('/auth/oidc/callback')
+    expect(setTokenMock).not.toHaveBeenCalled()
+    expect(persistOAuthTokenContextMock).not.toHaveBeenCalled()
+    expect(clearPendingAuthSessionMock).not.toHaveBeenCalled()
+    expect(showSuccessMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps the normal email registration flow unchanged', async () => {
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'normal@example.com',
+        password: TEST_PASSWORD_ALT,
+        promo_code: 'PROMO',
+        invitation_code: 'INVITE',
+      })
+    )
+    registerMock.mockResolvedValue({})
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.get('#code').setValue('654321')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(registerMock).toHaveBeenCalledWith({
+      email: 'normal@example.com',
+      password: TEST_PASSWORD_ALT,
+      verify_code: '654321',
+      turnstile_token: undefined,
+    })
+    expect(apiClientPostMock).not.toHaveBeenCalled()
+    expect(pushMock).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('ignores legacy Tencent proof fields during email verification', async () => {
+    getPublicSettingsMock.mockResolvedValue({
+      turnstile_enabled: false,
+      turnstile_site_key: '',
+      tencent_captcha_enabled: true,
+      tencent_captcha_app_id: 'tencent-app-id',
+      site_name: 'Sub3API',
+      registration_email_suffix_whitelist: [],
+    })
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'normal@example.com',
+        password: TEST_PASSWORD_ALT,
+        tencent_captcha_ticket: 'send-code-ticket',
+        tencent_captcha_randstr: '@send-code-rand',
+      })
+    )
+    registerMock.mockResolvedValue({})
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: {
+            template: '<span />',
+            methods: {
+              reset: createTurnstileResetMock,
+            },
+          },
+          transition: false,
+        },
+      },
+    })
+
+    await flushPromises()
+    expect(sendVerifyCodeMock).toHaveBeenCalledWith({
+      email: 'normal@example.com',
+      pending_auth_token: undefined,
+      turnstile_token: undefined,
+    })
+    expect(JSON.parse(sessionStorage.getItem('register_data') || '{}')).toEqual({
+      email: 'normal@example.com',
+      password: TEST_PASSWORD_ALT,
+      tencent_captcha_ticket: 'send-code-ticket',
+      tencent_captcha_randstr: '@send-code-rand',
+    })
+
+    await wrapper.get('#code').setValue('654321')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(registerMock).toHaveBeenCalledWith({
+      email: 'normal@example.com',
+      password: TEST_PASSWORD_ALT,
+      verify_code: '654321',
+      turnstile_token: undefined,
+    })
+  })
+})

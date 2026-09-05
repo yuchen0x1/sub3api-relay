@@ -1,0 +1,77 @@
+package handler
+
+import (
+	"github.com/yuchen0x1/sub3api-relay/internal/handler/admin"
+	"github.com/yuchen0x1/sub3api-relay/internal/securityaudit"
+)
+
+// AdminHandlers contains all admin-related HTTP handlers
+type AdminHandlers struct {
+	Dashboard              *admin.DashboardHandler
+	User                   *admin.UserHandler
+	Group                  *admin.GroupHandler
+	Account                *admin.AccountHandler
+	Announcement           *admin.AnnouncementHandler
+	DataManagement         *admin.DataManagementHandler
+	Backup                 *admin.BackupHandler
+	OAuth                  *admin.OAuthHandler
+	OpenAIOAuth            *admin.OpenAIOAuthHandler
+	GeminiOAuth            *admin.GeminiOAuthHandler
+	AntigravityOAuth       *admin.AntigravityOAuthHandler
+	GrokOAuth              *admin.GrokOAuthHandler
+	Proxy                  *admin.ProxyHandler
+	Redeem                 *admin.RedeemHandler
+	Promo                  *admin.PromoHandler
+	Setting                *admin.SettingHandler
+	Ops                    *admin.OpsHandler
+	System                 *admin.SystemHandler
+	Subscription           *admin.SubscriptionHandler
+	Usage                  *admin.UsageHandler
+	UserAttribute          *admin.UserAttributeHandler
+	ErrorPassthrough       *admin.ErrorPassthroughHandler
+	TLSFingerprintProfile  *admin.TLSFingerprintProfileHandler
+	APIKey                 *admin.AdminAPIKeyHandler
+	ScheduledTest          *admin.ScheduledTestHandler
+	Channel                *admin.ChannelHandler
+	ChannelMonitor         *admin.ChannelMonitorHandler
+	ChannelMonitorTemplate *admin.ChannelMonitorRequestTemplateHandler
+	ContentModeration      *admin.ContentModerationHandler
+	PromptAudit            *securityaudit.PromptAdminHandler
+	Payment                *admin.PaymentHandler
+	Affiliate              *admin.AffiliateHandler
+	Compliance             *admin.ComplianceHandler
+	AuditLog               *admin.AuditLogHandler
+	StaticProxyExit        *admin.StaticProxyExitHandler
+}
+
+// Handlers contains all HTTP handlers
+type Handlers struct {
+	Auth             *AuthHandler
+	User             *UserHandler
+	APIKey           *APIKeyHandler
+	Usage            *UsageHandler
+	Redeem           *RedeemHandler
+	PublicCard       *PublicCardHandler
+	Subscription     *SubscriptionHandler
+	Announcement     *AnnouncementHandler
+	ChannelMonitor   *ChannelMonitorUserHandler
+	Admin            *AdminHandlers
+	Gateway          *GatewayHandler
+	ManusGateway     *ManusGatewayHandler
+	OpenAIGateway    *OpenAIGatewayHandler
+	Setting          *SettingHandler
+	Totp             *TotpHandler
+	Passkey          *PasskeyHandler
+	Payment          *PaymentHandler
+	PaymentWebhook   *PaymentWebhookHandler
+	AvailableChannel *AvailableChannelHandler
+	ModelPlaza       *ModelPlazaHandler
+	AsyncImage       *AsyncImageHandler
+	BatchImage       *BatchImageHandler
+}
+
+// BuildInfo contains build-time information
+type BuildInfo struct {
+	Version   string
+	BuildType string // "source", "release" (standalone binary), or "docker"
+}

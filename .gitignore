@@ -1,0 +1,185 @@
+docs/claude-relay-service/
+.codex
+
+# ===================
+# Go 后端
+# ===================
+# 二进制文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend/bin/
+backend/server
+backend/sub3api
+backend/main
+
+# Go 测试二进制
+*.test
+
+# 测试覆盖率
+*.out
+coverage.html
+
+# 依赖（使用 go mod）
+vendor/
+
+# Go 编译缓存
+backend/.gocache/
+
+# ===================
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===================
+# 环境配置
+# ===================
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+docker-compose.override.yml
+
+# ===================
+# IDE / 编辑器
+# ===================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# ===================
+# 操作系统
+# ===================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===================
+# 临时文件
+# ===================
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+*.bak
+.cache/
+.dev/
+.serena/
+# i18n 扫描临时工作目录
+frontend/.i18n-scan-tmp/
+
+# ===================
+# 构建产物
+# ===================
+dist/
+build/
+release/
+
+# 后端嵌入的前端构建产物
+# Keep a placeholder file so `//go:embed all:dist` always has a match in CI/lint,
+# while release/Docker builds generate the real frontend before compiling.
+backend/internal/web/dist/
+!backend/internal/web/dist/
+backend/internal/web/dist/*
+!backend/internal/web/dist/.keep
+
+# 后端运行时缓存数据
+backend/data/
+
+# ===================
+# 本地配置文件（包含敏感信息）
+# ===================
+backend/config.yaml
+deploy/config.yaml
+backend/.installed
+
+# ===================
+# 本地运维产物（备份/导出/日志），严禁提交
+# ===================
+artifacts/
+*.pem
+*.key
+*.crt
+*.dump
+*.sql.gz
+*.backup
+
+# ===================
+# 其他
+# ===================
+tests
+!deploy/tests/
+!deploy/tests/**
+CLAUDE.md
+.claude
+scripts
+!backend/scripts/
+!backend/scripts/resolve-version.sh
+.code-review-state
+#openspec/
+code-reviews/
+AGENTS.md
+backend/cmd/server/server
+deploy/docker-compose.override.yml
+.gocache/
+vite.config.js
+docs/*
+!docs/PAYMENT.md
+!docs/PAYMENT_CN.md
+!docs/ADMIN_PAYMENT_INTEGRATION_API.md
+!docs/ASYNC_IMAGE_TASKS.md
+!docs/CHANNEL_MONITOR.md
+!docs/LOADTEST.md
+!docs/legal/
+!docs/legal/*.md
+!docs/RELEASING.md
+!docs/release-notes/
+!docs/release-notes/*.md
+.serena/
+.codex/
+aicodex
+output/
+
+# Deprecated synthetic homepage horse overlays; the homepage now uses the real herd photo layer.
+frontend/public/home/stampede-reference-*.webp
+
+# UI 审计工作目录（含 playwright node_modules 与截图产物），本地临时文件，严禁提交
+.uiaudit/
+.playwright-cli/
+.mimosa/
+
+# ===================
+# Frontend local dependencies and generated metadata
+# ===================
+frontend/node_modules/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend-dist-*.tar.gz
+
+# Playwright E2E 本地产物（登录态/失败截图/报告）
+frontend/e2e/.auth/
+frontend/e2e/.artifacts/
+frontend/test-results/
+frontend/playwright-report/
+
+# Desktop 本地编译产物
+desktop/vite.config.d.ts
+desktop/vitest.config.d.ts
+desktop/vitest.config.js
+
+# 本地会话与产物目录
+.zcode/
+/data/
+dist-release/

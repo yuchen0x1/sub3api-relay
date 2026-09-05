@@ -1,0 +1,88 @@
+# =============================================================================
+# Docker Ignore File for Sub3API
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!deploy/DOCKER.md
+docs/*
+!docs/legal/
+!docs/legal/**
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+**/node_modules/
+
+# Local agent and audit artifacts
+.tmp/
+.uiaudit/
+.mimosa/
+**/.mimosa/
+.codex/
+
+# Repository-only material (not required to build or run the image)
+openspec/
+skills/
+
+# Go build cache (will be built in container)
+backend/vendor/
+backend/bin/
+backend/.gocache/
+
+# Test files
+*_test.go
+**/*.test.js
+coverage/
+.nyc_output/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local config
+config.yaml
+config.local.yaml
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Deploy files (not needed in image)
+deploy/install.sh
+deploy/sub3api.service
+deploy/sub3api-sudoers
+deploy/data/
+deploy/postgres_data/
+deploy/redis_data/
+
+# GoReleaser
+.goreleaser.yaml
+
+# GitHub
+.github/
+
+# Claude files
+.claude/
+issues/
+CLAUDE.md
