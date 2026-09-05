@@ -140,6 +140,48 @@ func TestUsageLogFromService_UsesRequestedModelAndKeepsUpstreamAdminOnly(t *test
 	require.Contains(t, string(adminJSON), `"upstream_model_mismatch":true`)
 }
 
+func TestUsageLogFromService_KeepsUpstreamRequestIDAdminOnly(t *testing.T) {
+	t.Parallel()
+
+	upstreamRequestID := "req_upstream_abc123"
+	log := &service.UsageLog{
+		RequestID:         "client:stable-1",
+		Model:             "gpt-5.4",
+		UpstreamRequestID: &upstreamRequestID,
+	}
+
+	userDTO := UsageLogFromService(log)
+	adminDTO := UsageLogFromServiceAdmin(log)
+
+	require.NotNil(t, adminDTO.UpstreamRequestID)
+	require.Equal(t, upstreamRequestID, *adminDTO.UpstreamRequestID)
+
+	userJSON, err := json.Marshal(userDTO)
+	require.NoError(t, err)
+	require.NotContains(t, string(userJSON), "upstream_request_id")
+	require.NotContains(t, string(userJSON), upstreamRequestID)
+
+	adminJSON, err := json.Marshal(adminDTO)
+	require.NoError(t, err)
+	require.Contains(t, string(adminJSON), `"upstream_request_id":"req_upstream_abc123"`)
+}
+
+func TestUsageLogFromService_UpstreamRequestIDOmittedWhenMissing(t *testing.T) {
+	t.Parallel()
+
+	log := &service.UsageLog{
+		RequestID: "client:stable-2",
+		Model:     "gpt-5.4",
+	}
+
+	adminDTO := UsageLogFromServiceAdmin(log)
+	require.Nil(t, adminDTO.UpstreamRequestID)
+
+	adminJSON, err := json.Marshal(adminDTO)
+	require.NoError(t, err)
+	require.NotContains(t, string(adminJSON), "upstream_request_id")
+}
+
 func TestUsageLogFromService_KeepsUserBillingAndIPWithoutAdminCostFields(t *testing.T) {
 	t.Parallel()
 

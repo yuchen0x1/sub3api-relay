@@ -550,6 +550,7 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 	resultWithUsage := func() *OpenAIForwardResult {
 		return &OpenAIForwardResult{
 			RequestID:                     requestID,
+			UpstreamRequestID:             requestID,
 			Usage:                         usage,
 			Model:                         originalModel,
 			BillingModel:                  billingModel,

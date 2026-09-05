@@ -1016,7 +1016,9 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		}
 
 		forwardResult := &OpenAIForwardResult{
-			RequestID:                     resp.Header.Get("x-request-id"),
+			RequestID:         resp.Header.Get("x-request-id"),
+			UpstreamRequestID: resp.Header.Get("x-request-id"),
+
 			ResponseID:                    responseID,
 			Usage:                         *usage,
 			Model:                         originalModel,

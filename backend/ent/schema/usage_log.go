@@ -53,6 +53,10 @@ func (UsageLog) Fields() []ent.Field {
 			MaxLen(100).
 			Optional().
 			Nillable(),
+		field.String("upstream_request_id").
+			MaxLen(200).
+			Optional().
+			Nillable(),
 		// UpstreamResponseModel stores the model name declared by the upstream
 		// response before any protocol conversion or client-facing rewrite.
 		field.String("upstream_response_model").

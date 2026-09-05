@@ -114,6 +114,9 @@ type UsageLog struct {
 	// UpstreamModel is the actual model sent to the upstream provider after mapping.
 	// Nil means no mapping was applied (requested model was used as-is).
 	UpstreamModel *string
+	// UpstreamRequestID is the request identifier assigned by the upstream provider.
+	// Nil means no upstream request ID was observed or the row predates this field.
+	UpstreamRequestID *string
 	// UpstreamResponseModel is the model declared by the successful upstream
 	// response before client-facing model rewrites or protocol conversion.
 	UpstreamResponseModel *string

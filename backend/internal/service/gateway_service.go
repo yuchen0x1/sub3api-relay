@@ -572,8 +572,11 @@ type ClaudeUsage struct {
 // ForwardResult 转发结果
 type ForwardResult struct {
 	RequestID string
-	Usage     ClaudeUsage
-	Model     string
+	// UpstreamRequestID is the provider request identifier from a successful HTTP response.
+	// It is kept separate from RequestID, which may be a stable client/billing ID.
+	UpstreamRequestID string
+	Usage             ClaudeUsage
+	Model             string
 	// UpstreamModel is the actual upstream model after mapping.
 	// Prefer empty when it is identical to Model; persistence normalizes equal values away as no-op mappings.
 	UpstreamModel string

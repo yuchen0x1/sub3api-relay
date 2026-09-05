@@ -102,6 +102,13 @@
           </div>
         </template>
 
+        <template #cell-upstream_request_id="{ row }">
+          <span
+            class="block max-w-[220px] truncate font-mono text-xs text-gray-600 dark:text-gray-400"
+            :title="row.upstream_request_id || ''"
+          >{{ row.upstream_request_id || '-' }}</span>
+        </template>
+
         <template #cell-reasoning_effort="{ row }">
           <span class="text-sm text-gray-900 dark:text-white">
             {{ formatReasoningEffort(row.reasoning_effort) }}

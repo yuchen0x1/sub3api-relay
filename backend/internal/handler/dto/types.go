@@ -569,6 +569,8 @@ type AdminUsageLog struct {
 	UpstreamModel *string `json:"upstream_model,omitempty"`
 	// UpstreamResponseModel is the raw model declared by the upstream response.
 	UpstreamResponseModel *string `json:"upstream_response_model,omitempty"`
+	// UpstreamRequestID is the provider request identifier, when observed.
+	UpstreamRequestID *string `json:"upstream_request_id,omitempty"`
 	// UpstreamModelMismatch is nil when the upstream did not declare a model.
 	UpstreamModelMismatch *bool `json:"upstream_model_mismatch,omitempty"`
 

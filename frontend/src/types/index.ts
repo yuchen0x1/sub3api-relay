@@ -1742,6 +1742,7 @@ export interface UsageLogAccountSummary {
 export interface AdminUsageLog extends UsageLog {
   upstream_model?: string | null
   upstream_response_model?: string | null
+  upstream_request_id?: string | null
   upstream_model_mismatch?: boolean | null
   model_mapping_chain?: string | null
 

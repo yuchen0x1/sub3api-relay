@@ -3,9 +3,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, ref } from 'vue'
 
 import UsageView from '../UsageView.vue'
-import { buildCsv } from '@/utils/csv'
 
-const { list, exportList, getStats, getSnapshotV2, getById, getModelStats, listErrorLogs, routeQuery, saveAs } = vi.hoisted(() => {
+const { list, exportList, getStats, getSnapshotV2, getById, getModelStats, listErrorLogs, routeQuery, saveAs, buildCsvCapture } = vi.hoisted(() => {
   vi.stubGlobal('localStorage', {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
@@ -22,6 +21,7 @@ const { list, exportList, getStats, getSnapshotV2, getById, getModelStats, listE
     listErrorLogs: vi.fn(),
     routeQuery: {} as Record<string, string>,
 		saveAs: vi.fn(),
+    buildCsvCapture: vi.fn(),
   }
 })
 
@@ -33,6 +33,7 @@ const messages: Record<string, string> = {
 	'usage.requestedModel': 'Requested model',
 	'usage.sentUpstreamModel': 'Sent upstream model',
 	'usage.upstreamResponseModel': 'Upstream response model',
+	'usage.upstreamRequestId': 'Upstream request ID',
 	'usage.upstreamModelMismatch': 'Upstream model mismatch',
 	'common.yes': 'Yes',
 	'common.no': 'No',
@@ -68,6 +69,17 @@ vi.mock('@/api/admin/usage', () => ({
 }))
 
 vi.mock('file-saver', () => ({ saveAs }))
+
+vi.mock('@/utils/csv', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/csv')>('@/utils/csv')
+  return {
+    ...actual,
+    buildCsv: (rows: unknown[][]) => {
+      buildCsvCapture(rows)
+      return actual.buildCsv(rows)
+    },
+  }
+})
 
 vi.mock('@/api/admin/ops', () => ({
   listErrorLogs,
@@ -562,6 +574,7 @@ describe('admin UsageView model audit export', () => {
 				model: 'gpt-5.6-sol',
 				upstream_model: 'gpt-5.5',
 				upstream_response_model: 'gpt-5.4',
+				upstream_request_id: 'req_upstream_9f8',
 				upstream_model_mismatch: true,
 				request_type: 'sync',
 				input_tokens: 1,
@@ -586,7 +599,7 @@ describe('admin UsageView model audit export', () => {
 		vi.useRealTimers()
 	})
 
-	it('exports requested, sent, response, and mismatch as separate CSV columns', async () => {
+	it('exports requested, sent, response, upstream request id, and mismatch as separate CSV columns', async () => {
 		const wrapper = mountRouteFilteredUsageView()
 		vi.advanceTimersByTime(120)
 		await flushPromises()
@@ -598,9 +611,13 @@ describe('admin UsageView model audit export', () => {
 		expect(saveAs.mock.calls[0][1]).toMatch(/\.csv$/)
 		expect(saveAs.mock.calls[0][0]).toBeInstanceOf(Blob)
 		expect(saveAs.mock.calls[0][0].size).toBeGreaterThan(0)
-		expect(buildCsv([
-			['Requested model', 'Sent upstream model', 'Upstream response model', 'Upstream model mismatch'],
-			['gpt-5.6-sol', 'gpt-5.5', 'gpt-5.4', 'Yes'],
-		])).toContain('gpt-5.6-sol,gpt-5.5,gpt-5.4,Yes')
+
+		expect(buildCsvCapture).toHaveBeenCalledTimes(1)
+		const [headers, ...dataRows] = buildCsvCapture.mock.calls[0][0] as unknown[][]
+		const headerLabels = headers as string[]
+		const requestIDIdx = headerLabels.indexOf('Upstream request ID')
+		expect(requestIDIdx).toBeGreaterThan(headerLabels.indexOf('Upstream response model'))
+		expect(requestIDIdx).toBeLessThan(headerLabels.indexOf('Upstream model mismatch'))
+		expect((dataRows[0] as unknown[])[requestIDIdx]).toBe('req_upstream_9f8')
 	})
 })

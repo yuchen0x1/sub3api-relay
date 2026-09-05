@@ -85,6 +85,20 @@ func (_c *UsageLogCreate) SetNillableUpstreamModel(v *string) *UsageLogCreate {
 	return _c
 }
 
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (_c *UsageLogCreate) SetUpstreamRequestID(v string) *UsageLogCreate {
+	_c.mutation.SetUpstreamRequestID(v)
+	return _c
+}
+
+// SetNillableUpstreamRequestID sets the "upstream_request_id" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamRequestID(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamRequestID(*v)
+	}
+	return _c
+}
+
 // SetUpstreamResponseModel sets the "upstream_response_model" field.
 func (_c *UsageLogCreate) SetUpstreamResponseModel(v string) *UsageLogCreate {
 	_c.mutation.SetUpstreamResponseModel(v)
@@ -816,6 +830,11 @@ func (_c *UsageLogCreate) check() error {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_model": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UpstreamRequestID(); ok {
+		if err := usagelog.UpstreamRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "upstream_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_request_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.UpstreamResponseModel(); ok {
 		if err := usagelog.UpstreamResponseModelValidator(v); err != nil {
 			return &ValidationError{Name: "upstream_response_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_response_model": %w`, err)}
@@ -982,6 +1001,10 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UpstreamModel(); ok {
 		_spec.SetField(usagelog.FieldUpstreamModel, field.TypeString, value)
 		_node.UpstreamModel = &value
+	}
+	if value, ok := _c.mutation.UpstreamRequestID(); ok {
+		_spec.SetField(usagelog.FieldUpstreamRequestID, field.TypeString, value)
+		_node.UpstreamRequestID = &value
 	}
 	if value, ok := _c.mutation.UpstreamResponseModel(); ok {
 		_spec.SetField(usagelog.FieldUpstreamResponseModel, field.TypeString, value)
@@ -1365,6 +1388,24 @@ func (u *UsageLogUpsert) UpdateUpstreamModel() *UsageLogUpsert {
 // ClearUpstreamModel clears the value of the "upstream_model" field.
 func (u *UsageLogUpsert) ClearUpstreamModel() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldUpstreamModel)
+	return u
+}
+
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (u *UsageLogUpsert) SetUpstreamRequestID(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamRequestID, v)
+	return u
+}
+
+// UpdateUpstreamRequestID sets the "upstream_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamRequestID() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamRequestID)
+	return u
+}
+
+// ClearUpstreamRequestID clears the value of the "upstream_request_id" field.
+func (u *UsageLogUpsert) ClearUpstreamRequestID() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamRequestID)
 	return u
 }
 
@@ -2236,6 +2277,27 @@ func (u *UsageLogUpsertOne) UpdateUpstreamModel() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearUpstreamModel() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearUpstreamModel()
+	})
+}
+
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (u *UsageLogUpsertOne) SetUpstreamRequestID(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamRequestID(v)
+	})
+}
+
+// UpdateUpstreamRequestID sets the "upstream_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamRequestID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamRequestID()
+	})
+}
+
+// ClearUpstreamRequestID clears the value of the "upstream_request_id" field.
+func (u *UsageLogUpsertOne) ClearUpstreamRequestID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamRequestID()
 	})
 }
 
@@ -3392,6 +3454,27 @@ func (u *UsageLogUpsertBulk) UpdateUpstreamModel() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearUpstreamModel() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearUpstreamModel()
+	})
+}
+
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (u *UsageLogUpsertBulk) SetUpstreamRequestID(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamRequestID(v)
+	})
+}
+
+// UpdateUpstreamRequestID sets the "upstream_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamRequestID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamRequestID()
+	})
+}
+
+// ClearUpstreamRequestID clears the value of the "upstream_request_id" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamRequestID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamRequestID()
 	})
 }
 

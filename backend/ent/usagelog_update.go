@@ -142,6 +142,26 @@ func (_u *UsageLogUpdate) ClearUpstreamModel() *UsageLogUpdate {
 	return _u
 }
 
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (_u *UsageLogUpdate) SetUpstreamRequestID(v string) *UsageLogUpdate {
+	_u.mutation.SetUpstreamRequestID(v)
+	return _u
+}
+
+// SetNillableUpstreamRequestID sets the "upstream_request_id" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamRequestID(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamRequestID(*v)
+	}
+	return _u
+}
+
+// ClearUpstreamRequestID clears the value of the "upstream_request_id" field.
+func (_u *UsageLogUpdate) ClearUpstreamRequestID() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamRequestID()
+	return _u
+}
+
 // SetUpstreamResponseModel sets the "upstream_response_model" field.
 func (_u *UsageLogUpdate) SetUpstreamResponseModel(v string) *UsageLogUpdate {
 	_u.mutation.SetUpstreamResponseModel(v)
@@ -1056,6 +1076,11 @@ func (_u *UsageLogUpdate) check() error {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UpstreamRequestID(); ok {
+		if err := usagelog.UpstreamRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "upstream_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_request_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.UpstreamResponseModel(); ok {
 		if err := usagelog.UpstreamResponseModelValidator(v); err != nil {
 			return &ValidationError{Name: "upstream_response_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_response_model": %w`, err)}
@@ -1152,6 +1177,12 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.UpstreamModelCleared() {
 		_spec.ClearField(usagelog.FieldUpstreamModel, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpstreamRequestID(); ok {
+		_spec.SetField(usagelog.FieldUpstreamRequestID, field.TypeString, value)
+	}
+	if _u.mutation.UpstreamRequestIDCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamRequestID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpstreamResponseModel(); ok {
 		_spec.SetField(usagelog.FieldUpstreamResponseModel, field.TypeString, value)
@@ -1653,6 +1684,26 @@ func (_u *UsageLogUpdateOne) SetNillableUpstreamModel(v *string) *UsageLogUpdate
 // ClearUpstreamModel clears the value of the "upstream_model" field.
 func (_u *UsageLogUpdateOne) ClearUpstreamModel() *UsageLogUpdateOne {
 	_u.mutation.ClearUpstreamModel()
+	return _u
+}
+
+// SetUpstreamRequestID sets the "upstream_request_id" field.
+func (_u *UsageLogUpdateOne) SetUpstreamRequestID(v string) *UsageLogUpdateOne {
+	_u.mutation.SetUpstreamRequestID(v)
+	return _u
+}
+
+// SetNillableUpstreamRequestID sets the "upstream_request_id" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamRequestID(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamRequestID(*v)
+	}
+	return _u
+}
+
+// ClearUpstreamRequestID clears the value of the "upstream_request_id" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamRequestID() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamRequestID()
 	return _u
 }
 
@@ -2583,6 +2634,11 @@ func (_u *UsageLogUpdateOne) check() error {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UpstreamRequestID(); ok {
+		if err := usagelog.UpstreamRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "upstream_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_request_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.UpstreamResponseModel(); ok {
 		if err := usagelog.UpstreamResponseModelValidator(v); err != nil {
 			return &ValidationError{Name: "upstream_response_model", err: fmt.Errorf(`ent: validator failed for field "UsageLog.upstream_response_model": %w`, err)}
@@ -2696,6 +2752,12 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.UpstreamModelCleared() {
 		_spec.ClearField(usagelog.FieldUpstreamModel, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpstreamRequestID(); ok {
+		_spec.SetField(usagelog.FieldUpstreamRequestID, field.TypeString, value)
+	}
+	if _u.mutation.UpstreamRequestIDCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamRequestID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpstreamResponseModel(); ok {
 		_spec.SetField(usagelog.FieldUpstreamResponseModel, field.TypeString, value)
