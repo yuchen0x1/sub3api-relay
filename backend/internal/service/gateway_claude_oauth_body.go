@@ -391,6 +391,7 @@ func (s *GatewayService) applyClaudeCodeOAuthMimicryToBody(
 	systemPromptInjectionEnabled, systemPrompt, systemPromptBlocks := s.claudeOAuthSystemPromptInjectionSettings(ctx)
 	systemRewritten := false
 	if systemPromptInjectionEnabled {
+		systemPromptBlocks = claudeOAuthSystemPromptBlocksForModel(model, systemPromptBlocks)
 		body = rewriteSystemForNonClaudeCodeWithPromptBlocks(body, normalizeSystemParam(systemRaw), systemPrompt, systemPromptBlocks)
 		systemRewritten = true
 	}
@@ -696,6 +697,23 @@ type claudeOAuthSystemPromptBlockConfig struct {
 
 type claudeOAuthSystemPromptBlocksEnvelope struct {
 	Blocks []claudeOAuthSystemPromptBlockConfig `json:"blocks"`
+}
+
+// claudeFableOAuthSystemPromptBlocks 在保留 OAuth 凭证所需的 Claude Code 身份
+// 块的同时，去掉通用 CLI 扩展块。Fable 5 系上游会对该扩展块返回
+// stop_reason=refusal 且零输出 token，而原生 billing + identity 形态可被接受；
+// 客户端原始 system 指令仍由 rewriteSystemForNonClaudeCodeWithPromptBlocks
+// 迁移进消息历史。
+const claudeFableOAuthSystemPromptBlocks = `[
+	{"type":"text","text":"{billing_header}"},
+	{"type":"text","text":"{claude_code_system_prompt}"}
+]`
+
+func claudeOAuthSystemPromptBlocksForModel(model, configured string) string {
+	if isAnthropicFableModel(model) {
+		return claudeFableOAuthSystemPromptBlocks
+	}
+	return configured
 }
 
 func defaultClaudeOAuthExpansionPrompt(expansionPrompt string) string {
