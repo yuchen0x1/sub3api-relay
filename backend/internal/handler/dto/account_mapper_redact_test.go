@@ -100,3 +100,39 @@ func TestAccountFromServiceShallow_NilCredentialsOmitsStatus(t *testing.T) {
 	require.Nil(t, got.Credentials)
 	require.Nil(t, got.CredentialsStatus)
 }
+
+func TestAccountListItemFromAccount_DropsNestedGroupsKeepsDisplayFields(t *testing.T) {
+	t.Parallel()
+
+	src := &Account{
+		ID:          7,
+		Name:        "acct-7",
+		Platform:    "openai",
+		Status:      "active",
+		Schedulable: true,
+		Credentials: map[string]any{"non_sensitive": "v"},
+		GroupIDs:    []int64{1, 2},
+		Proxy:       &Proxy{ID: 3, Name: "p"},
+	}
+	src.Groups = []*Group{{Name: "g"}}
+	src.AccountGroups = []AccountGroup{{GroupID: 1}}
+
+	item := AccountListItemFromAccount(src)
+	require.NotNil(t, item)
+	require.Equal(t, src.ID, item.ID)
+	require.Equal(t, src.Name, item.Name)
+	require.Equal(t, src.Status, item.Status)
+	require.True(t, item.Schedulable)
+	require.Equal(t, []int64{1, 2}, item.GroupIDs)
+	require.NotNil(t, item.Proxy)
+	require.Equal(t, "p", item.Proxy.Name)
+
+	// 嵌套大对象必须剔除，这是 lite 模式压缩负载的关键：序列化结果不含
+	// account_groups / groups 字段（结构体级别不携带，编译期保证）。
+	body, err := json.Marshal(item)
+	require.NoError(t, err)
+	require.NotContains(t, string(body), "account_groups")
+	require.NotContains(t, string(body), `"groups"`)
+
+	require.Nil(t, AccountListItemFromAccount(nil))
+}

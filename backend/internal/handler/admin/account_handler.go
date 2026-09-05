@@ -209,6 +209,20 @@ type AccountWithConcurrency struct {
 	StaticIPCapacity *AccountStaticIPCapacity `json:"static_ip_capacity,omitempty"`
 }
 
+// AccountListItemWithConcurrency 是 lite=1 账户列表的紧凑响应：内嵌精简的
+// AccountListItem（无嵌套 Groups/AccountGroups），保留并发/调度等运行时字段。
+type AccountListItemWithConcurrency struct {
+	*dto.AccountListItem
+	CurrentConcurrency int                          `json:"current_concurrency"`
+	SchedulerScore     *AccountSchedulerScore       `json:"scheduler_score,omitempty"`
+	SchedulerScores    []AccountSchedulerGroupScore `json:"scheduler_scores,omitempty"`
+	// 以下字段仅对 Anthropic OAuth/SetupToken 账号有效，且仅在启用相应功能时返回
+	CurrentWindowCost *float64                 `json:"current_window_cost,omitempty"` // 当前窗口费用
+	ActiveSessions    *int                     `json:"active_sessions,omitempty"`     // 当前活跃会话数
+	CurrentRPM        *int                     `json:"current_rpm,omitempty"`         // 当前分钟 RPM 计数
+	StaticIPCapacity  *AccountStaticIPCapacity `json:"static_ip_capacity,omitempty"`
+}
+
 type AccountSchedulerScore struct {
 	BaseScore             float64 `json:"base_score"`
 	StickyScore           float64 `json:"sticky_score"`
@@ -692,8 +706,8 @@ func (h *AccountHandler) List(c *gin.Context) {
 			}
 		}
 
-		// 添加静态代理出口容量（仅当启用且账号有分配时）
-		if h.staticProxyExitLister != nil {
+		// 添加静态代理出口容量（仅当启用且账号有分配时）；lite 模式跳过该逐账号查询。
+		if !lite && h.staticProxyExitLister != nil {
 			item.StaticIPCapacity = h.buildAccountStaticProxyCapacity(c.Request.Context(), acc)
 		}
 
@@ -701,6 +715,35 @@ func (h *AccountHandler) List(c *gin.Context) {
 	}
 
 	h.enrichShadowParents(c.Request.Context(), result)
+
+	// lite 模式：返回剔除嵌套 Groups/AccountGroups 的紧凑条目，单独计算 ETag。
+	if lite {
+		compact := make([]AccountListItemWithConcurrency, len(result))
+		for i := range result {
+			item := result[i]
+			compact[i] = AccountListItemWithConcurrency{
+				AccountListItem:    dto.AccountListItemFromAccount(item.Account),
+				CurrentConcurrency: item.CurrentConcurrency,
+				SchedulerScore:     item.SchedulerScore,
+				SchedulerScores:    item.SchedulerScores,
+				CurrentWindowCost:  item.CurrentWindowCost,
+				ActiveSessions:     item.ActiveSessions,
+				CurrentRPM:         item.CurrentRPM,
+				StaticIPCapacity:   item.StaticIPCapacity,
+			}
+		}
+		etag := buildAccountsListItemETag(compact, total, page, pageSize, platform, accountType, status, search)
+		if etag != "" {
+			c.Header("ETag", etag)
+			c.Header("Vary", "If-None-Match")
+			if ifNoneMatchMatched(c.GetHeader("If-None-Match"), etag) {
+				c.Status(http.StatusNotModified)
+				return
+			}
+		}
+		response.Paginated(c, compact, total, page, pageSize)
+		return
+	}
 
 	etag := buildAccountsListETag(result, total, page, pageSize, platform, accountType, status, search, lite)
 	if etag != "" {
@@ -741,6 +784,41 @@ func buildAccountsListETag(
 		Status:      status,
 		Search:      search,
 		Lite:        lite,
+		Items:       items,
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return "\"" + hex.EncodeToString(sum[:]) + "\""
+}
+
+func buildAccountsListItemETag(
+	items []AccountListItemWithConcurrency,
+	total int64,
+	page, pageSize int,
+	platform, accountType, status, search string,
+) string {
+	payload := struct {
+		Total       int64                            `json:"total"`
+		Page        int                              `json:"page"`
+		PageSize    int                              `json:"page_size"`
+		Platform    string                           `json:"platform"`
+		AccountType string                           `json:"type"`
+		Status      string                           `json:"status"`
+		Search      string                           `json:"search"`
+		Lite        bool                             `json:"lite"`
+		Items       []AccountListItemWithConcurrency `json:"items"`
+	}{
+		Total:       total,
+		Page:        page,
+		PageSize:    pageSize,
+		Platform:    platform,
+		AccountType: accountType,
+		Status:      status,
+		Search:      search,
+		Lite:        true,
 		Items:       items,
 	}
 	raw, err := json.Marshal(payload)
