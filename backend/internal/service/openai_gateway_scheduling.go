@@ -287,6 +287,10 @@ func isOpenAICompatibleAccountEligibleForRequest(ctx context.Context, account *A
 			)
 			return false
 		}
+		// 团队限流 / 免费额度模型软块：只屏蔽命名模型，同账号其他模型仍可调度。
+		if requestedModel != "" && isGrokModelQuotaBlocked(account.ID, canonicalOpenAIAccountSchedulingModel(account, requestedModel), time.Now()) {
+			return false
+		}
 	}
 	if requestedModel != "" && !account.IsModelSupported(requestedModel) {
 		return false
