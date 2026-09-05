@@ -1487,7 +1487,7 @@ const handleParseSubscription = async () => {
 		batchParseResult.proxies = result.proxies
 		appStore.showSuccess(t('admin.proxies.subscriptionParsed', { count: result.count }))
 	} catch (error: any) {
-		appStore.showError(error.response?.data?.detail || t('admin.proxies.subscriptionParseFailed'))
+		appStore.showError(error.response?.data?.message || error.response?.data?.detail || t('admin.proxies.subscriptionParseFailed'))
 	} finally {
 		submitting.value = false
 	}

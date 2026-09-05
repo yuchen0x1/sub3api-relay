@@ -117,3 +117,21 @@ func TestFetchSubscriptionWithClientUAGivesUpAfterFallback(t *testing.T) {
 	require.EqualError(t, err, "subscription returned HTTP 403")
 	_ = time.Second
 }
+
+// Cloudflare 人机验证（Cf-Mitigated: challenge）必须给出可操作的提示，
+// 因为任何程序化 UA 都无法通过该验证。
+func TestFetchSubscriptionWithClientUAReportsCloudflareChallenge(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Cf-Mitigated", "challenge")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("Just a moment..."))
+	}))
+	defer server.Close()
+
+	httpReq, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	_, err = fetchSubscriptionWithClientUA(server.Client(), httpReq)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Cloudflare human verification")
+	require.NotEqual(t, "subscription returned HTTP 403", err.Error())
+}

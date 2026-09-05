@@ -118,10 +118,12 @@ const (
 )
 
 // fetchSubscriptionWithClientUA 以真实客户端 UA 拉取订阅，403/404 时换备用 UA 重试。
-// 错误响应体被消费干净，避免连接无法复用。
+// 错误响应体被消费干净，避免连接无法复用。命中 Cloudflare 人机验证时给出
+// 可操作的提示，因为任何程序化 UA 都无法通过该验证。
 func fetchSubscriptionWithClientUA(client *http.Client, httpReq *http.Request) (*http.Response, error) {
 	userAgents := []string{proxySubscriptionPrimaryUA, proxySubscriptionFallbackUA}
 	var lastStatus int
+	cfMitigated := false
 	for _, ua := range userAgents {
 		req := httpReq.Clone(httpReq.Context())
 		req.Header.Set("User-Agent", ua)
@@ -133,11 +135,20 @@ func fetchSubscriptionWithClientUA(client *http.Client, httpReq *http.Request) (
 			return resp, nil
 		}
 		lastStatus = resp.StatusCode
+		if strings.EqualFold(strings.TrimSpace(resp.Header.Get("Cf-Mitigated")), "challenge") {
+			cfMitigated = true
+		}
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
 		_ = resp.Body.Close()
 		if lastStatus != http.StatusForbidden && lastStatus != http.StatusNotFound {
 			return nil, fmt.Errorf("subscription returned HTTP %d", lastStatus)
 		}
+	}
+	if cfMitigated {
+		return nil, fmt.Errorf(
+			"subscription host requires Cloudflare human verification (HTTP %d), which automated fetching cannot pass; open the subscription URL in a browser and import the node links directly",
+			lastStatus,
+		)
 	}
 	return nil, fmt.Errorf("subscription returned HTTP %d", lastStatus)
 }
