@@ -1025,6 +1025,15 @@ export default {
         selectAll: '全选',
         invertSelection: '反选'
       },
+      codexManifest: {
+        title: 'Codex /models 固定账号',
+        hint: '开启后 Codex /models manifest 请求不再走调度器，仅按顺序使用选定的账号拉取。',
+        enabled: '为 Codex /models 启用固定账号',
+        fallback: '固定账号全部不可用时回退调度器',
+        accountIds: '固定的 OpenAI 账号 ID',
+        accountIdsPlaceholder: '如 11, 22, 35',
+        createHint: '账号需已绑定到该分组；也可以在创建后于分组编辑中配置。'
+      },
       compositeRoutes: {
         action: '路由',
         title: 'Composite 路由',

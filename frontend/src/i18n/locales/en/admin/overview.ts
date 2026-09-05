@@ -1028,6 +1028,15 @@ export default {
         selectAll: 'Select all',
         invertSelection: 'Invert'
       },
+      codexManifest: {
+        title: 'Pinned Codex /models Accounts',
+        hint: 'When enabled, Codex /models manifest requests bypass the scheduler and fetch only from the pinned accounts in order.',
+        enabled: 'Enable pinned accounts for Codex /models',
+        fallback: 'Fall back to the scheduler when no pinned account is usable',
+        accountIds: 'Pinned OpenAI account IDs',
+        accountIdsPlaceholder: 'e.g. 11, 22, 35',
+        createHint: 'Accounts must already belong to this group; you can also configure this after creation in the group editor.'
+      },
       compositeRoutes: {
         action: 'Routes',
         title: 'Composite Routes',

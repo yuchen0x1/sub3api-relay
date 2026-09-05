@@ -752,6 +752,42 @@
           </div>
         </div>
 
+        <div
+          v-if="createForm.platform === 'openai'"
+          class="border-t pt-4"
+        >
+          <div class="mb-3">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t("admin.groups.codexManifest.title") }}
+            </label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t("admin.groups.codexManifest.hint") }}
+            </p>
+          </div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="createCodexManifestState.enabled" type="checkbox" class="h-4 w-4" />
+              {{ t("admin.groups.codexManifest.enabled") }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="createCodexManifestState.fallback" type="checkbox" class="h-4 w-4" />
+              {{ t("admin.groups.codexManifest.fallback") }}
+            </label>
+            <div v-if="createCodexManifestState.enabled">
+              <label class="input-label">{{ t("admin.groups.codexManifest.accountIds") }}</label>
+              <input
+                v-model="createCodexManifestState.accountIds"
+                type="text"
+                class="input"
+                :placeholder="t('admin.groups.codexManifest.accountIdsPlaceholder')"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t("admin.groups.codexManifest.createHint") }}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div class="border-t pt-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -2083,6 +2119,39 @@
                 min="0"
                 class="input"
                 :placeholder="t('admin.groups.subscription.noLimit')"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="editForm.platform === 'openai'"
+          class="border-t pt-4"
+        >
+          <div class="mb-3">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t("admin.groups.codexManifest.title") }}
+            </label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t("admin.groups.codexManifest.hint") }}
+            </p>
+          </div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="editCodexManifestState.enabled" type="checkbox" class="h-4 w-4" />
+              {{ t("admin.groups.codexManifest.enabled") }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input v-model="editCodexManifestState.fallback" type="checkbox" class="h-4 w-4" />
+              {{ t("admin.groups.codexManifest.fallback") }}
+            </label>
+            <div v-if="editCodexManifestState.enabled">
+              <label class="input-label">{{ t("admin.groups.codexManifest.accountIds") }}</label>
+              <input
+                v-model="editCodexManifestState.accountIds"
+                type="text"
+                class="input"
+                :placeholder="t('admin.groups.codexManifest.accountIdsPlaceholder')"
               />
             </div>
           </div>
@@ -3620,6 +3689,7 @@ import type {
   CompositeRouteDecision,
   CompositeRouteEndpoint,
   CompositeRouteMatchType,
+  CodexModelsManifestConfig,
   GroupPlatform,
   SubscriptionType,
 } from "@/types";
@@ -4105,6 +4175,49 @@ const createMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const editMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const createModelsListState = reactive(createInitialModelsListState());
 const editModelsListState = reactive(createInitialModelsListState());
+
+// ── Codex 固定账号 manifest 配置（仅 openai 平台）──
+interface CodexManifestFormState {
+  enabled: boolean;
+  fallback: boolean;
+  accountIds: string;
+}
+const createCodexManifestState = reactive<CodexManifestFormState>({
+  enabled: false,
+  fallback: false,
+  accountIds: "",
+});
+const editCodexManifestState = reactive<CodexManifestFormState>({
+  enabled: false,
+  fallback: false,
+  accountIds: "",
+});
+function parseCodexManifestAccountIds(raw: string): number[] {
+  const ids: number[] = [];
+  for (const part of raw.split(/[^0-9]+/)) {
+    if (!part) continue;
+    const n = Number(part);
+    if (Number.isSafeInteger(n) && n > 0) ids.push(n);
+  }
+  return Array.from(new Set(ids));
+}
+function codexManifestStateToConfig(
+  state: CodexManifestFormState,
+): CodexModelsManifestConfig {
+  return {
+    enabled: state.enabled,
+    account_ids: parseCodexManifestAccountIds(state.accountIds),
+    fallback_to_scheduler: state.fallback,
+  };
+}
+function resetCodexManifestState(
+  state: CodexManifestFormState,
+  cfg?: CodexModelsManifestConfig,
+) {
+  state.enabled = cfg?.enabled === true;
+  state.fallback = cfg?.fallback_to_scheduler === true;
+  state.accountIds = (cfg?.account_ids ?? []).join(", ");
+}
 const createModelsListLoading = ref(false);
 const editModelsListLoading = ref(false);
 type ReasoningEffortPolicyFieldsExpose = {
@@ -4951,6 +5064,10 @@ const handleCreateGroup = async () => {
         createModelRoutingRules.value,
       ),
       models_list_config: buildModelsListConfig(createModelsListState),
+      codex_models_manifest_config:
+        createForm.platform === "openai"
+          ? codexManifestStateToConfig(createCodexManifestState)
+          : undefined,
       supported_model_scopes: normalizeSupportedModelScopesForPlatform(
         createForm.platform,
         createForm.supported_model_scopes,
@@ -5109,6 +5226,7 @@ const handleEdit = async (group: AdminGroup) => {
     group.platform,
   );
   resetModelsListState(editModelsListState, group.models_list_config);
+  resetCodexManifestState(editCodexManifestState, group.codex_models_manifest_config);
   // 加载模型路由规则（异步加载账号名称）
   editModelRoutingRules.value = await convertApiFormatToRoutingRules(
     group.model_routing,
@@ -5188,6 +5306,10 @@ const handleUpdateGroup = async () => {
         editModelRoutingRules.value,
       ),
       models_list_config: buildModelsListConfig(editModelsListState),
+      codex_models_manifest_config:
+        editForm.platform === "openai"
+          ? codexManifestStateToConfig(editCodexManifestState)
+          : undefined,
       supported_model_scopes: normalizeSupportedModelScopesForPlatform(
         editForm.platform,
         editForm.supported_model_scopes,
@@ -5632,6 +5754,7 @@ watch(
     resetDisabledBatchImagePricing(editForm);
     if (editingGroup.value) {
       resetModelsListState(editModelsListState, editForm.platform === editingGroup.value.platform ? editingGroup.value.models_list_config : undefined);
+      resetCodexManifestState(editCodexManifestState, editForm.platform === editingGroup.value.platform ? editingGroup.value.codex_models_manifest_config : undefined);
       loadModelsListCandidates("edit", editingGroup.value.id, newVal);
     }
   },
