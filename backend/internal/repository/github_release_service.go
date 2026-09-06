@@ -184,16 +184,48 @@ func (c *githubReleaseClient) fetchLatestReleaseFromGitHub(ctx context.Context, 
 func (c *githubReleaseClient) fetchLatestReleaseFromGitee(ctx context.Context) (*service.GitHubRelease, error) {
 	url := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/releases/latest", service.GiteeUpdateRepo)
 
-	req, err := c.newGiteeAPIRequest(ctx, url)
+	release, err := c.fetchGiteeURL(ctx, url)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	if strings.TrimSpace(release.TagName) == "" {
+		return nil, fmt.Errorf("Gitee release response missing tag_name")
+	}
+
+	return release, nil
+}
+
+// fetchGiteeURL 请求 Gitee API 并解析为 GitHubRelease。
+// 配置的 UPDATE_GITEE_TOKEN 失效时 Gitee 对公开端点也返回 401/403——
+// 此时必须去掉凭据匿名重试，而不是让一个过期 token 挡死公开的更新检查。
+func (c *githubReleaseClient) fetchGiteeURL(ctx context.Context, url string) (*service.GitHubRelease, error) {
+	fetch := func(sendAuth bool) (*http.Response, error) {
+		req, err := c.newGiteeAPIRequest(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		if !sendAuth {
+			req.Header.Del("Authorization")
+		}
+		return c.httpClient.Do(req)
+	}
+
+	resp, err := fetch(true)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		// Token 失效/无权限：匿名重试公开端点。
+		resp.Body.Close()
+		resp, err = fetch(false)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = resp.Body.Close() }()
+	}
 
 	if resp.StatusCode == http.StatusNotFound {
 		// A pushed tag is not necessarily a Gitee Release. Use the tag list for
@@ -208,10 +240,6 @@ func (c *githubReleaseClient) fetchLatestReleaseFromGitee(ctx context.Context) (
 	var release service.GitHubRelease
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return nil, err
-	}
-
-	if strings.TrimSpace(release.TagName) == "" {
-		return nil, fmt.Errorf("Gitee release response missing tag_name")
 	}
 
 	return &release, nil
