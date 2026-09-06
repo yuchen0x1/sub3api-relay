@@ -1343,10 +1343,22 @@ func (s *OpenAIGatewayService) getSchedulableAccount(ctx context.Context, accoun
 
 func (s *OpenAIGatewayService) hydrateSelectedAccount(ctx context.Context, account *Account) (*Account, error) {
 	if account == nil || s.schedulerSnapshot == nil {
+		// 未启用调度快照时候选账号来自仓储/粘性路径，本身已是完整账号。
 		return account, nil
 	}
-	// The scheduler cache is metadata-only; credentials are loaded from the
-	// repository only after account selection succeeds.
+	// 生产 Redis 调度缓存只存调度提示、剥离转发凭据（见 scheduler_cache 的
+	// filterSchedulerCredentials），因此凭据始终优先从仓储加载；仓储不可用
+	// （测试/最小部署）且快照里带完整账号时才直接采用快照结果。
+	if s.accountRepo == nil {
+		hydrated, err := s.schedulerSnapshot.GetAccount(ctx, account.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hydrated == nil {
+			return nil, fmt.Errorf("selected openai account %d not found during hydration", account.ID)
+		}
+		return hydrated, nil
+	}
 	hydrated, err := s.accountRepo.GetByID(ctx, account.ID)
 	if err != nil {
 		return nil, err

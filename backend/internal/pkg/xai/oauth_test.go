@@ -247,7 +247,7 @@ func TestValidateBaseURLsRejectEmptyQueryDelimiter(t *testing.T) {
 
 func TestBuildResponsesURLWithValidatorUsesCallerPolicy(t *testing.T) {
 	validator := func(raw string) (string, error) {
-		return urlvalidator.ValidateURLFormat(raw)
+		return urlvalidator.ValidateURLFormat(raw, true)
 	}
 
 	target, err := BuildResponsesURLWithValidator("http://grok.example.test/v1/", validator)

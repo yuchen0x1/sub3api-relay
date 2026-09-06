@@ -2435,6 +2435,18 @@ func setEnvReachableDefaults() {
 	viper.SetDefault("update.auto_enabled", true)
 	viper.SetDefault("update.auto_interval_hours", 12)
 
+	// security.url_allowlist：默认全零 = 功能关闭，保持历史行为，
+	// 同时让纯 env 部署可以打开白名单。
+	viper.SetDefault("security.url_allowlist.enabled", false)
+	viper.SetDefault("security.url_allowlist.upstream_hosts", []string{})
+	viper.SetDefault("security.url_allowlist.pricing_hosts", []string{})
+	viper.SetDefault("security.url_allowlist.crs_hosts", []string{})
+	viper.SetDefault("security.url_allowlist.allow_private_hosts", false)
+	viper.SetDefault("security.url_allowlist.allow_insecure_http", false)
+
+	// pricing.override_file：字段级覆盖文件路径，默认空 = 不启用。
+	viper.SetDefault("pricing.override_file", "")
+
 	// sticky_escape_enabled is the one exception to the zero-value rule: its
 	// effective default is true, applied post-unmarshal via a viper.IsSet guard.
 	// Registering false would make IsSet always report true and permanently

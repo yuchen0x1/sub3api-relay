@@ -702,6 +702,12 @@ func (s *BillingService) initFallbackPricing() {
 func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	modelLower := strings.ToLower(model)
 
+	// 精确 key 优先于系列启发式：显式登记过价格的型号必须按自身价格计费，
+	// 不能被 "claude-* 统一回退 sonnet-4" 之类的家族规则抢走。
+	if p, ok := s.fallbackPrices[modelLower]; ok {
+		return p
+	}
+
 	// 按模型系列匹配
 	if strings.Contains(modelLower, "opus") {
 		// "opus-5" 必须先判：不能用裸 "5" 匹配，否则 claude-opus-4-5 会被误判。

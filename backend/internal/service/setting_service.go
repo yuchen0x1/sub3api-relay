@@ -249,6 +249,12 @@ func (s *SettingService) LoadForwardedClientIPSettings(ctx context.Context) erro
 	if hasStoredValue {
 		enabled = storedValue == "true"
 	}
+	// mode v2 迁移标记只有成功落库后，legacy 存储值才视为"已完成迁移的明确选择"；
+	// 落库失败时无法证明该选择经过迁移确认，回退到按 trusted_proxies 配置计算的
+	// 计算模式（未显式配置保持转发头兼容开启，显式配置安全默认关闭）。
+	// header 解析失败仍无条件 fail-closed。
+	migrationPending := values[settingKeyForwardedClientIPModeV2] != "true"
+	computedMode := !s.cfg.Server.TrustedProxiesConfigured
 
 	var headersErr error
 	if storedHeaders, ok := values[SettingKeyForwardedClientIPHeaders]; ok {
@@ -275,6 +281,9 @@ func (s *SettingService) LoadForwardedClientIPSettings(ctx context.Context) erro
 	}
 	if len(updates) > 0 {
 		if err := s.settingRepo.SetMultiple(ctx, updates); err != nil {
+			if migrationPending && headersErr == nil {
+				enabled = computedMode
+			}
 			s.cfg.SetForwardedClientIPSettings(enabled, headers)
 			return errors.Join(headersErr, fmt.Errorf("migrate forwarded client ip setting: %w", err))
 		}
