@@ -220,6 +220,13 @@ func TestReleaseUsageBillingBatchImageBalance_ReturnsFrozenToAvailable(t *testin
 	mock.ExpectQuery(`SELECT 1\s+FROM usage_billing_dedup\s+WHERE request_id = \$1 AND api_key_id = \$2`).
 		WithArgs(service.BatchImageHoldRequestID("imgbatch_release"), int64(7)).
 		WillReturnRows(sqlmock.NewRows([]string{"?column?"}).AddRow(1))
+	// capture 未结算（dedup 与归档表均无 claim）才会继续走退款路径。
+	mock.ExpectQuery(`SELECT 1\s+FROM usage_billing_dedup\s+WHERE request_id = \$1 AND api_key_id = \$2`).
+		WithArgs(service.BatchImageCaptureRequestID("imgbatch_release"), int64(7)).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`SELECT 1\s+FROM usage_billing_dedup_archive\s+WHERE request_id = \$1 AND api_key_id = \$2`).
+		WithArgs(service.BatchImageCaptureRequestID("imgbatch_release"), int64(7)).
+		WillReturnError(sql.ErrNoRows)
 	mock.ExpectQuery(releaseBatchImageHoldSQL).
 		WithArgs(1.0, int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{"balance", "frozen_balance"}).AddRow(10.0, 0.0))

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -150,6 +151,14 @@ func (s *StaticProxyExitService) GetByID(ctx context.Context, id int64) (*Static
 
 func (s *StaticProxyExitService) Create(ctx context.Context, input StaticProxyExitCreateInput) (*StaticProxyExit, error) {
 	input.Name = normalizeStaticProxyExitName(input.Name)
+	// UI 将名称标为可选；留空时用代理名生成稳定默认名，而不是拒绝请求。
+	if input.Name == "" {
+		name, err := s.defaultExitName(ctx, input.ProxyID, input.Position)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = name
+	}
 	if err := validateStaticProxyExitFields(input.AccountID, input.ProxyID, input.Name, input.Position); err != nil {
 		return nil, err
 	}
@@ -288,6 +297,29 @@ func normalizeStaticProxyExitListParams(params StaticProxyExitListParams) Static
 	params.HealthStatus = normalizeStaticProxyHealthStatus(params.HealthStatus)
 	params.Search = normalizeStaticProxyExitName(params.Search)
 	return params
+}
+
+// defaultExitName derives a default exit name from the proxy when the caller
+// leaves the name empty: "代理名-位置"（position > 0）或代理名本身。
+func (s *StaticProxyExitService) defaultExitName(ctx context.Context, proxyID int64, position int) (string, error) {
+	if s.proxyRepo == nil {
+		return "", infraerrors.BadRequest("STATIC_PROXY_NAME_REQUIRED", "name is required")
+	}
+	p, err := s.proxyRepo.GetByID(ctx, proxyID)
+	if err != nil {
+		return "", err
+	}
+	base := normalizeStaticProxyExitName(p.Name)
+	if base == "" {
+		base = normalizeStaticProxyExitName(p.Host)
+	}
+	if base == "" {
+		return "", infraerrors.BadRequest("STATIC_PROXY_NAME_REQUIRED", "name is required")
+	}
+	if position > 0 {
+		return trimToMax(fmt.Sprintf("%s-%d", base, position), 100), nil
+	}
+	return base, nil
 }
 
 func normalizeStaticProxyExitName(name string) string {

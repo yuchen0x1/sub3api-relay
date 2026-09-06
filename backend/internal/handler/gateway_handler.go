@@ -1478,6 +1478,14 @@ func (h *GatewayHandler) Usage(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
+	// 认证中间件注入的是 L1/L2 缓存快照，TTL 内的扣费不会反映在 QuotaUsed 上；
+	// 额度受限的 Key 直读 DB 刷新，保证用户查询到的额度实时。
+	if (apiKey.Quota > 0 || apiKey.HasRateLimits()) && h.apiKeyService != nil && apiKey.Key != "" {
+		if fresh, err := h.apiKeyService.GetByKeyFresh(ctx, apiKey.Key); err == nil && fresh != nil {
+			apiKey = fresh
+		}
+	}
+
 	// 解析可选的日期范围参数（用于 model_stats 查询）
 	startTime, endTime := h.parseUsageDateRange(c)
 	days, ok := parseAPIKeyDailyUsageDays(c.DefaultQuery("days", ""))

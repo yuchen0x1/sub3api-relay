@@ -478,10 +478,19 @@ func (r *proxyRepository) ExistsByHostPortAuth(ctx context.Context, host string,
 	return count > 0, err
 }
 
-// CountAccountsByProxyID returns the number of accounts using a specific proxy
+// CountAccountsByProxyID returns the number of accounts using a specific proxy,
+// counting both direct bindings and static proxy exit assignments so a proxy
+// still referenced by exits cannot be deleted silently.
 func (r *proxyRepository) CountAccountsByProxyID(ctx context.Context, proxyID int64) (int64, error) {
 	var count int64
-	if err := scanSingleRow(ctx, r.sql, "SELECT COUNT(*) FROM accounts WHERE proxy_id = $1 AND deleted_at IS NULL", []any{proxyID}, &count); err != nil {
+	if err := scanSingleRow(ctx, r.sql, `
+		SELECT COUNT(DISTINCT account_id) FROM (
+			SELECT id AS account_id FROM accounts
+			WHERE proxy_id = $1 AND deleted_at IS NULL
+			UNION ALL
+			SELECT account_id FROM account_static_proxy_exits
+			WHERE proxy_id = $1 AND deleted_at IS NULL
+		) usage`, []any{proxyID}, &count); err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -531,9 +540,18 @@ func (r *proxyRepository) ListAccountSummariesByProxyID(ctx context.Context, pro
 	return out, nil
 }
 
-// GetAccountCountsForProxies returns a map of proxy ID to account count for all proxies
+// GetAccountCountsForProxies returns a map of proxy ID to account count for all proxies.
+// 直接绑定（accounts.proxy_id）与静态出口分配（account_static_proxy_exits）都算占用，
+// 同一账号两种绑定只计一次。
 func (r *proxyRepository) GetAccountCountsForProxies(ctx context.Context) (counts map[int64]int64, err error) {
-	rows, err := r.sql.QueryContext(ctx, "SELECT proxy_id, COUNT(*) AS count FROM accounts WHERE proxy_id IS NOT NULL AND deleted_at IS NULL GROUP BY proxy_id")
+	rows, err := r.sql.QueryContext(ctx, `
+		SELECT proxy_id, COUNT(DISTINCT account_id) AS count FROM (
+			SELECT proxy_id, id AS account_id FROM accounts
+			WHERE proxy_id IS NOT NULL AND deleted_at IS NULL
+			UNION ALL
+			SELECT proxy_id, account_id FROM account_static_proxy_exits
+			WHERE deleted_at IS NULL
+		) usage GROUP BY proxy_id`)
 	if err != nil {
 		return nil, err
 	}
