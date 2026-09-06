@@ -830,7 +830,9 @@ const showDailyUsage = computed(() => Boolean(resultData.value && Array.isArray(
 
 function usd(value: number | null | undefined): string {
   if (value == null || value < 0) return '-'
-  return '$' + Number(value).toFixed(2)
+  // 小额用量保留 4 位小数，避免 0 < used < 0.01 被舍入成 $0.00 造成"额度不动"的错觉
+  const fractionDigits = value > 0 && value < 0.01 ? 4 : 2
+  return '$' + Number(value).toFixed(fractionDigits)
 }
 
 function fmtNum(val: number | null | undefined): string {

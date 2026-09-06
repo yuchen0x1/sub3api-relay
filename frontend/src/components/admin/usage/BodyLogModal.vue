@@ -1,15 +1,15 @@
 <template>
-  <BaseDialog :show="show" :title="t('admin.usage.bodyLog.title')" width="extra-wide" @close="close">
+  <BaseDialog :show="show" :title="t('usage.bodyLog.title')" width="extra-wide" @close="close">
     <div class="space-y-4">
       <div v-if="loading" class="py-8 text-center text-sm text-gray-500">{{ t('common.loading') }}</div>
       <template v-else-if="detail">
         <div class="grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-300 md:grid-cols-4">
           <div><span class="text-gray-400">ID:</span> {{ detail.id }}</div>
           <div class="truncate"><span class="text-gray-400">Request ID:</span> {{ detail.request_id }}</div>
-          <div><span class="text-gray-400">{{ t('admin.usage.bodyLog.path') }}:</span> {{ detail.method }} {{ detail.path }}</div>
+          <div><span class="text-gray-400">{{ t('usage.bodyLog.path') }}:</span> {{ detail.method }} {{ detail.path }}</div>
           <div><span class="text-gray-400">Model:</span> {{ detail.model || '-' }}</div>
         </div>
-        <pre class="max-h-[50vh] overflow-auto rounded-lg bg-gray-900 p-3 text-xs leading-5 text-gray-100">{{ formattedBody }}</pre>
+        <pre class="max-h-[50vh] overflow-auto rounded-lg bg-gray-100 p-3 text-xs leading-5 text-gray-800 dark:bg-gray-900 dark:text-gray-100">{{ formattedBody }}</pre>
         <div v-if="replayResult">
           <div class="mb-1 flex items-center gap-2 text-xs">
             <span
@@ -23,7 +23,10 @@
           <pre class="max-h-[30vh] overflow-auto rounded-lg bg-gray-100 p-3 text-xs leading-5 text-gray-800 dark:bg-dark-700 dark:text-gray-200">{{ replayResult.body || '-' }}</pre>
         </div>
       </template>
-      <div v-else class="py-8 text-center text-sm text-gray-500">{{ t('admin.usage.bodyLog.notRecorded') }}</div>
+      <div v-else class="py-8 text-center text-sm text-gray-500">
+        <p>{{ t('usage.bodyLog.notRecorded') }}</p>
+        <p class="mt-2 text-xs text-gray-400 dark:text-dark-500">{{ t('usage.bodyLog.notRecordedHint') }}</p>
+      </div>
     </div>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -34,7 +37,7 @@
           :disabled="replaying"
           @click="handleReplay"
         >
-          {{ replaying ? t('admin.usage.bodyLog.replaying') : t('admin.usage.bodyLog.replay') }}
+          {{ replaying ? t('usage.bodyLog.replaying') : t('usage.bodyLog.replay') }}
         </button>
       </div>
     </template>
@@ -92,7 +95,7 @@ const handleReplay = async () => {
   try {
     replayResult.value = await adminAPI.bodyLogs.replay(detail.value.id)
   } catch (err: any) {
-    appStore.showError(err?.response?.data?.detail || err?.message || t('admin.usage.bodyLog.replayFailed'))
+    appStore.showError(err?.response?.data?.detail || err?.message || t('usage.bodyLog.replayFailed'))
   } finally {
     replaying.value = false
   }

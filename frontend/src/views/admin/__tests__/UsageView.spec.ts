@@ -33,7 +33,7 @@ const messages: Record<string, string> = {
 	'usage.requestedModel': 'Requested model',
 	'usage.sentUpstreamModel': 'Sent upstream model',
 	'usage.upstreamResponseModel': 'Upstream response model',
-	'usage.upstreamRequestId': 'Upstream request ID',
+	'usage.upstreamRequestID': 'Upstream request ID',
 	'usage.upstreamModelMismatch': 'Upstream model mismatch',
 	'common.yes': 'Yes',
 	'common.no': 'No',

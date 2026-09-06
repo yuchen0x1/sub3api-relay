@@ -57,11 +57,12 @@
             <div class="flex items-start gap-1">
               <button
                 type="button"
-                class="ml-0.5 shrink-0 rounded border border-gray-200 px-1 py-px text-[10px] leading-4 text-gray-500 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600 dark:border-dark-600 dark:text-gray-400 dark:hover:bg-primary-900/30"
+                class="ml-0.5 inline-flex shrink-0 items-center justify-center rounded border border-gray-200 p-0.5 text-gray-500 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600 dark:border-dark-600 dark:text-gray-400 dark:hover:bg-primary-900/30"
                 :title="t('usage.viewBody')"
+                :aria-label="t('usage.viewBody')"
                 @click="$emit('bodyClick', row)"
               >
-                {'{}'}
+                <Icon name="document" size="xs" />
               </button>
               <div class="min-w-0 flex-1 space-y-0.5">
             <div v-if="row.model_mapping_chain && row.model_mapping_chain.includes('→')" class="space-y-0.5">

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 
 import UsageStatsCards from '../UsageStatsCards.vue'
 
@@ -44,7 +45,7 @@ const stats = {
 }
 
 describe('UsageStatsCards', () => {
-  it('shows cache token breakdown values', () => {
+  it('shows cache token breakdown values in the teleported tooltip', async () => {
     const wrapper = mount(UsageStatsCards, {
       props: {
         stats,
@@ -59,10 +60,19 @@ describe('UsageStatsCards', () => {
     const text = wrapper.text()
     expect(text).toContain('Cache: 34')
     expect(text).toContain('(18.5%)')
-    expect(text).toContain('Cache Token Breakdown')
-    expect(text).toContain('Cache Creation')
-    expect(text).toContain('12')
-    expect(text).toContain('Cache Read')
-    expect(text).toContain('22')
+
+    // 明细 tooltip Teleport 到 body，悬停/聚焦触发后从 document.body 断言。
+    const trigger = wrapper.find('span[tabindex="0"]')
+    await trigger.trigger('mouseenter')
+    await nextTick()
+
+    const tooltipText = document.body.textContent ?? ''
+    expect(tooltipText).toContain('Cache Token Breakdown')
+    expect(tooltipText).toContain('Cache Creation')
+    expect(tooltipText).toContain('12')
+    expect(tooltipText).toContain('Cache Read')
+    expect(tooltipText).toContain('22')
+
+    wrapper.unmount()
   })
 })

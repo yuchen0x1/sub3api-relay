@@ -1927,13 +1927,7 @@
         </div>
       </div>
 
-      <div>
-        <div class="mb-1 flex items-center gap-2">
-          <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
-        </div>
-        <ProxySelector v-model="form.proxy_id" :proxies="proxies" />
-      </div>
-
+      <!-- 账号级代理入口已下线：出口统一走下方静态代理出口，新账号默认无账号级代理 -->
       <!-- 静态出口（多 IP 并发）：创建账号后自动绑定，每条启用出口提供 10 并发槽 -->
       <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -2782,7 +2776,6 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
-import ProxySelector from '@/components/common/ProxySelector.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'

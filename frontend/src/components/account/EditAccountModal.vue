@@ -1203,13 +1203,7 @@
         </div>
       </div>
 
-      <div v-if="!isSparkShadow">
-        <div class="mb-1 flex items-center gap-2">
-          <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
-        </div>
-        <ProxySelector v-model="form.proxy_id" :proxies="proxies" />
-      </div>
-
+      <!-- 账号级代理入口已下线：出口统一走下方静态代理出口；已有账号的 proxy_id 原值保留随表单回传 -->
       <div v-if="!isSparkShadow && account">
         <StaticProxyExitEditor :account-id="account.id" :proxies="proxies" />
       </div>
@@ -2000,7 +1994,6 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
-import ProxySelector from '@/components/common/ProxySelector.vue'
 import StaticProxyExitEditor from '@/components/account/StaticProxyExitEditor.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'

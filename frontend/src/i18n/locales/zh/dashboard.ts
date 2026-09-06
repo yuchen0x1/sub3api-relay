@@ -312,7 +312,8 @@ export default {
     bodyLog: {
       title: '请求体记录',
       path: '端点',
-      notRecorded: '该请求没有已记录的请求体（可能记录功能未开启或记录发生在开启之前）',
+      notRecorded: '该请求没有已记录的请求体',
+      notRecordedHint: '仅当设置中开启「网关请求体日志」后收到的 POST 请求才会被记录；开启前的历史请求无法补录',
       replay: '重放请求',
       replaying: '重放中...',
       replayFailed: '重放失败'

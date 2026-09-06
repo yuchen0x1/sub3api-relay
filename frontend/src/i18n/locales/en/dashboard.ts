@@ -307,7 +307,8 @@ export default {
     bodyLog: {
       title: 'Request Body Log',
       path: 'Endpoint',
-      notRecorded: 'No recorded body for this request (logging may be disabled, or the request predates it)',
+      notRecorded: 'No recorded body for this request',
+      notRecordedHint: 'Only POST requests received after "Gateway body log" is enabled in Settings are recorded; earlier requests cannot be backfilled',
       replay: 'Replay Request',
       replaying: 'Replaying...',
       replayFailed: 'Replay failed'

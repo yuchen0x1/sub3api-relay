@@ -13,16 +13,24 @@
     <div class="card flex min-w-0 items-start gap-3 p-4">
       <div class="shrink-0 rounded-lg bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/30"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg></div>
       <div class="min-w-0 flex-1">
-        <p class="text-xs font-medium text-gray-500">{{ t('usage.totalTokens') }}</p>
+        <p class="text-xs font-medium text-gray-500 dark:text-dark-400">{{ t('usage.totalTokens') }}</p>
         <p class="text-xl font-bold tabular-nums">{{ formatTokens(stats?.total_tokens || 0) }}</p>
-        <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+        <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-dark-400">
           <span class="whitespace-nowrap tabular-nums">{{ t('usage.in') }}: {{ formatTokens(stats?.total_input_tokens || 0) }}</span>
           <span class="whitespace-nowrap tabular-nums">{{ t('usage.out') }}: {{ formatTokens(stats?.total_output_tokens || 0) }}</span>
-          <span class="group relative inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 cursor-help tabular-nums" tabindex="0" :aria-label="`${cacheLabel()}: ${formatTokens(stats?.total_cache_tokens || 0)}, ${cacheShareLabel}`">
+          <span
+            class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 cursor-help tabular-nums"
+            tabindex="0"
+            :aria-label="`${cacheLabel()}: ${formatTokens(stats?.total_cache_tokens || 0)}, ${cacheShareLabel}`"
+            @mouseenter="showCacheTip"
+            @mouseleave="cacheTipVisible = false"
+            @focus="showCacheTip"
+            @blur="cacheTipVisible = false"
+          >
             <span class="whitespace-nowrap">{{ cacheLabel() }}: {{ formatTokens(stats?.total_cache_tokens || 0) }}</span>
             <span class="whitespace-nowrap font-medium text-sky-600 dark:text-sky-300">({{ cacheShareLabel }})</span>
             <svg
-              class="h-3.5 w-3.5 text-gray-400"
+              class="h-3.5 w-3.5 text-gray-400 dark:text-dark-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -34,25 +42,6 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span
-              class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-56 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-left text-xs text-gray-700 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100 dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200"
-            >
-              <span class="mb-2 block font-medium text-gray-900 dark:text-white">
-                {{ cacheDetailLabel() }}
-              </span>
-              <span class="flex items-center justify-between gap-3">
-                <span>{{ t('usage.cacheCreationTokensLabel') }}</span>
-                <span class="tabular-nums">
-                  {{ formatTokens(stats?.total_cache_creation_tokens || 0) }}
-                </span>
-              </span>
-              <span class="mt-1 flex items-center justify-between gap-3">
-                <span>{{ t('usage.cacheReadTokensLabel') }}</span>
-                <span class="tabular-nums">
-                  {{ formatTokens(stats?.total_cache_read_tokens || 0) }}
-                </span>
-              </span>
-            </span>
           </span>
         </div>
       </div>
@@ -83,15 +72,44 @@
         <Icon name="clock" size="md" />
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-xs font-medium text-gray-500">{{ t('usage.avgDuration') }}</p>
+        <p class="text-xs font-medium text-gray-500 dark:text-dark-400">{{ t('usage.avgDuration') }}</p>
         <p class="text-xl font-bold tabular-nums">{{ formatDuration(stats?.average_duration_ms || 0) }}</p>
       </div>
     </div>
   </div>
+
+  <!-- 缓存明细 tooltip：Teleport 到 body，避免被 .card 的 overflow:hidden 裁剪 -->
+  <Teleport to="body">
+    <div
+      v-if="cacheTipVisible"
+      class="pointer-events-none fixed z-[9999]"
+      :style="{ left: `${cacheTipPosition.x}px`, top: `${cacheTipPosition.y}px` }"
+    >
+      <div
+        class="w-56 -translate-x-1/2 -translate-y-full rounded-lg border border-gray-200 bg-white p-3 text-left text-xs text-gray-700 opacity-100 shadow-lg dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200"
+      >
+        <span class="mb-2 block font-medium text-gray-900 dark:text-white">
+          {{ cacheDetailLabel() }}
+        </span>
+        <span class="flex items-center justify-between gap-3">
+          <span>{{ t('usage.cacheCreationTokensLabel') }}</span>
+          <span class="tabular-nums">
+            {{ formatTokens(stats?.total_cache_creation_tokens || 0) }}
+          </span>
+        </span>
+        <span class="mt-1 flex items-center justify-between gap-3">
+          <span>{{ t('usage.cacheReadTokensLabel') }}</span>
+          <span class="tabular-nums">
+            {{ formatTokens(stats?.total_cache_read_tokens || 0) }}
+          </span>
+        </span>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AdminUsageStatsResponse } from '@/api/admin/usage'
 import type { UsageStatsResponse } from '@/types'
@@ -107,6 +125,15 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+
+const cacheTipVisible = ref(false)
+const cacheTipPosition = ref({ x: 0, y: 0 })
+
+const showCacheTip = (event: Event) => {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  cacheTipPosition.value = { x: rect.left + rect.width / 2, y: rect.top - 8 }
+  cacheTipVisible.value = true
+}
 
 const totalAccountCost = computed(() => {
   const stats = props.stats as (AdminUsageStatsResponse & { total_account_cost?: number }) | null

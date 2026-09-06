@@ -178,6 +178,8 @@ const healthLabel = (status: string) => {
       return t('admin.accounts.staticExits.healthHealthy')
     case 'unhealthy':
       return t('admin.accounts.staticExits.healthUnhealthy')
+    case 'degraded':
+      return t('admin.accounts.staticExits.healthDegraded')
     default:
       return t('admin.accounts.staticExits.healthUnknown')
   }
@@ -189,6 +191,8 @@ const healthClass = (status: string) => {
       return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
     case 'unhealthy':
       return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    case 'degraded':
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     default:
       return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   }

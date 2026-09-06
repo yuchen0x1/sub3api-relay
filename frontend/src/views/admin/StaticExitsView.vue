@@ -87,7 +87,7 @@
       <!-- 出口列表 -->
       <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-800/60">
+          <thead class="bg-gray-50 dark:bg-dark-800/60">
             <tr>
               <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
               <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.staticExitsPage.exitName') }}</th>
@@ -99,7 +99,7 @@
               <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.staticExitsPage.actions') }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900">
+          <tbody class="divide-y divide-gray-100 bg-white dark:divide-dark-800 dark:bg-dark-900">
             <tr v-if="loading">
               <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
                 <LoadingSpinner size="sm" color="gray" />
@@ -244,6 +244,8 @@ const healthLabel = (status: string) => {
       return t('admin.accounts.staticExits.healthHealthy')
     case 'unhealthy':
       return t('admin.accounts.staticExits.healthUnhealthy')
+    case 'degraded':
+      return t('admin.accounts.staticExits.healthDegraded')
     default:
       return t('admin.accounts.staticExits.healthUnknown')
   }
@@ -255,6 +257,8 @@ const healthClass = (status: string) => {
       return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
     case 'unhealthy':
       return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    case 'degraded':
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     default:
       return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   }
