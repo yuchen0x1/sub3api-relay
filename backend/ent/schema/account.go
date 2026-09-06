@@ -80,6 +80,25 @@ func (Account) Fields() []ent.Field {
 			Default(func() map[string]any { return map[string]any{} }).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 
+		// credentials_digest: 规范化明文凭据文档(json.Marshal)的 SHA-256 十六进制。
+		// 凭据敏感值以 enc:v1: 信封做字段级加密后，SQL 侧无法再用 jsonb 相等做
+		// CAS/去重守卫，改比本摘要。NULL 表示加密启用前写入的旧行(仍为明文)。
+		field.String("credentials_digest").
+			MaxLen(64).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "text"}).
+			Comment("SHA-256 hex of canonical plaintext credentials; enables CAS equality under field-level encryption"),
+
+		// credentials_api_key_digest: credentials.api_key 规范化值的 SHA-256 十六进制。
+		// 供 Ollama 云用量组身份判定在 api_key 加密后仍可比较。NULL 含义同上。
+		field.String("credentials_api_key_digest").
+			MaxLen(64).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "text"}).
+			Comment("SHA-256 hex of canonical credentials.api_key value"),
+
 		// extra: 扩展数据，存储平台特定的额外信息
 		// 如 CRS 账户的 crs_account_id、组织信息等
 		field.JSON("extra", map[string]any{}).

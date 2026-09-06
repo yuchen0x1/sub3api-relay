@@ -1,0 +1,51 @@
+name: Security Scan
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # 全量历史扫描：泄漏过的密钥即使已在后续提交删除也会被发现。
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  backend-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          check-latest: false
+          cache-dependency-path: backend/go.sum
+      - name: Verify Go version
+        run: |
+          go version | grep -q 'go1.26.6'
+      - name: Run govulncheck
+        working-directory: backend
+        run: |
+          # 固定工具版本，避免 CI 中执行未审计的 @latest 代码。
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          status=0
+          govulncheck -format json ./... > govulncheck.json || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
+            echo "govulncheck failed with exit code $status" >&2
+            exit "$status"
+          fi
+          python3 scripts/check-govuln-report.py govulncheck.json

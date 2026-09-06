@@ -125,6 +125,46 @@ func (_u *AccountUpdate) SetCredentials(v map[string]interface{}) *AccountUpdate
 	return _u
 }
 
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (_u *AccountUpdate) SetCredentialsDigest(v string) *AccountUpdate {
+	_u.mutation.SetCredentialsDigest(v)
+	return _u
+}
+
+// SetNillableCredentialsDigest sets the "credentials_digest" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableCredentialsDigest(v *string) *AccountUpdate {
+	if v != nil {
+		_u.SetCredentialsDigest(*v)
+	}
+	return _u
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (_u *AccountUpdate) ClearCredentialsDigest() *AccountUpdate {
+	_u.mutation.ClearCredentialsDigest()
+	return _u
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (_u *AccountUpdate) SetCredentialsAPIKeyDigest(v string) *AccountUpdate {
+	_u.mutation.SetCredentialsAPIKeyDigest(v)
+	return _u
+}
+
+// SetNillableCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableCredentialsAPIKeyDigest(v *string) *AccountUpdate {
+	if v != nil {
+		_u.SetCredentialsAPIKeyDigest(*v)
+	}
+	return _u
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (_u *AccountUpdate) ClearCredentialsAPIKeyDigest() *AccountUpdate {
+	_u.mutation.ClearCredentialsAPIKeyDigest()
+	return _u
+}
+
 // SetExtra sets the "extra" field.
 func (_u *AccountUpdate) SetExtra(v map[string]interface{}) *AccountUpdate {
 	_u.mutation.SetExtra(v)
@@ -793,6 +833,16 @@ func (_u *AccountUpdate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Account.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CredentialsDigest(); ok {
+		if err := account.CredentialsDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_digest": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CredentialsAPIKeyDigest(); ok {
+		if err := account.CredentialsAPIKeyDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_api_key_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_api_key_digest": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := account.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Account.status": %w`, err)}
@@ -849,6 +899,18 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Credentials(); ok {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.CredentialsDigest(); ok {
+		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)
+	}
+	if _u.mutation.CredentialsDigestCleared() {
+		_spec.ClearField(account.FieldCredentialsDigest, field.TypeString)
+	}
+	if value, ok := _u.mutation.CredentialsAPIKeyDigest(); ok {
+		_spec.SetField(account.FieldCredentialsAPIKeyDigest, field.TypeString, value)
+	}
+	if _u.mutation.CredentialsAPIKeyDigestCleared() {
+		_spec.ClearField(account.FieldCredentialsAPIKeyDigest, field.TypeString)
 	}
 	if value, ok := _u.mutation.Extra(); ok {
 		_spec.SetField(account.FieldExtra, field.TypeJSON, value)
@@ -1289,6 +1351,46 @@ func (_u *AccountUpdateOne) SetNillableType(v *string) *AccountUpdateOne {
 // SetCredentials sets the "credentials" field.
 func (_u *AccountUpdateOne) SetCredentials(v map[string]interface{}) *AccountUpdateOne {
 	_u.mutation.SetCredentials(v)
+	return _u
+}
+
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (_u *AccountUpdateOne) SetCredentialsDigest(v string) *AccountUpdateOne {
+	_u.mutation.SetCredentialsDigest(v)
+	return _u
+}
+
+// SetNillableCredentialsDigest sets the "credentials_digest" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableCredentialsDigest(v *string) *AccountUpdateOne {
+	if v != nil {
+		_u.SetCredentialsDigest(*v)
+	}
+	return _u
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (_u *AccountUpdateOne) ClearCredentialsDigest() *AccountUpdateOne {
+	_u.mutation.ClearCredentialsDigest()
+	return _u
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (_u *AccountUpdateOne) SetCredentialsAPIKeyDigest(v string) *AccountUpdateOne {
+	_u.mutation.SetCredentialsAPIKeyDigest(v)
+	return _u
+}
+
+// SetNillableCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableCredentialsAPIKeyDigest(v *string) *AccountUpdateOne {
+	if v != nil {
+		_u.SetCredentialsAPIKeyDigest(*v)
+	}
+	return _u
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (_u *AccountUpdateOne) ClearCredentialsAPIKeyDigest() *AccountUpdateOne {
+	_u.mutation.ClearCredentialsAPIKeyDigest()
 	return _u
 }
 
@@ -1973,6 +2075,16 @@ func (_u *AccountUpdateOne) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Account.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CredentialsDigest(); ok {
+		if err := account.CredentialsDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_digest": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CredentialsAPIKeyDigest(); ok {
+		if err := account.CredentialsAPIKeyDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_api_key_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_api_key_digest": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := account.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Account.status": %w`, err)}
@@ -2046,6 +2158,18 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if value, ok := _u.mutation.Credentials(); ok {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.CredentialsDigest(); ok {
+		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)
+	}
+	if _u.mutation.CredentialsDigestCleared() {
+		_spec.ClearField(account.FieldCredentialsDigest, field.TypeString)
+	}
+	if value, ok := _u.mutation.CredentialsAPIKeyDigest(); ok {
+		_spec.SetField(account.FieldCredentialsAPIKeyDigest, field.TypeString, value)
+	}
+	if _u.mutation.CredentialsAPIKeyDigestCleared() {
+		_spec.ClearField(account.FieldCredentialsAPIKeyDigest, field.TypeString)
 	}
 	if value, ok := _u.mutation.Extra(); ok {
 		_spec.SetField(account.FieldExtra, field.TypeJSON, value)

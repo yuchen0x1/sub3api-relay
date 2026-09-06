@@ -2564,6 +2564,11 @@ func (c *Config) Validate() error {
 	if len([]byte(jwtSecret)) < 32 {
 		return fmt.Errorf("jwt.secret must be at least 32 bytes")
 	}
+	// 公开仓库/示例配置中的占位密钥是攻击者已知的常量：任何拿到该字符串的人都能
+	// 伪造任意管理员 JWT。这类值直接拒绝启动（与弱口令告警不同，无合法使用场景）。
+	if isKnownPublicJWTPlaceholder(jwtSecret) {
+		return fmt.Errorf("jwt.secret is a publicly known placeholder; generate a random secret instead (openssl rand -hex 32)")
+	}
 	switch c.Log.Level {
 	case "debug", "info", "warn", "error":
 	case "":
@@ -3557,16 +3562,32 @@ func isWeakJWTSecret(secret string) bool {
 		return true
 	}
 	weak := map[string]struct{}{
-		"change-me-in-production": {},
-		"changeme":                {},
-		"secret":                  {},
-		"password":                {},
-		"123456":                  {},
-		"12345678":                {},
-		"admin":                   {},
-		"jwt-secret":              {},
+		"change-me-in-production":                {},
+		"changeme":                               {},
+		"secret":                                 {},
+		"password":                               {},
+		"123456":                                 {},
+		"12345678":                               {},
+		"admin":                                  {},
+		"jwt-secret":                             {},
+		"change-this-to-a-secure-random-string":  {},
+		"your-secure-secret-here":                {},
+		"please-change-this-secure-random-token": {},
 	}
 	_, exists := weak[lower]
+	return exists
+}
+
+// isKnownPublicJWTPlaceholder 判断密钥是否为公开仓库/示例配置中的占位常量。
+// 这些值是攻击者已知的签名密钥，长度虽满足 ≥32 字节，但必须在启动时硬性拒绝。
+func isKnownPublicJWTPlaceholder(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	placeholders := map[string]struct{}{
+		"change-this-to-a-secure-random-string":  {},
+		"your-secure-secret-here":                {},
+		"please-change-this-secure-random-token": {},
+	}
+	_, exists := placeholders[lower]
 	return exists
 }
 

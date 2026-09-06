@@ -32,6 +32,10 @@ const (
 	FieldType = "type"
 	// FieldCredentials holds the string denoting the credentials field in the database.
 	FieldCredentials = "credentials"
+	// FieldCredentialsDigest holds the string denoting the credentials_digest field in the database.
+	FieldCredentialsDigest = "credentials_digest"
+	// FieldCredentialsAPIKeyDigest holds the string denoting the credentials_api_key_digest field in the database.
+	FieldCredentialsAPIKeyDigest = "credentials_api_key_digest"
 	// FieldExtra holds the string denoting the extra field in the database.
 	FieldExtra = "extra"
 	// FieldProxyID holds the string denoting the proxy_id field in the database.
@@ -141,6 +145,8 @@ var Columns = []string{
 	FieldPlatform,
 	FieldType,
 	FieldCredentials,
+	FieldCredentialsDigest,
+	FieldCredentialsAPIKeyDigest,
 	FieldExtra,
 	FieldProxyID,
 	FieldProxyFallbackOriginID,
@@ -205,6 +211,10 @@ var (
 	TypeValidator func(string) error
 	// DefaultCredentials holds the default value on creation for the "credentials" field.
 	DefaultCredentials func() map[string]interface{}
+	// CredentialsDigestValidator is a validator for the "credentials_digest" field. It is called by the builders before save.
+	CredentialsDigestValidator func(string) error
+	// CredentialsAPIKeyDigestValidator is a validator for the "credentials_api_key_digest" field. It is called by the builders before save.
+	CredentialsAPIKeyDigestValidator func(string) error
 	// DefaultExtra holds the default value on creation for the "extra" field.
 	DefaultExtra func() map[string]interface{}
 	// DefaultConcurrency holds the default value on creation for the "concurrency" field.
@@ -294,6 +304,16 @@ func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByCredentialsDigest orders the results by the credentials_digest field.
+func ByCredentialsDigest(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCredentialsDigest, opts...).ToFunc()
+}
+
+// ByCredentialsAPIKeyDigest orders the results by the credentials_api_key_digest field.
+func ByCredentialsAPIKeyDigest(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCredentialsAPIKeyDigest, opts...).ToFunc()
 }
 
 // ByProxyID orders the results by the proxy_id field.

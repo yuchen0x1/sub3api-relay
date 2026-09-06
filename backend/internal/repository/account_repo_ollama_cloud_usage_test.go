@@ -259,9 +259,14 @@ func TestBulkUpdateOllamaIdentityCleanupIsValueConditional(t *testing.T) {
 
 func TestUpdateCredentialsIdentityChangeClearsAllOllamaManagedExtra(t *testing.T) {
 	client, mock := newOllamaCloudUsageRepositoryTestClient(t)
+	// 参数顺序：($1 加密存储文档, $2 文档摘要, $3 api_key 摘要, $4 规范化明文, $5 id)。
+	// cipher 为 nil 时 $1 与 $4 同为规范化明文。
+	creds := map[string]any{"api_key": "new-key", "base_url": "https://ollama.com"}
+	payload, docDigest, apiKeyDigest, err := canonicalCredentialsPayload(creds)
+	require.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectExec(`(?s)UPDATE accounts.*credentials -> 'api_key' IS DISTINCT FROM.*ollama_cloud_usage_session.*ollama_cloud_usage_auto_refresh.*ollama_cloud_usage_snapshot`).
-		WithArgs(`{"api_key":"new-key","base_url":"https://ollama.com"}`, int64(17)).
+		WithArgs(string(payload), docDigest, apiKeyDigest, string(payload), int64(17)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO scheduler_outbox")).
 		WithArgs(service.SchedulerOutboxEventAccountChanged, int64(17), nil, nil, sqlmock.AnyArg()).
@@ -269,9 +274,7 @@ func TestUpdateCredentialsIdentityChangeClearsAllOllamaManagedExtra(t *testing.T
 	mock.ExpectCommit()
 	repo := newAccountRepositoryWithSQL(client, nil, nil)
 
-	err := repo.UpdateCredentials(context.Background(), 17, map[string]any{
-		"api_key": "new-key", "base_url": "https://ollama.com",
-	})
+	err = repo.UpdateCredentials(context.Background(), 17, creds)
 
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -294,13 +297,17 @@ func TestDisableOllamaCloudUsageAutoRefreshUsesGroupIdentityCAS(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// Ollama 清理分支必须带顶层 credentials DISTINCT 守卫：没有它，非 Ollama 的
+// Ollama 清理分支必须带顶层 credentials 变化守卫：没有它，非 Ollama 的
 // openai/anthropic apikey 账号在凭证未变化的持久化上也会误清探测快照。
+// 字段级加密下变化守卫改走摘要比较（旧行 digest 为 NULL 时退回明文直比）。
 func TestUpdateCredentialsCleanupBranchRequiresChangedCredentials(t *testing.T) {
 	client, mock := newOllamaCloudUsageRepositoryTestClient(t)
+	creds := map[string]any{"api_key": "same-key", "base_url": "https://relay.example.com/v1"}
+	payload, docDigest, apiKeyDigest, err := canonicalCredentialsPayload(creds)
+	require.NoError(t, err)
 	mock.ExpectBegin()
-	mock.ExpectExec(`(?s)UPDATE accounts.*CASE.*AND credentials IS DISTINCT FROM \$1::jsonb\s+AND \(\s+credentials -> 'api_key' IS DISTINCT FROM`).
-		WithArgs(`{"api_key":"same-key","base_url":"https://relay.example.com/v1"}`, int64(17)).
+	mock.ExpectExec(`(?s)UPDATE accounts.*CASE WHEN credentials_digest IS NULL THEN credentials IS DISTINCT FROM \$4::jsonb ELSE credentials_digest IS DISTINCT FROM \$2 END.*CASE WHEN credentials_api_key_digest IS NULL THEN credentials -> 'api_key' IS DISTINCT FROM \$4::jsonb -> 'api_key' ELSE credentials_api_key_digest IS DISTINCT FROM \$3 END.*- 'upstream_billing_probe'`).
+		WithArgs(string(payload), docDigest, apiKeyDigest, string(payload), int64(17)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO scheduler_outbox")).
 		WithArgs(service.SchedulerOutboxEventAccountChanged, int64(17), nil, nil, sqlmock.AnyArg()).
@@ -308,9 +315,7 @@ func TestUpdateCredentialsCleanupBranchRequiresChangedCredentials(t *testing.T) 
 	mock.ExpectCommit()
 	repo := newAccountRepositoryWithSQL(client, nil, nil)
 
-	err := repo.UpdateCredentials(context.Background(), 17, map[string]any{
-		"api_key": "same-key", "base_url": "https://relay.example.com/v1",
-	})
+	err = repo.UpdateCredentials(context.Background(), 17, creds)
 
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())

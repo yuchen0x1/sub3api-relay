@@ -1418,6 +1418,28 @@ func TestValidateJWTSecretStrength(t *testing.T) {
 	}
 }
 
+// 公开示例配置中的占位密钥必须在 Validate() 阶段硬性拒绝：它们是攻击者
+// 已知的常量，长度满足校验但可直接用于伪造管理员 JWT。
+func TestValidateRejectsKnownPublicJWTPlaceholder(t *testing.T) {
+	if !isKnownPublicJWTPlaceholder("change-this-to-a-secure-random-string") {
+		t.Fatalf("placeholder from config.example.yaml must be detected")
+	}
+	if isKnownPublicJWTPlaceholder(strings.Repeat("x", 32)) {
+		t.Fatalf("random secret must not be flagged as placeholder")
+	}
+
+	resetViperWithJWTSecret(t)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	cfg.JWT.Secret = "change-this-to-a-secure-random-string"
+	err = cfg.Validate()
+	if err == nil || !strings.Contains(err.Error(), "publicly known placeholder") {
+		t.Fatalf("Validate() must reject public placeholder secret, got: %v", err)
+	}
+}
+
 func TestGenerateJWTSecretWithLength(t *testing.T) {
 	secret, err := generateJWTSecret(16)
 	if err != nil {

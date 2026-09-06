@@ -2386,6 +2386,8 @@ type AccountMutation struct {
 	platform                    *string
 	_type                       *string
 	credentials                 *map[string]interface{}
+	credentials_digest          *string
+	credentials_api_key_digest  *string
 	extra                       *map[string]interface{}
 	proxy_fallback_origin_id    *int64
 	addproxy_fallback_origin_id *int64
@@ -2843,6 +2845,104 @@ func (m *AccountMutation) OldCredentials(ctx context.Context) (v map[string]inte
 // ResetCredentials resets all changes to the "credentials" field.
 func (m *AccountMutation) ResetCredentials() {
 	m.credentials = nil
+}
+
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (m *AccountMutation) SetCredentialsDigest(s string) {
+	m.credentials_digest = &s
+}
+
+// CredentialsDigest returns the value of the "credentials_digest" field in the mutation.
+func (m *AccountMutation) CredentialsDigest() (r string, exists bool) {
+	v := m.credentials_digest
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialsDigest returns the old "credentials_digest" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldCredentialsDigest(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialsDigest is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialsDigest requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialsDigest: %w", err)
+	}
+	return oldValue.CredentialsDigest, nil
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (m *AccountMutation) ClearCredentialsDigest() {
+	m.credentials_digest = nil
+	m.clearedFields[account.FieldCredentialsDigest] = struct{}{}
+}
+
+// CredentialsDigestCleared returns if the "credentials_digest" field was cleared in this mutation.
+func (m *AccountMutation) CredentialsDigestCleared() bool {
+	_, ok := m.clearedFields[account.FieldCredentialsDigest]
+	return ok
+}
+
+// ResetCredentialsDigest resets all changes to the "credentials_digest" field.
+func (m *AccountMutation) ResetCredentialsDigest() {
+	m.credentials_digest = nil
+	delete(m.clearedFields, account.FieldCredentialsDigest)
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (m *AccountMutation) SetCredentialsAPIKeyDigest(s string) {
+	m.credentials_api_key_digest = &s
+}
+
+// CredentialsAPIKeyDigest returns the value of the "credentials_api_key_digest" field in the mutation.
+func (m *AccountMutation) CredentialsAPIKeyDigest() (r string, exists bool) {
+	v := m.credentials_api_key_digest
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialsAPIKeyDigest returns the old "credentials_api_key_digest" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldCredentialsAPIKeyDigest(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialsAPIKeyDigest is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialsAPIKeyDigest requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialsAPIKeyDigest: %w", err)
+	}
+	return oldValue.CredentialsAPIKeyDigest, nil
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (m *AccountMutation) ClearCredentialsAPIKeyDigest() {
+	m.credentials_api_key_digest = nil
+	m.clearedFields[account.FieldCredentialsAPIKeyDigest] = struct{}{}
+}
+
+// CredentialsAPIKeyDigestCleared returns if the "credentials_api_key_digest" field was cleared in this mutation.
+func (m *AccountMutation) CredentialsAPIKeyDigestCleared() bool {
+	_, ok := m.clearedFields[account.FieldCredentialsAPIKeyDigest]
+	return ok
+}
+
+// ResetCredentialsAPIKeyDigest resets all changes to the "credentials_api_key_digest" field.
+func (m *AccountMutation) ResetCredentialsAPIKeyDigest() {
+	m.credentials_api_key_digest = nil
+	delete(m.clearedFields, account.FieldCredentialsAPIKeyDigest)
 }
 
 // SetExtra sets the "extra" field.
@@ -4289,7 +4389,7 @@ func (m *AccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AccountMutation) Fields() []string {
-	fields := make([]string, 0, 32)
+	fields := make([]string, 0, 34)
 	if m.created_at != nil {
 		fields = append(fields, account.FieldCreatedAt)
 	}
@@ -4313,6 +4413,12 @@ func (m *AccountMutation) Fields() []string {
 	}
 	if m.credentials != nil {
 		fields = append(fields, account.FieldCredentials)
+	}
+	if m.credentials_digest != nil {
+		fields = append(fields, account.FieldCredentialsDigest)
+	}
+	if m.credentials_api_key_digest != nil {
+		fields = append(fields, account.FieldCredentialsAPIKeyDigest)
 	}
 	if m.extra != nil {
 		fields = append(fields, account.FieldExtra)
@@ -4410,6 +4516,10 @@ func (m *AccountMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case account.FieldCredentials:
 		return m.Credentials()
+	case account.FieldCredentialsDigest:
+		return m.CredentialsDigest()
+	case account.FieldCredentialsAPIKeyDigest:
+		return m.CredentialsAPIKeyDigest()
 	case account.FieldExtra:
 		return m.Extra()
 	case account.FieldProxyID:
@@ -4483,6 +4593,10 @@ func (m *AccountMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldType(ctx)
 	case account.FieldCredentials:
 		return m.OldCredentials(ctx)
+	case account.FieldCredentialsDigest:
+		return m.OldCredentialsDigest(ctx)
+	case account.FieldCredentialsAPIKeyDigest:
+		return m.OldCredentialsAPIKeyDigest(ctx)
 	case account.FieldExtra:
 		return m.OldExtra(ctx)
 	case account.FieldProxyID:
@@ -4595,6 +4709,20 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCredentials(v)
+		return nil
+	case account.FieldCredentialsDigest:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialsDigest(v)
+		return nil
+	case account.FieldCredentialsAPIKeyDigest:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialsAPIKeyDigest(v)
 		return nil
 	case account.FieldExtra:
 		v, ok := value.(map[string]interface{})
@@ -4875,6 +5003,12 @@ func (m *AccountMutation) ClearedFields() []string {
 	if m.FieldCleared(account.FieldNotes) {
 		fields = append(fields, account.FieldNotes)
 	}
+	if m.FieldCleared(account.FieldCredentialsDigest) {
+		fields = append(fields, account.FieldCredentialsDigest)
+	}
+	if m.FieldCleared(account.FieldCredentialsAPIKeyDigest) {
+		fields = append(fields, account.FieldCredentialsAPIKeyDigest)
+	}
 	if m.FieldCleared(account.FieldProxyID) {
 		fields = append(fields, account.FieldProxyID)
 	}
@@ -4939,6 +5073,12 @@ func (m *AccountMutation) ClearField(name string) error {
 		return nil
 	case account.FieldNotes:
 		m.ClearNotes()
+		return nil
+	case account.FieldCredentialsDigest:
+		m.ClearCredentialsDigest()
+		return nil
+	case account.FieldCredentialsAPIKeyDigest:
+		m.ClearCredentialsAPIKeyDigest()
 		return nil
 	case account.FieldProxyID:
 		m.ClearProxyID()
@@ -5016,6 +5156,12 @@ func (m *AccountMutation) ResetField(name string) error {
 		return nil
 	case account.FieldCredentials:
 		m.ResetCredentials()
+		return nil
+	case account.FieldCredentialsDigest:
+		m.ResetCredentialsDigest()
+		return nil
+	case account.FieldCredentialsAPIKeyDigest:
+		m.ResetCredentialsAPIKeyDigest()
 		return nil
 	case account.FieldExtra:
 		m.ResetExtra()

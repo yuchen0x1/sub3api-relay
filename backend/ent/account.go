@@ -35,6 +35,10 @@ type Account struct {
 	Type string `json:"type,omitempty"`
 	// Credentials holds the value of the "credentials" field.
 	Credentials map[string]interface{} `json:"credentials,omitempty"`
+	// SHA-256 hex of canonical plaintext credentials; enables CAS equality under field-level encryption
+	CredentialsDigest *string `json:"credentials_digest,omitempty"`
+	// SHA-256 hex of canonical credentials.api_key value
+	CredentialsAPIKeyDigest *string `json:"credentials_api_key_digest,omitempty"`
 	// Extra holds the value of the "extra" field.
 	Extra map[string]interface{} `json:"extra,omitempty"`
 	// ProxyID holds the value of the "proxy_id" field.
@@ -179,7 +183,7 @@ func (*Account) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case account.FieldID, account.FieldProxyID, account.FieldProxyFallbackOriginID, account.FieldConcurrency, account.FieldLoadFactor, account.FieldPriority, account.FieldWeight, account.FieldParentAccountID:
 			values[i] = new(sql.NullInt64)
-		case account.FieldName, account.FieldNotes, account.FieldPlatform, account.FieldType, account.FieldStatus, account.FieldErrorMessage, account.FieldTempUnschedulableReason, account.FieldSessionWindowStatus, account.FieldQuotaDimension:
+		case account.FieldName, account.FieldNotes, account.FieldPlatform, account.FieldType, account.FieldCredentialsDigest, account.FieldCredentialsAPIKeyDigest, account.FieldStatus, account.FieldErrorMessage, account.FieldTempUnschedulableReason, account.FieldSessionWindowStatus, account.FieldQuotaDimension:
 			values[i] = new(sql.NullString)
 		case account.FieldCreatedAt, account.FieldUpdatedAt, account.FieldDeletedAt, account.FieldLastUsedAt, account.FieldExpiresAt, account.FieldRateLimitedAt, account.FieldRateLimitResetAt, account.FieldOverloadUntil, account.FieldTempUnschedulableUntil, account.FieldSessionWindowStart, account.FieldSessionWindowEnd:
 			values[i] = new(sql.NullTime)
@@ -255,6 +259,20 @@ func (_m *Account) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Credentials); err != nil {
 					return fmt.Errorf("unmarshal field credentials: %w", err)
 				}
+			}
+		case account.FieldCredentialsDigest:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field credentials_digest", values[i])
+			} else if value.Valid {
+				_m.CredentialsDigest = new(string)
+				*_m.CredentialsDigest = value.String
+			}
+		case account.FieldCredentialsAPIKeyDigest:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field credentials_api_key_digest", values[i])
+			} else if value.Valid {
+				_m.CredentialsAPIKeyDigest = new(string)
+				*_m.CredentialsAPIKeyDigest = value.String
 			}
 		case account.FieldExtra:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -510,6 +528,16 @@ func (_m *Account) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("credentials=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Credentials))
+	builder.WriteString(", ")
+	if v := _m.CredentialsDigest; v != nil {
+		builder.WriteString("credentials_digest=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CredentialsAPIKeyDigest; v != nil {
+		builder.WriteString("credentials_api_key_digest=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("extra=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Extra))

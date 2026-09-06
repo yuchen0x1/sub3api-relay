@@ -148,6 +148,9 @@ var ProviderSet = wire.NewSet(
 	// Encryptors
 	NewAESEncryptor,
 
+	// Account credential field-level encryption (enc:v1: envelope + digests)
+	NewAccountCredentialCipher,
+
 	// Backup infrastructure
 	NewPgDumper,
 	NewS3BackupStoreFactory,

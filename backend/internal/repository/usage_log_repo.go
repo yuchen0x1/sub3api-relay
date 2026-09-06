@@ -148,10 +148,15 @@ type usageLogRepository struct {
 	bestEffortBatchOnce sync.Once
 	bestEffortBatchCh   chan usageLogBestEffortRequest
 	bestEffortRecent    *gocache.Cache
+
+	// credCipher 与 accountRepository 共用：用量归因加载账号时解密凭据信封。
+	credCipher *credentialCipher
 }
 
-func NewUsageLogRepository(client *dbent.Client, sqlDB *sql.DB) service.UsageLogRepository {
-	return newUsageLogRepositoryWithSQL(client, sqlDB)
+func NewUsageLogRepository(client *dbent.Client, sqlDB *sql.DB, credCipher *credentialCipher) service.UsageLogRepository {
+	repo := newUsageLogRepositoryWithSQL(client, sqlDB)
+	repo.credCipher = credCipher
+	return repo
 }
 
 func newUsageLogRepositoryWithSQL(client *dbent.Client, sqlq sqlExecutor) *usageLogRepository {

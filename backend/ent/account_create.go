@@ -105,6 +105,34 @@ func (_c *AccountCreate) SetCredentials(v map[string]interface{}) *AccountCreate
 	return _c
 }
 
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (_c *AccountCreate) SetCredentialsDigest(v string) *AccountCreate {
+	_c.mutation.SetCredentialsDigest(v)
+	return _c
+}
+
+// SetNillableCredentialsDigest sets the "credentials_digest" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableCredentialsDigest(v *string) *AccountCreate {
+	if v != nil {
+		_c.SetCredentialsDigest(*v)
+	}
+	return _c
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (_c *AccountCreate) SetCredentialsAPIKeyDigest(v string) *AccountCreate {
+	_c.mutation.SetCredentialsAPIKeyDigest(v)
+	return _c
+}
+
+// SetNillableCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableCredentialsAPIKeyDigest(v *string) *AccountCreate {
+	if v != nil {
+		_c.SetCredentialsAPIKeyDigest(*v)
+	}
+	return _c
+}
+
 // SetExtra sets the "extra" field.
 func (_c *AccountCreate) SetExtra(v map[string]interface{}) *AccountCreate {
 	_c.mutation.SetExtra(v)
@@ -637,6 +665,16 @@ func (_c *AccountCreate) check() error {
 	if _, ok := _c.mutation.Credentials(); !ok {
 		return &ValidationError{Name: "credentials", err: errors.New(`ent: missing required field "Account.credentials"`)}
 	}
+	if v, ok := _c.mutation.CredentialsDigest(); ok {
+		if err := account.CredentialsDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_digest": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CredentialsAPIKeyDigest(); ok {
+		if err := account.CredentialsAPIKeyDigestValidator(v); err != nil {
+			return &ValidationError{Name: "credentials_api_key_digest", err: fmt.Errorf(`ent: validator failed for field "Account.credentials_api_key_digest": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Extra(); !ok {
 		return &ValidationError{Name: "extra", err: errors.New(`ent: missing required field "Account.extra"`)}
 	}
@@ -737,6 +775,14 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Credentials(); ok {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
 		_node.Credentials = value
+	}
+	if value, ok := _c.mutation.CredentialsDigest(); ok {
+		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)
+		_node.CredentialsDigest = &value
+	}
+	if value, ok := _c.mutation.CredentialsAPIKeyDigest(); ok {
+		_spec.SetField(account.FieldCredentialsAPIKeyDigest, field.TypeString, value)
+		_node.CredentialsAPIKeyDigest = &value
 	}
 	if value, ok := _c.mutation.Extra(); ok {
 		_spec.SetField(account.FieldExtra, field.TypeJSON, value)
@@ -1057,6 +1103,42 @@ func (u *AccountUpsert) SetCredentials(v map[string]interface{}) *AccountUpsert 
 // UpdateCredentials sets the "credentials" field to the value that was provided on create.
 func (u *AccountUpsert) UpdateCredentials() *AccountUpsert {
 	u.SetExcluded(account.FieldCredentials)
+	return u
+}
+
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (u *AccountUpsert) SetCredentialsDigest(v string) *AccountUpsert {
+	u.Set(account.FieldCredentialsDigest, v)
+	return u
+}
+
+// UpdateCredentialsDigest sets the "credentials_digest" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateCredentialsDigest() *AccountUpsert {
+	u.SetExcluded(account.FieldCredentialsDigest)
+	return u
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (u *AccountUpsert) ClearCredentialsDigest() *AccountUpsert {
+	u.SetNull(account.FieldCredentialsDigest)
+	return u
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (u *AccountUpsert) SetCredentialsAPIKeyDigest(v string) *AccountUpsert {
+	u.Set(account.FieldCredentialsAPIKeyDigest, v)
+	return u
+}
+
+// UpdateCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateCredentialsAPIKeyDigest() *AccountUpsert {
+	u.SetExcluded(account.FieldCredentialsAPIKeyDigest)
+	return u
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (u *AccountUpsert) ClearCredentialsAPIKeyDigest() *AccountUpsert {
+	u.SetNull(account.FieldCredentialsAPIKeyDigest)
 	return u
 }
 
@@ -1628,6 +1710,48 @@ func (u *AccountUpsertOne) SetCredentials(v map[string]interface{}) *AccountUpse
 func (u *AccountUpsertOne) UpdateCredentials() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateCredentials()
+	})
+}
+
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (u *AccountUpsertOne) SetCredentialsDigest(v string) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsDigest(v)
+	})
+}
+
+// UpdateCredentialsDigest sets the "credentials_digest" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateCredentialsDigest() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsDigest()
+	})
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (u *AccountUpsertOne) ClearCredentialsDigest() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsDigest()
+	})
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (u *AccountUpsertOne) SetCredentialsAPIKeyDigest(v string) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsAPIKeyDigest(v)
+	})
+}
+
+// UpdateCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateCredentialsAPIKeyDigest() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsAPIKeyDigest()
+	})
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (u *AccountUpsertOne) ClearCredentialsAPIKeyDigest() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsAPIKeyDigest()
 	})
 }
 
@@ -2434,6 +2558,48 @@ func (u *AccountUpsertBulk) SetCredentials(v map[string]interface{}) *AccountUps
 func (u *AccountUpsertBulk) UpdateCredentials() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateCredentials()
+	})
+}
+
+// SetCredentialsDigest sets the "credentials_digest" field.
+func (u *AccountUpsertBulk) SetCredentialsDigest(v string) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsDigest(v)
+	})
+}
+
+// UpdateCredentialsDigest sets the "credentials_digest" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateCredentialsDigest() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsDigest()
+	})
+}
+
+// ClearCredentialsDigest clears the value of the "credentials_digest" field.
+func (u *AccountUpsertBulk) ClearCredentialsDigest() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsDigest()
+	})
+}
+
+// SetCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field.
+func (u *AccountUpsertBulk) SetCredentialsAPIKeyDigest(v string) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsAPIKeyDigest(v)
+	})
+}
+
+// UpdateCredentialsAPIKeyDigest sets the "credentials_api_key_digest" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateCredentialsAPIKeyDigest() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsAPIKeyDigest()
+	})
+}
+
+// ClearCredentialsAPIKeyDigest clears the value of the "credentials_api_key_digest" field.
+func (u *AccountUpsertBulk) ClearCredentialsAPIKeyDigest() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsAPIKeyDigest()
 	})
 }
 
