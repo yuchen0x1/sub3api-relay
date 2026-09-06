@@ -10,7 +10,8 @@ import (
 )
 
 func mkProxy(id int64, mode string, backup *int64, expiresInDays *int, now time.Time) Proxy {
-	p := Proxy{ID: id, FallbackMode: mode, BackupProxyID: backup}
+	// 默认 active；需要非 active 状态的用例在构造后显式覆盖。
+	p := Proxy{ID: id, FallbackMode: mode, BackupProxyID: backup, Status: StatusActive}
 	if expiresInDays != nil {
 		t := now.AddDate(0, 0, *expiresInDays)
 		p.ExpiresAt = &t
