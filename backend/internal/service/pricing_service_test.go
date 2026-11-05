@@ -625,10 +625,18 @@ func TestPricingService_GPT61ModelsUseTheirOwnExactFallbacks(t *testing.T) {
 }
 
 func TestPricingService_GPTImage25UsesImageTokenPricing(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "data", "model_pricing.json"))
-	require.NoError(t, err)
+	// 内联目录条目：backend/data 是运行期缓存且不入库，测试不应依赖本机文件。
+	const catalog = `{
+		"gpt-image-2.5-sunburst": {
+			"mode": "image_generation",
+			"input_cost_per_token": 5e-06,
+			"cache_read_input_token_cost": 1.25e-06,
+			"input_cost_per_image_token": 8e-06,
+			"output_cost_per_image_token": 3e-05
+		}
+	}`
 	svc := &PricingService{}
-	parsed, err := svc.parsePricingData(data)
+	parsed, err := svc.parsePricingData([]byte(catalog))
 	require.NoError(t, err)
 	svc.pricingData = parsed
 
