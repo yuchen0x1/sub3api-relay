@@ -1324,7 +1324,7 @@ func enableOpenAIHTTP2KeepAlive(transport *http.Transport) (*http2.Transport, er
 	}
 	if h2 != nil {
 		h2.ReadIdleTimeout = openAIHTTP2ReadIdleTimeout //nolint:staticcheck // 见上
-		h2.PingTimeout = openAIHTTP2PingTimeout //nolint:staticcheck // 见上
+		h2.PingTimeout = openAIHTTP2PingTimeout         //nolint:staticcheck // 见上
 	}
 	return h2, nil
 }

@@ -55,6 +55,7 @@ func staticProxyExitIDs(targets []StaticProxyRoutingTarget) []int64 {
 
 // staticProxyCapacityUnavailable reports whether err is the capacity-exhaustion
 // error produced by the generic gateway path.
+//
 //nolint:unused // 由 gateway_static_proxy_routing_test.go 覆盖的错误分类助手
 func staticProxyCapacityUnavailable(err error) bool {
 	return err != nil && errors.Is(err, ErrStaticProxyCapacityUnavailable)
