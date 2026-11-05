@@ -53,20 +53,20 @@ var (
 		SupportsPromptCaching:               true,
 	}
 	openAIGPT61SolFallbackPricing = &LiteLLMModelPricing{
-		InputCostPerToken:           2e-06,
-		OutputCostPerToken:          1e-05,
-		CacheReadInputTokenCost:     1e-07,
-		LiteLLMProvider:             "openai",
-		Mode:                        "chat",
-		SupportsPromptCaching:       true,
+		InputCostPerToken:       2e-06,
+		OutputCostPerToken:      1e-05,
+		CacheReadInputTokenCost: 1e-07,
+		LiteLLMProvider:         "openai",
+		Mode:                    "chat",
+		SupportsPromptCaching:   true,
 	}
 	openAIGPT61TerraFallbackPricing = &LiteLLMModelPricing{
-		InputCostPerToken:           1e-06,
-		OutputCostPerToken:          5e-06,
-		CacheReadInputTokenCost:     5e-08,
-		LiteLLMProvider:             "openai",
-		Mode:                        "chat",
-		SupportsPromptCaching:       true,
+		InputCostPerToken:       1e-06,
+		OutputCostPerToken:      5e-06,
+		CacheReadInputTokenCost: 5e-08,
+		LiteLLMProvider:         "openai",
+		Mode:                    "chat",
+		SupportsPromptCaching:   true,
 	}
 	openAIGPT56SolFallbackPricing = &LiteLLMModelPricing{
 		InputCostPerToken:                   5e-06,

@@ -159,7 +159,7 @@ func (c *trojanConn) writeRequest(authHash []byte, host string, port int) error 
 		return err
 	}
 	request = append(request, '\r', '\n')
-	if _, err := c.Conn.Write(request); err != nil {
+	if _, err := c.Write(request); err != nil {
 		return fmt.Errorf("write trojan request: %w", err)
 	}
 	return nil

@@ -33,9 +33,9 @@ func TestVLESSDialContextWebSocketTLS(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer ws.Close(coderws.StatusNormalClosure, "")
+		defer func() { _ = ws.Close(coderws.StatusNormalClosure, "") }()
 		stream := coderws.NetConn(context.Background(), ws, coderws.MessageBinary)
-		defer stream.Close()
+		defer func() { _ = stream.Close() }()
 		header := make([]byte, 0, 64)
 		buf := make([]byte, 64)
 		n, err := stream.Read(buf)
@@ -73,7 +73,7 @@ func TestVLESSDialContextWebSocketTLS(t *testing.T) {
 	defer cancel()
 	conn, err := dial(ctx, "tcp", "example.com:80")
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	payload, err := io.ReadAll(io.LimitReader(conn, 2))
 	require.NoError(t, err)
 	require.Equal(t, "ok", string(payload))

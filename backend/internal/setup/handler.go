@@ -240,15 +240,6 @@ func validateUsername(name string) bool {
 	return validName.MatchString(name) && len(name) <= 63
 }
 
-// validateEmail checks if email format is valid
-func validateEmail(email string) bool {
-	if strings.TrimSpace(email) == defaultAdminLogin {
-		return true
-	}
-	_, err := mail.ParseAddress(email)
-	return err == nil && len(email) <= 254
-}
-
 // validateAdminIdentifier accepts the historical admin/email login values as
 // well as a private site-owner username. The value is stored in the existing
 // users.email column for compatibility, but it is never required to be a

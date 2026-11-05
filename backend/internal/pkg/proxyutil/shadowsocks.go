@@ -158,8 +158,8 @@ func ssKDF(password string, keyLen int) []byte {
 	var out, prev []byte
 	for len(out) < keyLen {
 		h := md5.New()
-		h.Write(prev)
-		h.Write([]byte(password))
+		_, _ = h.Write(prev)
+		_, _ = h.Write([]byte(password))
 		prev = h.Sum(prev[:0])
 		out = append(out, prev...)
 	}

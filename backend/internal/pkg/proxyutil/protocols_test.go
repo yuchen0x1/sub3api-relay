@@ -454,8 +454,10 @@ func TestVMESSDialerEndToEnd(t *testing.T) {
 	listener := startFakeVMESSListener(t)
 	defer func() { _ = listener.Close() }()
 
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	require.True(t, ok)
 	fields := map[string]string{
-		"v": "2", "add": "127.0.0.1", "port": strconv.Itoa(listener.Addr().(*net.TCPAddr).Port),
+		"v": "2", "add": "127.0.0.1", "port": strconv.Itoa(addr.Port),
 		"id": "d9428888-122b-11ed-861d-0242ac120002", "aid": "0", "scy": "aes-128-gcm", "net": "tcp",
 	}
 	encoded, err := json.Marshal(fields)

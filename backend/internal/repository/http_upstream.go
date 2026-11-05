@@ -1317,14 +1317,14 @@ func buildUpstreamTransportManaged(settings poolSettings, proxyURL *url.URL, pro
 // Go 默认惰性配置 http2 且 ReadIdleTimeout=0（不发健康 PING），无法检测被代理/NAT
 // 静默掐断的死连接。此处主动设置 ReadIdleTimeout/PingTimeout，让死连接被提前 PING
 // 出并关闭，请求得以重建连接而非挂到 TCP 重传超时。返回底层 *http2.Transport 便于测试。
-func enableOpenAIHTTP2KeepAlive(transport *http.Transport) (*http2.Transport, error) {
-	h2, err := http2.ConfigureTransports(transport)
+func enableOpenAIHTTP2KeepAlive(transport *http.Transport) (*http2.Transport, error) { //nolint:staticcheck // 返回类型仍为 x/net/http2，迁移前保留
+	h2, err := http2.ConfigureTransports(transport) //nolint:staticcheck // 迁移到 http.Transport.HTTP2 需单独评估
 	if err != nil {
 		return nil, err
 	}
 	if h2 != nil {
-		h2.ReadIdleTimeout = openAIHTTP2ReadIdleTimeout
-		h2.PingTimeout = openAIHTTP2PingTimeout
+		h2.ReadIdleTimeout = openAIHTTP2ReadIdleTimeout //nolint:staticcheck // 见上
+		h2.PingTimeout = openAIHTTP2PingTimeout         //nolint:staticcheck // 见上
 	}
 	return h2, nil
 }

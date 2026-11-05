@@ -11,14 +11,6 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 )
 
-// hasCustomPricingFiles 报告是否配置了 fallback/override 任一文件路径（不要求文件存在）。
-func (s *PricingService) hasCustomPricingFiles() bool {
-	if s == nil || s.cfg == nil {
-		return false
-	}
-	return strings.TrimSpace(s.cfg.Pricing.FallbackFile) != "" || strings.TrimSpace(s.cfg.Pricing.OverrideFile) != ""
-}
-
 // validateCustomPricingFiles 要求每个已配置且存在的 fallback/override 文件可读且为 JSON
 // 对象，任一不满足即返回带路径的错误；文件不存在视为该层为空，属合法状态。
 // 在服务初始化时调用，让"配置了但写坏了"的文件在启动日志里立刻暴露，

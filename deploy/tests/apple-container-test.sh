@@ -34,10 +34,11 @@ export SUB3API_ENV_FILE="${ENV_FILE}"
 mkdir -p "${STATE_DIR}"
 
 "${SCRIPT}" init
-if stat -f '%Lp' "${ENV_FILE}" >/dev/null 2>&1; then
-    env_mode="$(stat -f '%Lp' "${ENV_FILE}")"
-else
+# GNU stat 用 -c，BSD/macOS stat 用 -f；先探测再取值，避免 GNU 把 -f 当成文件系统查询。
+if stat -c '%a' "${ENV_FILE}" >/dev/null 2>&1; then
     env_mode="$(stat -c '%a' "${ENV_FILE}")"
+else
+    env_mode="$(stat -f '%Lp' "${ENV_FILE}")"
 fi
 [[ "${env_mode}" == "600" ]] || fail "init did not create a mode-600 env file"
 grep -q '^POSTGRES_PASSWORD=change_this_secure_password$' "${ENV_FILE}" && fail "init retained the placeholder password"

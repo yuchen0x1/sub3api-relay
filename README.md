@@ -4,7 +4,7 @@
 
 > 面向个人自建和内部团队使用的 AI API 中转、账号调度、用量计费与运维管理平台。
 
-[![Go](https://img.shields.io/badge/Go-1.26.6-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.26.10-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Vue](https://img.shields.io/badge/Vue-3-42B883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18--alpine-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -44,7 +44,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 
 | 模块 | 技术 |
 | --- | --- |
-| 后端 | Go 1.26.6, Gin, Ent, Wire, zap |
+| 后端 | Go 1.26.10, Gin, Ent, Wire, zap |
 | 前端 | Vue 3, Vite 8, TypeScript, Pinia, Vue Router, Tailwind CSS |
 | 数据库 | PostgreSQL；Docker Compose 默认 `postgres:18-alpine` |
 | 缓存 | Redis；Docker Compose 默认 `redis:8-alpine` |
@@ -69,7 +69,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 
 ### 本地开发
 
-- Go 1.26.6
+- Go 1.26.10
 - Node.js 24
 - pnpm 11.20.0
 - PostgreSQL 与 Redis，或使用 `deploy/docker-compose.dev.yml` 从源码构建本地容器环境

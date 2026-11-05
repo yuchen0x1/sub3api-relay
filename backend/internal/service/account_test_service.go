@@ -2169,7 +2169,7 @@ func (s *AccountTestService) TestDraftConnection(ctx context.Context, platform, 
 		result.Error = fmt.Sprintf("upstream request failed: %v", err)
 		return result, nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {

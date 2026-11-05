@@ -11,8 +11,8 @@ import (
 
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/claude"
-	"github.com/yuchen0x1/sub3api-relay/internal/pkg/geminicli"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/geminicli"
 )
 
 const upstreamModelsBodyLimit int64 = 8 << 20
