@@ -43,7 +43,7 @@ func concatBytes(parts ...[]byte) []byte {
 // it as a keyed derivative input, not as an integrity check on its own.
 func legacyDigest(data []byte) [16]byte {
 	h := md5.New()
-	h.Write(data)
+	_, _ = h.Write(data)
 	var out [16]byte
 	return *(*[16]byte)(h.Sum(out[:0]))
 }

@@ -21,7 +21,7 @@ func vmessKDF(key []byte, paths ...string) []byte {
 		creator = func() hash.Hash { return hmac.New(parent, []byte(p)) }
 	}
 	h := creator()
-	h.Write(key)
+	_, _ = h.Write(key)
 	return h.Sum(nil)
 }
 

@@ -107,6 +107,7 @@ func isGrokModelQuotaBlocked(accountID int64, model string, now time.Time) bool 
 	return true
 }
 
+//nolint:unused // 由 grok_upstream_failure_smoke_test.go 覆盖
 func filterGrokModelQuotaBlockedAccounts(accounts []Account, model string, now time.Time) []Account {
 	if len(accounts) == 0 || strings.TrimSpace(model) == "" {
 		return accounts

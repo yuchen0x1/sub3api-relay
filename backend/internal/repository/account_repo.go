@@ -2468,16 +2468,16 @@ func (r *accountRepository) SuspendAccountsByPlatform(ctx context.Context, platf
 	for rows.Next() {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return 0, err
 		}
 		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return 0, err
 	}
-	rows.Close()
+	_ = rows.Close()
 	// 平台级暂停没有单一 account_id，按受影响账号逐个入箱，
 	// 由消费端按账号粒度刷新快照；payload 留空与其他 AccountChanged 事件保持同一契约。
 	for _, id := range ids {

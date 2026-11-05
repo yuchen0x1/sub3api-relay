@@ -151,7 +151,7 @@ func main() {
 					continue
 				}
 				_, _ = io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				s.record(elapsed, resp.StatusCode)
 				if resp.StatusCode < 400 {
 					atomic.AddInt64(&okCount, 1)

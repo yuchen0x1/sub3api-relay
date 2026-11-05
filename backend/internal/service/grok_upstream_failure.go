@@ -383,57 +383,6 @@ func isGrokBillingQuotaText(low string) bool {
 	return false
 }
 
-// grokRetryableOnSameAccount marks transient 429 classes for the shared
-// failover loop. Capacity and ordinary throttles are request/model pressure,
-// not evidence that the credential is invalid, so a bounded retry on the same
-// account is preferable before switching accounts. Free-usage and billing
-// exhaustion deliberately skip same-account retry and fail over immediately.
-func grokRetryableOnSameAccount(account *Account, statusCode int, responseBody []byte) bool {
-	if account == nil || !account.IsGrok() {
-		return false
-	}
-	decision := classifyGrokUpstreamFailure(statusCode, responseBody, "")
-	switch decision.Class {
-	case GrokFailureFreeUsage, GrokFailureBilling, GrokFailureCompatibility:
-		// Quota/entitlement exhaustion is account state, not transient
-		// pressure. Retrying the same account only repeats the failure.
-		return false
-	case GrokFailureModelCapacity:
-		if statusCode == http.StatusTooManyRequests {
-			return true
-		}
-	}
-	return account.IsPoolMode() && account.IsPoolModeRetryableStatus(statusCode)
-}
-
-func grokSameAccountRetryMetadata(account *Account, statusCode int, responseBody []byte) (bool, time.Duration, time.Time, int) {
-	if !grokRetryableOnSameAccount(account, statusCode, responseBody) {
-		return false, 0, time.Time{}, 0
-	}
-	decision := classifyGrokUpstreamFailure(statusCode, responseBody, "")
-	if decision.Class != GrokFailureModelCapacity {
-		return true, 0, time.Time{}, 0
-	}
-	// The error is reconstructed after every upstream attempt, so a deadline
-	// stored on the error cannot provide a request-wide window. Cap capacity
-	// retries explicitly to one replay; this remains effective even when the
-	// first attempt itself takes longer than the nominal 30-second window.
-	return true, 500 * time.Millisecond, time.Now().Add(30 * time.Second), 1
-}
-
-// shouldMarkGrokTeamModelRateLimit controls the process-local sibling-account
-// overlay. Model-capacity responses are request pressure, not a team quota;
-// marking them would hide healthy sibling credentials while the bounded
-// same-account retry is still in progress. Ordinary 429s and free-usage
-// exhaustion retain the existing quota/team isolation behavior.
-func shouldMarkGrokTeamModelRateLimit(statusCode int, responseBody []byte) bool {
-	decision := classifyGrokUpstreamFailure(statusCode, responseBody, "")
-	if decision.Class == GrokFailureModelCapacity {
-		return false
-	}
-	return statusCode == http.StatusTooManyRequests || decision.Class == GrokFailureFreeUsage
-}
-
 func isGrokCompatibilityError(statusCode int, low, code string) bool {
 	if statusCode != http.StatusBadRequest && statusCode != http.StatusUnprocessableEntity {
 		return false

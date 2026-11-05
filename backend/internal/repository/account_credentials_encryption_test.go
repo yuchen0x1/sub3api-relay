@@ -91,9 +91,16 @@ func TestCredentialCipherRoundtrip(t *testing.T) {
 func TestCredentialCipherIdempotent(t *testing.T) {
 	cipher := testCipher(t)
 	first := cipher.prepareForWrite(map[string]any{"api_key": "sk-once"})
-	enveloped := first["api_key"].(string)
+	enveloped, ok := first["api_key"].(string)
+	if !ok {
+		t.Fatal("expected an encrypted string value")
+	}
 	second := cipher.prepareForWrite(first)
-	if second["api_key"].(string) != enveloped {
+	secondValue, ok := second["api_key"].(string)
+	if !ok {
+		t.Fatal("expected an encrypted string value")
+	}
+	if secondValue != enveloped {
 		t.Fatal("already enveloped value must not be re-encrypted")
 	}
 }

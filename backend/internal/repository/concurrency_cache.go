@@ -193,29 +193,6 @@ var (
 			return redis.call('ZCARD', key)
 		`)
 
-	staticProxyLiveRefreshScript = redis.NewScript(`
-			redis.replicate_commands()
-			local aggregateKey = KEYS[1]
-			local assignmentKey = KEYS[2]
-			local ttl = tonumber(ARGV[1])
-			local requestID = ARGV[2]
-			local now = tonumber(redis.call('TIME')[1])
-			redis.call('ZREMRANGEBYSCORE', aggregateKey, '-inf', now - ttl)
-			redis.call('ZREMRANGEBYSCORE', assignmentKey, '-inf', now - ttl)
-			if redis.call('ZSCORE', aggregateKey, requestID) == false or redis.call('ZSCORE', assignmentKey, requestID) == false then
-				redis.call('ZREM', aggregateKey, requestID)
-				redis.call('ZREM', assignmentKey, requestID)
-				if redis.call('ZCARD', aggregateKey) == 0 then redis.call('DEL', aggregateKey) end
-				if redis.call('ZCARD', assignmentKey) == 0 then redis.call('DEL', assignmentKey) end
-				return 0
-			end
-			redis.call('ZADD', aggregateKey, now, requestID)
-			redis.call('ZADD', assignmentKey, now, requestID)
-			redis.call('EXPIRE', aggregateKey, ttl)
-			redis.call('EXPIRE', assignmentKey, ttl)
-			return 1
-		`)
-
 	// getCountScript 统计有序集合中的槽位数量并清理过期条目
 
 	// 使用 Redis TIME 命令获取服务器时间
