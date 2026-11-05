@@ -778,6 +778,34 @@ type ChatDelta struct {
 // Shared constants
 // ---------------------------------------------------------------------------
 
-// minMaxOutputTokens is the floor for max_output_tokens in a Responses request.
-// Very small values may cause upstream API errors, so we enforce a minimum.
+// minMaxOutputTokens is the default floor for max_output_tokens in a
+// Responses request. Very small values may cause upstream API errors, so we
+// enforce a minimum. The floor can be raised at startup via
+// ConfigureMinMaxOutputTokens (gateway.min_output_tokens).
 const minMaxOutputTokens = 128
+
+// minMaxOutputTokensFloor 是 gateway.min_output_tokens 允许配置的最低值。
+const minMaxOutputTokensFloor = 16
+
+// configuredMinMaxOutputTokens 保存启动时从 gateway.min_output_tokens 注入的
+// 下限值；0 表示未配置，回落到默认 128。
+var configuredMinMaxOutputTokens int
+
+// ConfigureMinMaxOutputTokens 在进程启动时设置转换路径使用的最小输出 token
+// 下限（gateway.min_output_tokens，最低 16）。低于下限或未调用时使用默认值。
+// 该值仅应在服务启动阶段设置一次，运行期修改不生效。
+func ConfigureMinMaxOutputTokens(min int) {
+	if min >= minMaxOutputTokensFloor {
+		configuredMinMaxOutputTokens = min
+	} else {
+		configuredMinMaxOutputTokens = 0
+	}
+}
+
+// effectiveMinMaxOutputTokens 返回当前生效的最小输出 token 下限。
+func effectiveMinMaxOutputTokens() int {
+	if configuredMinMaxOutputTokens >= minMaxOutputTokensFloor {
+		return configuredMinMaxOutputTokens
+	}
+	return minMaxOutputTokens
+}

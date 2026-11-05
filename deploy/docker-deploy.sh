@@ -5,6 +5,7 @@
 # This script prepares deployment files for Sub3API:
 #   - Downloads a version-pinned deployment bundle from GitHub Releases
 #   - Verifies the deployment bundle with SHA-256 before writing files
+#   - The CI workflow only builds assets; a maintainer must attach the bundle to GitHub
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD,
 #     SETUP_REMOTE_TOKEN)
 #   - Defers administrator creation to the first-run owner setup page
@@ -168,12 +169,11 @@ main() {
     trap "rm -rf -- '$download_dir'" EXIT
 
     print_info "Downloading verified deployment bundle for ${release_tag}..."
-    download_file "${release_base}/docker-compose.yml" "$download_dir/docker-compose.yml"
-    download_file "${release_base}/sub3api.env.example" "$download_dir/sub3api.env.example"
-    download_file "${release_base}/deploy-checksums.txt" "$download_dir/deploy-checksums.txt"
-    verify_deployment_asset "$download_dir" docker-compose.yml
+    download_file "${release_base}/sub3api_${release_tag#v}_deploy.tar.gz" "$download_dir/deploy.tar.gz"
+    tar -xzf "$download_dir/deploy.tar.gz" -C "$download_dir"
+    verify_deployment_asset "$download_dir" docker-compose.local.yml
     verify_deployment_asset "$download_dir" sub3api.env.example
-    mv "$download_dir/docker-compose.yml" docker-compose.yml
+    mv "$download_dir/docker-compose.local.yml" docker-compose.yml
     mv "$download_dir/sub3api.env.example" .env.example
     print_success "Downloaded and verified deployment bundle for ${release_tag}"
 
@@ -196,7 +196,7 @@ main() {
     set_env_value AUTO_SETUP_OWNER_SETUP "true"
     set_env_value SETUP_ALLOW_REMOTE "true"
     set_env_value SETUP_REMOTE_TOKEN "$SETUP_REMOTE_TOKEN"
-    set_env_value SUB3API_IMAGE "ghcr.io/${GITHUB_REPO}:${release_tag#v}"
+    set_env_value SUB3API_IMAGE "ghcr.io/yuchen0x1/sub3api-relay:${release_tag#v}"
 
     # Create data directories
     print_info "Creating data directories..."

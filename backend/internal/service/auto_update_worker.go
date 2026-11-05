@@ -137,7 +137,7 @@ func (w *AutoUpdateWorker) checkAndUpdate() {
 	ctx, cancel := context.WithTimeout(context.Background(), autoUpdateCheckTimeout)
 	defer cancel()
 
-	// 下载/检查前先解析更新通道（国内 IP → Gitee，国外 → GitHub），并贯穿本轮日志
+	// Resolve the fixed GitHub update channel for this check and include it in logs.
 	channel := w.resolveChannel(ctx)
 	slog.Info("auto_update: checking for updates", "channel", string(channel))
 

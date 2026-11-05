@@ -445,6 +445,26 @@
                   <Toggle v-model="form.session_binding_enabled" />
                 </div>
 
+                <!-- API Key creation limits -->
+                <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                  <h3 class="font-medium text-gray-900 dark:text-white">
+                    {{ t("admin.settings.security.apiKeyLimits") }}
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.security.apiKeyLimitsHint") }}
+                  </p>
+                  <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label class="block">
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t("admin.settings.security.apiKeyMaxActive") }}</span>
+                      <input v-model.number="form.api_key_max_active_per_user" type="number" min="0" class="input mt-1 w-full" />
+                    </label>
+                    <label class="block">
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t("admin.settings.security.apiKeyCreateHourly") }}</span>
+                      <input v-model.number="form.api_key_create_hourly_limit" type="number" min="0" class="input mt-1 w-full" />
+                    </label>
+                  </div>
+                </div>
+
                 <!-- 审计日志保留天数 -->
                 <div
                   class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"

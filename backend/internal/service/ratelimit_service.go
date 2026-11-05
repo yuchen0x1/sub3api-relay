@@ -805,6 +805,18 @@ func buildForbiddenErrorMessage(prefix string, upstreamMsg string, responseBody 
 // Antigravity 平台区分 validation/violation/generic 三种类型，均 SetError 永久禁用；
 // 其他平台保持原有 SetError 行为。
 func (s *RateLimitService) handle403(ctx context.Context, account *Account, upstreamMsg string, responseBody []byte) (shouldDisable bool) {
+	// Cloudflare 1010（bot 签名封禁）是边缘级拦截：请求根本没到达账号的 API，
+	// 属于请求/链路层故障而非账号凭据问题。写账号状态会把 403 的 failover
+	// 重放放大成整池处罚，这里跳过账号处置，保持换号行为不变。
+	if isCloudflareBotBlockResponse(responseBody) {
+		slog.Warn(
+			"403_cloudflare_bot_block_skips_account_penalty",
+			"account_id", account.ID,
+			"platform", account.Platform,
+			"upstream_message", upstreamMsg,
+		)
+		return false
+	}
 	// HTML 403 拦截页（WAF/CDN/IP 风控页）不是账号凭据问题：写账号 error 会把
 	// 整池账号批量下线。改为短时临时不可调度，冷却期后自动恢复；本次请求
 	// 照常切号。结构化 API 403 不受影响，继续走平台专属判定。
@@ -849,6 +861,82 @@ func isHTMLErrorResponseBody(body []byte) bool {
 	// 跳过 UTF-8 BOM
 	trimmed = bytes.TrimPrefix(trimmed, []byte{0xEF, 0xBB, 0xBF})
 	return len(trimmed) > 0 && trimmed[0] == '<'
+}
+
+// cloudflareBotBlockCode 是 Cloudflare WAF bot 签名拦截的响应码（error code 1010）。
+const cloudflareBotBlockCode = 1010
+
+// isCloudflareBotBlockResponse 判断响应体是否为 Cloudflare bot 拦截（1010）。
+// Cloudflare 边缘可能返回两种形态：纯文本 "error code: 1010"，或带
+// cloudflare_error 标记与 code/error_code 字段的 JSON（部分上游会把边缘错误
+// 包装成结构化错误透传）。browser_signature_banned 是 1010 的错误名形态。
+// 两种形态都表明请求被边缘拦截，账号 API 未被触达。
+func isCloudflareBotBlockResponse(body []byte) bool {
+	var payload any
+	if err := json.Unmarshal(bytes.TrimSpace(body), &payload); err == nil {
+		return containsCloudflareBotBlockCode(payload)
+	}
+	return strings.Contains(strings.ToLower(string(body)), "error code: 1010")
+}
+
+// containsCloudflareBotBlockCode 递归检查 JSON 结构中的 Cloudflare bot 拦截
+// 标记。code 匹配要求同层存在 cloudflare_error: true，避免把业务错误里的
+// 普通数字 1010 误判为边缘拦截。
+func containsCloudflareBotBlockCode(value any) bool {
+	node, ok := value.(map[string]any)
+	if !ok {
+		// 数组：逐元素检查
+		if list, isList := value.([]any); isList {
+			for _, child := range list {
+				if containsCloudflareBotBlockCode(child) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	for key, child := range node {
+		if strings.EqualFold(key, "error_name") {
+			if name, isStr := child.(string); isStr &&
+				strings.EqualFold(strings.TrimSpace(name), "browser_signature_banned") {
+				return true
+			}
+		}
+	}
+	cloudflareError := false
+	for key, child := range node {
+		if strings.EqualFold(key, "cloudflare_error") {
+			if flag, isBool := child.(bool); isBool && flag {
+				cloudflareError = true
+			}
+		}
+	}
+	if cloudflareError {
+		for key, child := range node {
+			if strings.EqualFold(key, "code") || strings.EqualFold(key, "error_code") {
+				if isCloudflareBotBlockCodeValue(child) {
+					return true
+				}
+			}
+		}
+	}
+	for _, child := range node {
+		if containsCloudflareBotBlockCode(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// isCloudflareBotBlockCodeValue 判断 JSON 值是否等于 Cloudflare bot 拦截码。
+func isCloudflareBotBlockCodeValue(value any) bool {
+	switch code := value.(type) {
+	case float64:
+		return int(code) == cloudflareBotBlockCode
+	case string:
+		return strings.TrimSpace(code) == strconv.Itoa(cloudflareBotBlockCode)
+	}
+	return false
 }
 
 func (s *RateLimitService) handleOpenAI403(ctx context.Context, account *Account, upstreamMsg string, responseBody []byte) (shouldDisable bool) {

@@ -157,12 +157,12 @@ type GeminiTierQuotaConfig struct {
 }
 
 type UpdateConfig struct {
-	// ProxyURL 用于访问 Gitee 更新源和其他外部更新源的代理地址
+	// ProxyURL 用于访问 GitHub 更新源和其他外部更新源的代理地址
 	// 支持 http/https/socks5/socks5h 协议
 	// 例如: "http://127.0.0.1:7890", "socks5://127.0.0.1:1080"
 	ProxyURL string `mapstructure:"proxy_url"`
 
-	// AutoEnabled 启用自动更新：定期检测 Gitee Release，发现新版本后
+	// AutoEnabled 启用自动更新：定期检测 GitHub Release，发现新版本后
 	// 自动下载替换二进制并重启服务（仅 release 构建生效，source 构建跳过）
 	AutoEnabled bool `mapstructure:"auto_enabled"`
 	// AutoIntervalHours 自动检查更新的间隔（小时），默认 12；填 0 或负数使用默认值
@@ -905,6 +905,11 @@ type GatewayConfig struct {
 	// OpenAIHighEffortFirstOutputTimeoutSeconds: high/xhigh/max 推理的首个语义输出超时（秒）。
 	// 0 表示回退到 OpenAIFirstOutputTimeoutSeconds。
 	OpenAIHighEffortFirstOutputTimeoutSeconds int `mapstructure:"openai_high_effort_first_output_timeout_seconds"`
+	// MinOutputTokens: 各协议转换路径（/v1/messages → Responses、chat completions →
+	// Responses / Anthropic）对客户端传入的 max_output_tokens / max_tokens 施加的
+	// 下限。客户端未传时不注入默认值，仅对已传但过小的值抬升到该下限。
+	// 最低 16，默认 128。
+	MinOutputTokens int `mapstructure:"min_output_tokens"`
 	// 请求体最大字节数，用于网关请求体大小限制
 	MaxBodySize int64 `mapstructure:"max_body_size"`
 	// TextMaxBodySize limits endpoints that cannot carry inline image/video payloads.
@@ -2222,6 +2227,7 @@ func setDefaults() {
 	viper.SetDefault("gateway.response_header_timeout", 600) // 600秒(10分钟)等待上游响应头，LLM高负载时可能排队较久
 	viper.SetDefault("gateway.openai_response_header_timeout", 0)
 	viper.SetDefault("gateway.openai_first_output_timeout_seconds", 0)
+	viper.SetDefault("gateway.min_output_tokens", 128)
 	viper.SetDefault("gateway.openai_high_effort_first_output_timeout_seconds", 0)
 	viper.SetDefault("gateway.log_upstream_error_body", true)
 	viper.SetDefault("gateway.log_upstream_error_body_max_bytes", 2048)
@@ -2506,6 +2512,9 @@ func setEnvReachableDefaults() {
 }
 
 func (c *Config) Validate() error {
+	if c.Gateway.MinOutputTokens < 16 {
+		return fmt.Errorf("gateway.min_output_tokens must be at least 16")
+	}
 	forwardedClientIPHeaders, err := NormalizeForwardedClientIPHeaders(c.Security.ForwardedClientIPHeaders)
 	if err != nil {
 		return fmt.Errorf("security.forwarded_client_ip_headers: %w", err)

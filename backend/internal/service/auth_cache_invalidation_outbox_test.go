@@ -67,6 +67,12 @@ func (*authInvalidationCacheStub) GetCreateAttemptCount(context.Context, int64) 
 func (*authInvalidationCacheStub) IncrementCreateAttemptCount(context.Context, int64) error {
 	return nil
 }
+func (*authInvalidationCacheStub) GetCreateSuccessCount(context.Context, int64) (int, error) {
+	return 0, nil
+}
+func (*authInvalidationCacheStub) IncrementCreateSuccessCount(context.Context, int64) error {
+	return nil
+}
 func (*authInvalidationCacheStub) DeleteCreateAttemptCount(context.Context, int64) error { return nil }
 func (*authInvalidationCacheStub) IncrementDailyUsage(context.Context, string) error     { return nil }
 func (*authInvalidationCacheStub) SetDailyUsageExpiry(context.Context, string, time.Duration) error {

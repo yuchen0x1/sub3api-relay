@@ -252,6 +252,16 @@ func (s *apiKeyCacheStub) IncrementCreateAttemptCount(ctx context.Context, userI
 	return nil
 }
 
+// GetCreateSuccessCount 返回 0，表示未触发每小时创建次数限制
+func (s *apiKeyCacheStub) GetCreateSuccessCount(ctx context.Context, userID int64) (int, error) {
+	return 0, nil
+}
+
+// IncrementCreateSuccessCount 空实现，本测试不验证此行为
+func (s *apiKeyCacheStub) IncrementCreateSuccessCount(ctx context.Context, userID int64) error {
+	return nil
+}
+
 // DeleteCreateAttemptCount 记录被清除缓存的用户 ID。
 // 删除 API Key 时会调用此方法清除用户的创建尝试计数缓存。
 func (s *apiKeyCacheStub) DeleteCreateAttemptCount(ctx context.Context, userID int64) error {

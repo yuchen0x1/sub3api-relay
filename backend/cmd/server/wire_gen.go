@@ -81,6 +81,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	concurrencyService := service.ProvideConcurrencyService(concurrencyCache, accountRepository, configConfig)
 	apiKeyQPSCache := repository.NewAPIKeyQPSCache(redisClient)
 	apiKeyService := service.ProvideAPIKeyService(apiKeyRepository, userRepository, groupRepository, userSubscriptionRepository, userGroupRateRepository, apiKeyCache, configConfig, billingCacheService, concurrencyService, apiKeyQPSCache)
+	apiKeyService.SetSettingService(settingService)
 	gatewayBodyLogRepository := repository.NewGatewayBodyLogRepository(client)
 	gatewayBodyLogService := service.NewGatewayBodyLogService(gatewayBodyLogRepository, apiKeyRepository, settingService, &configConfig.Server)
 	bodyLogCleanupService := service.ProvideGatewayBodyLogCleanupService(gatewayBodyLogRepository, settingService)

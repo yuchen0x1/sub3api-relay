@@ -774,9 +774,9 @@ import {
 import { useClipboard } from '@/composables/useClipboard'
 import Icon from '@/components/icons/Icon.vue'
 
-const GITEE_REPO = 'yuchen0x1/personal-ai-api-gateway-sub3api'
-const GITEE_REPO_URL = `https://gitee.com/${GITEE_REPO}`
-const GITEE_RELEASES_URL = `${GITEE_REPO_URL}/releases`
+const GITHUB_REPO = 'yuchen0x1/sub3api-relay'
+const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`
+const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`
 // Docker image published by the project's CI (tags carry no "v" prefix).
 const DOCKER_IMAGE = 'ghcr.io/yuchen0x1/sub3api-relay'
 const STRICT_RELEASE_VERSION = /^\d+\.\d+\.\d+$/
@@ -816,10 +816,10 @@ const sanitizedReleaseNotes = computed(() => {
 const releasePageUrl = computed(() => {
   if (releaseInfo.value?.html_url) return releaseInfo.value.html_url
   const version = latestVersion.value.trim()
-  if (!version) return GITEE_RELEASES_URL
+  if (!version) return GITHUB_RELEASES_URL
 
   const tag = version.startsWith('v') ? version : `v${version}`
-  return `${GITEE_REPO_URL}/tree/${encodeURIComponent(tag)}`
+  return `${GITHUB_REPO_URL}/tree/${encodeURIComponent(tag)}`
 })
 
 // Update process states (local to this component)
@@ -859,7 +859,7 @@ const manualTabs = computed(() =>
 const scriptRollbackCommand = computed(() => {
   if (!STRICT_RELEASE_VERSION.test(selectedRollbackVersion.value)) return ''
   const tag = `v${selectedRollbackVersion.value}`
-  return `curl -sSL https://gitee.com/${GITEE_REPO}/raw/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
+  return `curl -sSL https://raw.githubusercontent.com/${GITHUB_REPO}/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
 })
 
 const dockerRollbackCommand = computed(() => {

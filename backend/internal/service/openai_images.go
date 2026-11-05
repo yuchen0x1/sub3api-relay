@@ -334,10 +334,20 @@ func parseOpenAIImagesMultipartRequest(body []byte, contentType string, req *Ope
 		}
 
 		data, err := io.ReadAll(io.LimitReader(part, openAIImageMaxUploadPartSize))
-		_ = part.Close()
 		if err != nil {
+			_ = part.Close()
 			return fmt.Errorf("read multipart field %s: %w", name, err)
 		}
+		// 读满单 part 上限时探测是否还有剩余字节：LimitReader 的静默截断会产出
+		// 损坏的图片/字段，这里显式拒绝，让客户端压缩或拆分后重试。
+		if len(data) == openAIImageMaxUploadPartSize {
+			var probe [1]byte
+			if n, _ := part.Read(probe[:]); n > 0 {
+				_ = part.Close()
+				return fmt.Errorf("multipart field %s exceeds the %d MB per-part upload limit", name, openAIImageMaxUploadPartSize>>20)
+			}
+		}
+		_ = part.Close()
 
 		fileName := strings.TrimSpace(part.FileName())
 		if fileName != "" {

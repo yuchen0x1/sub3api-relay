@@ -13,15 +13,18 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [更新日志](docs/release-notes/RELEASE_NOTES_v0.1.196.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.3.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)
 
 </div>
 
-## v0.1.187 卡密管理入口修复
+## v0.3.1 更新重点
 
-`v0.1.187` 修复后台找不到卡密生成入口的问题。管理员现在可以直接从左侧菜单打开「卡密管理」，生成余额卡密后让访客在首页兑换成带额度的 SK/API Key。
+- 新增 GPT-6、Claude 5、Gemini 3.1/4 与 Grok 系列默认模型/别名信息（实际可用性取决于上游账号）。
+- 新增每用户有效 API Key 数量与每小时创建次数限制，可在系统设置中调整，设为 `0` 可关闭。
+- 新增协议转换时的最小输出 Token 设置；默认 128，最小 16，仅对客户端已提供且低于下限的参数生效。
+- 加固图片 multipart 单字段大小校验，并避免 Cloudflare 1010 边缘拦截误判为账号故障。
 
-下方截图展示的是 `v0.1.175` 引入的界面；当前版本延续该设计，并把卡密生成流程明确放回后台侧边栏。
+[完整 v0.3.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)。
 
 | 主页 | 使用记录 |
 | --- | --- |
@@ -35,7 +38,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.1.196 更新说明](docs/release-notes/RELEASE_NOTES_v0.1.196.md)、[发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.3.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -100,7 +103,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 
 ### 方式一：脚本安装（推荐）
 
-一键安装脚本，自动从 GitHub Releases 下载预编译的二进制文件。
+一键安装脚本，从 GitHub Releases 下载预编译二进制。CI 仅构建并验证发行资产，正式 GitHub Release 及其附件由维护者手动发布。
 
 #### 前置条件
 
@@ -112,7 +115,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -164,7 +167,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # 卸载
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -187,7 +190,7 @@ curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/de
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # 下载并运行部署准备脚本
-curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/download/v0.1.187/docker-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -210,7 +213,7 @@ docker compose logs -f sub3api
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay/deploy
 
 # 2. 复制环境配置文件
@@ -348,7 +351,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 Sub3API、PostgreSQL 和 Redis：
 
 ```bash
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -375,7 +378,7 @@ cd sub3api-relay/deploy
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay
 
 # 2. 安装并编译前端资源

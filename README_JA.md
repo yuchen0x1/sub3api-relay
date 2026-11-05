@@ -13,15 +13,18 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [更新履歴](docs/release-notes/RELEASE_NOTES_v0.1.196.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.3.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.3.1.md)
 
 </div>
 
-## v0.1.187 カードコード管理入口の修正
+## v0.3.1 の主な更新
 
-`v0.1.187` は、管理者画面でカードコード生成ページを見つけられない問題を修正します。管理者はサイドバーからカードコード管理を開き、残高カードを生成してホームページで SK/API Key に交換できるようになりました。
+- GPT-6、Claude 5、Gemini 3.1/4、Grok 系列のデフォルトモデル/エイリアス情報を追加しました（利用可否は上流アカウントに依存します）。
+- ユーザーごとの有効 API Key 数と毎時作成数の上限を追加し、システム設定で調整できます。`0` で制限を無効化します。
+- プロトコル変換時の最小出力 Token 設定を追加しました。既定値は128、最小値は16で、クライアントが指定した小さい上限のみ引き上げます。
+- 画像 multipart のパートサイズ検証を強化し、Cloudflare 1010 をアカウント障害として誤処理しないようにしました。
 
-以下のスクリーンショットは `v0.1.175` で導入した画面です。現行リリースではこのデザインを維持しながら、カードコード生成フローを管理者サイドバーに戻しています。
+[完全な v0.3.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.3.1.md)。
 
 | ホーム | 利用履歴 |
 | --- | --- |
@@ -35,7 +38,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.1.196 更新内容](docs/release-notes/RELEASE_NOTES_v0.1.196.md)・[リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.3.1 全変更](docs/release-notes/RELEASE_NOTES_v0.3.1.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -99,7 +102,7 @@ Nginx はデフォルトでアンダースコアを含むヘッダー（例: `se
 
 ### 方法1: スクリプトによるインストール（推奨）
 
-GitHub Releases からビルド済みバイナリをダウンロードするワンクリックインストールスクリプトです。
+GitHub Releases からビルド済みバイナリをダウンロードするワンクリックインストールスクリプトです。CI は資産のビルドと検証のみを行い、GitHub Release と添付ファイルはメンテナーが手動で公開します。
 
 #### 前提条件
 
@@ -111,7 +114,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -163,7 +166,7 @@ sudo journalctl -u sub3api -f
 sudo systemctl restart sub3api
 
 # アンインストール
-curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/v0.1.187/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -186,7 +189,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub3api-relay-deploy && cd sub3api-relay-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/download/v0.1.187/docker-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -209,7 +212,7 @@ docker compose logs -f sub3api
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay/deploy
 
 # 2. 環境設定ファイルをコピー
@@ -336,7 +339,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple シリコン搭載 Mac と macOS 26 では、Apple `container` 1.1.0 以降を使用して Sub3API、PostgreSQL、Redis の完全なスタックを実行できます:
 
 ```bash
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -363,7 +366,7 @@ cd sub3api-relay/deploy
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
+git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay
 
 # 2. フロントエンド資産をインストールしてビルド

@@ -40,9 +40,11 @@ type SystemSettings struct {
 	PasskeyConfigured                bool                     `json:"passkey_configured"`
 	PasskeyRPID                      string                   `json:"passkey_rp_id"`
 	PasskeyRPOrigins                 []string                 `json:"passkey_rp_origins"`
-	SessionBindingEnabled            bool                     `json:"session_binding_enabled"`  // 会话 IP/UA 绑定
-	StepUpEnabled                    bool                     `json:"step_up_enabled"`          // 敏感操作 step-up 2FA
-	AuditLogRetentionDays            int                      `json:"audit_log_retention_days"` // 审计日志保留天数
+	SessionBindingEnabled            bool                     `json:"session_binding_enabled"`     // 会话 IP/UA 绑定
+	StepUpEnabled                    bool                     `json:"step_up_enabled"`             // 敏感操作 step-up 2FA
+	AuditLogRetentionDays            int                      `json:"audit_log_retention_days"`    // 审计日志保留天数
+	APIKeyMaxActivePerUser           int                      `json:"api_key_max_active_per_user"` // 每用户最大有效 Key 数量（0 不限制）
+	APIKeyCreateHourlyLimit          int                      `json:"api_key_create_hourly_limit"` // 每小时最大创建次数（0 不限制）
 	LoginAgreementEnabled            bool                     `json:"login_agreement_enabled"`
 	LoginAgreementMode               string                   `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt          string                   `json:"login_agreement_updated_at"`

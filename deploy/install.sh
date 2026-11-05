@@ -3,14 +3,8 @@
 # Sub3API Installation Script
 # Sub3API 安装脚本
 #
-# Usage (global): curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | bash
-# Usage (中国大陆): curl -sSL https://gitee.com/yuchen0x1/personal-ai-api-gateway-sub3api/raw/main/deploy/install.sh | bash
-#
-# 双通道说明：脚本会按服务器 IP 归属地自动选择更新通道（detect_update_region）：
-#   国内 IP  -> Gitee（API + 资产直链 + raw 脚本自更新均走 gitee.com）
-#   国外 IP  -> GitHub
-#   Gitee 失败时自动回退 GitHub。
-# 注意：Gitee 仓库名与 GitHub 仓库名不同（均为官方发布仓库），见下方 GITHUB_REPO/GITEE_REPO。
+# Install from the canonical GitHub repository:
+# curl -sSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | bash
 #
 
 set -e
@@ -39,22 +33,11 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-# 注意：GitHub 仓库名与 Gitee 仓库名不同（历史原因）：
-#   GitHub: yuchen0x1/sub3api-relay
-#   Gitee : yuchen0x1/personal-ai-api-gateway-sub3api（当前 Gitee 仓库以此为准）
-# GITHUB_REPO 仅用于 github.com / api.github.com 的 URL，保持原名不变；
-# GITEE_REPO 用于 gitee.com 的 API 与资产直链。
 GITHUB_REPO="yuchen0x1/sub3api-relay"
-GITEE_REPO="yuchen0x1/personal-ai-api-gateway-sub3api"
 INSTALL_DIR="/opt/sub3api"
 SERVICE_NAME="sub3api"
 SERVICE_USER="sub3api"
 CONFIG_DIR="/etc/sub3api"
-
-# Update channel (resolved by detect_update_region; cn -> Gitee, global -> GitHub)
-# 可通过环境变量 UPDATE_REGION_FORCE=cn|global 强制指定，留空自动探测。
-UPDATE_REGION=""
-UPDATE_REGION_RESOLVED="false"
 
 # Server configuration (will be set by user)
 SERVER_HOST="0.0.0.0"
@@ -548,381 +531,52 @@ github_api_curl() {
     fi
 }
 
-# Authenticate only Gitee REST API requests (no token needed for public repos).
-gitee_api_curl() {
-    local arg
-    local expect_value=false
-    local url
-
-    if [ "$#" -lt 1 ]; then
-        echo "gitee_api_curl requires exactly one Gitee API URL" >&2
-        return 2
-    fi
-    url="${!#}"
-
-    for arg in "${@:1:$#-1}"; do
-        if [ "$expect_value" = true ]; then
-            expect_value=false
-            continue
-        fi
-        case "$arg" in
-            -s|--silent)
-                ;;
-            --connect-timeout|--max-time|-o|--output|-w|--write-out)
-                expect_value=true
-                ;;
-            *)
-                echo "Unsafe gitee_api_curl argument: $arg" >&2
-                return 2
-                ;;
-        esac
-    done
-
-    if [ "$expect_value" = true ] || [[ "$url" != https://gitee.com/api/v5/* ]]; then
-        echo "gitee_api_curl requires exactly one Gitee API URL" >&2
-        return 2
-    fi
-
-    UPDATE_GITHUB_TOKEN= GITHUB_TOKEN= GH_TOKEN= curl -q --globoff "$@"
-}
-
-# release_api_curl 按 URL host 分发到对应的安全 API 封装（GitHub/Gitee）
-release_api_curl() {
-    local url="${!#}"
-    case "$url" in
-        https://api.github.com/*)
-            github_api_curl "$@"
-            ;;
-        https://gitee.com/api/v5/*)
-            gitee_api_curl "$@"
-            ;;
-        *)
-            echo "release_api_curl requires a GitHub/Gitee API URL" >&2
-            return 2
-            ;;
-    esac
-}
-
-# ============================================================
-# Update channel detection / 更新通道检测
-# 规则（与 backend/internal/service/update_channel.go 保持一致）：
-#   1) qifu-api.baidubce.com geo（3s 超时）：响应含 "中国"/"China" -> cn
-#   2) api.ip.sb/geoip（3s 超时）：country_code === "CN" -> cn
-#   3) 两个 geo 源都失败：竞速 Gitee / GitHub releases/latest，先成功者胜
-#   4) 全部失败：global 兜底
-# 安全约束：仅 HTTPS + 域名白名单；解析出的 IP 必须为公网地址
-# （拒绝 localhost/环回/私有 10.x/172.16-31.x/192.168.x/169.254.x 与保留地址）。
-# ============================================================
-
-# channel_url_host 从 https URL 提取主机名（失败返回非 0）
-channel_url_host() {
-    local url="$1"
-    case "$url" in
-        https://*) ;;
-        *) return 1 ;;
-    esac
-    local rest="${url#https://}"
-    rest="${rest%%/*}"
-    rest="${rest%%:*}"   # strip port
-    rest="${rest%%@*}"   # strip userinfo (defensive)
-    [ -n "$rest" ] || return 1
-    echo "$rest"
-}
-
-# is_channel_allowed_host 探测/更新通道使用的域名白名单
-is_channel_allowed_host() {
-    case "$1" in
-        qifu-api.baidubce.com|api.ip.sb|gitee.com|api.github.com) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
-# is_forbidden_ip 拒绝环回/私有/链路本地/保留地址
-is_forbidden_ip() {
-    local ip="$1"
-    local second
-    case "$ip" in
-        ::1|::) return 0 ;;
-        fe[89ab]*|f[cd]*|ff*) return 0 ;; # fe80::/10 链路本地, fc00::/7 ULA, ff00::/8 组播
-        ::ffff:*)
-            is_forbidden_ip "${ip##*:}" && return 0
-            return 1
-            ;;
-        0.*|10.*|127.*|169.254.*|192.168.*|224.*|240.*|255.*) return 0 ;;
-        192.0.0.*|192.0.2.*|198.51.100.*|203.0.113.*) return 0 ;;
-        198.1[89].*) return 0 ;; # 198.18/15 benchmark
-        172.*)
-            # 172.16.0.0/12
-            second="${ip#172.}"
-            second="${second%%.*}"
-            if [ "$second" -ge 16 ] && [ "$second" -le 31 ] 2>/dev/null; then
-                return 0
-            fi
-            return 1
-            ;;
-        100.*)
-            # 100.64.0.0/10 CGNAT
-            second="${ip#100.}"
-            second="${second%%.*}"
-            if [ "$second" -ge 64 ] && [ "$second" -le 127 ] 2>/dev/null; then
-                return 0
-            fi
-            return 1
-            ;;
-        *) return 1 ;;
-    esac
-}
-
-# resolve_host_ips 解析域名（尽力而为；缺工具时输出为空，仅依赖白名单+HTTPS）
-resolve_host_ips() {
-    if command -v getent >/dev/null 2>&1; then
-        getent ahosts "$1" 2>/dev/null | awk '{print $1}' | sort -u
-    fi
-}
-
-# channel_validate_host_ips 白名单 + 解析 IP 校验
-channel_validate_host_ips() {
-    local host="$1"
-    is_channel_allowed_host "$host" || return 1
-
-    local ips ip
-    ips=$(resolve_host_ips "$host")
-    if [ -n "$ips" ]; then
-        while read -r ip; do
-            [ -z "$ip" ] && continue
-            if is_forbidden_ip "$ip"; then
-                echo "Blocked update channel host ${host}: resolved to forbidden address ${ip}" >&2
-                return 1
-            fi
-        done <<< "$ips"
-    fi
-    return 0
-}
-
-# channel_probe_curl 白名单 + IP 校验后的 HTTPS GET（用于 geo/竞速探测）
-channel_probe_curl() {
-    local url="$1"
-    local max_time="${2:-5}"
-    local host
-    host=$(channel_url_host "$url") || return 1
-    channel_validate_host_ips "$host" || return 1
-    curl -fsSL --connect-timeout 3 --max-time "$max_time" "$url" 2>/dev/null
-}
-
-# detect_update_region 解析更新通道并写入 UPDATE_REGION（cn|global）
-detect_update_region() {
-    # 显式覆盖
-    if [ -n "${UPDATE_REGION_FORCE:-}" ]; then
-        case "$UPDATE_REGION_FORCE" in
-            cn|global)
-                UPDATE_REGION="$UPDATE_REGION_FORCE"
-                print_info "Update region (forced): $UPDATE_REGION"
-                return 0
-                ;;
-        esac
-    fi
-
-    print_info "Detecting update region..."
-
-    local body
-
-    # 1) qifu-api.baidubce.com（3s 超时）
-    body=$(channel_probe_curl "https://qifu-api.baidubce.com/ip/local/geo/v1/district" 3)
-    if [ -n "$body" ]; then
-        if echo "$body" | grep -qE '中国|China|china'; then
-            UPDATE_REGION="cn"
-            print_success "Update region: cn (via qifu-api)"
-            return 0
-        fi
-        UPDATE_REGION="global"
-        print_success "Update region: global (via qifu-api)"
-        return 0
-    fi
-
-    # 2) api.ip.sb/geoip（3s 超时）
-    body=$(channel_probe_curl "https://api.ip.sb/geoip" 3)
-    if [ -n "$body" ]; then
-        if echo "$body" | grep -q '"country_code"[: ]*"CN"'; then
-            UPDATE_REGION="cn"
-            print_success "Update region: cn (via ip.sb)"
-            return 0
-        fi
-        UPDATE_REGION="global"
-        print_success "Update region: global (via ip.sb)"
-        return 0
-    fi
-
-    # 3) 竞速 Gitee / GitHub releases/latest，先成功者胜
-    local tmpdir winner p1 p2 waited
-    tmpdir=$(mktemp -d)
-    ( channel_probe_curl "https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest" 8 >/dev/null 2>&1 && echo cn > "$tmpdir/winner" ) &
-    p1=$!
-    ( github_api_curl -s --connect-timeout 3 --max-time 8 "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" >/dev/null 2>&1 && echo global > "$tmpdir/winner" ) &
-    p2=$!
-    waited=0
-    while [ "$waited" -lt 16 ]; do
-        if [ -s "$tmpdir/winner" ]; then
-            break
-        fi
-        if ! kill -0 "$p1" 2>/dev/null && ! kill -0 "$p2" 2>/dev/null; then
-            break
-        fi
-        sleep 1
-        waited=$((waited + 1))
-    done
-    winner=$(cat "$tmpdir/winner" 2>/dev/null || true)
-    kill "$p1" "$p2" 2>/dev/null || true
-    wait "$p1" 2>/dev/null || true
-    wait "$p2" 2>/dev/null || true
-    rm -rf "$tmpdir"
-
-    if [ "$winner" = "cn" ] || [ "$winner" = "global" ]; then
-        UPDATE_REGION="$winner"
-        print_success "Update region: $UPDATE_REGION (via reachability race)"
-        return 0
-    fi
-
-    # 4) 全部失败：global 兜底
-    UPDATE_REGION="global"
-    print_warning "Region detection failed, falling back to: global"
-}
-
-# ensure_update_region 懒解析通道（每轮安装/升级只探测一次）。
-# 输出统一重定向到 stderr：validate_version 会在 $(...) 中捕获 stdout 取版本号，
-# 探测过程日志不能污染其结果。
-ensure_update_region() {
-    [ "$UPDATE_REGION_RESOLVED" = "true" ] && return 0
-    detect_update_region >&2
-    UPDATE_REGION_RESOLVED="true"
-}
-
-# Get latest release version (channel-aware: cn -> Gitee, fallback GitHub)
 get_latest_version() {
-    ensure_update_region
-
     print_info "$(msg 'fetching_version')"
-
-    local api_url
-    if [ "$UPDATE_REGION" = "cn" ]; then
-        api_url="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest"
-    else
-        api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
-    fi
-
-    LATEST_VERSION=$(release_api_curl -s --connect-timeout 10 --max-time 30 "$api_url" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-
-    # 当前通道获取失败时回退另一通道
-    if [ -z "$LATEST_VERSION" ]; then
-        if [ "$UPDATE_REGION" = "cn" ]; then
-            print_warning "Gitee failed, falling back to GitHub..."
-            UPDATE_REGION="global"
-            api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
-        else
-            print_warning "GitHub failed, trying Gitee mirror..."
-            UPDATE_REGION="cn"
-            api_url="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest"
-        fi
-        LATEST_VERSION=$(release_api_curl -s --connect-timeout 10 --max-time 30 "$api_url" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-    fi
-
+    local api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+    LATEST_VERSION=$(github_api_curl -s --connect-timeout 10 --max-time 30 "$api_url" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
     if [ -z "$LATEST_VERSION" ]; then
         print_error "$(msg 'failed_get_version')"
         print_info "Please check your network connection or try again later."
         exit 1
     fi
-
-    print_info "$(msg 'latest_version'): $LATEST_VERSION (channel: ${UPDATE_REGION})"
+    print_info "$(msg 'latest_version'): $LATEST_VERSION (GitHub)"
 }
 
-# List available versions (channel-aware: cn -> Gitee, fallback GitHub)
 list_versions() {
-    ensure_update_region
-
     print_info "$(msg 'fetching_versions')"
-
     local versions
-    if [ "$UPDATE_REGION" = "cn" ]; then
-        versions=$(release_api_curl -s --connect-timeout 10 --max-time 30 "https://gitee.com/api/v5/repos/${GITEE_REPO}/releases?page=1&per_page=20&direction=desc" 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | head -20)
-        if [ -z "$versions" ]; then
-            print_warning "Gitee failed, falling back to GitHub..."
-            UPDATE_REGION="global"
-        fi
-    fi
-    if [ -z "${versions:-}" ]; then
-        versions=$(release_api_curl -s --connect-timeout 10 --max-time 30 "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=20" 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | head -20)
-    fi
-
+    versions=$(github_api_curl -s --connect-timeout 10 --max-time 30 "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=20" 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | head -20)
     if [ -z "$versions" ]; then
         print_error "$(msg 'failed_get_version')"
         print_info "Please check your network connection or try again later."
         exit 1
     fi
-
     echo ""
-    echo "$(msg 'available_versions'): (channel: ${UPDATE_REGION})"
+    echo "$(msg 'available_versions'): (GitHub)"
     echo "----------------------------------------"
-    echo "$versions" | while read -r version; do
-        echo "  $version"
-    done
+    echo "$versions" | while read -r version; do echo "  $version"; done
     echo "----------------------------------------"
     echo ""
 }
 
-# Validate if a version exists (channel-aware: cn -> Gitee, fallback GitHub)
 validate_version() {
     local version="$1"
-
-    # Check for empty version
-    if [ -z "$version" ]; then
-        print_error "$(msg 'opt_version')" >&2
-        exit 1
-    fi
-
-    # Ensure version starts with 'v'
-    if [[ ! "$version" =~ ^v ]]; then
-        version="v$version"
-    fi
-
-    ensure_update_region
-
+    if [ -z "$version" ]; then print_error "$(msg 'opt_version')" >&2; exit 1; fi
+    [[ "$version" =~ ^v ]] || version="v$version"
     print_info "$(msg 'validating_version') $version" >&2
-
-    # Check if the release exists
+    local check_url="https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${version}"
     local http_code
-    local check_url
-    if [ "$UPDATE_REGION" = "cn" ]; then
-        check_url="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/tags/${version}"
-    else
-        check_url="https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${version}"
-    fi
-    http_code=$(release_api_curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 30 "$check_url" 2>/dev/null)
-
-    # Check for network errors (empty or non-numeric response)
+    http_code=$(github_api_curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 30 "$check_url" 2>/dev/null)
     if [ -z "$http_code" ] || ! [[ "$http_code" =~ ^[0-9]+$ ]]; then
-        print_error "Network error: Failed to connect to release API" >&2
-        exit 1
+        print_error "Network error: Failed to connect to release API" >&2; exit 1
     fi
-
     if [ "$http_code" != "200" ]; then
-        # cn 通道未命中时回退 GitHub 复核一次（Gitee 发布可能滞后）
-        if [ "$UPDATE_REGION" = "cn" ]; then
-            print_warning "Version not found on Gitee, retrying via GitHub..." >&2
-            UPDATE_REGION="global"
-            check_url="https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${version}"
-            http_code=$(release_api_curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 30 "$check_url" 2>/dev/null)
-            if [ "$http_code" = "200" ]; then
-                echo "$version"
-                return 0
-            fi
-            UPDATE_REGION="cn"
-        fi
         print_error "$(msg 'version_not_found'): $version" >&2
         echo "" >&2
         list_versions >&2
         exit 1
     fi
-
-    # Return the normalized version (to stdout)
     echo "$version"
 }
 
@@ -936,44 +590,24 @@ get_current_version() {
     fi
 }
 
-# validate_download_host 仅允许从官方 GitHub/Gitee 域下载
+# validate_download_host 仅允许从官方 GitHub 域下载
 validate_download_host() {
     local host
     host=$(channel_url_host "$1") || return 1
     case "$host" in
-        github.com|gitee.com|objects.githubusercontent.com) return 0 ;;
+        github.com|objects.githubusercontent.com) return 0 ;;
         *) return 1 ;;
     esac
 }
 
-# download_release_file 按通道下载 release 资产：
-#   cn     -> 先 Gitee 资产直链，失败回退 GitHub
-#   global -> 先 GitHub，失败尝试 Gitee 备用
+# Download release assets anonymously from GitHub.
 download_release_file() {
-    local name="$1"
-    local dest="$2"
-
-    local urls=()
-    if [ "$UPDATE_REGION" = "cn" ]; then
-        urls+=("https://gitee.com/${GITEE_REPO}/releases/download/${LATEST_VERSION}/${name}")
-        urls+=("https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${name}")
-    else
-        urls+=("https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${name}")
-        urls+=("https://gitee.com/${GITEE_REPO}/releases/download/${LATEST_VERSION}/${name}")
+    local name="$1" dest="$2"
+    local url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${name}"
+    if validate_download_host "$url" && curl -fsSL --connect-timeout 10 --max-time 900 "$url" -o "$dest"; then
+        return 0
     fi
-
-    local i url
-    local total=${#urls[@]}
-    for ((i = 0; i < total; i++)); do
-        url="${urls[$i]}"
-        if validate_download_host "$url" && curl -fsSL --connect-timeout 10 --max-time 900 "$url" -o "$dest"; then
-            return 0
-        fi
-        rm -f "$dest"
-        if [ "$((i + 1))" -lt "$total" ]; then
-            print_warning "Download failed from $url, trying mirror..."
-        fi
-    done
+    rm -f "$dest"
     return 1
 }
 
@@ -988,13 +622,13 @@ download_and_extract() {
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf $TEMP_DIR" EXIT
 
-    # Download archive (channel-aware with mirror fallback)
+    # Download archive from the canonical GitHub release
     if ! download_release_file "$archive_name" "$TEMP_DIR/$archive_name"; then
         print_error "$(msg 'download_failed')"
         exit 1
     fi
 
-    # Download and verify checksum (channel-aware with mirror fallback)
+    # Download and verify checksum from the same GitHub release
     print_info "$(msg 'verifying_checksum')"
     if ! download_release_file "checksums.txt" "$TEMP_DIR/checksums.txt"; then
         print_error "$(msg 'checksum_not_found')"

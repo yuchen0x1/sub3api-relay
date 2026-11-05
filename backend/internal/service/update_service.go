@@ -32,15 +32,13 @@ var (
 const (
 	updateCacheKey = "update_check_cache"
 	updateCacheTTL = 1200 // 20 minutes
-	// githubRepo 自更新使用的 GitHub 仓库（Gitee 侧仓库名不同，见 update_channel.go）
-	githubRepo = GitHubUpdateRepo
+	// updateRepo is the canonical GitHub repository for project updates.
+	updateRepo = GitHubUpdateRepo
 
 	// Security: allowed download domains for updates
-	// GitHub 资产位于 github.com / objects.githubusercontent.com；
-	// Gitee 通道资产位于 gitee.com（含 release 附件直链）。
-	allowedDownloadHost      = "github.com"
-	allowedAssetHost         = "objects.githubusercontent.com"
-	allowedDownloadHostGitee = "gitee.com"
+	// GitHub release assets are served from github.com / objects.githubusercontent.com.
+	allowedDownloadHost = "github.com"
+	allowedAssetHost    = "objects.githubusercontent.com"
 
 	// Security: max download size (500MB)
 	maxDownloadSize = 500 * 1024 * 1024
@@ -381,7 +379,7 @@ func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) e
 // fetchRollbackCandidates fetches recent releases and keeps the newest
 // maxRollbackVersions entries strictly older than the current version.
 func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubRelease, error) {
-	releases, err := s.githubClient.FetchRecentReleases(ctx, githubRepo, rollbackFetchPageSize)
+	releases, err := s.githubClient.FetchRecentReleases(ctx, updateRepo, rollbackFetchPageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +416,7 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 }
 
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {
-	release, err := s.githubClient.FetchLatestRelease(ctx, githubRepo)
+	release, err := s.githubClient.FetchLatestRelease(ctx, updateRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -478,14 +476,11 @@ func validateDownloadURL(rawURL string) error {
 
 	// Check against allowed hosts
 	host := parsedURL.Host
-	// GitHub release URLs can be from github.com or objects.githubusercontent.com;
-	// Gitee channel asset URLs are served from gitee.com (direct release download links).
+	// GitHub release URLs can be from github.com or objects.githubusercontent.com.
 	if host != allowedDownloadHost &&
 		!strings.HasSuffix(host, "."+allowedDownloadHost) &&
 		host != allowedAssetHost &&
-		!strings.HasSuffix(host, "."+allowedAssetHost) &&
-		host != allowedDownloadHostGitee &&
-		!strings.HasSuffix(host, "."+allowedDownloadHostGitee) {
+		!strings.HasSuffix(host, "."+allowedAssetHost) {
 		return fmt.Errorf("download from untrusted host: %s", host)
 	}
 

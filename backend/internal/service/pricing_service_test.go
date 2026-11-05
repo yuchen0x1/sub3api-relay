@@ -602,6 +602,45 @@ func TestGetModelPricing_ImageModelDoesNotFallbackToTextModel(t *testing.T) {
 	require.Same(t, imagePricing, got)
 }
 
+func TestPricingService_GPT61ModelsUseTheirOwnExactFallbacks(t *testing.T) {
+	svc := &PricingService{pricingData: map[string]*LiteLLMModelPricing{
+		"gpt-5.4": {InputCostPerToken: 99e-6, OutputCostPerToken: 99e-6},
+	}}
+
+	for _, tt := range []struct {
+		model  string
+		input  float64
+		output float64
+	}{
+		{model: "gpt-6.1-sol-preview", input: 2e-6, output: 10e-6},
+		{model: "gpt-6.1-terra-preview", input: 1e-6, output: 5e-6},
+	} {
+		t.Run(tt.model, func(t *testing.T) {
+			got := svc.GetModelPricing(tt.model)
+			require.NotNil(t, got)
+			require.InDelta(t, tt.input, got.InputCostPerToken, 1e-12)
+			require.InDelta(t, tt.output, got.OutputCostPerToken, 1e-12)
+		})
+	}
+}
+
+func TestPricingService_GPTImage25UsesImageTokenPricing(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "data", "model_pricing.json"))
+	require.NoError(t, err)
+	svc := &PricingService{}
+	parsed, err := svc.parsePricingData(data)
+	require.NoError(t, err)
+	svc.pricingData = parsed
+
+	got := svc.GetModelPricing("gpt-image-2.5-sunburst")
+	require.NotNil(t, got)
+	require.InDelta(t, 5e-6, got.InputCostPerToken, 1e-12)
+	require.InDelta(t, 1.25e-6, got.CacheReadInputTokenCost, 1e-12)
+	require.InDelta(t, 8e-6, got.InputCostPerImageToken, 1e-12)
+	require.InDelta(t, 30e-6, got.OutputCostPerImageToken, 1e-12)
+	require.Zero(t, got.OutputCostPerImage)
+}
+
 func TestParsePricingData_PreservesPriorityAndServiceTierFields(t *testing.T) {
 	raw := map[string]any{
 		"gpt-5.4": map[string]any{

@@ -191,6 +191,30 @@ func TestGetModelPricing_UnknownOpenAIModelReturnsError(t *testing.T) {
 	require.Contains(t, err.Error(), "pricing not found")
 }
 
+func TestGetModelPricing_GPT61ModelsUseExactFallbackPrices(t *testing.T) {
+	svc := newTestBillingService()
+	for _, tt := range []struct {
+		model  string
+		input  float64
+		output float64
+		cache  float64
+	}{
+		{model: "gpt-6.1-sol", input: 2e-6, output: 10e-6, cache: 0.1e-6},
+		{model: "gpt-6.1-terra", input: 1e-6, output: 5e-6, cache: 0.05e-6},
+	} {
+		t.Run(tt.model, func(t *testing.T) {
+			pricing, err := svc.GetModelPricing(tt.model)
+			require.NoError(t, err)
+			require.InDelta(t, tt.input, pricing.InputPricePerToken, 1e-12)
+			require.InDelta(t, tt.output, pricing.OutputPricePerToken, 1e-12)
+			require.InDelta(t, tt.cache, pricing.CacheReadPricePerToken, 1e-12)
+		})
+	}
+
+	_, err := svc.GetModelPricing("gpt-6-luna")
+	require.ErrorIs(t, err, ErrModelPricingUnavailable)
+}
+
 func TestGetModelPricing_OpenAIGPT54Fallback(t *testing.T) {
 	svc := newTestBillingService()
 

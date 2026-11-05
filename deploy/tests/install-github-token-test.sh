@@ -94,10 +94,10 @@ assert_unsafe_invocation_rejected url-option -s --url \
     "https://api.github.com/repos/yuchen0x1/sub3api-relay/releases/latest"
 
 # Every installer release API request must use the scoped helper.
-test "$(grep -c 'github_api_curl .*https://api.github.com/' "$ROOT_DIR/deploy/install.sh")" -eq 3
+test "$(grep -c 'github_api_curl -s' "$ROOT_DIR/deploy/install.sh")" -eq 3
 
-# Asset and checksum downloads must continue to call curl directly.
-grep -Fq 'curl -fsSL "$download_url"' "$ROOT_DIR/deploy/install.sh"
-grep -Fq 'curl -fsSL "$checksum_url"' "$ROOT_DIR/deploy/install.sh"
+# Release asset and checksum downloads remain anonymous and GitHub-only.
+grep -Fq 'curl -fsSL --connect-timeout 10 --max-time 900 "$url" -o "$dest"' "$ROOT_DIR/deploy/install.sh"
+grep -Fq 'github.com|objects.githubusercontent.com' "$ROOT_DIR/deploy/install.sh"
 
 echo "install GitHub token checks passed"

@@ -18,6 +18,7 @@ import (
 	_ "github.com/yuchen0x1/sub3api-relay/ent/runtime"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/handler"
+	"github.com/yuchen0x1/sub3api-relay/internal/pkg/apicompat"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	"github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/setup"
@@ -179,6 +180,8 @@ func runMainServer() {
 	if err := logger.Init(logger.OptionsFromConfig(cfg.Log)); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
+	// 协议转换路径的最小输出 token 下限（gateway.min_output_tokens），启动时注入一次。
+	apicompat.ConfigureMinMaxOutputTokens(cfg.Gateway.MinOutputTokens)
 	if cfg.RunMode == config.RunModeSimple {
 		log.Println("⚠️  WARNING: Running in SIMPLE mode - billing and quota checks are DISABLED")
 	}

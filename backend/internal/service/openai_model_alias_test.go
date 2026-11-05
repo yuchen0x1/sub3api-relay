@@ -24,6 +24,23 @@ func TestNormalizeKnownOpenAICodexModel_BareGPT56RoutesToSol(t *testing.T) {
 	}
 }
 
+func TestNormalizeKnownOpenAICodexModel_GPT61ModelsStayExact(t *testing.T) {
+	tests := map[string]string{
+		"gpt-6.1-sol":       "gpt-6.1-sol",
+		"gpt-6.1-sol-high":  "gpt-6.1-sol",
+		"gpt-6.1-terra":     "gpt-6.1-terra",
+		"gpt-6.1-terra-max": "gpt-6.1-terra",
+		"gpt-6-luna":        "gpt-6-luna",
+		"gpt-6":             "gpt-6-astra",
+	}
+
+	for input, expected := range tests {
+		t.Run(input, func(t *testing.T) {
+			require.Equal(t, expected, normalizeKnownOpenAICodexModel(input))
+		})
+	}
+}
+
 func TestUsageBillingModelCandidates_BareGPT56IncludesSol(t *testing.T) {
 	require.Equal(t,
 		[]string{"gpt-5.6", "gpt-5.6-sol"},

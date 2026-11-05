@@ -69,10 +69,11 @@ func TestUpdateServicePerformUpdateNoUpdateReturnsSentinel(t *testing.T) {
 	require.ErrorIs(t, err, ErrNoUpdateAvailable)
 }
 
-func TestResolveUpdateChannelUsesGitee(t *testing.T) {
+func TestResolveUpdateChannelUsesGitHub(t *testing.T) {
 	channel, err := ResolveUpdateChannel(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, UpdateChannelGitee, channel)
+	require.Equal(t, UpdateChannelGitHub, channel)
+	require.Equal(t, "yuchen0x1/sub3api-relay", GitHubUpdateRepo)
 }
 
 func TestUpdateServiceRejectsInPlaceUpdateOutsideStandaloneRelease(t *testing.T) {

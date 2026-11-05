@@ -11,7 +11,16 @@
 [![Redis](https://img.shields.io/badge/Redis-8--alpine-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-## 项目简介
+## v0.3.1 Highlights
+
+- Expanded default model/alias metadata for GPT-6, Claude 5, Gemini 3.1/4 and Grok families; actual access still depends on the upstream account.
+- Added configurable per-user active API Key and hourly successful-creation limits (`0` disables each limit).
+- Added `gateway.min_output_tokens` for supported protocol conversions (default 128, minimum 16); it raises only a client-supplied value below the floor and does not inject a limit when omitted.
+- Hardened multipart image part-size validation and prevent Cloudflare 1010 edge blocks from being treated as invalid-account failures.
+
+[Full v0.3.1 release notes](docs/release-notes/RELEASE_NOTES_v0.3.1.md).
+
+## Project Overview
 
 Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将多个上游 AI 账号统一调度到 OpenAI、Gemini、Grok、Manus、Antigravity 等兼容入口，并提供用户、分组、API Key、代理、用量、余额、运维监控、备份、审计、风控和系统配置管理。
 
@@ -65,13 +74,13 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 - pnpm 11.20.0
 - PostgreSQL 与 Redis，或使用 `deploy/docker-compose.dev.yml` 从源码构建本地容器环境
 
-## 快速开始
+## Quick Start
 
 ### Docker Compose
 
 ```bash
-git clone https://gitee.com/yuchen0x1/personal-ai-api-gateway-sub3api.git
-cd sub3api/deploy
+git clone https://github.com/yuchen0x1/sub3api-relay.git
+cd sub3api-relay/deploy
 cp .env.example .env
 chmod 600 .env
 # 编辑 .env，至少修改 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY、ADMIN_PASSWORD
@@ -79,14 +88,14 @@ docker compose up -d
 docker compose logs -f sub3api
 ```
 
-默认访问地址：`http://127.0.0.1:8080`。
+Default URL: `http://127.0.0.1:8080`.
 
 ### 一键准备 Docker 部署文件
 
-`deploy/docker-deploy.sh` 会从 GitHub Release 下载经过 SHA-256 校验的部署包，生成 `JWT_SECRET`、`TOTP_ENCRYPTION_KEY`、`POSTGRES_PASSWORD`，并创建本地数据目录。
+`deploy/docker-deploy.sh` downloads a version-pinned deployment bundle from the canonical GitHub Release and verifies its SHA-256 checksums before writing files. The release build workflow only validates and builds assets; a maintainer must manually attach the generated bundles to the GitHub Release before this installer is usable.
 
 ```bash
-curl -fsSL https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api/releases/latest/download/docker-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
 docker compose up -d
 ```
 
@@ -96,17 +105,17 @@ docker compose up -d
 curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/install.sh | sudo bash
 ```
 
-二进制安装会注册 systemd 服务。首次运行如果没有配置文件，会启动安装向导；远程服务器建议通过 SSH 隧道访问安装向导。
+The binary installer registers a systemd service. If no configuration exists on first run, the setup wizard starts; for remote servers, access it through an SSH tunnel.
 
 ```bash
 ssh -L 8080:127.0.0.1:8080 user@YOUR_SERVER_IP
 ```
 
-然后在本机浏览器打开 `http://127.0.0.1:8080`。
+Then open `http://127.0.0.1:8080` in a browser on your local machine.
 
-## 配置说明
+## Configuration
 
-Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环境变量完成初始化，并在 `/app/data` 下持久化运行数据。
+Sub3API supports YAML configuration files and environment variables. Docker Compose initializes through environment variables by default and persists runtime data under `/app/data`.
 
 | 配置来源 | 说明 |
 | --- | --- |
@@ -115,7 +124,7 @@ Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环
 | `CONFIG_FILE` | 指定自定义配置文件路径 |
 | `DATA_DIR` | 指定运行数据目录；未设置时容器内通常使用 `/app/data` |
 
-常用环境变量：
+Common environment variables:
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -131,9 +140,9 @@ Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环
 | `RUN_MODE` | `standard` | `standard` 启用完整计费/余额逻辑；`simple` 隐藏部分 SaaS 功能并跳过余额校验 |
 | `TZ` | `Asia/Shanghai` | 时区，影响日志、统计和过期时间 |
 
-## API 入口速查
+## API Endpoint Reference
 
-### 管理台与面板 API
+### Admin UI and Panel API
 
 | 入口 | 说明 |
 | --- | --- |
@@ -146,9 +155,9 @@ Sub3API 支持 YAML 配置文件和环境变量。Docker Compose 默认通过环
 | `/api/v1/usage/*` | 用户用量和错误记录 |
 | `/api/v1/admin/*` | 管理员 API，包括账号、分组、代理、设置、备份、运维、审计、风控、提示词审计等 |
 
-### AI 网关 API
+### AI Gateway API
 
-网关请求使用 Sub3API 分发的 API Key：
+Gateway requests use API Keys issued by Sub3API:
 
 ```bash
 curl http://127.0.0.1:8080/v1/models \
@@ -157,12 +166,12 @@ curl http://127.0.0.1:8080/v1/models \
 
 | 入口 | 说明 |
 | --- | --- |
-| `/v1/messages` | Claude Messages 协议兼容入口 |
-| `/v1/messages/count_tokens` | Token 计数入口 |
-| `/v1/models` | 模型列表入口 |
-| `/v1/responses` | OpenAI Responses 兼容入口 |
-| `/v1/chat/completions` | OpenAI Chat Completions 兼容入口 |
-| `/v1/embeddings` | OpenAI embeddings 入口 |
+| `/v1/messages` | Claude Messages-compatible endpoint |
+| `/v1/messages/count_tokens` | Token counting endpoint |
+| `/v1/models` | Model listing endpoint |
+| `/v1/responses` | OpenAI Responses-compatible endpoint |
+| `/v1/chat/completions` | OpenAI Chat Completions-compatible endpoint |
+| `/v1/embeddings` | OpenAI embeddings endpoint |
 | `/v1/images/*` | 图片生成入口 |
 | `/v1beta/models/*` | Gemini 原生 API 兼容入口 |
 | `/v1/videos/*` | Grok 视频生成、编辑、扩展和查询入口 |

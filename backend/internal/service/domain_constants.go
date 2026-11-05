@@ -204,6 +204,10 @@ const (
 	// 操作审计日志设置
 	SettingKeyAuditLogRetentionDays = "audit_log_retention_days" // 审计日志保留天数（<=0 永久保留），默认 180
 
+	// API Key 创建限制（0 表示不限制）
+	SettingKeyAPIKeyMaxActivePerUser  = "api_key_max_active_per_user" // 每用户最大有效 Key 数量，默认 200
+	SettingKeyAPIKeyCreateHourlyLimit = "api_key_create_hourly_limit" // 每用户每小时最大创建次数，默认 60
+
 	// LinuxDo Connect OAuth 登录设置
 	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"
 	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"

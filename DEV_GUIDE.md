@@ -340,7 +340,7 @@ sub3api-bmai/
 
 ## 七、参考资源
 
-- [上游仓库](https://github.com/yuchen0x1/personal-ai-api-gateway-sub3api)
+- [项目仓库](https://github.com/yuchen0x1/sub3api-relay)
 - [Ent 文档](https://entgo.io/docs/getting-started)
 - [Vue3 文档](https://vuejs.org/)
 - [pnpm 文档](https://pnpm.io/)

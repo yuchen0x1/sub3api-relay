@@ -244,8 +244,7 @@ docker compose down -v
 | `SETUP_ALLOW_REMOTE` | No | `false` | Allow setup writes from a non-loopback request (use an SSH tunnel when possible) |
 | `SETUP_REMOTE_TOKEN` | When remote setup is enabled | *(empty)* | One-time setup token, at least 32 random characters |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
-| `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
-| `UPDATE_GITEE_TOKEN` | No | *(empty)* | Optional token for Gitee release/tag checks; use a dedicated token and never expose it to the frontend. |
+| `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Optional token for GitHub release/tag checks; use a dedicated token and never expose it to the frontend. Asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
 | `GEMINI_OAUTH_CLIENT_SECRET` | No | *(builtin)* | Google OAuth client secret (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
 | `GEMINI_OAUTH_SCOPES` | No | *(default)* | OAuth scopes (Gemini OAuth) |

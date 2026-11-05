@@ -138,6 +138,14 @@ func (s *authCacheStub) IncrementCreateAttemptCount(ctx context.Context, userID 
 	return nil
 }
 
+func (s *authCacheStub) GetCreateSuccessCount(ctx context.Context, userID int64) (int, error) {
+	return 0, nil
+}
+
+func (s *authCacheStub) IncrementCreateSuccessCount(ctx context.Context, userID int64) error {
+	return nil
+}
+
 func (s *authCacheStub) DeleteCreateAttemptCount(ctx context.Context, userID int64) error {
 	return nil
 }

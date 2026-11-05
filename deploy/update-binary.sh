@@ -22,6 +22,8 @@ set -euo pipefail
 SUB3API_BIN="${SUB3API_BIN:-/opt/sub3api/sub3api}"
 SUB3API_SERVICE="${SUB3API_SERVICE:-sub3api}"
 SUB3API_REPO="${SUB3API_REPO:-yuchen0x1/sub3api-relay}"
+SUB3API_RELEASE_API_URL="${SUB3API_RELEASE_API_URL:-https://api.github.com/repos/${SUB3API_REPO}}"
+SUB3API_RELEASE_DOWNLOAD_URL="${SUB3API_RELEASE_DOWNLOAD_URL:-https://github.com/${SUB3API_REPO}/releases/download}"
 SUB3API_HEALTH_URL="${SUB3API_HEALTH_URL:-http://127.0.0.1:8080/health}"
 SUB3API_BACKUP_DIR="${SUB3API_BACKUP_DIR:-$(dirname "$SUB3API_BIN")/backups}"
 
@@ -48,7 +50,7 @@ resolve_version() {
     fi
     print_info "Fetching latest release version..."
     curl -fsSL --connect-timeout 10 --max-time 30 \
-        "https://api.github.com/repos/${SUB3API_REPO}/releases/latest" |
+        "${SUB3API_RELEASE_API_URL}/releases/latest" |
         sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
         head -1
 }
@@ -84,7 +86,7 @@ download_release() {
     local version="$1"
     local arch="$2"
     local asset="sub3api_${version}_linux_${arch}.tar.gz"
-    local base="https://github.com/${SUB3API_REPO}/releases/download/v${version}"
+    local base="${SUB3API_RELEASE_DOWNLOAD_URL}/v${version}"
     local expected actual
 
     print_info "Downloading ${asset} ..."

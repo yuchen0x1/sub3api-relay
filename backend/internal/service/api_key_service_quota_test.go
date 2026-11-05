@@ -42,6 +42,14 @@ func (s *quotaStateCacheStub) IncrementCreateAttemptCount(context.Context, int64
 	return nil
 }
 
+func (s *quotaStateCacheStub) GetCreateSuccessCount(context.Context, int64) (int, error) {
+	return 0, nil
+}
+
+func (s *quotaStateCacheStub) IncrementCreateSuccessCount(context.Context, int64) error {
+	return nil
+}
+
 func (s *quotaStateCacheStub) DeleteCreateAttemptCount(context.Context, int64) error {
 	return nil
 }

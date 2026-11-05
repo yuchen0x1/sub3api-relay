@@ -17,6 +17,16 @@ describe('useModelWhitelist', () => {
     expect(models).toContain('gpt-5.6')
   })
 
+  it('OpenAI 新型号白名单精确区分 GPT-6.1、Luna 与图片模型', () => {
+    const models = getModelsByPlatform('openai')
+
+    expect(models).toContain('gpt-6.1-sol')
+    expect(models).toContain('gpt-6.1-terra')
+    expect(models).toContain('gpt-6-luna')
+    expect(models).toContain('gpt-image-2.5-sunburst')
+    expect(models).not.toContain('gpt-6.1-luna')
+  })
+
   it('openai 模型列表不再暴露已下线的 ChatGPT 登录 Codex 模型', () => {
     const models = getModelsByPlatform('openai')
 
@@ -36,6 +46,12 @@ describe('useModelWhitelist', () => {
     expect(models).toContain('gemini-3-pro-image')
   })
 
+  it('Claude 5.5 精确模型项仅显示在 Claude 白名单', () => {
+    expect(getModelsByPlatform('claude')).toContain('claude-opus-5-5')
+    expect(getModelsByPlatform('claude')).toContain('claude-sonnet-5-5')
+    expect(getModelsByPlatform('antigravity')).not.toContain('claude-opus-5-5')
+  })
+
   it('Claude 模型列表包含新发布的 Claude 模型', () => {
     expect(getModelsByPlatform('claude')).toContain('claude-fable-5')
     expect(getModelsByPlatform('antigravity')).toContain('claude-fable-5')
@@ -49,6 +65,14 @@ describe('useModelWhitelist', () => {
     expect(models).toContain('grok-4.5')
     expect(models).toContain('grok-4.5-latest')
     expect(models).toContain('grok-build-latest')
+  })
+
+  it('Grok 4.7 精确模型名和 latest 别名指向同一模型', () => {
+    expect(getModelsByPlatform('grok')).toContain('grok-4.7')
+    expect(getModelsByPlatform('grok')).toContain('grok-4.7-latest')
+
+    const mapping = buildModelMappingObject('combined', ['grok-4.7'], [{ from: 'grok-4.7-latest', to: 'grok-4.7' }])
+    expect(mapping).toEqual({ 'grok-4.7': 'grok-4.7', 'grok-4.7-latest': 'grok-4.7' })
   })
 
   it('combined 模式支持 Grok 4.5 官方别名映射', () => {
@@ -92,6 +116,11 @@ describe('useModelWhitelist', () => {
 
     expect(models.indexOf('gemini-3.1-flash-image')).toBeLessThan(models.indexOf('gemini-2.5-flash'))
     expect(models.indexOf('gemini-2.5-flash-image')).toBeLessThan(models.indexOf('gemini-2.5-flash-lite'))
+  })
+
+  it('Gemini 4 Argon 仅加入 Gemini 候选列表', () => {
+    expect(getModelsByPlatform('gemini')).toContain('gemini-4-argon')
+    expect(getModelsByPlatform('antigravity')).not.toContain('gemini-4-argon')
   })
 
   it('antigravity 模型列表包含 Gemini 3.1 Pro 通用别名', () => {

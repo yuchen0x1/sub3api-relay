@@ -2882,6 +2882,12 @@
         </div>
         <!-- /Tab: Gateway — Claude Code, Scheduling -->
 
+          <SettingsSecurityTab
+            v-if="activeTab === 'security'"
+            :form="form"
+            v-model:email-suffix-whitelist="registrationEmailSuffixWhitelistTags"
+          />
+
         <KeepAlive>
           <SettingsGeneralTab
             v-if="activeTab === 'general'"
@@ -2973,6 +2979,7 @@ import AppLayout from "@/components/layout/AppLayout.vue";
 const BackupSettings = defineAsyncComponent(() => import('@/views/admin/BackupView.vue'))
 const OpenAIFastPolicyUserSelector = defineAsyncComponent(() => import('@/views/admin/settings/OpenAIFastPolicyUserSelector.vue'))
 const SettingsGeneralTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsGeneralTab.vue'))
+const SettingsSecurityTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsSecurityTab.vue'))
 
 import Icon from "@/components/icons/Icon.vue";
 import Select from "@/components/common/Select.vue";
@@ -3012,11 +3019,13 @@ function localText(zh: string, en: string): string {
 
 type SettingsTab =
   | "general"
+  | "security"
   | "gateway"
   | "backup";
 const activeTab = ref<SettingsTab>("general");
 const settingsTabs = computed(() => [
   { key: "general" as SettingsTab, icon: "home" as const },
+  { key: "security" as SettingsTab, icon: "shield" as const },
   { key: "gateway" as SettingsTab, icon: "server" as const },
   { key: "backup" as SettingsTab, icon: "database" as const },
 ]);
@@ -3586,6 +3595,8 @@ const form = reactive<SettingsForm>({
   session_binding_enabled: false,
   step_up_enabled: false,
   audit_log_retention_days: 180,
+  api_key_max_active_per_user: 200,
+  api_key_create_hourly_limit: 60,
   login_agreement_enabled: false,
   login_agreement_mode: "modal",
   login_agreement_updated_at: "2026-03-31",
@@ -4728,6 +4739,8 @@ async function saveSettings() {
       audit_log_retention_days: Number.isFinite(form.audit_log_retention_days)
         ? form.audit_log_retention_days
         : 180,
+      api_key_max_active_per_user: Math.max(0, Math.floor(Number(form.api_key_max_active_per_user) || 0)),
+      api_key_create_hourly_limit: Math.max(0, Math.floor(Number(form.api_key_create_hourly_limit) || 0)),
       login_agreement_enabled: form.login_agreement_enabled,
       login_agreement_mode: form.login_agreement_mode,
       login_agreement_updated_at: form.login_agreement_updated_at,

@@ -1,4 +1,4 @@
-name: Release
+name: Release build validation
 
 on:
   push:
@@ -7,132 +7,47 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to release (e.g., v1.0.0)"
+        description: "Version tag to validate (e.g., v0.3.1); this workflow does not publish a release"
         required: true
         type: string
+
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
-  validate-release:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.release.outputs.tag }}
-      version: ${{ steps.release.outputs.version }}
-    steps:
-      - name: Validate release tag
-        id: release
-        env:
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid release tag: $RELEASE_TAG" >&2
-            echo "Expected format: vX.Y.Z" >&2
-            exit 1
-          fi
-
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-
-  release:
-    needs: [validate-release]
+  build-and-validate:
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
-      RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
-      # step 级 if 里的 env 上下文只读取 job/workflow 级 env，
-      # 因此 DockerHub 用户名必须在这里注入，下方 `if:` 才能生效。
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ needs.validate-release.outputs.tag }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
 
-      - name: Verify release versions
-        env:
-          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+      - name: Validate release metadata
         run: |
           set -euo pipefail
-          BACKEND_VERSION=$(tr -d '\r\n' < backend/cmd/server/VERSION)
-          FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
-
-          if [ "$BACKEND_VERSION" != "$RELEASE_VERSION" ]; then
-            echo "backend/cmd/server/VERSION is $BACKEND_VERSION, expected $RELEASE_VERSION" >&2
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version tag: $RELEASE_TAG (expected vX.Y.Z)" >&2
             exit 1
           fi
-          if [ "$FRONTEND_VERSION" != "$RELEASE_VERSION" ]; then
-            echo "frontend/package.json version is $FRONTEND_VERSION, expected $RELEASE_VERSION" >&2
-            exit 1
-          fi
+          VERSION="${RELEASE_TAG#v}"
+          NOTES="docs/release-notes/RELEASE_NOTES_${RELEASE_TAG}.md"
+          test "$(tr -d '\r\n' < backend/cmd/server/VERSION)" = "$VERSION"
+          test "$(node -p "require('./frontend/package.json').version")" = "$VERSION"
+          test -s "$NOTES"
+          echo "Validated $RELEASE_TAG. This workflow builds assets only; it does not publish a GitHub Release."
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
-          check-latest: false
           cache-dependency-path: backend/go.sum
 
       - name: Verify Go version
-        run: |
-          go version | grep -q 'go1.26.6'
-
-      # Docker setup for GoReleaser
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
-        if: ${{ env.DOCKERHUB_USERNAME != '' }}
-        uses: docker/login-action@v3
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Load required release notes
-        run: |
-          set -euo pipefail
-          NOTES_FILE="docs/release-notes/RELEASE_NOTES_${RELEASE_TAG}.md"
-
-          if [ ! -f "$NOTES_FILE" ]; then
-            echo "Missing required release notes: $NOTES_FILE" >&2
-            exit 1
-          fi
-
-          if ! grep -q '[^[:space:]]' "$NOTES_FILE"; then
-            echo "Release notes must not be empty: $NOTES_FILE" >&2
-            exit 1
-          fi
-
-          DELIMITER="RELEASE_NOTES_$(cat /proc/sys/kernel/random/uuid)"
-          {
-            echo "TAG_MESSAGE<<$DELIMITER"
-            cat "$NOTES_FILE"
-            echo "$DELIMITER"
-          } >> "$GITHUB_ENV"
-
-          echo "Loaded release notes from $NOTES_FILE"
-
-      - name: Set lowercase owner for GHCR
-        id: lowercase
-        env:
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-        run: echo "owner=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+        run: go version | grep -q 'go1.26.6'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -151,129 +66,48 @@ jobs:
           pnpm --dir frontend install --frozen-lockfile
           pnpm --dir frontend build
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          version: "~> v2"
-          args: release --clean --skip=validate
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPO_OWNER: ${{ github.repository_owner }}
-          GITHUB_REPO_OWNER_LOWER: ${{ steps.lowercase.outputs.owner }}
-          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME || 'skip' }}
-
-      - name: Upload frontend release bundle
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build platform archives and release bundles
         run: |
           set -euo pipefail
-          ASSET="sub3api_${RELEASE_VERSION}_web.tar.gz"
-          tar -C backend/internal/web/dist -czf "$ASSET" .
-          sha256sum "$ASSET" > "$ASSET.sha256"
-          gh release upload "$RELEASE_TAG" "$ASSET" "$ASSET.sha256" --clobber
-
-      - name: Upload verified deployment bundle
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          DEPLOY_BUNDLE=$(mktemp -d)
-          cp deploy/install.sh "$DEPLOY_BUNDLE/install.sh"
-          cp deploy/docker-deploy.sh "$DEPLOY_BUNDLE/docker-deploy.sh"
-          cp deploy/docker-compose.local.yml "$DEPLOY_BUNDLE/docker-compose.yml"
-          cp deploy/.env.example "$DEPLOY_BUNDLE/sub3api.env.example"
-          sed -i "s|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${RELEASE_VERSION}|" "$DEPLOY_BUNDLE/sub3api.env.example"
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p release-assets
+          RELEASE_ASSETS_DIR="$PWD/release-assets"
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            name="sub3api_${VERSION}_${GOOS}_${GOARCH}"
+            output="$RELEASE_ASSETS_DIR/$name"
+            if [ "$GOOS" = windows ]; then output="$output.exe"; fi
+            (cd backend && CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -tags embed -ldflags="-X main.Version=$VERSION" -o "$output" ./cmd/server)
+            stage=$(mktemp -d)
+            if [ "$GOOS" = windows ]; then cp "$output" "$stage/sub3api.exe"; else cp "$output" "$stage/sub3api"; fi
+            tar -C "$stage" -czf "$RELEASE_ASSETS_DIR/${name}.tar.gz" .
+            rm -rf "$stage" "$output"
+          done
+          (cd release-assets && sha256sum sub3api_*.tar.gz > checksums.txt)
+          tar -C backend/internal/web/dist -czf "$RELEASE_ASSETS_DIR/sub3api_${VERSION}_web.tar.gz" .
+          deploy_bundle=$(mktemp -d)
+          cp deploy/install.sh deploy/docker-deploy.sh deploy/docker-compose.local.yml "$deploy_bundle/"
+          cp deploy/.env.example "$deploy_bundle/sub3api.env.example"
           (
-            cd "$DEPLOY_BUNDLE"
-            sha256sum install.sh docker-deploy.sh docker-compose.yml sub3api.env.example > deploy-checksums.txt
+            cd "$deploy_bundle"
+            sha256sum install.sh docker-deploy.sh docker-compose.local.yml sub3api.env.example > deploy-checksums.txt
+            tar -czf "$RELEASE_ASSETS_DIR/sub3api_${VERSION}_deploy.tar.gz" .
           )
-          gh release upload "$RELEASE_TAG" \
-            "$DEPLOY_BUNDLE/install.sh" \
-            "$DEPLOY_BUNDLE/docker-deploy.sh" \
-            "$DEPLOY_BUNDLE/docker-compose.yml" \
-            "$DEPLOY_BUNDLE/sub3api.env.example" \
-            "$DEPLOY_BUNDLE/deploy-checksums.txt" \
-            --clobber
+          rm -rf "$deploy_bundle"
+          printf 'Built local CI assets in release-assets/:\n'
+          ls -1 release-assets
+          printf 'No GitHub release, tag, or container image was published; build outputs are workflow artifacts only.\n'
 
-      # Update DockerHub description
-      - name: Update DockerHub description
-        if: ${{ env.DOCKERHUB_USERNAME != '' }}
-        uses: peter-evans/dockerhub-description@v5
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/sub3api-relay
-          short-description: "Sub3API - AI API Gateway Platform"
-          readme-filepath: ./deploy/DOCKER.md
-
-      # Send Telegram notification
-      - name: Send Telegram Notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          REPOSITORY: ${{ github.repository }}
-        continue-on-error: true
+      - name: Build container image (no push)
         run: |
-          # 检查必要的环境变量
-          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-            echo "Telegram credentials not configured, skipping notification"
-            exit 0
-          fi
+          docker buildx build --platform linux/amd64 --load \
+            --tag "sub3api:${RELEASE_TAG#v}-ci" \
+            --build-arg VERSION="${RELEASE_TAG#v}" .
 
-          TAG_NAME="$RELEASE_TAG"
-          VERSION="$RELEASE_VERSION"
-          REPO="$REPOSITORY"
-          GHCR_IMAGE="ghcr.io/${REPO,,}"  # ${,,} converts to lowercase
-
-          # 转义 release notes 中的 Telegram Markdown 特殊字符
-          TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/\([_*`\[]\)/\\\1/g')
-
-          # 限制消息长度（Telegram 消息限制 4096 字符，预留空间给头尾固定内容）
-          if [ ${#TAG_MESSAGE} -gt 3500 ]; then
-            TAG_MESSAGE="${TAG_MESSAGE:0:3500}..."
-          fi
-
-          # 构建消息内容
-          MESSAGE="Sub3API 新版本发布！"$'\n'$'\n'
-          MESSAGE+="📦 版本号: \`${VERSION}\`"$'\n'$'\n'
-
-          # 添加更新内容
-          if [ -n "$TAG_MESSAGE" ]; then
-            MESSAGE+="${TAG_MESSAGE}"$'\n'$'\n'
-          fi
-
-          MESSAGE+="🐳 *Docker 部署:*"$'\n'
-          MESSAGE+="\`\`\`bash"$'\n'
-          # 根据是否配置 DockerHub 动态生成
-          if [ -n "$DOCKERHUB_USERNAME" ]; then
-            DOCKER_IMAGE="${DOCKERHUB_USERNAME}/sub3api-relay"
-            MESSAGE+="# Docker Hub"$'\n'
-            MESSAGE+="docker pull ${DOCKER_IMAGE}:${VERSION}"$'\n'
-            MESSAGE+="# GitHub Container Registry"$'\n'
-          fi
-          MESSAGE+="docker pull ${GHCR_IMAGE}:${VERSION}"$'\n'
-          MESSAGE+="\`\`\`"$'\n'$'\n'
-          MESSAGE+="🔗 *相关链接:*"$'\n'
-          MESSAGE+="• [GitHub Release](https://github.com/${REPO}/releases/tag/${TAG_NAME})"$'\n'
-          if [ -n "$DOCKERHUB_USERNAME" ]; then
-            MESSAGE+="• [Docker Hub](https://hub.docker.com/r/${DOCKER_IMAGE})"$'\n'
-          fi
-          MESSAGE+="• [GitHub Packages](https://github.com/${REPO}/pkgs/container/sub3api-relay)"$'\n'$'\n'
-          MESSAGE+="#Sub3API #Release #${TAG_NAME//./_}"
-
-          # 发送消息
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg chat_id "${TELEGRAM_CHAT_ID}" \
-              --arg text "${MESSAGE}" \
-              '{
-                chat_id: $chat_id,
-                text: $text,
-                parse_mode: "Markdown",
-                disable_web_page_preview: true
-              }')"
+      - name: Upload build artifacts to workflow run
+        uses: actions/upload-artifact@v6
+        with:
+          name: sub3api-${{ env.RELEASE_TAG }}-release-assets
+          path: release-assets/*
+          if-no-files-found: error

@@ -17,6 +17,8 @@ const (
 	apiKeyRateLimitDuration    = 24 * time.Hour
 	apiKeyAuthCachePrefix      = "apikey:auth:"
 	authCacheInvalidateChannel = "auth:cache:invalidate"
+	apiKeyCreateCountPrefix    = "apikey:create-count:"
+	apiKeyCreateCountDuration  = time.Hour
 )
 
 // apiKeyRateLimitKey generates the Redis key for API key creation rate limiting.
@@ -57,6 +59,28 @@ func (c *apiKeyCache) IncrementCreateAttemptCount(ctx context.Context, userID in
 func (c *apiKeyCache) DeleteCreateAttemptCount(ctx context.Context, userID int64) error {
 	key := apiKeyRateLimitKey(userID)
 	return c.rdb.Del(ctx, key).Err()
+}
+
+// apiKeyCreateCountKey 生成每小时创建成功次数的 Redis key。
+func apiKeyCreateCountKey(userID int64) string {
+	return fmt.Sprintf("%s%d", apiKeyCreateCountPrefix, userID)
+}
+
+func (c *apiKeyCache) GetCreateSuccessCount(ctx context.Context, userID int64) (int, error) {
+	count, err := c.rdb.Get(ctx, apiKeyCreateCountKey(userID)).Int()
+	if errors.Is(err, redis.Nil) {
+		return 0, nil
+	}
+	return count, err
+}
+
+func (c *apiKeyCache) IncrementCreateSuccessCount(ctx context.Context, userID int64) error {
+	key := apiKeyCreateCountKey(userID)
+	pipe := c.rdb.Pipeline()
+	pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, apiKeyCreateCountDuration)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 func (c *apiKeyCache) IncrementDailyUsage(ctx context.Context, apiKey string) error {

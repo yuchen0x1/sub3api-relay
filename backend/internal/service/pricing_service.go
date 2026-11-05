@@ -52,6 +52,22 @@ var (
 		Mode:                                "chat",
 		SupportsPromptCaching:               true,
 	}
+	openAIGPT61SolFallbackPricing = &LiteLLMModelPricing{
+		InputCostPerToken:           2e-06,
+		OutputCostPerToken:          1e-05,
+		CacheReadInputTokenCost:     1e-07,
+		LiteLLMProvider:             "openai",
+		Mode:                        "chat",
+		SupportsPromptCaching:       true,
+	}
+	openAIGPT61TerraFallbackPricing = &LiteLLMModelPricing{
+		InputCostPerToken:           1e-06,
+		OutputCostPerToken:          5e-06,
+		CacheReadInputTokenCost:     5e-08,
+		LiteLLMProvider:             "openai",
+		Mode:                        "chat",
+		SupportsPromptCaching:       true,
+	}
 	openAIGPT56SolFallbackPricing = &LiteLLMModelPricing{
 		InputCostPerToken:                   5e-06,
 		InputCostPerTokenPriority:           1e-05,
@@ -971,6 +987,13 @@ func (s *PricingService) matchOpenAIModel(model string) *LiteLLMModelPricing {
 		}
 	}
 
+	if strings.HasPrefix(model, "gpt-6.1-sol") {
+		return openAIGPT61SolFallbackPricing
+	}
+	if strings.HasPrefix(model, "gpt-6.1-terra") {
+		return openAIGPT61TerraFallbackPricing
+	}
+
 	if isOpenAIGPT6AstraModel(model) {
 		logger.With(zap.String("component", "service.pricing")).
 			Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-6-astra(static)"))
@@ -1019,7 +1042,7 @@ func (s *PricingService) matchOpenAIModel(model string) *LiteLLMModelPricing {
 	}
 
 	if isOpenAIImageGenerationModel(model) {
-		for _, candidate := range []string{"gpt-image-2", "gpt-image-1.5", "gpt-image-1"} {
+		for _, candidate := range []string{"gpt-image-2.5-sunburst", "gpt-image-2", "gpt-image-1.5", "gpt-image-1"} {
 			if pricing, ok := s.pricingData[candidate]; ok {
 				logger.LegacyPrintf("service.pricing", "[Pricing] OpenAI image fallback matched %s -> %s", model, candidate)
 				return pricing

@@ -30,11 +30,13 @@ type UpdateSettingsRequest struct {
 	PasswordResetEnabled             bool                         `json:"password_reset_enabled"`
 	FrontendURL                      string                       `json:"frontend_url"`
 	InvitationCodeEnabled            bool                         `json:"invitation_code_enabled"`
-	TotpEnabled                      bool                         `json:"totp_enabled"`             // TOTP 双因素认证
-	PasskeyEnabled                   *bool                        `json:"passkey_enabled"`          // Passkey 登录（省略=保持现值）
-	SessionBindingEnabled            *bool                        `json:"session_binding_enabled"`  // 会话 IP/UA 绑定（省略=保持现值）
-	StepUpEnabled                    *bool                        `json:"step_up_enabled"`          // 敏感操作 step-up 2FA（省略=保持现值）
-	AuditLogRetentionDays            int                          `json:"audit_log_retention_days"` // 审计日志保留天数
+	TotpEnabled                      bool                         `json:"totp_enabled"`                // TOTP 双因素认证
+	PasskeyEnabled                   *bool                        `json:"passkey_enabled"`             // Passkey 登录（省略=保持现值）
+	SessionBindingEnabled            *bool                        `json:"session_binding_enabled"`     // 会话 IP/UA 绑定（省略=保持现值）
+	StepUpEnabled                    *bool                        `json:"step_up_enabled"`             // 敏感操作 step-up 2FA（省略=保持现值）
+	AuditLogRetentionDays            int                          `json:"audit_log_retention_days"`    // 审计日志保留天数
+	APIKeyMaxActivePerUser           int                          `json:"api_key_max_active_per_user"` // 每用户最大有效 Key 数量（0 不限制）
+	APIKeyCreateHourlyLimit          int                          `json:"api_key_create_hourly_limit"` // 每小时最大创建次数（0 不限制）
 	LoginAgreementEnabled            bool                         `json:"login_agreement_enabled"`
 	LoginAgreementMode               string                       `json:"login_agreement_mode"`
 	LoginAgreementUpdatedAt          string                       `json:"login_agreement_updated_at"`
@@ -1505,6 +1507,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SessionBindingEnabled:            sessionBindingEnabled,
 		StepUpEnabled:                    stepUpEnabled,
 		AuditLogRetentionDays:            req.AuditLogRetentionDays,
+		APIKeyMaxActivePerUser:           req.APIKeyMaxActivePerUser,
+		APIKeyCreateHourlyLimit:          req.APIKeyCreateHourlyLimit,
 		LoginAgreementEnabled:            req.LoginAgreementEnabled,
 		LoginAgreementMode:               loginAgreementMode,
 		LoginAgreementUpdatedAt:          loginAgreementUpdatedAt,
@@ -2111,6 +2115,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SessionBindingEnabled:                                  updatedSettings.SessionBindingEnabled,
 		StepUpEnabled:                                          updatedSettings.StepUpEnabled,
 		AuditLogRetentionDays:                                  updatedSettings.AuditLogRetentionDays,
+		APIKeyMaxActivePerUser:                                 updatedSettings.APIKeyMaxActivePerUser,
+		APIKeyCreateHourlyLimit:                                updatedSettings.APIKeyCreateHourlyLimit,
 		LoginAgreementEnabled:                                  updatedSettings.LoginAgreementEnabled,
 		LoginAgreementMode:                                     updatedSettings.LoginAgreementMode,
 		LoginAgreementUpdatedAt:                                updatedSettings.LoginAgreementUpdatedAt,

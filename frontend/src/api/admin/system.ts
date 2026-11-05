@@ -31,7 +31,7 @@ export async function getVersion(): Promise<{ version: string }> {
 
 /**
  * Check for updates
- * @param force - Force refresh from the Gitee API
+ * @param force - Force refresh from the GitHub API
  */
 export async function checkUpdates(force = false): Promise<VersionInfo> {
   const { data } = await apiClient.get<VersionInfo>('/admin/system/check-updates', {

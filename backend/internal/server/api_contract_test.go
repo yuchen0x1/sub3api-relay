@@ -726,6 +726,8 @@ func TestAPIContracts(t *testing.T) {
 						"session_binding_enabled": false,
 						"step_up_enabled": false,
 						"audit_log_retention_days": 180,
+						"api_key_max_active_per_user": 200,
+						"api_key_create_hourly_limit": 60,
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
 						"login_agreement_updated_at": "2026-03-31",
@@ -1073,6 +1075,8 @@ func TestAPIContracts(t *testing.T) {
 						"session_binding_enabled": false,
 						"step_up_enabled": false,
 						"audit_log_retention_days": 180,
+						"api_key_max_active_per_user": 200,
+						"api_key_create_hourly_limit": 60,
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
 						"login_agreement_updated_at": "2026-03-31",
@@ -1713,6 +1717,14 @@ func (stubApiKeyCache) GetCreateAttemptCount(ctx context.Context, userID int64) 
 }
 
 func (stubApiKeyCache) IncrementCreateAttemptCount(ctx context.Context, userID int64) error {
+	return nil
+}
+
+func (stubApiKeyCache) GetCreateSuccessCount(ctx context.Context, userID int64) (int, error) {
+	return 0, nil
+}
+
+func (stubApiKeyCache) IncrementCreateSuccessCount(ctx context.Context, userID int64) error {
 	return nil
 }
 

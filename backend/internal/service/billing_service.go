@@ -318,6 +318,16 @@ func (s *BillingService) initFallbackPricing() {
 	// 缺少这两条时 getFallbackPricing 会掉到 claude-3-opus（$15/$75），造成 3 倍超收。
 	s.fallbackPrices["claude-opus-4.8"] = s.fallbackPrices["claude-opus-4.7"]
 	s.fallbackPrices["claude-opus-5"] = s.fallbackPrices["claude-opus-4.8"]
+	// Claude Opus 5.5 与 Sonnet 5.5 使用官方公布的 $4/$20 与 $2/$10 标准价；
+	// 缓存单价未在可核实来源中确认，不设置缓存兜底费率。
+	s.fallbackPrices["claude-opus-5.5"] = &ModelPricing{
+		InputPricePerToken: 4e-6, OutputPricePerToken: 20e-6,
+	}
+	s.fallbackPrices["claude-opus-5-5"] = s.fallbackPrices["claude-opus-5.5"]
+	s.fallbackPrices["claude-sonnet-5.5"] = &ModelPricing{
+		InputPricePerToken: 2e-6, OutputPricePerToken: 10e-6,
+	}
+	s.fallbackPrices["claude-sonnet-5-5"] = s.fallbackPrices["claude-sonnet-5.5"]
 
 	// Gemini 3.1 Pro
 	s.fallbackPrices["gemini-3.1-pro"] = &ModelPricing{
@@ -356,6 +366,19 @@ func (s *BillingService) initFallbackPricing() {
 	// GPT-5.5 / GPT-5.5 Pro 暂无独立定价，回退到 GPT-5.4。
 	s.fallbackPrices["gpt-5.5"] = s.fallbackPrices["gpt-5.4"]
 	s.fallbackPrices["gpt-5.5-pro"] = s.fallbackPrices["gpt-5.4"]
+
+	// OpenAI GPT-6.1 官方价格（USD/token）。只对有明确官方标准价的 Sol/Terra 建兜底；
+	// GPT-6 Luna 的价格尚未在来源中核实，不对其推测兜底价。
+	s.fallbackPrices["gpt-6.1-sol"] = &ModelPricing{
+		InputPricePerToken:     2e-6,
+		OutputPricePerToken:    10e-6,
+		CacheReadPricePerToken: 0.1e-6,
+	}
+	s.fallbackPrices["gpt-6.1-terra"] = &ModelPricing{
+		InputPricePerToken:     1e-6,
+		OutputPricePerToken:    5e-6,
+		CacheReadPricePerToken: 0.05e-6,
+	}
 
 	// OpenAI GPT-5.6 官方价格（USD/token）。缓存写入为输入价的 1.25 倍。
 	// OpenAI GPT-6 Astra 官方价格（USD/token）。官方未列独立 cached-input/cache-write
@@ -710,6 +733,9 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 
 	// 按模型系列匹配
 	if strings.Contains(modelLower, "opus") {
+		if strings.Contains(modelLower, "opus-5-5") || strings.Contains(modelLower, "opus-5.5") {
+			return s.fallbackPrices["claude-opus-5.5"]
+		}
 		// "opus-5" 必须先判：不能用裸 "5" 匹配，否则 claude-opus-4-5 会被误判。
 		if strings.Contains(modelLower, "opus-5") || strings.Contains(modelLower, "opus5") {
 			return s.fallbackPrices["claude-opus-5"]
@@ -729,6 +755,9 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 		return s.fallbackPrices["claude-3-opus"]
 	}
 	if strings.Contains(modelLower, "sonnet") {
+		if strings.Contains(modelLower, "5-5") || strings.Contains(modelLower, "5.5") {
+			return s.fallbackPrices["claude-sonnet-5.5"]
+		}
 		if strings.Contains(modelLower, "4") && !strings.Contains(modelLower, "3") {
 			return s.fallbackPrices["claude-sonnet-4"]
 		}
@@ -869,6 +898,10 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	// OpenAI（GPT-5 / Codex 族）：仅匹配已知型号，避免未知 OpenAI 型号误计价。
 	if normalized := normalizeKnownOpenAICodexModel(modelLower); normalized != "" {
 		switch normalized {
+		case "gpt-6.1-sol":
+			return s.fallbackPrices["gpt-6.1-sol"]
+		case "gpt-6.1-terra":
+			return s.fallbackPrices["gpt-6.1-terra"]
 		case "gpt-6-astra":
 			return s.fallbackPrices["gpt-6-astra"]
 		case "gpt-5.6-sol":

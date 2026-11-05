@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ type githubReleaseClient struct {
 	httpClient         *http.Client
 	downloadHTTPClient *http.Client
 	updateGitHubToken  string
-	updateGiteeToken   string
 }
 
 type githubReleaseClientError struct {
@@ -68,7 +66,6 @@ func NewGitHubReleaseClient(proxyURL string, allowDirectOnProxyError bool) servi
 		httpClient:         apiClient,
 		downloadHTTPClient: downloadClient,
 		updateGitHubToken:  os.Getenv("UPDATE_GITHUB_TOKEN"),
-		updateGiteeToken:   os.Getenv("UPDATE_GITEE_TOKEN"),
 	}
 }
 
@@ -107,20 +104,6 @@ func (c *githubReleaseClient) newAPIRequest(ctx context.Context, url string) (*h
 	return req, nil
 }
 
-func (c *githubReleaseClient) newGiteeAPIRequest(ctx context.Context, url string) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	// Gitee API 使用单独的 UPDATE_GITEE_TOKEN，避免把 GitHub 令牌发往 Gitee。
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Sub3API-Updater")
-	if c.updateGiteeToken != "" {
-		req.Header.Set("Authorization", "token "+c.updateGiteeToken)
-	}
-	return req, nil
-}
-
 func (c *githubReleaseClientError) FetchLatestRelease(ctx context.Context, repo string) (*service.GitHubRelease, error) {
 	return nil, c.err
 }
@@ -137,20 +120,9 @@ func (c *githubReleaseClientError) FetchChecksumFile(ctx context.Context, url st
 	return nil, c.err
 }
 
-// FetchLatestRelease 获取最新 release。
-// 项目自身自更新固定使用 Gitee；其他仓库（如 openai/codex 版本同步）
-// 仍保持纯 GitHub，不受本项目发布通道影响。
+// FetchLatestRelease fetches a release from GitHub.
 func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo string) (*service.GitHubRelease, error) {
-	if repo != service.GitHubUpdateRepo {
-		return c.fetchLatestReleaseFromGitHub(ctx, repo)
-	}
-
-	release, err := c.fetchLatestReleaseFromGitee(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Gitee update check failed: %w", err)
-	}
-	slog.Info("update_channel: latest project version fetched from gitee", "tag", release.TagName)
-	return release, nil
+	return c.fetchLatestReleaseFromGitHub(ctx, repo)
 }
 
 func (c *githubReleaseClient) fetchLatestReleaseFromGitHub(ctx context.Context, repo string) (*service.GitHubRelease, error) {
@@ -179,197 +151,15 @@ func (c *githubReleaseClient) fetchLatestReleaseFromGitHub(ctx context.Context, 
 	return &release, nil
 }
 
-// fetchLatestReleaseFromGitee 走 Gitee API v5（响应结构与 GitHub 兼容：
-// tag_name / assets[].browser_download_url，可直接复用 GitHubRelease 结构体）
-func (c *githubReleaseClient) fetchLatestReleaseFromGitee(ctx context.Context) (*service.GitHubRelease, error) {
-	url := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/releases/latest", service.GiteeUpdateRepo)
-
-	release, err := c.fetchGiteeURL(ctx, url)
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.TrimSpace(release.TagName) == "" {
-		return nil, fmt.Errorf("Gitee release response missing tag_name")
-	}
-
-	return release, nil
-}
-
-// fetchGiteeURL 请求 Gitee API 并解析为 GitHubRelease。
-// 配置的 UPDATE_GITEE_TOKEN 失效时 Gitee 对公开端点也返回 401/403——
-// 此时必须去掉凭据匿名重试，而不是让一个过期 token 挡死公开的更新检查。
-func (c *githubReleaseClient) fetchGiteeURL(ctx context.Context, url string) (*service.GitHubRelease, error) {
-	fetch := func(sendAuth bool) (*http.Response, error) {
-		req, err := c.newGiteeAPIRequest(ctx, url)
-		if err != nil {
-			return nil, err
-		}
-		if !sendAuth {
-			req.Header.Del("Authorization")
-		}
-		return c.httpClient.Do(req)
-	}
-
-	resp, err := fetch(true)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		// Token 失效/无权限：匿名重试公开端点。
-		resp.Body.Close()
-		resp, err = fetch(false)
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = resp.Body.Close() }()
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		// A pushed tag is not necessarily a Gitee Release. Use the tag list for
-		// version detection so source and Docker deployments can still see the
-		// update; binary installation will continue to require release assets.
-		return c.fetchLatestTagFromGitee(ctx)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Gitee API returned %d", resp.StatusCode)
-	}
-
-	var release service.GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return nil, err
-	}
-
-	return &release, nil
-}
-
-type giteeTag struct {
-	Name   string `json:"name"`
-	Commit struct {
-		CreatedAt string `json:"created_at"`
-		Date      string `json:"date"`
-	} `json:"commit"`
-}
-
-// fetchGiteeTags returns tags in the order supplied by Gitee (newest first).
-// The endpoint is deliberately used only as a detection fallback: tags do not
-// carry downloadable release assets.
-func (c *githubReleaseClient) fetchGiteeTags(ctx context.Context, perPage int) ([]giteeTag, error) {
-	if perPage <= 0 || perPage > 100 {
-		perPage = 100
-	}
-	apiURL := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/tags?page=1&per_page=%d", service.GiteeUpdateRepo, perPage)
-	req, err := c.newGiteeAPIRequest(ctx, apiURL)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Gitee tags API returned %d", resp.StatusCode)
-	}
-	var tags []giteeTag
-	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return nil, err
-	}
-	return tags, nil
-}
-
-func strictGiteeTagVersion(name string) bool {
-	name = strings.TrimPrefix(strings.TrimSpace(name), "v")
-	parts := strings.Split(name, ".")
-	if len(parts) != 3 {
-		return false
-	}
-	for _, part := range parts {
-		if part == "" {
-			return false
-		}
-		if _, err := strconv.Atoi(part); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
-func (c *githubReleaseClient) fetchLatestTagFromGitee(ctx context.Context) (*service.GitHubRelease, error) {
-	tags, err := c.fetchGiteeTags(ctx, 100)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		name := strings.TrimSpace(tag.Name)
-		if !strictGiteeTagVersion(name) {
-			continue
-		}
-		publishedAt := tag.Commit.CreatedAt
-		if publishedAt == "" {
-			publishedAt = tag.Commit.Date
-		}
-		return &service.GitHubRelease{
-			TagName:     name,
-			Name:        "Sub3API " + name,
-			PublishedAt: publishedAt,
-			HTMLURL:     fmt.Sprintf("https://gitee.com/%s/tree/%s", service.GiteeUpdateRepo, url.PathEscape(name)),
-		}, nil
-	}
-	return nil, fmt.Errorf("Gitee tags response contains no semantic version tag")
-}
-
-func (c *githubReleaseClient) fetchReleasesFromGiteeTags(ctx context.Context, perPage int) ([]*service.GitHubRelease, error) {
-	tags, err := c.fetchGiteeTags(ctx, perPage)
-	if err != nil {
-		return nil, err
-	}
-	releases := make([]*service.GitHubRelease, 0, len(tags))
-	for _, tag := range tags {
-		name := strings.TrimSpace(tag.Name)
-		if !strictGiteeTagVersion(name) {
-			continue
-		}
-		publishedAt := tag.Commit.CreatedAt
-		if publishedAt == "" {
-			publishedAt = tag.Commit.Date
-		}
-		releases = append(releases, &service.GitHubRelease{
-			TagName:     name,
-			Name:        "Sub3API " + name,
-			PublishedAt: publishedAt,
-			HTMLURL:     fmt.Sprintf("https://gitee.com/%s/tree/%s", service.GiteeUpdateRepo, url.PathEscape(name)),
-		})
-	}
-	return releases, nil
-}
-
-// FetchRecentReleases 获取最近的 release 列表（用于回滚版本列表）。
-// 通道选择逻辑与 FetchLatestRelease 一致，仅作用于本项目自更新仓库。
+// FetchRecentReleases fetches recent GitHub releases for rollback choices.
 func (c *githubReleaseClient) FetchRecentReleases(ctx context.Context, repo string, perPage int) ([]*service.GitHubRelease, error) {
 	if perPage <= 0 {
 		perPage = 10
 	}
 	if perPage > 100 {
-		perPage = 100 // GitHub API hard limit
+		perPage = 100
 	}
-
-	if repo != service.GitHubUpdateRepo {
-		return c.fetchRecentReleasesFromGitHub(ctx, repo, perPage)
-	}
-
-	// Project rollback candidates are Gitee-only as well. A tag-only fallback
-	// keeps the version list useful before release assets are attached.
-	releases, err := c.fetchRecentReleasesFromGitee(ctx, perPage)
-	if err != nil {
-		return nil, fmt.Errorf("Gitee releases fetch failed: %w", err)
-	}
-	if len(releases) == 0 {
-		return c.fetchReleasesFromGiteeTags(ctx, perPage)
-	}
-	return releases, nil
+	return c.fetchRecentReleasesFromGitHub(ctx, repo, perPage)
 }
 
 func (c *githubReleaseClient) fetchRecentReleasesFromGitHub(ctx context.Context, repo string, perPage int) ([]*service.GitHubRelease, error) {
@@ -388,36 +178,6 @@ func (c *githubReleaseClient) fetchRecentReleasesFromGitHub(ctx context.Context,
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned %d", resp.StatusCode)
-	}
-
-	var releases []*service.GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return nil, err
-	}
-
-	return releases, nil
-}
-
-// fetchRecentReleasesFromGitee 走 Gitee API v5 列出最近 release（新→旧）
-func (c *githubReleaseClient) fetchRecentReleasesFromGitee(ctx context.Context, perPage int) ([]*service.GitHubRelease, error) {
-	url := fmt.Sprintf("https://gitee.com/api/v5/repos/%s/releases?page=1&per_page=%d&direction=desc", service.GiteeUpdateRepo, perPage)
-
-	req, err := c.newGiteeAPIRequest(ctx, url)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return []*service.GitHubRelease{}, nil
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Gitee API returned %d", resp.StatusCode)
 	}
 
 	var releases []*service.GitHubRelease

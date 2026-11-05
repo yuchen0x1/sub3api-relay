@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html"
+	"log/slog"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,8 @@ var (
 	ErrAPIKeyInvalidChars   = infraerrors.BadRequest("API_KEY_INVALID_CHARS", "api key can only contain letters, numbers, underscores, and hyphens")
 	ErrAPIKeyRateLimited    = infraerrors.TooManyRequests("API_KEY_RATE_LIMITED", "too many failed attempts, please try again later")
 	ErrAPIKeyAuthOverloaded = infraerrors.ServiceUnavailable("API_KEY_AUTH_OVERLOADED", "api key authentication is temporarily overloaded")
+	ErrAPIKeyCountLimit     = infraerrors.BadRequest("API_KEY_COUNT_LIMIT", "api key 数量已达上限，请删除不再使用的 Key 后重试")
+	ErrAPIKeyCreateLimited  = infraerrors.TooManyRequests("API_KEY_CREATE_RATE_LIMITED", "api key 创建过于频繁，请稍后再试")
 	ErrInvalidIPPattern     = infraerrors.BadRequest("INVALID_IP_PATTERN", "invalid IP or CIDR pattern")
 	// ErrAPIKeyExpired        = infraerrors.Forbidden("API_KEY_EXPIRED", "api key has expired")
 	ErrAPIKeyExpired = infraerrors.Forbidden("API_KEY_EXPIRED", "api key 已过期")
@@ -175,6 +178,10 @@ type APIKeyCache interface {
 	IncrementCreateAttemptCount(ctx context.Context, userID int64) error
 	DeleteCreateAttemptCount(ctx context.Context, userID int64) error
 
+	// 每小时创建成功次数计数（用于创建频率限制）
+	GetCreateSuccessCount(ctx context.Context, userID int64) (int, error)
+	IncrementCreateSuccessCount(ctx context.Context, userID int64) error
+
 	IncrementDailyUsage(ctx context.Context, apiKey string) error
 	SetDailyUsageExpiry(ctx context.Context, apiKey string, ttl time.Duration) error
 
@@ -270,6 +277,7 @@ type APIKeyService struct {
 	qpsCounter                APIKeyQPSCache            // optional: key 级 QPS 秒级计数器
 	concurrencyService        *ConcurrencyService
 	cfg                       *config.Config
+	settingService            *SettingService // optional: API Key 创建数量/频率限制
 	authCacheL1               *ristretto.Cache
 	authNegativeCacheL1       *ristretto.Cache
 	authCfg                   apiKeyAuthCacheConfig
@@ -435,8 +443,46 @@ func (s *APIKeyService) canUserBindGroup(ctx context.Context, user *User, group 
 	return user.CanBindGroup(group.ID, group.IsExclusive)
 }
 
+// SetSettingService 注入系统设置服务，用于读取 API Key 创建数量/频率限制。
+// 未注入时两项限制均不生效。
+func (s *APIKeyService) SetSettingService(settingService *SettingService) {
+	s.settingService = settingService
+}
+
+// checkAPIKeyCreateLimits 校验 API Key 创建的数量与频率限制（均可在系统设置中
+// 配置，0 表示不限制）。数量限制按有效 Key 计数；频率限制按每小时创建成功次数
+// 计数，独立于自定义 Key 的错误尝试限流。
+func (s *APIKeyService) checkAPIKeyCreateLimits(ctx context.Context, userID int64) error {
+	if s.settingService == nil {
+		return nil
+	}
+	if maxActive := s.settingService.GetAPIKeyMaxActivePerUser(ctx); maxActive > 0 {
+		count, err := s.apiKeyRepo.CountByUserID(ctx, userID)
+		if err != nil {
+			// 计数失败不阻断创建，避免 Redis/DB 抖动放大为用户不可用
+			slog.Warn("api_key_count_limit_check_failed", "user_id", userID, "error", err)
+		} else if count >= int64(maxActive) {
+			return fmt.Errorf("%w: max %d active api keys per user", ErrAPIKeyCountLimit, maxActive)
+		}
+	}
+	if hourlyLimit := s.settingService.GetAPIKeyCreateHourlyLimit(ctx); hourlyLimit > 0 && s.cache != nil {
+		count, err := s.cache.GetCreateSuccessCount(ctx, userID)
+		if err != nil {
+			slog.Warn("api_key_create_limit_check_failed", "user_id", userID, "error", err)
+		} else if count >= hourlyLimit {
+			return fmt.Errorf("%w: max %d api keys per hour", ErrAPIKeyCreateLimited, hourlyLimit)
+		}
+	}
+	return nil
+}
+
 // Create 创建API Key
 func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIKeyRequest) (*APIKey, error) {
+	// 创建数量/频率限制
+	if err := s.checkAPIKeyCreateLimits(ctx, userID); err != nil {
+		return nil, err
+	}
+
 	// 验证用户存在
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -530,6 +576,11 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 
 	if err := s.apiKeyRepo.Create(ctx, apiKey); err != nil {
 		return nil, fmt.Errorf("create api key: %w", err)
+	}
+
+	// 创建成功后累计每小时创建次数（用于创建频率限制）
+	if s.cache != nil {
+		_ = s.cache.IncrementCreateSuccessCount(ctx, userID)
 	}
 
 	s.InvalidateAuthCacheByKey(ctx, apiKey.Key)

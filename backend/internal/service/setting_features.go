@@ -276,6 +276,43 @@ func parseAuditLogRetentionDays(value string) int {
 	return n
 }
 
+// defaultAPIKeyMaxActivePerUser 每用户默认最大有效 API Key 数量（0 不限制）。
+const defaultAPIKeyMaxActivePerUser = 200
+
+// defaultAPIKeyCreateHourlyLimit 每用户默认每小时最大 API Key 创建次数（0 不限制）。
+const defaultAPIKeyCreateHourlyLimit = 60
+
+// GetAPIKeyMaxActivePerUser 每用户最大有效 API Key 数量（0 表示不限制）。
+func (s *SettingService) GetAPIKeyMaxActivePerUser(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAPIKeyMaxActivePerUser)
+	if err != nil {
+		return defaultAPIKeyMaxActivePerUser
+	}
+	return parseNonNegativeIntSetting(value, defaultAPIKeyMaxActivePerUser)
+}
+
+// GetAPIKeyCreateHourlyLimit 每用户每小时最大 API Key 创建次数（0 表示不限制）。
+func (s *SettingService) GetAPIKeyCreateHourlyLimit(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAPIKeyCreateHourlyLimit)
+	if err != nil {
+		return defaultAPIKeyCreateHourlyLimit
+	}
+	return parseNonNegativeIntSetting(value, defaultAPIKeyCreateHourlyLimit)
+}
+
+// parseNonNegativeIntSetting 解析非负整数设置，空/非法/负值回退默认值。
+func parseNonNegativeIntSetting(value string, defaultValue int) int {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultValue
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
+		return defaultValue
+	}
+	return n
+}
+
 // GetSiteName 获取网站名称
 func (s *SettingService) GetSiteName(ctx context.Context) string {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)

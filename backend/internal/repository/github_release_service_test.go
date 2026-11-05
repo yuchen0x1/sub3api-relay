@@ -341,32 +341,23 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 	require.Equal(s.T(), "app-linux-amd64.tar.gz", release.Assets[0].Name)
 }
 
-func (s *GitHubReleaseServiceSuite) TestFetchLatestReleaseFromGiteeFallsBackToTag() {
+func (s *GitHubReleaseServiceSuite) TestFetchLatestProjectReleaseUsesGitHub() {
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v5/repos/yuchen0x1/personal-ai-api-gateway-sub3api/releases/latest":
-			w.WriteHeader(http.StatusNotFound)
-		case "/api/v5/repos/yuchen0x1/personal-ai-api-gateway-sub3api/tags":
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`[{"name":"v0.1.195","commit":{"created_at":"2026-08-31T00:00:00Z"}}]`))
-		default:
-			http.NotFound(w, r)
-		}
+		require.Equal(s.T(), "/repos/yuchen0x1/sub3api-relay/releases/latest", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"tag_name":"v0.3.1","html_url":"https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.3.1"}`))
 	}))
 
 	s.client = &githubReleaseClient{
-		httpClient: &http.Client{
-			Transport: &testTransport{testServerURL: s.srv.URL},
-		},
+		httpClient:         &http.Client{Transport: &testTransport{testServerURL: s.srv.URL}},
 		downloadHTTPClient: &http.Client{},
 	}
 
 	release, err := s.client.FetchLatestRelease(context.Background(), service.GitHubUpdateRepo)
 	require.NoError(s.T(), err)
-	require.Equal(s.T(), "v0.1.195", release.TagName)
-	require.Empty(s.T(), release.Assets)
-	require.Contains(s.T(), release.HTMLURL, "gitee.com/yuchen0x1/personal-ai-api-gateway-sub3api/tree/v0.1.195")
+	require.Equal(s.T(), "v0.3.1", release.TagName)
+	require.Equal(s.T(), "https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.3.1", release.HTMLURL)
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchRecentReleases_Success() {
