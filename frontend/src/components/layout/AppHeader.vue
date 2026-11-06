@@ -1,8 +1,8 @@
 <template>
-  <header class="app-header glass sticky top-3 z-30 mx-3 mt-3 rounded-2xl border border-white/50 dark:border-white/10">
+  <header class="app-header sticky top-3 z-30 mx-3 mt-3 rounded-xl">
     <div class="flex h-16 items-center justify-between gap-2 px-2 sm:px-4 md:px-6">
       <!-- Left: Mobile Menu Toggle + Page Title -->
-      <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+      <div class="flex min-w-0 shrink-0 items-center gap-2 sm:gap-4">
         <button
           @click="toggleMobileSidebar"
           class="btn-ghost btn-icon lg:hidden"
@@ -11,11 +11,17 @@
           <Icon name="menu" size="md" />
         </button>
 
-        <div class="hidden lg:block">
-          <h1 class="app-header-title text-lg font-semibold">
-            {{ pageTitle }}
-          </h1>
-          <p v-if="pageDescription" class="app-header-description text-xs">
+        <div class="hidden min-w-0 lg:block">
+          <div class="flex items-center gap-2">
+            <span class="h-1.5 w-1.5 rotate-45 bg-primary-400/80" aria-hidden="true" />
+            <h1 class="app-header-title truncate text-lg font-semibold tracking-tight">
+              {{ pageTitle }}
+            </h1>
+            <span class="mono-label hidden truncate text-[10px] opacity-70 xl:inline">
+              {{ route.path }}
+            </span>
+          </div>
+          <p v-if="pageDescription" class="app-header-description mt-0.5 truncate text-xs">
             {{ pageDescription }}
           </p>
         </div>
@@ -38,7 +44,7 @@
           :href="docUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white sm:flex"
+          class="btn-ghost btn-sm hidden items-center gap-1.5 sm:flex"
         >
           <Icon name="book" size="sm" />
           <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
@@ -48,7 +54,7 @@
         <router-link
           v-if="user && modelPlazaEnabled"
           :to="{ path: '/model-plaza', query: { embedded: '1' } }"
-          class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white sm:flex"
+          class="btn-ghost btn-sm hidden items-center gap-1.5 sm:flex"
         >
           <Icon name="grid" size="sm" />
           <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
@@ -61,12 +67,12 @@
         <div v-if="user" class="relative" ref="dropdownRef">
           <button
             @click="toggleDropdown"
-            class="app-user-menu flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors"
+            class="app-user-menu flex items-center gap-2 rounded-lg border border-transparent p-1.5 transition-colors"
             :aria-label="t('common.userMenu')"
             aria-haspopup="menu"
             :aria-expanded="dropdownOpen"
           >
-            <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-primary-600 text-sm font-medium text-white shadow-sm dark:bg-primary-500">
+            <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-primary-600 text-sm font-medium text-white shadow-[0_0_0_1px_rgba(34,211,238,0.35)] dark:bg-primary-400 dark:text-[#04070f]">
               <img
                 v-if="avatarUrl"
                 :src="avatarUrl"

@@ -1,103 +1,140 @@
 /* ============================================================
- * Tokens — Design Token CSS Variables
- * Phase 1: Semantic color/shadow/radius/typography tokens
+ * Tokens — 深空控制台 (Deep Space Console)
+ * 语义色 / 阴影 / 玻璃 / 圆角 / 字体 / 图表色板
+ * 注意：--color-primary 等状态色为 RGB 三元组，使用时必须写
+ *       rgb(var(--color-primary) / <alpha>)
  * ============================================================ */
 
-/* ---- Light Mode ---- */
+/* ---- Light Mode：冷白实验室 ---- */
 :root {
-  --color-bg: #f1f5f9;
+  --color-bg: #eef2f8;
   --color-surface: #ffffff;
-  --color-surface-2: #f8fafc;
+  --color-surface-2: #f5f8fc;
   --color-surface-hover: #ffffff;
-  --color-border: #e2e8f0;
-  --color-border-light: #e2e8f0;
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
+  --color-border: #d9e2ee;
+  --color-border-light: #e6edf6;
+  --color-text: #0b1220;
+  --color-text-secondary: #3f5170;
   --color-text-muted: #64748b;
   --color-text-inverse: #ffffff;
-  --color-primary: 14 165 233;
-  --color-primary-hover: 79 70 229;
-  --color-primary-active: 67 56 202;
-  --color-primary-bg: 239 246 255;
-  --color-success: 16 185 129;
-  --color-warning: 245 158 11;
-  --color-danger: 239 68 68;
-  --color-info: 59 130 246;
+
+  --color-primary: 8 145 178;
+  --color-primary-hover: 14 116 144;
+  --color-primary-active: 21 94 117;
+  --color-primary-bg: 236 254 255;
+  --color-primary-contrast: 255 255 255;
+  --color-accent: 124 58 237;
+  --color-accent-bg: 245 243 255;
+
+  --color-success: 22 163 74;
+  --color-warning: 217 119 6;
+  --color-danger: 220 38 38;
+  --color-info: 2 132 199;
   --color-success-soft: 240 253 244;
-  --color-info-soft: 239 246 255;
-  --color-warning-soft: 254 243 199;
-  --color-danger-soft: 254 226 226;
-  --shadow-card: 0 8px 26px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-card-hover: 0 18px 44px rgba(15, 23, 42, 0.12);
-  --shadow-glass: 0 14px 38px rgba(15, 23, 42, 0.10);
-  --shadow-glow: 0 0 24px rgba(14,165,233,0.28), 0 0 60px rgba(139,92,246,0.12);
-  --shadow-glow-lg: 0 0 44px rgba(14,165,233,0.35), 0 0 100px rgba(236,72,153,0.18);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255,255,255,0.1);
-  --glass-bg: #ffffff;
-  --glass-bg-strong: #ffffff;
-  --glass-border: #e2e8f0;
-  --glass-border-strong: #cbd5e1;
-  --glass-blur: 24px;
-  --glass-saturation: 165%;
+  --color-info-soft: 240 249 255;
+  --color-warning-soft: 255 251 235;
+  --color-danger-soft: 254 242 242;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.06), 0 18px 42px rgba(15, 23, 42, 0.12);
+  --shadow-glass: 0 12px 34px rgba(15, 23, 42, 0.10);
+  --shadow-glow: 0 0 0 1px rgba(8, 145, 178, 0.18), 0 0 22px rgba(8, 145, 178, 0.18);
+  --shadow-glow-lg: 0 0 0 1px rgba(8, 145, 178, 0.22), 0 0 42px rgba(8, 145, 178, 0.24);
+  --shadow-neon: 0 0 24px rgba(8, 145, 178, 0.22);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-bg-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(148, 163, 184, 0.24);
+  --glass-border-strong: rgba(100, 116, 139, 0.32);
+  --glass-blur: 18px;
+  --glass-saturation: 140%;
+
+  --hud-line: rgba(8, 145, 178, 0.28);
+  --hud-glow: rgba(8, 145, 178, 0.16);
+  --grid-line: rgba(100, 116, 139, 0.08);
+
   --radius-xs: 0.375rem;
   --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-4xl: 2rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.375rem;
+  --radius-4xl: 1.75rem;
+
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB',
                'Microsoft YaHei', sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', 'Menlo', 'Monaco',
-               'Consolas', monospace;
-  --chart-1: 20 184 166;
-  --chart-2: 99 102 241;
-  --chart-3: 139 92 246;
-  --chart-4: 236 72 153;
-  --chart-5: 249 115 22;
-  --chart-6: 234 179 8;
-  --chart-7: 34 197 94;
+               'Consolas', 'Liberation Mono', monospace;
+
+  --chart-1: 8 145 178;
+  --chart-2: 124 58 237;
+  --chart-3: 6 182 212;
+  --chart-4: 132 204 22;
+  --chart-5: 245 158 11;
+  --chart-6: 236 72 153;
+  --chart-7: 16 185 129;
   --chart-8: 59 130 246;
   --chart-9: 168 85 247;
   --chart-10: 244 63 94;
 }
 
-/* ---- Dark Mode ---- */
+/* ---- Dark Mode：深空控制台 ---- */
 .dark {
-  --color-bg: #040713;
-  --color-surface: #0f172a;
-  --color-surface-2: #1e293b;
-  --color-surface-hover: #1e293b;
-  --color-border: #334155;
-  --color-border-light: #1e293b;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-  --color-text-inverse: #0f172a;
-  --color-primary-hover: 45 212 191;
-  --color-primary-active: 94 234 212;
-  --color-primary-bg: 15 23 42;
-  --color-success-soft: 6 78 59;
-  --color-info-soft: 30 58 138;
-  --color-warning-soft: 120 53 15;
-  --color-danger-soft: 127 29 29;
-  --shadow-card: 0 12px 34px rgba(0,0,0,0.24), 0 1px 2px rgba(0,0,0,0.24);
-  --shadow-card-hover: 0 20px 48px rgba(0,0,0,0.34);
-  --shadow-glass: 0 16px 42px rgba(0,0,0,0.32);
-  --shadow-glow: 0 0 20px rgba(45,212,191,0.3);
-  --shadow-glow-lg: 0 0 40px rgba(45,212,191,0.4);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255,255,255,0.05);
-  --glass-bg: #0f172a;
-  --glass-bg-strong: #1e293b;
-  --glass-border: #334155;
-  --glass-border-strong: #475569;
-  --chart-1: 45 212 191;
-  --chart-2: 129 140 248;
-  --chart-3: 167 139 250;
-  --chart-4: 244 114 182;
-  --chart-5: 251 146 60;
-  --chart-6: 250 204 21;
+  --color-bg: #04070f;
+  --color-surface: #070b14;
+  --color-surface-2: #0b1220;
+  --color-surface-hover: #0e1726;
+  --color-border: #17233a;
+  --color-border-light: #0f1a2c;
+  --color-text: #e6edf7;
+  --color-text-secondary: #a8b8d0;
+  --color-text-muted: #6b7f9e;
+  --color-text-inverse: #04070f;
+
+  --color-primary: 34 211 238;
+  --color-primary-hover: 103 232 249;
+  --color-primary-active: 165 243 252;
+  --color-primary-bg: 8 26 38;
+  --color-primary-contrast: 3 10 18;
+  --color-accent: 167 139 250;
+  --color-accent-bg: 24 18 48;
+
+  --color-success: 52 211 153;
+  --color-warning: 251 191 36;
+  --color-danger: 248 113 113;
+  --color-info: 56 189 248;
+  --color-success-soft: 6 40 30;
+  --color-info-soft: 8 33 52;
+  --color-warning-soft: 48 32 8;
+  --color-danger-soft: 52 16 20;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 14px 36px rgba(0, 0, 0, 0.36);
+  --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 52px rgba(0, 0, 0, 0.44);
+  --shadow-glass: 0 18px 48px rgba(0, 0, 0, 0.42);
+  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.22), 0 0 24px rgba(34, 211, 238, 0.18);
+  --shadow-glow-lg: 0 0 0 1px rgba(34, 211, 238, 0.28), 0 0 48px rgba(34, 211, 238, 0.22);
+  --shadow-neon: 0 0 28px rgba(34, 211, 238, 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --glass-bg: rgba(9, 14, 24, 0.62);
+  --glass-bg-strong: rgba(11, 18, 32, 0.86);
+  --glass-border: rgba(148, 178, 214, 0.14);
+  --glass-border-strong: rgba(148, 178, 214, 0.24);
+  --glass-blur: 22px;
+  --glass-saturation: 150%;
+
+  --hud-line: rgba(34, 211, 238, 0.30);
+  --hud-glow: rgba(34, 211, 238, 0.18);
+  --grid-line: rgba(120, 160, 210, 0.07);
+
+  --chart-1: 34 211 238;
+  --chart-2: 167 139 250;
+  --chart-3: 94 234 212;
+  --chart-4: 163 230 53;
+  --chart-5: 251 191 36;
+  --chart-6: 244 114 182;
   --chart-7: 52 211 153;
   --chart-8: 96 165 250;
   --chart-9: 192 132 252;
@@ -107,35 +144,46 @@
 /* ---- System Preference Fallback ---- */
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.dark) {
-    --color-bg: #020617;
-    --color-surface: #1e293b;
-    --color-surface-2: #334155;
-    --color-surface-hover: #1a2332;
-    --color-border: #475569;
-    --color-border-light: #334155;
-    --color-text: #f1f5f9;
-    --color-text-secondary: #cbd5e1;
-    --color-text-muted: #94a3b8;
-    --color-text-inverse: #0f172a;
-    --color-primary-hover: 45 212 191;
-    --color-primary-active: 94 234 212;
-    --color-primary-bg: 15 23 42;
-  --color-success-soft: 6 78 59;
-  --color-info-soft: 30 58 138;
-  --color-warning-soft: 120 53 15;
-  --color-danger-soft: 127 29 29;
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-card-hover: 0 10px 40px rgba(0,0,0,0.3);
-    --shadow-glass: 0 8px 32px rgba(0,0,0,0.3);
-    --shadow-glow: 0 0 20px rgba(45,212,191,0.3);
-    --shadow-glow-lg: 0 0 40px rgba(45,212,191,0.4);
-    --shadow-inner-glow: inset 0 1px 0 rgba(255,255,255,0.05);
-    --chart-1: 45 212 191;
-    --chart-2: 129 140 248;
-    --chart-3: 167 139 250;
-    --chart-4: 244 114 182;
-    --chart-5: 251 146 60;
-    --chart-6: 250 204 21;
+    --color-bg: #04070f;
+    --color-surface: #070b14;
+    --color-surface-2: #0b1220;
+    --color-surface-hover: #0e1726;
+    --color-border: #17233a;
+    --color-border-light: #0f1a2c;
+    --color-text: #e6edf7;
+    --color-text-secondary: #a8b8d0;
+    --color-text-muted: #6b7f9e;
+    --color-text-inverse: #04070f;
+    --color-primary: 34 211 238;
+    --color-primary-hover: 103 232 249;
+    --color-primary-active: 165 243 252;
+    --color-primary-bg: 8 26 38;
+    --color-primary-contrast: 3 10 18;
+    --color-accent: 167 139 250;
+    --color-success-soft: 6 40 30;
+    --color-info-soft: 8 33 52;
+    --color-warning-soft: 48 32 8;
+    --color-danger-soft: 52 16 20;
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 14px 36px rgba(0, 0, 0, 0.36);
+    --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 52px rgba(0, 0, 0, 0.44);
+    --shadow-glass: 0 18px 48px rgba(0, 0, 0, 0.42);
+    --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.22), 0 0 24px rgba(34, 211, 238, 0.18);
+    --shadow-glow-lg: 0 0 0 1px rgba(34, 211, 238, 0.28), 0 0 48px rgba(34, 211, 238, 0.22);
+    --shadow-neon: 0 0 28px rgba(34, 211, 238, 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
+    --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --glass-bg: rgba(9, 14, 24, 0.62);
+    --glass-bg-strong: rgba(11, 18, 32, 0.86);
+    --glass-border: rgba(148, 178, 214, 0.14);
+    --glass-border-strong: rgba(148, 178, 214, 0.24);
+    --hud-line: rgba(34, 211, 238, 0.30);
+    --hud-glow: rgba(34, 211, 238, 0.18);
+    --grid-line: rgba(120, 160, 210, 0.07);
+    --chart-1: 34 211 238;
+    --chart-2: 167 139 250;
+    --chart-3: 94 234 212;
+    --chart-4: 163 230 53;
+    --chart-5: 251 191 36;
+    --chart-6: 244 114 182;
     --chart-7: 52 211 153;
     --chart-8: 96 165 250;
     --chart-9: 192 132 252;

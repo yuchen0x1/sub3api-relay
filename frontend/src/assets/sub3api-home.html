@@ -9,14 +9,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-deep:#0D1321;
-    --bg-purple:#3F3C68;
-    --nav:#1A1E28;
-    --card:#2B2F38;
+    --bg-deep:#05080F;
+    --bg-purple:#2A1D4F;
+    --nav:#0B1220;
+    --card:#0D1524;
     --card-line:rgba(255,255,255,.08);
-    --accent:#00FF5E;
-    --accent-dim:rgba(0,255,94,.16);
-    --cyan:#35D0FF;
+    --accent:#22D3EE;
+    --accent-dim:rgba(34,211,238,.16);
+    --cyan:#A78BFA;
     --text:#FFFFFF;
     --text-2:#B7BED1;
     --text-3:#7C8498;
@@ -40,7 +40,7 @@
   .bg-grad{
     position:absolute;inset:0;
     background:
-      linear-gradient(116deg, transparent 0 56%, rgba(0,255,94,.035) 56% 63%, transparent 63% 100%),
+      linear-gradient(116deg, transparent 0 56%, rgba(34,211,238,.035) 56% 63%, transparent 63% 100%),
       linear-gradient(104deg, transparent 0 70%, rgba(53,208,255,.055) 70% 77%, transparent 77% 100%),
       linear-gradient(122deg, #071018 0%, #0a1220 38%, #0d1824 68%, #081119 100%);
   }
@@ -58,7 +58,7 @@
   .bg-wrap::before{
     content:"";position:absolute;left:-12%;right:-12%;bottom:-38%;height:76%;
     background-image:
-      linear-gradient(rgba(0,255,94,.12) 1px,transparent 1px),
+      linear-gradient(rgba(34,211,238,.12) 1px,transparent 1px),
       linear-gradient(90deg,rgba(53,208,255,.1) 1px,transparent 1px);
     background-size:72px 44px;
     transform:perspective(680px) rotateX(62deg);
@@ -93,8 +93,8 @@
   .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff}
   .brand-mark{
     width:34px;height:34px;border-radius:9px;position:relative;
-    background:linear-gradient(135deg,#0E2A1B,#00FF5E 120%);
-    box-shadow:0 0 18px rgba(0,255,94,.35), inset 0 0 0 1px rgba(255,255,255,.12);
+    background:linear-gradient(135deg,#08232E,#22D3EE 120%);
+    box-shadow:0 0 18px rgba(34,211,238,.35), inset 0 0 0 1px rgba(255,255,255,.12);
     display:grid;place-items:center;
   }
   .brand-mark svg{width:18px;height:18px}
@@ -122,7 +122,7 @@
     font-family:var(--display);font-weight:600;letter-spacing:1px;
     padding:4px 9px;border-radius:6px;transition:all .25s;font-size:12px;
   }
-  .lang button.active{background:var(--accent);color:#04140A;box-shadow:0 0 12px rgba(0,255,94,.4)}
+  .lang button.active{background:var(--accent);color:#04070F;box-shadow:0 0 12px rgba(34,211,238,.4)}
   .btn{
     font-family:var(--body);font-size:14px;font-weight:500;cursor:pointer;
     border:none;border-radius:9px;padding:9px 22px;
@@ -130,10 +130,10 @@
     text-decoration:none;display:inline-flex;align-items:center;gap:8px;
   }
   .btn-primary{
-    background:linear-gradient(135deg,#00FF5E,#00D9A0);color:#04140A;font-weight:600;
-    box-shadow:0 6px 22px rgba(0,255,94,.28), inset 0 0 0 1px rgba(255,255,255,.18);
+    background:linear-gradient(135deg,#22D3EE,#7C3AED);color:#04070F;font-weight:600;
+    box-shadow:0 6px 22px rgba(34,211,238,.28), inset 0 0 0 1px rgba(255,255,255,.18);
   }
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,255,94,.4)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(34,211,238,.4)}
   .btn-ghost{
     background:transparent;color:var(--text-2);
     border:1px solid var(--card-line);
@@ -157,8 +157,8 @@
   }
   .hero::before{
     content:"";position:absolute;left:27%;right:-8%;top:54%;height:1px;z-index:0;
-    background:linear-gradient(90deg,transparent,rgba(0,255,94,.22),rgba(53,208,255,.13),transparent);
-    box-shadow:0 76px 0 rgba(53,208,255,.055),0 -92px 0 rgba(0,255,94,.045);
+    background:linear-gradient(90deg,transparent,rgba(34,211,238,.22),rgba(53,208,255,.13),transparent);
+    box-shadow:0 76px 0 rgba(53,208,255,.055),0 -92px 0 rgba(34,211,238,.045);
     pointer-events:none;
   }
   .hero-copy{position:relative;z-index:2}
@@ -166,9 +166,9 @@
     display:inline-flex;align-items:center;gap:10px;
     font-family:var(--display);font-size:12.5px;font-weight:600;letter-spacing:3px;
     color:var(--accent);text-transform:uppercase;
-    border:1px solid rgba(0,255,94,.35);border-radius:999px;
-    padding:7px 16px;background:rgba(0,255,94,.07);
-    box-shadow:0 0 24px rgba(0,255,94,.12) inset;
+    border:1px solid rgba(34,211,238,.35);border-radius:999px;
+    padding:7px 16px;background:rgba(34,211,238,.07);
+    box-shadow:0 0 24px rgba(34,211,238,.12) inset;
   }
   .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2.2s infinite}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
@@ -181,7 +181,7 @@
     letter-spacing:.5px;
   }
   h1 .accent{
-    background:linear-gradient(92deg,#00FF5E 0%,#35D0FF 70%);
+    background:linear-gradient(92deg,#22D3EE 0%,#A78BFA 70%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .hero-sub{
@@ -230,8 +230,8 @@
     display:flex;align-items:center;gap:8px;
   }
   .monitor-title .badge{
-    font-size:10px;color:var(--accent);border:1px solid rgba(0,255,94,.4);
-    padding:2px 7px;border-radius:5px;background:rgba(0,255,94,.08);letter-spacing:1px;
+    font-size:10px;color:var(--accent);border:1px solid rgba(34,211,238,.4);
+    padding:2px 7px;border-radius:5px;background:rgba(34,211,238,.08);letter-spacing:1px;
   }
   .monitor-body{padding:20px 22px 22px}
   .status-line{
@@ -252,8 +252,8 @@
   .status-text small{display:block;font-family:var(--mono);font-size:10px;color:var(--text-3);font-weight:400;letter-spacing:2px;margin-top:2px}
   .realtime-tag{
     font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
-    color:var(--accent);border:1px solid rgba(0,255,94,.4);border-radius:6px;
-    padding:4px 9px;background:rgba(0,255,94,.07);
+    color:var(--accent);border:1px solid rgba(34,211,238,.4);border-radius:6px;
+    padding:4px 9px;background:rgba(34,211,238,.07);
   }
   .monitor-shell{cursor:pointer}
   .channel-line{
@@ -261,7 +261,7 @@
     font-family:var(--mono);font-size:10.5px;color:var(--text-3);letter-spacing:1px;
   }
   .channel-line .ch-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0}
-  .channel-line.online .ch-dot{background:var(--accent);box-shadow:0 0 6px rgba(0,255,94,.5)}
+  .channel-line.online .ch-dot{background:var(--accent);box-shadow:0 0 6px rgba(34,211,238,.5)}
   .channel-line.degraded .ch-dot{background:#FFB020;box-shadow:0 0 6px rgba(255,176,32,.5)}
   .channel-line.offline .ch-dot{background:#FF6B7D;box-shadow:0 0 6px rgba(255,107,125,.5)}
   .code-block{
@@ -276,7 +276,7 @@
   }
   .code-block .c-cmd{color:#8DE7FF}
   .code-block .c-flag{color:#C8A6FF}
-  .code-block .c-key{color:#00FF5E}
+  .code-block .c-key{color:#22D3EE}
   .code-block .c-str{color:#FFD479}
   .code-block .c-mut{color:#5D6577}
   .caret{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:middle;animation:blink 1s steps(1) infinite;margin-left:2px}
@@ -299,7 +299,7 @@
   }
   @keyframes actIn{to{opacity:1;transform:translateX(0)}}
   .act-item .ok{color:var(--accent);font-weight:600}
-  .act-item .code-200{color:#35D0FF}
+  .act-item .code-200{color:#A78BFA}
   .act-item .ts{color:var(--text-3);margin-left:auto}
   .metrics{
     display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;
@@ -310,7 +310,7 @@
     background:rgba(255,255,255,.03);
     transition:border-color .3s, background .3s, transform .3s;
   }
-  .metric:hover{border-color:rgba(0,255,94,.35);background:rgba(0,255,94,.05);transform:translateY(-3px)}
+  .metric:hover{border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.05);transform:translateY(-3px)}
   .metric .m-ico{font-size:16px;margin-bottom:7px;display:block}
   .metric .m-val{
     font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.5px;
@@ -328,7 +328,7 @@
     content:"";position:absolute;z-index:-1;left:50%;top:-72px;bottom:-80px;width:100vw;
     transform:translateX(-50%);
     background:
-      linear-gradient(90deg,transparent,rgba(0,255,94,.16),rgba(53,208,255,.12),transparent) top/100% 1px no-repeat,
+      linear-gradient(90deg,transparent,rgba(34,211,238,.16),rgba(53,208,255,.12),transparent) top/100% 1px no-repeat,
       linear-gradient(180deg,rgba(7,16,24,0),rgba(5,14,18,.72) 28%,rgba(7,16,24,.92));
   }
   .f-card{
@@ -346,15 +346,15 @@
   }
   .f-card:hover{
     transform:translateY(-7px);
-    border-color:rgba(0,255,94,.35);
-    box-shadow:0 26px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(0,255,94,.12), 0 0 44px rgba(0,255,94,.08);
+    border-color:rgba(34,211,238,.35);
+    box-shadow:0 26px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(34,211,238,.12), 0 0 44px rgba(34,211,238,.08);
   }
   .f-card:hover::before{opacity:1}
   .f-ico{
     width:48px;height:48px;border-radius:12px;display:grid;place-items:center;margin-bottom:20px;
-    background:linear-gradient(135deg, rgba(0,255,94,.16), rgba(53,208,255,.1));
-    border:1px solid rgba(0,255,94,.3);
-    box-shadow:0 0 22px rgba(0,255,94,.1) inset;
+    background:linear-gradient(135deg, rgba(34,211,238,.16), rgba(53,208,255,.1));
+    border:1px solid rgba(34,211,238,.3);
+    box-shadow:0 0 22px rgba(34,211,238,.1) inset;
   }
   .f-ico svg{width:24px;height:24px}
   .f-card h3{
@@ -427,7 +427,7 @@
   <div style="display:flex;align-items:center">
     <a class="brand" href="/" target="_top">
       <span class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="#04140A" stroke="#04140A" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="#04070F" stroke="#04070F" stroke-width="1.2" stroke-linejoin="round"/></svg>
       </span>
       <span class="brand-name">Sub3<b>API</b></span>
     </a>
@@ -544,7 +544,7 @@
     <section class="features" id="security">
       <div class="f-card reveal d2">
         <div class="f-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00FF5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1.6" fill="#00FF5E" stroke="none"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1.6" fill="#22D3EE" stroke="none"/></svg>
         </div>
         <h3><em>一键</em>接入</h3>
         <p>获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。统一的接口风格，让接入成本趋近于零。</p>
@@ -552,7 +552,7 @@
 
       <div class="f-card reveal d3" id="billing">
         <div class="f-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00FF5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z"/></svg>
         </div>
         <h3><em>稳定</em>可靠</h3>
         <p>智能调度多个上游账号，自动切换与负载均衡，故障自动容灾，告别频繁报错与排队等待。</p>
@@ -563,7 +563,7 @@
 
       <div class="f-card reveal d4" id="orders">
         <div class="f-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00FF5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/><path d="M7 6h.01M11 6h.01M15 6h.01"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/><path d="M7 6h.01M11 6h.01M15 6h.01"/></svg>
         </div>
         <h3>密钥与用量<em>透明</em></h3>
         <p>按 Key 分配配额与倍率，个人、家庭或小团队都能清楚看到每一次调用成本，账单一目了然。</p>
@@ -572,7 +572,7 @@
 
     <!-- ===== 页脚 ===== -->
     <footer>
-      <span class="ft-brand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="#00FF5E"/></svg>Sub3<b>API</b></span>
+      <span class="ft-brand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2Z" fill="#22D3EE"/></svg>Sub3<b>API</b></span>
       <div class="ft-right">
         <a href="/monitor">服务状态</a>
         <a class="qq-group-link" href="https://qm.qq.com/q/gBW5t6RmU0" target="_blank" rel="noopener noreferrer">QQ群：1016190748</a>

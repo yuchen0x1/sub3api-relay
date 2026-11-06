@@ -882,12 +882,12 @@ function handleToolbarRefresh() {
 </script>
 
 <template>
-  <div :class="['ops-panel ops-panel-hero glass-card flex flex-col gap-4 rounded-3xl', props.fullscreen ? 'p-8' : 'p-6']">
+  <div :class="['ops-panel ops-panel-hero glass-card hud-corners neon-rail flex flex-col gap-4 rounded-xl', props.fullscreen ? 'p-8' : 'p-6']">
     <!-- Top Toolbar -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4 dark:border-[rgba(148,178,214,0.12)]">
       <div>
-        <h1 class="flex items-center gap-2 text-xl font-black text-gray-900 dark:text-white">
-          <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <h1 class="flex items-center gap-2 text-xl font-black tracking-tight text-gray-900 dark:text-white">
+          <svg class="h-6 w-6 text-primary-500 dark:text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -898,10 +898,13 @@ function handleToolbarRefresh() {
           {{ t('admin.ops.title') }}
         </h1>
 
-        <div v-if="!props.fullscreen" class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <div v-if="!props.fullscreen" class="mt-1 flex items-center gap-3 font-mono text-[11px] text-gray-500 dark:text-dark-400">
           <span class="flex items-center gap-1.5" :title="props.loading ? t('admin.ops.loadingText') : t('admin.ops.ready')">
             <span class="relative flex h-2 w-2">
-              <span class="relative inline-flex h-2 w-2 rounded-full" :class="props.loading ? 'bg-gray-400' : 'bg-green-500'"></span>
+              <span
+                class="relative inline-flex h-2 w-2 rounded-full"
+                :class="props.loading ? 'bg-gray-400' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]'"
+              ></span>
             </span>
             {{ props.loading ? t('admin.ops.loadingText') : t('admin.ops.ready') }}
           </span>
@@ -953,7 +956,7 @@ function handleToolbarRefresh() {
         <button
           v-if="!props.fullscreen"
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600"
+          class="btn-ghost btn-icon h-8 w-8"
           :disabled="loading"
           :title="t('common.refresh')"
           @click="handleToolbarRefresh"
@@ -974,7 +977,7 @@ function handleToolbarRefresh() {
         <button
           v-if="!props.fullscreen"
           type="button"
-          class="flex h-8 items-center gap-1.5 rounded-lg bg-blue-100 px-3 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+          class="btn-secondary btn-sm h-8"
           :title="t('admin.ops.alertRules.title')"
           @click="emit('openAlertRules')"
         >
@@ -1159,11 +1162,11 @@ function handleToolbarRefresh() {
                 <div :class="[props.fullscreen ? 'text-xs' : 'text-[10px]', 'font-bold uppercase text-gray-400']">{{ t('admin.ops.current') }}</div>
                 <div class="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-2">
                   <div class="flex items-baseline gap-1.5">
-                    <span :class="[props.fullscreen ? 'text-4xl' : 'text-xl sm:text-2xl', 'font-black text-gray-900 dark:text-white']">{{ displayRealTimeQps.toFixed(1) }}</span>
+                    <span :class="[props.fullscreen ? 'text-4xl' : 'text-xl sm:text-2xl', 'font-mono font-black tabular-nums tracking-tight text-gray-900 dark:text-white']">{{ displayRealTimeQps.toFixed(1) }}</span>
                     <span :class="[props.fullscreen ? 'text-sm' : 'text-xs', 'font-bold text-gray-500']">QPS</span>
                   </div>
                   <div class="flex items-baseline gap-1.5">
-                    <span :class="[props.fullscreen ? 'text-4xl' : 'text-xl sm:text-2xl', 'font-black text-gray-900 dark:text-white']">{{ displayRealTimeTps.toFixed(1) }}</span>
+                    <span :class="[props.fullscreen ? 'text-4xl' : 'text-xl sm:text-2xl', 'font-mono font-black tabular-nums tracking-tight text-gray-900 dark:text-white']">{{ displayRealTimeTps.toFixed(1) }}</span>
                     <span :class="[props.fullscreen ? 'text-sm' : 'text-xs', 'font-bold text-gray-500']">{{ t('admin.ops.tps') }}</span>
                   </div>
                 </div>
@@ -1341,7 +1344,7 @@ function handleToolbarRefresh() {
               {{ t('admin.ops.requestDetails.details') }}
             </button>
           </div>
-          <div class="mt-2 text-3xl font-black" :class="getThresholdColorClass(getSLAThresholdLevel(slaPercent))">
+          <div class="mt-2 font-mono text-3xl font-black tabular-nums tracking-tight" :class="getThresholdColorClass(getSLAThresholdLevel(slaPercent))">
             {{ slaPercent == null ? '-' : `${slaPercent.toFixed(3)}%` }}
           </div>
           <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-dark-700">
@@ -1372,7 +1375,7 @@ function handleToolbarRefresh() {
             </button>
           </div>
           <div class="mt-2 flex items-baseline gap-2">
-            <div class="text-3xl font-black text-gray-900 dark:text-white">
+            <div class="font-mono text-3xl font-black tabular-nums tracking-tight text-gray-900 dark:text-white">
               {{ durationP99Ms ?? '-' }}
             </div>
             <span class="text-xs font-bold text-gray-400">ms (P99)</span>
@@ -1472,7 +1475,7 @@ function handleToolbarRefresh() {
               {{ t('admin.ops.requestDetails.details') }}
             </button>
           </div>
-          <div class="mt-2 text-3xl font-black" :class="getThresholdColorClass(getRequestErrorRateThresholdLevel(errorRatePercent))">
+          <div class="mt-2 font-mono text-3xl font-black tabular-nums tracking-tight" :class="getThresholdColorClass(getRequestErrorRateThresholdLevel(errorRatePercent))">
             {{ errorRatePercent == null ? '-' : `${errorRatePercent.toFixed(2)}%` }}
           </div>
           <div class="mt-3 space-y-1 text-xs">
@@ -1498,7 +1501,7 @@ function handleToolbarRefresh() {
               {{ t('admin.ops.requestDetails.details') }}
             </button>
           </div>
-          <div class="mt-2 text-3xl font-black" :class="getThresholdColorClass(getUpstreamErrorRateThresholdLevel(upstreamErrorRatePercent))">
+          <div class="mt-2 font-mono text-3xl font-black tabular-nums tracking-tight" :class="getThresholdColorClass(getUpstreamErrorRateThresholdLevel(upstreamErrorRatePercent))">
             {{ upstreamErrorRatePercent == null ? '-' : `${upstreamErrorRatePercent.toFixed(2)}%` }}
           </div>
           <div class="mt-3 space-y-1 text-xs">
@@ -1524,7 +1527,7 @@ function handleToolbarRefresh() {
             <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">CPU</div>
             <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.cpu')" />
           </div>
-          <div class="mt-1 text-lg font-black" :class="cpuPercentClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="cpuPercentClass">
             {{ cpuPercentValue == null ? '-' : `${cpuPercentValue.toFixed(1)}%` }}
           </div>
           <div v-if="!props.fullscreen" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1538,7 +1541,7 @@ function handleToolbarRefresh() {
             <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.memory') }}</div>
             <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.memory')" />
           </div>
-          <div class="mt-1 text-lg font-black" :class="memPercentClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="memPercentClass">
             {{ memPercentValue == null ? '-' : `${memPercentValue.toFixed(1)}%` }}
           </div>
           <div v-if="!props.fullscreen" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1556,7 +1559,7 @@ function handleToolbarRefresh() {
             <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.db') }}</div>
             <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.db')" />
           </div>
-          <div class="mt-1 text-lg font-black" :class="dbMiddleClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="dbMiddleClass">
             {{ dbMiddleLabel }}
           </div>
           <div v-if="!props.fullscreen" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1573,7 +1576,7 @@ function handleToolbarRefresh() {
             <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Redis</div>
             <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.redis')" />
           </div>
-          <div class="mt-1 text-lg font-black" :class="redisMiddleClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="redisMiddleClass">
             {{ redisMiddleLabel }}
           </div>
           <div v-if="!props.fullscreen" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1589,7 +1592,7 @@ function handleToolbarRefresh() {
             <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.goroutines') }}</div>
             <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.goroutines')" />
           </div>
-          <div class="mt-1 text-lg font-black" :class="goroutineStatusClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="goroutineStatusClass">
             {{ goroutineStatusLabel }}
           </div>
           <div v-if="!props.fullscreen" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -1614,7 +1617,7 @@ function handleToolbarRefresh() {
             </button>
           </div>
 
-          <div class="mt-1 text-lg font-black" :class="jobsStatusClass">
+          <div class="mt-1 font-mono text-lg font-black tabular-nums tracking-tight" :class="jobsStatusClass">
             {{ jobsStatusLabel }}
           </div>
 

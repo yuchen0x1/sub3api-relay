@@ -17,30 +17,30 @@
 
 /** RGB triples for the 10-color chart sequence (light mode) */
 const LIGHT_RGB: [number, number, number][] = [
-  [20, 184, 166],   // 1  teal
-  [99, 102, 241],   // 2  indigo
-  [139, 92, 246],   // 3  violet
-  [236, 72, 153],   // 4  pink
-  [249, 115, 22],   // 5  orange
-  [234, 179, 8],    // 6  yellow
-  [34, 197, 94],    // 7  green
-  [59, 130, 246],   // 8  blue
-  [168, 85, 247],   // 9  purple
-  [244, 63, 94],    // 10 rose
+  [8, 145, 178],    // 1  cyan 600
+  [124, 58, 237],   // 2  violet 600
+  [6, 182, 212],    // 3  cyan 500
+  [132, 204, 22],   // 4  lime 500
+  [245, 158, 11],   // 5  amber 500
+  [236, 72, 153],   // 6  pink 500
+  [16, 185, 129],   // 7  emerald 500
+  [59, 130, 246],   // 8  blue 500
+  [168, 85, 247],   // 9  purple 500
+  [244, 63, 94],    // 10 rose 500
 ]
 
 /** RGB triples for dark mode (brighter variant for dark backgrounds) */
 const DARK_RGB: [number, number, number][] = [
-  [45, 212, 191],   // 1  teal
-  [129, 140, 248],  // 2  indigo
-  [167, 139, 250],  // 3  violet
-  [244, 114, 182],  // 4  pink
-  [251, 146, 60],   // 5  orange
-  [250, 204, 21],   // 6  yellow
-  [52, 211, 153],   // 7  green
-  [96, 165, 250],   // 8  blue
-  [192, 132, 252],  // 9  purple
-  [251, 113, 133],  // 10 rose
+  [34, 211, 238],   // 1  cyan 400
+  [167, 139, 250],  // 2  violet 400
+  [94, 234, 212],   // 3  teal 300
+  [163, 230, 53],   // 4  lime 400
+  [251, 191, 36],   // 5  amber 400
+  [244, 114, 182],  // 6  pink 400
+  [52, 211, 153],   // 7  emerald 400
+  [96, 165, 250],   // 8  blue 400
+  [192, 132, 252],  // 9  purple 400
+  [251, 113, 133],  // 10 rose 400
 ]
 
 /**

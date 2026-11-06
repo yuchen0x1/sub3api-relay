@@ -1166,7 +1166,7 @@ onBeforeUnmount(() => {
 }
 
 .release-notes-content :deep(a) {
-  color: rgb(var(--color-primary-500));
+  color: var(--color-primary-500);
   text-decoration: underline;
 }
 

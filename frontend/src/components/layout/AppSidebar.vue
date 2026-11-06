@@ -13,7 +13,7 @@
       <!-- Custom Logo or Default Logo -->
       <router-link
         :to="homePath"
-        class="sidebar-logo flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl shadow-glow transition-opacity hover:opacity-80"
+        class="sidebar-logo flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-primary-400/25 bg-[rgba(34,211,238,0.08)] p-1 shadow-[0_0_18px_rgba(34,211,238,0.18)] transition-opacity hover:opacity-80"
         @click="handleMenuItemClick(homePath)"
       >
         <img :src="siteLogo || '/logo.svg'" alt="Sub3API" class="h-full w-full object-contain" />
@@ -21,7 +21,7 @@
       <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
         <router-link
           :to="homePath"
-          class="sidebar-brand-title text-lg font-bold text-white transition-colors hover:text-primary-300"
+          class="sidebar-brand-title text-lg font-bold tracking-tight text-white transition-colors hover:text-primary-300"
           @click="handleMenuItemClick(homePath)"
         >
           {{ siteName }}

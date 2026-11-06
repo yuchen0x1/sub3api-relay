@@ -55,9 +55,16 @@ onUnmounted(() => {
   @apply flex-shrink-0;
 }
 
-/* 筛选/动作工具栏：统一卡片容器（与表格卡同一设计语言） */
+/* 筛选/动作工具栏：统一 HUD 面板语言 */
 .layout-section-filters {
-  @apply rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-dark-700 dark:bg-dark-800;
+  @apply rounded-xl border px-4 py-3;
+  border-color: var(--glass-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .layout-section-scrollable {
@@ -66,7 +73,12 @@ onUnmounted(() => {
 
 /* 表格滚动容器 - 增强版表体滚动方案 */
 .table-scroll-container {
-  @apply flex flex-col overflow-hidden h-full bg-white dark:bg-dark-800 rounded-2xl border border-gray-200 dark:border-dark-700 shadow-sm;
+  @apply flex flex-col overflow-hidden h-full rounded-xl border;
+  border-color: var(--glass-border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    var(--glass-bg-strong);
+  box-shadow: var(--shadow-card);
 }
 
 .table-scroll-container :deep(.table-wrapper) {
@@ -82,7 +94,8 @@ onUnmounted(() => {
 }
 
 .table-scroll-container :deep(thead) {
-  @apply bg-gray-50/80 dark:bg-dark-800/80 backdrop-blur-sm;
+  @apply backdrop-blur-sm;
+  background: color-mix(in srgb, var(--glass-bg-strong) 82%, transparent);
 }
 
 .table-scroll-container :deep(tbody) {
@@ -90,11 +103,13 @@ onUnmounted(() => {
 }
 
 .table-scroll-container :deep(th) {
-  @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-dark-400 border-b border-gray-200 dark:border-dark-700;
+  @apply whitespace-nowrap px-4 py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-dark-400;
+  border-bottom: 1px solid var(--glass-border-strong);
 }
 
 .table-scroll-container :deep(td) {
-  @apply px-4 py-3 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-dark-800;
+  @apply px-4 py-3 text-sm text-gray-700 dark:text-dark-200;
+  border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 60%, transparent);
 }
 
 /* 移动端：恢复正常滚动 */
