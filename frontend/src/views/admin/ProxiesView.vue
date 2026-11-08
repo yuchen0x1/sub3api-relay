@@ -902,7 +902,7 @@
           </div>
         </div>
 
-        <div class="max-h-80 overflow-auto rounded-lg border border-gray-200 dark:border-dark-600">
+        <TableScroll viewport-class="max-h-80" class="rounded-lg border border-gray-200 dark:border-dark-600">
           <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-dark-700">
             <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-dark-800 dark:text-dark-400">
               <tr>
@@ -930,7 +930,7 @@
               </tr>
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </div>
       <template #footer>
         <div class="flex justify-end">
@@ -955,7 +955,7 @@
       <div v-else-if="proxyAccounts.length === 0" class="py-6 text-center text-sm text-gray-500">
         {{ t('admin.proxies.accountsEmpty') }}
       </div>
-      <div v-else class="max-h-80 overflow-auto">
+      <TableScroll v-else viewport-class="max-h-80">
         <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-dark-700">
           <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-dark-800 dark:text-dark-400">
             <tr>
@@ -976,7 +976,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <template #footer>
         <div class="flex justify-end">
           <button @click="closeAccountsModal" class="btn btn-secondary">
@@ -1002,6 +1002,7 @@ import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import ImportDataModal from '@/components/admin/proxy/ImportDataModal.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'

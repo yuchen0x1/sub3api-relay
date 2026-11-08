@@ -113,6 +113,30 @@ export default {
     markReadHint: 'Click "Mark as read" to mark this announcement'
   },
 
+  // Notifications Center
+  notifications: {
+    title: 'Notifications',
+    description: 'View your in-app notifications',
+    unreadCount: '{count} unread',
+    markAllRead: 'Mark all as read',
+    allMarkedAsRead: 'All notifications marked as read',
+    markedAsRead: 'Marked as read',
+    empty: 'No notifications',
+    emptyDescription: 'You have no notifications yet',
+    loadMore: 'Load more',
+    noMore: 'No more notifications',
+    read: 'Read',
+    unread: 'Unread',
+    types: {
+      all: 'All',
+      system: 'System',
+      balance_low: 'Balance low',
+      account_quota: 'Account quota',
+      payment_received: 'Payment received',
+      key_rotated: 'API key rotated'
+    }
+  },
+
   // User Subscriptions Page
   userSubscriptions: {
     title: 'My Subscriptions',

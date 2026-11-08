@@ -54,6 +54,7 @@ type Handlers struct {
 	PublicCard       *PublicCardHandler
 	Subscription     *SubscriptionHandler
 	Announcement     *AnnouncementHandler
+	UserNotification *UserNotificationHandler
 	ChannelMonitor   *ChannelMonitorUserHandler
 	Admin            *AdminHandlers
 	Gateway          *GatewayHandler

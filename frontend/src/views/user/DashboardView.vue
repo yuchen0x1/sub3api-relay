@@ -1,7 +1,45 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <div v-if="loading" class="flex items-center justify-center py-12"><LoadingSpinner /></div>
+      <div v-if="loading" class="space-y-6" data-test="user-dashboard-skeleton">
+        <div v-for="row in 2" :key="`stats-row-${row}`" class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <div v-for="card in 3" :key="`stat-${row}-${card}`" class="card hud-corners p-4">
+            <div class="flex items-center gap-3">
+              <Skeleton variant="rect" width="40px" height="40px" />
+              <div class="min-w-0 flex-1 space-y-2">
+                <Skeleton variant="text" width="55%" />
+                <Skeleton variant="text" width="35%" />
+                <Skeleton variant="text" width="45%" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hud-corners p-6">
+          <Skeleton variant="text" width="35%" />
+          <Skeleton variant="rect" height="260px" class="mt-4" />
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div class="card hud-corners p-4 lg:col-span-2">
+            <Skeleton variant="text" width="30%" />
+            <div class="mt-4 space-y-3">
+              <div v-for="row in 5" :key="`usage-${row}`" class="flex items-center gap-3">
+                <Skeleton variant="rect" width="32px" height="32px" />
+                <Skeleton variant="text" width="55%" />
+                <Skeleton variant="text" width="20%" />
+              </div>
+            </div>
+          </div>
+          <div class="card hud-corners p-4">
+            <Skeleton variant="text" width="45%" />
+            <div class="mt-4 space-y-3">
+              <Skeleton variant="rect" height="44px" />
+              <Skeleton variant="rect" height="44px" />
+            </div>
+          </div>
+        </div>
+      </div>
       <template v-else-if="stats">
         <UserDashboardStats :stats="stats" :is-simple="authStore.isSimpleMode" :platform-quotas="platformQuotas" />
         <UserDashboardCharts v-model:startDate="startDate" v-model:endDate="endDate" v-model:granularity="granularity" :loading="loadingCharts" :trend="trendData" :models="modelStats" @dateRangeChange="loadCharts" @granularityChange="loadCharts" @refresh="refreshAll" />
@@ -16,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'; import { useAuthStore } from '@/stores/auth'; import { usageAPI, type UserDashboardStats as UserStatsType } from '@/api/usage'
-import AppLayout from '@/components/layout/AppLayout.vue'; import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import AppLayout from '@/components/layout/AppLayout.vue'; import Skeleton from '@/components/common/Skeleton.vue'
 import UserDashboardStats from '@/components/user/dashboard/UserDashboardStats.vue'; import UserDashboardCharts from '@/components/user/dashboard/UserDashboardCharts.vue'
 import UserDashboardRecentUsage from '@/components/user/dashboard/UserDashboardRecentUsage.vue'; import UserDashboardQuickActions from '@/components/user/dashboard/UserDashboardQuickActions.vue'
 import type { UsageLog, TrendDataPoint, ModelStat, PlatformQuotaItem } from '@/types'

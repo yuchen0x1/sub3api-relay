@@ -110,6 +110,30 @@ export default {
     markReadHint: '点击"已读"标记此公告'
   },
 
+  // 站内通知中心
+  notifications: {
+    title: '通知中心',
+    description: '查看您的站内通知',
+    unreadCount: '{count} 条未读',
+    markAllRead: '全部标为已读',
+    allMarkedAsRead: '所有通知已标为已读',
+    markedAsRead: '已标为已读',
+    empty: '暂无通知',
+    emptyDescription: '您暂时没有通知',
+    loadMore: '加载更多',
+    noMore: '没有更多通知了',
+    read: '已读',
+    unread: '未读',
+    types: {
+      all: '全部',
+      system: '系统',
+      balance_low: '余额不足',
+      account_quota: '账号限额',
+      payment_received: '充值到账',
+      key_rotated: 'API Key 轮换'
+    }
+  },
+
   // User Subscriptions Page
   userSubscriptions: {
     title: '我的订阅',

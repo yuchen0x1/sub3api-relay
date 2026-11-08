@@ -9,7 +9,7 @@
       <!-- Logo & Title -->
       <div class="mb-8 text-center">
         <div
-          class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary-400/25 bg-[rgba(34,211,238,0.08)] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.16),0_0_42px_rgba(34,211,238,0.18)]"
+          class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary-400/25 bg-[rgb(var(--brand-400)/0.08)] p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.16),0_0_42px_rgba(34,211,238,0.18)]"
         >
           <Icon name="cog" size="xl" class="text-primary-500 dark:text-primary-300" />
         </div>

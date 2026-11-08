@@ -867,6 +867,8 @@ export default {
         addFailed: 'Failed to add static proxy exit',
         updateFailed: 'Failed to update static proxy exit',
         deleteFailed: 'Failed to delete static proxy exit',
+        enabledToast: 'Exit "{name}" enabled',
+        disabledToast: 'Exit "{name}" disabled',
       },
       concurrency: 'Concurrency',
       loadFactor: 'Load Factor',

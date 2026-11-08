@@ -11,6 +11,7 @@ import Select from "@/components/common/Select.vue";
 import Toggle from "@/components/common/Toggle.vue";
 import GroupBadge from "@/components/common/GroupBadge.vue";
 import GroupOptionItem from "@/components/common/GroupOptionItem.vue";
+import TableScroll from "@/components/common/TableScroll.vue";
 
 interface DefaultSubscriptionGroupOption {
   value: number;
@@ -332,7 +333,7 @@ function removeAuthSourceDefaultSubscription(
                     {{ t("admin.settings.defaults.platformQuotaNotice") }}
                   </p>
                 </div>
-                <div class="overflow-x-auto">
+                <TableScroll>
                   <table class="min-w-full text-sm">
                     <thead>
                       <tr class="text-left text-xs text-gray-500 dark:text-gray-400">
@@ -380,7 +381,7 @@ function removeAuthSourceDefaultSubscription(
                       </tr>
                     </tbody>
                   </table>
-                </div>
+                </TableScroll>
               </div>
               <!-- /全局平台限额矩阵 -->
             </div>
@@ -667,7 +668,7 @@ function removeAuthSourceDefaultSubscription(
                           {{ t("admin.settings.authSourceDefaults.platformQuotasOverrideHint") }}
                         </p>
                       </div>
-                      <div class="overflow-x-auto">
+                      <TableScroll>
                         <table class="min-w-full text-sm">
                           <thead>
                             <tr class="text-left text-xs text-gray-500 dark:text-gray-400">
@@ -715,7 +716,7 @@ function removeAuthSourceDefaultSubscription(
                             </tr>
                           </tbody>
                         </table>
-                      </div>
+                      </TableScroll>
                     </div>
                     <!-- /auth source 平台限额覆盖区块 -->
                   </div>

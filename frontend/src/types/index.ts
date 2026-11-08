@@ -368,6 +368,30 @@ export interface UserAnnouncement {
   updated_at: string
 }
 
+// 站内通知类型
+export type UserNotificationType =
+  | 'system'
+  | 'balance_low'
+  | 'account_quota'
+  | 'payment_received'
+  | 'key_rotated'
+
+export interface UserNotification {
+  id: number
+  type: UserNotificationType
+  title: string
+  body: string
+  metadata?: Record<string, unknown>
+  read_at?: string
+  created_at: string
+}
+
+export interface UserNotificationList {
+  items: UserNotification[]
+  total: number
+  next_after_id: number
+}
+
 export interface CreateAnnouncementRequest {
   title: string
   content: string
@@ -483,6 +507,11 @@ export interface PaginatedResponse<T> {
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 export interface Toast {
   id: string
   type: ToastType
@@ -490,6 +519,7 @@ export interface Toast {
   title?: string
   duration?: number // in milliseconds, undefined means no auto-dismiss
   startTime?: number // timestamp when toast was created, for progress bar
+  action?: ToastAction // inline button, e.g. undo; clicking it dismisses the toast
 }
 
 export interface AppState {

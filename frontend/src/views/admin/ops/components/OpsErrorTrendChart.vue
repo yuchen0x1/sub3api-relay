@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { chartColorAlpha } from '@/design-system/chart-theme'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Chart as ChartJS,
@@ -14,13 +14,17 @@ import {
   Tooltip
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
+import type { ChartComponentRef } from 'vue-chartjs'
 import type { OpsErrorTrendPoint } from '@/api/admin/ops'
 import type { ChartState } from '../types'
 import { formatHistoryLabel, sumNumbers } from '../utils/opsFormatters'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ChartExportButton from './ChartExportButton.vue'
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler)
+
+const trendChartRef = ref<ChartComponentRef | null>(null)
 
 interface Props {
   points: OpsErrorTrendPoint[]
@@ -175,7 +179,7 @@ const options = computed(() => {
         {{ t('admin.ops.errorTrend') }}
         <HelpTooltip :content="t('admin.ops.tooltips.errorTrend')" />
       </h3>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
           class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-dark-700 dark:bg-dark-900 dark:text-gray-300 dark:hover:bg-dark-800"
@@ -192,11 +196,16 @@ const options = computed(() => {
         >
           {{ t('admin.ops.errorDetails.upstreamErrors') }}
         </button>
+        <ChartExportButton
+          :get-chart="() => trendChartRef?.chart"
+          file-prefix="ops-error-trend"
+          :disabled="state !== 'ready'"
+        />
       </div>
     </div>
 
     <div class="min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
-      <Line v-if="state === 'ready' && chartData" :data="chartData" :options="options" />
+      <Line v-if="state === 'ready' && chartData" ref="trendChartRef" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>
         <EmptyState v-else :title="t('common.noData')" :description="t('admin.ops.charts.emptyError')" />

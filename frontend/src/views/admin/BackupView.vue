@@ -192,7 +192,7 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <TableScroll>
           <table class="w-full min-w-[800px] text-sm">
             <thead>
               <tr class="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:text-gray-400">
@@ -264,7 +264,7 @@
               </tr>
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </div>
     </div>
 
@@ -327,7 +327,7 @@
                 <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">4</span>
                 {{ t('admin.backup.r2Guide.step4.title') }}
               </h3>
-              <div class="ml-8 overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+              <TableScroll class="ml-8 rounded-lg border border-gray-200 dark:border-dark-600">
                 <table class="w-full text-sm">
                   <tbody>
                     <tr v-for="(row, i) in r2ConfigRows" :key="i" class="border-b border-gray-100 dark:border-dark-700 last:border-0">
@@ -336,7 +336,7 @@
                     </tr>
                   </tbody>
                 </table>
-              </div>
+              </TableScroll>
             </div>
 
             <!-- Free tier note -->
@@ -367,6 +367,7 @@ import type {
 } from '@/api/admin/backup'
 import { useStepUp, isStepUpBlocked, isStepUpCancelled, stepUpBlockReason } from '@/composables/useStepUp'
 import TotpStepUpDialog from '@/components/auth/TotpStepUpDialog.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()

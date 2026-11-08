@@ -3347,7 +3347,7 @@
             >
               {{ t("admin.groups.compositeRoutes.empty") }}
             </div>
-            <div v-else class="overflow-x-auto">
+            <TableScroll v-else>
               <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-dark-600">
                 <thead class="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-dark-800 dark:text-gray-400">
                   <tr>
@@ -3428,7 +3428,7 @@
                   </tr>
                 </tbody>
               </table>
-            </div>
+            </TableScroll>
           </div>
         </section>
 
@@ -3701,6 +3701,7 @@ import Pagination from "@/components/common/Pagination.vue";
 import BaseDialog from "@/components/common/BaseDialog.vue";
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
+import TableScroll from "@/components/common/TableScroll.vue";
 import Select from "@/components/common/Select.vue";
 import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import Icon from "@/components/icons/Icon.vue";

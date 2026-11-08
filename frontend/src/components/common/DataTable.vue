@@ -213,7 +213,7 @@
             :data-row-id="resolveRowKey(item.row, item.index)"
             :data-index="item.index"
             :ref="item.measure ? measureElement : undefined"
-            class="transition-colors hover:bg-gray-50/80 dark:hover:bg-[rgba(34,211,238,0.045)]"
+            class="transition-colors hover:bg-gray-50/80 dark:hover:bg-[rgb(var(--brand-400)/0.045)]"
             :class="{
               'cursor-pointer': clickableRows,
               'bg-primary-500/[0.08] dark:bg-primary-500/[0.09]': selectable && isRowSelected(item.row, item.index)

@@ -4,6 +4,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Select from '@/components/common/Select.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import { opsAPI, type OpsOpenAITokenStatsResponse, type OpsOpenAITokenStatsTimeRange } from '@/api/admin/ops'
 import { formatNumber } from '@/utils/format'
 
@@ -214,7 +215,7 @@ function onNextPage() {
 
     <div v-else class="space-y-3">
       <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
-        <div class="max-h-[420px] overflow-auto">
+        <TableScroll viewport-class="max-h-[420px]">
           <div v-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
             <div v-for="row in items" :key="row.model" class="space-y-2 p-3">
               <div class="break-all text-xs font-medium text-gray-900 dark:text-gray-100">{{ row.model }}</div>
@@ -274,7 +275,7 @@ function onNextPage() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </div>
       <div v-if="viewMode === 'topn'" class="mt-3 text-xs text-gray-500 dark:text-gray-400">
         {{ t('admin.ops.openaiTokenStats.totalModels', { total }) }}

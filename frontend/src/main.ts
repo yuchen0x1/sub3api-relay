@@ -9,6 +9,7 @@ import { useAppStore } from '@/stores/app'
 import { updateFavicon } from '@/utils/branding'
 import { isIOSDevice } from '@/utils/device'
 import './style.css'
+import { registerSW } from 'virtual:pwa-register'
 
 function initIOSViewportZoomFix() {
   // iOS Safari 在输入框字号小于 16px 时聚焦会自动放大页面，且失焦后不会恢复。
@@ -38,6 +39,7 @@ async function bootstrap() {
 
   // Apply theme globally before mount to keep all routes consistent (single source of truth).
   appStore.initTheme()
+  appStore.initAccent()
 
   // Set document title immediately after config is loaded
   if (appStore.siteName && appStore.siteName !== 'Sub3API') {
@@ -53,6 +55,14 @@ async function bootstrap() {
   // 等待路由器完成初始导航后再挂载，避免竞态条件导致的空白渲染
   await router.isReady()
   app.mount('#app')
+
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return
+      window.setInterval(() => registration.update(), 60 * 60 * 1000)
+    }
+  })
 }
 
 bootstrap()

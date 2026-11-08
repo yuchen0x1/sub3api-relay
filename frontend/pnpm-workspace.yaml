@@ -65,6 +65,8 @@ overrides:
   minimatch@>=9.0.0 <9.0.6: ^9.0.6
   minimatch@>=9.0.0 <9.0.7: ^9.0.7
   minimatch@>=7.0.0 <11.0.1: ^11.0.1
+  'glob@11.1.0>minimatch': ^10.1.1
+  'glob@10.5.0>minimatch': ^9.0.4
   "nanoid@<3.3.17": 3.3.18
   picomatch@<2.3.2: ^2.3.2
   picomatch@>=4.0.0 <4.0.4: ^4.0.4

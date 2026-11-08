@@ -44,7 +44,7 @@ type LandingLocale = 'zh' | 'en'
 
 const publicCardStyles = [
   '',
-  '.promo-card-panel{margin-top:22px;max-width:560px;border:1px solid rgba(34,211,238,.18);border-radius:16px;background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(53,208,255,.055));box-shadow:0 18px 60px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.05);padding:16px}',
+  '.promo-card-panel{margin-top:22px;max-width:560px;border:1px solid rgb(var(--brand-400) / .18);border-radius:16px;background:linear-gradient(135deg,rgb(var(--brand-400) / .08),rgba(53,208,255,.055));box-shadow:0 18px 60px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.05);padding:16px}',
   '.promo-card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:13px}',
   '.promo-card-kicker{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1.4px;text-transform:uppercase}',
   '.promo-card-title{margin-top:4px;font-size:17px;font-weight:700;color:#fff}',
@@ -54,7 +54,7 @@ const publicCardStyles = [
   '.promo-card-field{display:flex;flex-direction:column;gap:7px}',
   '.promo-card-field label{font-size:12px;color:var(--text-3)}',
   '.promo-card-field input,.promo-card-keybox textarea{width:100%;border:1px solid rgba(255,255,255,.12);background:rgba(5,12,20,.72);color:#fff;border-radius:10px;padding:11px 12px;font-family:var(--mono);font-size:12px;outline:none}',
-  '.promo-card-field input:focus,.promo-card-keybox textarea:focus{border-color:rgba(34,211,238,.5);box-shadow:0 0 0 3px rgba(34,211,238,.08)}',
+  '.promo-card-field input:focus,.promo-card-keybox textarea:focus{border-color:rgb(var(--brand-400) / .5);box-shadow:0 0 0 3px rgb(var(--brand-400) / .08)}',
   '.promo-card-result{margin-top:12px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;color:var(--text-2);font-size:13px;line-height:1.7}',
   '.promo-card-result.error{color:#ff8b9a}',
   '.promo-card-result.success{color:#d9ffe7}',
@@ -70,7 +70,7 @@ const publicCardStyles = [
   '.promo-card-connection-value{min-width:0;border:1px solid rgba(255,255,255,.12);background:rgba(5,12,20,.72);color:#fff;border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}',
   '.promo-card-copy{height:42px}',
   '.promo-key-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(1,7,13,.82);backdrop-filter:blur(10px)}',
-  '.promo-key-modal-card{width:min(680px,100%);border:1px solid rgba(34,211,238,.32);border-radius:20px;background:linear-gradient(145deg,#0b1923,#071018);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 50px rgba(34,211,238,.08);padding:22px;color:#fff}',
+  '.promo-key-modal-card{width:min(680px,100%);border:1px solid rgb(var(--brand-400) / .32);border-radius:20px;background:linear-gradient(145deg,#0b1923,#071018);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 50px rgb(var(--brand-400) / .08);padding:22px;color:#fff}',
   '.promo-key-modal-title{font-family:var(--display);font-size:24px;font-weight:800}',
   '.promo-key-modal-sub{margin-top:6px;color:var(--text-3);font-size:13px;line-height:1.6}',
   '.promo-key-modal-value{display:block;margin-top:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#050c14;padding:14px;color:#dfffea;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-wrap:anywhere;user-select:all}',

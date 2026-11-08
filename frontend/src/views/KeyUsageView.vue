@@ -21,14 +21,7 @@
           >
             <Icon name="book" size="md" />
           </a>
-          <button
-            @click="toggleTheme"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="isDark ? t('home.switchToLight') : t('home.switchToDark')"
-          >
-            <Icon v-if="isDark" name="sun" size="md" />
-            <Icon v-else name="moon" size="md" />
-          </button>
+          <AppearanceMenu variant="inline" />
         </div>
       </nav>
     </header>
@@ -423,6 +416,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import AppearanceMenu from '@/components/common/AppearanceMenu.vue'
 import { buildGatewayUrl } from '@/api/client'
 import { formatDateLocalInput } from '@/utils/format'
 import { sanitizeUrl } from '@/utils/url'
@@ -440,10 +434,6 @@ const githubUrl = 'https://github.com/yuchen0x1/sub3api-relay'
 // ==================== Theme (same as HomeView) ====================
 
 const isDark = computed(() => appStore.isDark)
-
-function toggleTheme() {
-  appStore.toggleTheme()
-}
 
 const currentYear = computed(() => new Date().getFullYear())
 

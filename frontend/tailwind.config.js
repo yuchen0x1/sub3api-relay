@@ -5,20 +5,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 主色：青蓝霓虹（深空控制台）
-        primary: {
-          50: '#ecfeff',
-          100: '#cffafe',
-          200: '#a5f3fc',
-          300: '#67e8f9',
-          400: '#22d3ee',
-          500: '#06b6d4',
-          600: '#0891b2',
-          700: '#0e7490',
-          800: '#155e75',
-          900: '#164e63',
-          950: '#083344'
-        },
+        // 注意：primary 阶梯色在 src/style.css 的 @theme 中声明为 CSS 变量，
+        // 运行时覆写 <html> 上的 --color-primary-* 即可整体换肤（强调色预设）。
+        // 此处不再重复定义，否则会编译成静态色值导致换肤失效。
         // 辅助色：电紫
         accent: {
           50: '#f5f3ff',
@@ -81,15 +70,15 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-        'gradient-neon': 'linear-gradient(135deg, #22d3ee 0%, #8b5cf6 100%)',
+        'gradient-primary': 'linear-gradient(135deg, rgb(var(--brand-500)) 0%, rgb(var(--brand-600)) 100%)',
+        'gradient-neon': 'linear-gradient(135deg, rgb(var(--brand-400)) 0%, #8b5cf6 100%)',
         'gradient-dark': 'linear-gradient(135deg, #0b1220 0%, #070b14 100%)',
         'gradient-glass':
           'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
         'grid-fine':
           'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)',
         'mesh-gradient':
-          'radial-gradient(at 38% 12%, rgba(34, 211, 238, 0.10) 0px, transparent 52%), radial-gradient(at 84% 4%, rgba(124, 58, 237, 0.10) 0px, transparent 50%), radial-gradient(at 0% 60%, rgba(34, 211, 238, 0.06) 0px, transparent 50%)'
+          'radial-gradient(at 38% 12%, rgb(var(--brand-400) / 0.10) 0px, transparent 52%), radial-gradient(at 84% 4%, rgba(124, 58, 237, 0.10) 0px, transparent 50%), radial-gradient(at 0% 60%, rgb(var(--brand-400) / 0.06) 0px, transparent 50%)'
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
@@ -137,8 +126,8 @@ export default {
           '100%': { transform: 'translateY(1200%)' }
         },
         glow: {
-          '0%': { boxShadow: '0 0 18px rgba(34, 211, 238, 0.18)' },
-          '100%': { boxShadow: '0 0 32px rgba(34, 211, 238, 0.34)' }
+          '0%': { boxShadow: '0 0 18px rgb(var(--brand-400) / 0.18)' },
+          '100%': { boxShadow: '0 0 32px rgb(var(--brand-400) / 0.34)' }
         }
       },
       backdropBlur: {

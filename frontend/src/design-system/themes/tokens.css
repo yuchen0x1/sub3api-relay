@@ -3,7 +3,26 @@
  * 语义色 / 阴影 / 玻璃 / 圆角 / 字体 / 图表色板
  * 注意：--color-primary 等状态色为 RGB 三元组，使用时必须写
  *       rgb(var(--color-primary) / <alpha>)
+ *
+ * --brand-* 是强调色阶梯（RGB 三元组），运行时可被 accent 预设覆写；
+ * --color-primary-* 由构建期的 Tailwind 主题变量提供（十六进制），
+ * 二者共同决定同一套强调色在不同明暗模式下的表现。
  * ============================================================ */
+
+/* ---- 强调色阶梯（默认青蓝，运行时可覆盖） ---- */
+:root {
+  --brand-50: 236 254 255;
+  --brand-100: 207 250 254;
+  --brand-200: 165 243 252;
+  --brand-300: 103 232 249;
+  --brand-400: 34 211 238;
+  --brand-500: 6 182 212;
+  --brand-600: 8 145 178;
+  --brand-700: 14 116 144;
+  --brand-800: 21 94 117;
+  --brand-900: 22 78 99;
+  --brand-950: 8 51 68;
+}
 
 /* ---- Light Mode：冷白实验室 ---- */
 :root {
@@ -18,10 +37,10 @@
   --color-text-muted: #64748b;
   --color-text-inverse: #ffffff;
 
-  --color-primary: 8 145 178;
-  --color-primary-hover: 14 116 144;
-  --color-primary-active: 21 94 117;
-  --color-primary-bg: 236 254 255;
+  --color-primary: var(--brand-600);
+  --color-primary-hover: var(--brand-700);
+  --color-primary-active: var(--brand-800);
+  --color-primary-bg: var(--brand-50);
   --color-primary-contrast: 255 255 255;
   --color-accent: 124 58 237;
   --color-accent-bg: 245 243 255;
@@ -38,9 +57,9 @@
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.06);
   --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.06), 0 18px 42px rgba(15, 23, 42, 0.12);
   --shadow-glass: 0 12px 34px rgba(15, 23, 42, 0.10);
-  --shadow-glow: 0 0 0 1px rgba(8, 145, 178, 0.18), 0 0 22px rgba(8, 145, 178, 0.18);
-  --shadow-glow-lg: 0 0 0 1px rgba(8, 145, 178, 0.22), 0 0 42px rgba(8, 145, 178, 0.24);
-  --shadow-neon: 0 0 24px rgba(8, 145, 178, 0.22);
+  --shadow-glow: 0 0 0 1px rgb(var(--brand-600) / 0.18), 0 0 22px rgb(var(--brand-600) / 0.18);
+  --shadow-glow-lg: 0 0 0 1px rgb(var(--brand-600) / 0.22), 0 0 42px rgb(var(--brand-600) / 0.24);
+  --shadow-neon: 0 0 24px rgb(var(--brand-600) / 0.22);
   --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
   --glass-bg: rgba(255, 255, 255, 0.78);
@@ -50,8 +69,8 @@
   --glass-blur: 18px;
   --glass-saturation: 140%;
 
-  --hud-line: rgba(8, 145, 178, 0.28);
-  --hud-glow: rgba(8, 145, 178, 0.16);
+  --hud-line: rgb(var(--brand-600) / 0.28);
+  --hud-glow: rgb(var(--brand-600) / 0.16);
   --grid-line: rgba(100, 116, 139, 0.08);
 
   --radius-xs: 0.375rem;
@@ -68,7 +87,7 @@
   --font-mono: ui-monospace, 'SFMono-Regular', 'Menlo', 'Monaco',
                'Consolas', 'Liberation Mono', monospace;
 
-  --chart-1: 8 145 178;
+  --chart-1: var(--brand-600);
   --chart-2: 124 58 237;
   --chart-3: 6 182 212;
   --chart-4: 132 204 22;
@@ -93,10 +112,10 @@
   --color-text-muted: #6b7f9e;
   --color-text-inverse: #04070f;
 
-  --color-primary: 34 211 238;
-  --color-primary-hover: 103 232 249;
-  --color-primary-active: 165 243 252;
-  --color-primary-bg: 8 26 38;
+  --color-primary: var(--brand-400);
+  --color-primary-hover: var(--brand-300);
+  --color-primary-active: var(--brand-200);
+  --color-primary-bg: var(--brand-950);
   --color-primary-contrast: 3 10 18;
   --color-accent: 167 139 250;
   --color-accent-bg: 24 18 48;
@@ -113,9 +132,9 @@
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 14px 36px rgba(0, 0, 0, 0.36);
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 52px rgba(0, 0, 0, 0.44);
   --shadow-glass: 0 18px 48px rgba(0, 0, 0, 0.42);
-  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.22), 0 0 24px rgba(34, 211, 238, 0.18);
-  --shadow-glow-lg: 0 0 0 1px rgba(34, 211, 238, 0.28), 0 0 48px rgba(34, 211, 238, 0.22);
-  --shadow-neon: 0 0 28px rgba(34, 211, 238, 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
+  --shadow-glow: 0 0 0 1px rgb(var(--brand-400) / 0.22), 0 0 24px rgb(var(--brand-400) / 0.18);
+  --shadow-glow-lg: 0 0 0 1px rgb(var(--brand-400) / 0.28), 0 0 48px rgb(var(--brand-400) / 0.22);
+  --shadow-neon: 0 0 28px rgb(var(--brand-400) / 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
   --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
   --glass-bg: rgba(9, 14, 24, 0.62);
@@ -125,11 +144,11 @@
   --glass-blur: 22px;
   --glass-saturation: 150%;
 
-  --hud-line: rgba(34, 211, 238, 0.30);
-  --hud-glow: rgba(34, 211, 238, 0.18);
+  --hud-line: rgb(var(--brand-400) / 0.30);
+  --hud-glow: rgb(var(--brand-400) / 0.18);
   --grid-line: rgba(120, 160, 210, 0.07);
 
-  --chart-1: 34 211 238;
+  --chart-1: var(--brand-400);
   --chart-2: 167 139 250;
   --chart-3: 94 234 212;
   --chart-4: 163 230 53;
@@ -154,10 +173,10 @@
     --color-text-secondary: #a8b8d0;
     --color-text-muted: #6b7f9e;
     --color-text-inverse: #04070f;
-    --color-primary: 34 211 238;
-    --color-primary-hover: 103 232 249;
-    --color-primary-active: 165 243 252;
-    --color-primary-bg: 8 26 38;
+    --color-primary: var(--brand-400);
+    --color-primary-hover: var(--brand-300);
+    --color-primary-active: var(--brand-200);
+    --color-primary-bg: var(--brand-950);
     --color-primary-contrast: 3 10 18;
     --color-accent: 167 139 250;
     --color-success-soft: 6 40 30;
@@ -167,18 +186,18 @@
     --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 14px 36px rgba(0, 0, 0, 0.36);
     --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 52px rgba(0, 0, 0, 0.44);
     --shadow-glass: 0 18px 48px rgba(0, 0, 0, 0.42);
-    --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.22), 0 0 24px rgba(34, 211, 238, 0.18);
-    --shadow-glow-lg: 0 0 0 1px rgba(34, 211, 238, 0.28), 0 0 48px rgba(34, 211, 238, 0.22);
-    --shadow-neon: 0 0 28px rgba(34, 211, 238, 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
+    --shadow-glow: 0 0 0 1px rgb(var(--brand-400) / 0.22), 0 0 24px rgb(var(--brand-400) / 0.18);
+    --shadow-glow-lg: 0 0 0 1px rgb(var(--brand-400) / 0.28), 0 0 48px rgb(var(--brand-400) / 0.22);
+    --shadow-neon: 0 0 28px rgb(var(--brand-400) / 0.22), 0 0 64px rgba(124, 58, 237, 0.12);
     --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     --glass-bg: rgba(9, 14, 24, 0.62);
     --glass-bg-strong: rgba(11, 18, 32, 0.86);
     --glass-border: rgba(148, 178, 214, 0.14);
     --glass-border-strong: rgba(148, 178, 214, 0.24);
-    --hud-line: rgba(34, 211, 238, 0.30);
-    --hud-glow: rgba(34, 211, 238, 0.18);
+    --hud-line: rgb(var(--brand-400) / 0.30);
+    --hud-glow: rgb(var(--brand-400) / 0.18);
     --grid-line: rgba(120, 160, 210, 0.07);
-    --chart-1: 34 211 238;
+    --chart-1: var(--brand-400);
     --chart-2: 167 139 250;
     --chart-3: 94 234 212;
     --chart-4: 163 230 53;

@@ -121,6 +121,7 @@ func (s *FrontendServer) Middleware() gin.HandlerFunc {
 
 		// Serve static files normally (hashed assets get long-lived cache headers)
 		applyStaticAssetCacheHeaders(c.Writer.Header(), cleanPath)
+		applyPWACacheHeaders(c.Writer.Header(), cleanPath)
 		s.fileServer.ServeHTTP(c.Writer, c.Request)
 		c.Abort()
 	}
@@ -337,6 +338,7 @@ func ServeEmbeddedFrontend() gin.HandlerFunc {
 				return
 			}
 			applyStaticAssetCacheHeaders(c.Writer.Header(), cleanPath)
+			applyPWACacheHeaders(c.Writer.Header(), cleanPath)
 			fileServer.ServeHTTP(c.Writer, c.Request)
 			c.Abort()
 			return

@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { chartColorAlpha } from '@/design-system/chart-theme'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
+import type { ChartComponentRef } from 'vue-chartjs'
 import type { OpsErrorDistributionResponse } from '@/api/admin/ops'
 import type { ChartState } from '../types'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ChartExportButton from './ChartExportButton.vue'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
+
+const distributionChartRef = ref<ChartComponentRef | null>(null)
 
 interface Props {
   data: OpsErrorDistributionResponse | null
@@ -131,21 +135,28 @@ const options = computed(() => ({
         {{ t('admin.ops.errorDistribution') }}
         <HelpTooltip :content="t('admin.ops.tooltips.errorDistribution')" />
       </h3>
-      <button
-        type="button"
-        class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-dark-700 dark:bg-dark-900 dark:text-gray-300 dark:hover:bg-dark-800"
-        :disabled="state !== 'ready'"
-        :title="t('admin.ops.errorTrend')"
-        @click="emit('openDetails')"
-      >
-        {{ t('admin.ops.requestDetails.details') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-dark-700 dark:bg-dark-900 dark:text-gray-300 dark:hover:bg-dark-800"
+          :disabled="state !== 'ready'"
+          :title="t('admin.ops.errorTrend')"
+          @click="emit('openDetails')"
+        >
+          {{ t('admin.ops.requestDetails.details') }}
+        </button>
+        <ChartExportButton
+          :get-chart="() => distributionChartRef?.chart"
+          file-prefix="ops-error-distribution"
+          :disabled="state !== 'ready'"
+        />
+      </div>
     </div>
 
     <div class="relative min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
       <div v-if="state === 'ready' && chartData" class="flex h-full flex-col">
         <div class="flex-1">
-          <Doughnut :data="chartData" :options="{ ...options, cutout: '65%' }" />
+          <Doughnut ref="distributionChartRef" :data="chartData" :options="{ ...options, cutout: '65%' }" />
         </div>
         <div class="mt-4 flex flex-col items-center gap-2">
           <div v-if="topReason" class="text-xs font-bold text-gray-900 dark:text-white">

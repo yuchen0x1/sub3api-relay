@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { chartColorAlpha } from '@/design-system/chart-theme'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, BarElement, CategoryScale, Legend, LinearScale, Tooltip } from 'chart.js'
 import { Bar } from 'vue-chartjs'
+import type { ChartComponentRef } from 'vue-chartjs'
 import type { OpsLatencyHistogramResponse } from '@/api/admin/ops'
 import type { ChartState } from '../types'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ChartExportButton from './ChartExportButton.vue'
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend)
+
+const latencyChartRef = ref<ChartComponentRef | null>(null)
 
 interface Props {
   latencyData: OpsLatencyHistogramResponse | null
@@ -96,10 +100,17 @@ const options = computed(() => {
         {{ t('admin.ops.latencyHistogram') }}
         <HelpTooltip :content="t('admin.ops.tooltips.latencyHistogram')" />
       </h3>
+      <div class="flex items-center gap-2">
+        <ChartExportButton
+          :get-chart="() => latencyChartRef?.chart"
+          file-prefix="ops-latency"
+          :disabled="state !== 'ready'"
+        />
+      </div>
     </div>
 
     <div class="min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
-      <Bar v-if="state === 'ready' && chartData" :data="chartData" :options="options" />
+      <Bar v-if="state === 'ready' && chartData" ref="latencyChartRef" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>
         <EmptyState v-else :title="t('common.noData')" :description="t('admin.ops.charts.emptyRequest')" />

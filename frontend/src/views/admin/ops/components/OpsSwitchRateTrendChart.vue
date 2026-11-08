@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { chartColorAlpha } from '@/design-system/chart-theme'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Chart as ChartJS,
@@ -14,13 +14,17 @@ import {
   Tooltip
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
+import type { ChartComponentRef } from 'vue-chartjs'
 import type { OpsThroughputTrendPoint } from '@/api/admin/ops'
 import type { ChartState } from '../types'
 import { formatHistoryLabel, sumNumbers } from '../utils/opsFormatters'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ChartExportButton from './ChartExportButton.vue'
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler)
+
+const switchRateChartRef = ref<ChartComponentRef | null>(null)
 
 interface Props {
   points: OpsThroughputTrendPoint[]
@@ -145,10 +149,17 @@ const options = computed(() => {
         {{ t('admin.ops.switchRateTrend') }}
         <HelpTooltip v-if="!props.fullscreen" :content="t('admin.ops.tooltips.switchRateTrend')" />
       </h3>
+      <div v-if="!props.fullscreen" class="flex items-center gap-2">
+        <ChartExportButton
+          :get-chart="() => switchRateChartRef?.chart"
+          file-prefix="ops-switch-rate"
+          :disabled="state !== 'ready'"
+        />
+      </div>
     </div>
 
     <div class="min-h-0 flex-1" role="img" :aria-label="chartAriaLabel">
-      <Line v-if="state === 'ready' && chartData" :data="chartData" :options="options" />
+      <Line v-if="state === 'ready' && chartData" ref="switchRateChartRef" :data="chartData" :options="options" />
       <div v-else class="flex h-full items-center justify-center">
         <div v-if="state === 'loading'" class="animate-pulse text-sm text-gray-400">{{ t('common.loading') }}</div>
         <EmptyState v-else :title="t('common.noData')" :description="t('admin.ops.charts.emptyRequest')" />

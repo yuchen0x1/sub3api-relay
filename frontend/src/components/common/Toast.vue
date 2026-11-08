@@ -50,6 +50,16 @@
                 >
                   {{ toast.message }}
                 </p>
+                <div v-if="toast.action" class="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    class="rounded-md px-2.5 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20"
+                    data-test="toast-action"
+                    @click="runAction(toast)"
+                  >
+                    {{ toast.action.label }}
+                  </button>
+                </div>
               </div>
 
               <!-- Close button -->
@@ -80,6 +90,7 @@
 import { computed } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useAppStore } from '@/stores/app'
+import type { Toast } from '@/types'
 
 const appStore = useAppStore()
 
@@ -131,6 +142,14 @@ const getProgressBarColor = (type: string): string => {
 
 const removeToast = (id: string) => {
   appStore.hideToast(id)
+}
+
+const runAction = (toast: Toast) => {
+  try {
+    toast.action?.onClick()
+  } finally {
+    removeToast(toast.id)
+  }
 }
 </script>
 

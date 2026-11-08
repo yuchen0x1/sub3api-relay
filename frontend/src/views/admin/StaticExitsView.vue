@@ -85,7 +85,7 @@
       </div>
 
       <!-- 出口列表 -->
-      <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+      <TableScroll class="rounded-lg border border-gray-200 dark:border-gray-700">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-dark-800/60">
             <tr>
@@ -161,7 +161,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       </template>
 
       <template #pagination>
@@ -189,6 +189,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { adminAPI } from '@/api/admin'
@@ -326,6 +327,24 @@ const handleToggle = async (exit: StaticProxyExit) => {
     const updated = await adminAPI.staticProxyExits.toggle(exit.id, !exit.enabled)
     exits.value = exits.value.map((item) => (item.id === updated.id ? updated : item))
     await load()
+    appStore.showToast(
+      'success',
+      t(
+        updated.enabled
+          ? 'admin.accounts.staticExits.enabledToast'
+          : 'admin.accounts.staticExits.disabledToast',
+        { name: updated.name || '-' }
+      ),
+      6000,
+      {
+        label: t('common.undo'),
+        onClick: () => {
+          // Resolve the live row at click time: `exit` still carries the pre-toggle value.
+          const current = exits.value.find((item) => item.id === updated.id)
+          if (current) void handleToggle(current)
+        }
+      }
+    )
   } catch (error) {
     appStore.showError(t('admin.accounts.staticExits.updateFailed') + ': ' + extractApiErrorMessage(error))
   }

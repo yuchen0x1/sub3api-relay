@@ -926,6 +926,8 @@ export default {
         addFailed: '添加静态出口失败',
         updateFailed: '更新静态出口失败',
         deleteFailed: '删除静态出口失败',
+        enabledToast: '出口“{name}”已启用',
+        disabledToast: '出口“{name}”已停用',
       },
       concurrency: '并发数',
       loadFactor: '负载因子',

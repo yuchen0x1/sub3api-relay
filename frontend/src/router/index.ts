@@ -254,6 +254,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/user/NotificationsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Notifications',
+      titleKey: 'notifications.title',
+      descriptionKey: 'notifications.description'
+    }
+  },
+  {
     path: '/custom/:id',
     name: 'CustomPage',
     component: () => import('@/views/user/CustomPageView.vue'),

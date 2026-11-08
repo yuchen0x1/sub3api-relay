@@ -10,7 +10,7 @@
         <BrandMark :site-logo="siteLogo" :site-name="siteName" />
         <div class="flex items-center gap-2">
           <LocaleSwitcher />
-          <ThemeButton :is-dark="isDark" @toggle="toggleTheme" />
+          <AppearanceMenu variant="inline" />
         </div>
       </div>
     </header>
@@ -34,7 +34,7 @@ import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
-import Icon from '@/components/icons/Icon.vue'
+import AppearanceMenu from '@/components/common/AppearanceMenu.vue'
 import Sub3LandingView from '@/components/home/Sub3LandingView.vue'
 import { sanitizeUrl } from '@/utils/url'
 
@@ -73,10 +73,6 @@ const sanitizedHomeContent = computed(() => {
   })
   return documentFragment.innerHTML
 })
-const isDark = computed(() => appStore.isDark)
-function toggleTheme() {
-  appStore.toggleTheme()
-}
 const BrandMark = defineComponent({
   props: { siteLogo: String, siteName: { type: String, required: true }, centered: Boolean },
   setup(props) {
@@ -84,18 +80,6 @@ const BrandMark = defineComponent({
       h('img', { src: props.siteLogo || '/logo.svg', alt: props.siteName, class: 'h-11 w-11 object-contain' }),
       h('span', { class: 'text-lg font-semibold tracking-tight' }, props.siteName),
     ])
-  },
-})
-const ThemeButton = defineComponent({
-  props: { isDark: Boolean },
-  emits: ['toggle'],
-  setup(props, { emit }) {
-    return () => h('button', {
-      type: 'button',
-      class: 'sub3-icon-button',
-      title: props.isDark ? t('home.switchToLight') : t('home.switchToDark'),
-      onClick: () => emit('toggle'),
-    }, [h(Icon, { name: props.isDark ? 'sun' : 'moon', size: 'md' })])
   },
 })
 onMounted(() => {

@@ -4,6 +4,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Pagination from '@/components/common/Pagination.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores'
 import { opsAPI, type OpsRequestDetailsParams, type OpsRequestDetail } from '@/api/admin/ops'
@@ -192,7 +193,7 @@ const kindBadgeClass = (kind: string) => {
           </div>
 
           <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
-            <div class="min-h-0 flex-1 overflow-auto">
+            <TableScroll class="min-h-0 flex-1">
               <div v-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
                 <div v-for="(row, idx) in items" :key="idx" class="space-y-2 p-4">
                   <div class="flex flex-wrap items-center gap-2">
@@ -312,7 +313,7 @@ const kindBadgeClass = (kind: string) => {
                 </tr>
               </tbody>
             </table>
-            </div>
+            </TableScroll>
 
             <Pagination
               :total="total"

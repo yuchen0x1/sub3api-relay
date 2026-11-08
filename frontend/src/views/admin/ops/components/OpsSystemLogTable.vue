@@ -4,6 +4,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { opsAPI, type OpsRuntimeLogConfig, type OpsSystemLog, type OpsSystemLogSinkHealth } from '@/api/admin/ops'
 import Pagination from '@/components/common/Pagination.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import Select from '@/components/common/Select.vue'
 import { useAppStore } from '@/stores'
 import { extractApiErrorMessage } from '@/utils/apiError'
@@ -551,7 +552,7 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <div v-else class="overflow-auto">
+      <TableScroll v-else>
         <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-dark-700">
           <thead class="bg-gray-50 dark:bg-dark-900">
             <tr>
@@ -578,7 +579,7 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <Pagination
         :total="total"
         :page="page"

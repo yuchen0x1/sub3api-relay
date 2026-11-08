@@ -149,6 +149,29 @@ describe('useAppStore', () => {
       expect(store.toasts[0].type).toBe('error')
     })
 
+    it('showToast 可携带 action，供撤销等内联操作使用', () => {
+      const store = useAppStore()
+      const onClick = vi.fn()
+
+      const id = store.showToast('success', '已启用', 6000, { label: '撤销', onClick })
+
+      expect(store.toasts).toHaveLength(1)
+      expect(store.toasts[0].id).toBe(id)
+      expect(store.toasts[0].duration).toBe(6000)
+      expect(store.toasts[0].action?.label).toBe('撤销')
+      expect(store.toasts[0].action?.onClick).toBe(onClick)
+
+      store.hideToast(id)
+      expect(store.toasts).toHaveLength(0)
+    })
+
+    it('未传 action 时 toast 不带内联按钮', () => {
+      const store = useAppStore()
+      store.showSuccess('普通消息')
+
+      expect(store.toasts[0].action).toBeUndefined()
+    })
+
     it('clearAllToasts 清除所有 toast', () => {
       const store = useAppStore()
       store.showSuccess('消息1')

@@ -716,6 +716,42 @@ func TestEmbeddedFrontendBypassesBareVideoAPIRoutes(t *testing.T) {
 	}
 }
 
+func TestFrontendServer_ServesPWAAssets(t *testing.T) {
+	provider := &mockSettingsProvider{
+		settings: map[string]string{"test": "value"},
+	}
+
+	server, err := NewFrontendServer(provider)
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.Use(server.Middleware())
+	router.NoRoute(func(c *gin.Context) {
+		c.String(http.StatusNotFound, "not found")
+	})
+
+	t.Run("manifest_uses_manifest_json_content_type", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/manifest.webmanifest", nil)
+		router.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/manifest+json", w.Header().Get("Content-Type"))
+		assert.Equal(t, "no-cache", w.Header().Get("Cache-Control"))
+		assert.Contains(t, w.Body.String(), "standalone")
+	})
+
+	t.Run("service_worker_is_revalidated", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/sw.js", nil)
+		router.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "javascript")
+		assert.Equal(t, "no-cache", w.Header().Get("Cache-Control"))
+	})
+}
+
 func TestNewFrontendServer(t *testing.T) {
 	t.Run("creates_server_successfully", func(t *testing.T) {
 		provider := &mockSettingsProvider{

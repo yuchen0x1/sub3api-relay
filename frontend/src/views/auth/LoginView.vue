@@ -197,6 +197,9 @@
     </div>
 
     <!-- Footer -->
+    <template #footer>
+      <PwaInstallButton variant="inline" />
+    </template>
   </AuthLayout>
 
   <!-- 2FA Modal -->
@@ -221,6 +224,7 @@ import OidcOAuthSection from '@/components/auth/OidcOAuthSection.vue'
 import WechatOAuthSection from '@/components/auth/WechatOAuthSection.vue'
 import EmailOAuthButtons from '@/components/auth/EmailOAuthButtons.vue'
 import LoginAgreementPrompt from '@/components/auth/LoginAgreementPrompt.vue'
+import PwaInstallButton from '@/components/common/PwaInstallButton.vue'
 import TotpLoginModal from '@/components/auth/TotpLoginModal.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/CaptchaChallenge.vue'

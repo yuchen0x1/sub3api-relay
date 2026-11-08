@@ -43,6 +43,7 @@ type BalanceNotifyService struct {
 	settingRepo              SettingRepository
 	accountRepo              AccountQuotaReader
 	notificationEmailService *NotificationEmailService
+	userNotificationService  *UserNotificationService
 }
 
 // NewBalanceNotifyService creates a new BalanceNotifyService.
@@ -56,6 +57,11 @@ func NewBalanceNotifyService(emailService *EmailService, settingRepo SettingRepo
 
 func (s *BalanceNotifyService) SetNotificationEmailService(notificationEmailService *NotificationEmailService) {
 	s.notificationEmailService = notificationEmailService
+}
+
+// SetUserNotificationService 注入站内通知服务（可选，未注入则不写站内通知）。
+func (s *BalanceNotifyService) SetUserNotificationService(userNotificationService *UserNotificationService) {
+	s.userNotificationService = userNotificationService
 }
 
 // resolveBalanceThreshold returns the effective balance threshold.
@@ -130,8 +136,37 @@ func (s *BalanceNotifyService) dispatchBalanceLowEmail(ctx context.Context, user
 				slog.Error("panic in balance notification", "recover", r)
 			}
 		}()
+		s.writeBalanceLowInAppNotification(user, newBalance, threshold, siteName, rechargeURL)
 		s.sendBalanceLowEmails(recipients, user.ID, user.Username, user.Email, newBalance, threshold, siteName, rechargeURL)
 	}()
+}
+
+// writeBalanceLowInAppNotification 将余额低额提醒落为站内通知（供 /notifications 展示）。
+func (s *BalanceNotifyService) writeBalanceLowInAppNotification(user *User, balance, threshold float64, siteName, rechargeURL string) {
+	if s.userNotificationService == nil || user == nil {
+		return
+	}
+	title := "余额不足提醒"
+	body := fmt.Sprintf("您的账户余额已低于提醒阈值 $%.2f，当前余额 $%.2f。请及时充值以免服务中断。", threshold, balance)
+	if siteName != "" {
+		title = fmt.Sprintf("[%s] 余额不足提醒", siteName)
+	}
+	meta := map[string]any{
+		"balance":     balance,
+		"threshold":   threshold,
+		"recharge_url": rechargeURL,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := s.userNotificationService.Create(ctx, &UserNotificationCreateInput{
+		UserID:   user.ID,
+		Type:     NotificationTypeBalanceLow,
+		Title:    title,
+		Body:     body,
+		Metadata: meta,
+	}); err != nil {
+		slog.Error("failed to write balance low in-app notification", "user_id", user.ID, "error", err)
+	}
 }
 
 // quotaDim describes one quota dimension for notification checking.

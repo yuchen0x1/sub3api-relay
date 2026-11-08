@@ -5,7 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Toast, ToastType, PublicSettings } from '@/types'
+import type { Toast, ToastAction, ToastType, PublicSettings } from '@/types'
 import { i18n } from '@/i18n'
 import {
   checkUpdates as checkUpdatesAPI,
@@ -13,6 +13,12 @@ import {
   type ReleaseInfo
 } from '@/api/admin/system'
 import { getPublicSettings as fetchPublicSettingsAPI } from '@/api/auth'
+import {
+  applyAccent,
+  defaultAccentId,
+  isAccentId,
+  type AccentId
+} from '@/design-system/themes/accent'
 
 export const useAppStore = defineStore('app', () => {
   // ==================== State ====================
@@ -105,16 +111,18 @@ export const useAppStore = defineStore('app', () => {
    * @param type - Type of toast (success, error, info, warning)
    * @param message - Toast message content
    * @param duration - Auto-dismiss duration in ms (undefined = no auto-dismiss)
+   * @param action - Optional inline action button (e.g. undo); invoking it dismisses the toast
    * @returns Toast ID for manual dismissal
    */
-  function showToast(type: ToastType, message: string, duration?: number): string {
+  function showToast(type: ToastType, message: string, duration?: number, action?: ToastAction): string {
     const id = `toast-${++toastIdCounter}`
     const toast: Toast = {
       id,
       type,
       message,
       duration,
-      startTime: duration !== undefined ? Date.now() : undefined
+      startTime: duration !== undefined ? Date.now() : undefined,
+      action
     }
 
     toasts.value.push(toast)
@@ -441,8 +449,21 @@ export const useAppStore = defineStore('app', () => {
 
   const themeMode = ref<'light' | 'dark' | 'system'>('system')
   const isDark = ref(false)
+  const accentId = ref<AccentId>(defaultAccentId)
   let systemMediaQuery: MediaQueryList | null = null
   let systemChangeHandler: EventListener | null = null
+
+  /**
+   * Reflect the resolved theme onto <html>.
+   * Both `light` and `dark` classes are written explicitly so the
+   * `prefers-color-scheme` fallback in tokens.css never overrides a
+   * manually chosen light theme.
+   */
+  function syncThemeClass(dark: boolean): void {
+    const root = document.documentElement
+    root.classList.toggle('dark', dark)
+    root.classList.toggle('light', !dark)
+  }
 
   function watchSystemTheme(): void {
     if (typeof window === 'undefined') return
@@ -454,7 +475,7 @@ export const useAppStore = defineStore('app', () => {
       if (themeMode.value === 'system') {
         const mq = window.matchMedia('(prefers-color-scheme: dark)')
         isDark.value = mq.matches
-        document.documentElement.classList.toggle('dark', isDark.value)
+        syncThemeClass(isDark.value)
       }
     }
     systemMediaQuery.addEventListener('change', systemChangeHandler)
@@ -469,7 +490,7 @@ export const useAppStore = defineStore('app', () => {
     if (typeof window === 'undefined') return
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     isDark.value = mode === 'dark' || (mode === 'system' && prefersDark)
-    document.documentElement.classList.toggle('dark', isDark.value)
+    syncThemeClass(isDark.value)
     if (mode === 'system') {
       localStorage.removeItem('theme')
     } else {
@@ -492,6 +513,27 @@ export const useAppStore = defineStore('app', () => {
     if (typeof window === 'undefined') return
     const saved = localStorage.getItem('theme')
     setTheme(saved === 'dark' || saved === 'light' ? saved : 'system')
+  }
+
+  /**
+   * Apply an accent color preset and remember the choice.
+   */
+  function setAccent(id: AccentId): void {
+    accentId.value = id
+    if (typeof window === 'undefined') return
+    applyAccent(id)
+    localStorage.setItem('accent', id)
+  }
+
+  /**
+   * Restore the accent color preset from localStorage. Called once at bootstrap.
+   */
+  function initAccent(): void {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem('accent')
+    const id = isAccentId(saved) ? saved : defaultAccentId
+    accentId.value = id
+    applyAccent(id)
   }
 
   // ==================== Return Store API ====================
@@ -531,6 +573,7 @@ export const useAppStore = defineStore('app', () => {
     // Theme state
     themeMode,
     isDark,
+    accentId,
 
     // Actions
     toggleSidebar,
@@ -553,6 +596,8 @@ export const useAppStore = defineStore('app', () => {
     setTheme,
     toggleTheme,
     initTheme,
+    setAccent,
+    initAccent,
 
     // Version actions
     fetchVersion,

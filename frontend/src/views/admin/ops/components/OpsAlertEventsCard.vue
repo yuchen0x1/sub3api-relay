@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import Select from '@/components/common/Select.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { opsAPI, type AlertEventsQuery } from '@/api/admin/ops'
 import type { AlertEvent } from '../types'
@@ -397,7 +398,7 @@ const empty = computed(() => events.value.length === 0 && !loading.value)
     </div>
 
     <div v-else class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
-      <div class="max-h-[600px] overflow-y-auto" @scroll="onScroll">
+      <TableScroll viewport-class="max-h-[600px]" @scroll="onScroll">
         <div v-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
           <div
             v-for="row in events"
@@ -544,7 +545,7 @@ const empty = computed(() => events.value.length === 0 && !loading.value)
         <div v-else-if="!hasMore && events.length > 0" class="py-3 text-center text-xs text-gray-400">
           -
         </div>
-      </div>
+      </TableScroll>
     </div>
 
     <BaseDialog

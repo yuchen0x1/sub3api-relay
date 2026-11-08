@@ -118,6 +118,15 @@ func RegisterUserRoutes(
 			announcements.POST("/:id/read", h.Announcement.MarkRead)
 		}
 
+		// 站内通知中心（用户可见）
+		notifications := authenticated.Group("/notifications")
+		{
+			notifications.GET("", h.UserNotification.List)
+			notifications.GET("/unread-count", h.UserNotification.CountUnread)
+			notifications.POST("/read-all", h.UserNotification.MarkAllRead)
+			notifications.POST("/:id/read", h.UserNotification.MarkRead)
+		}
+
 	}
 
 	// Channel monitor (public read-only, gated by the channel-monitor feature flag):

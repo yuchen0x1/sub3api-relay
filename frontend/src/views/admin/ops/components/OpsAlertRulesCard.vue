@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import TableScroll from '@/components/common/TableScroll.vue'
 import Select, { type SelectOption } from '@/components/common/Select.vue'
 import { adminAPI } from '@/api'
 import { opsAPI } from '@/api/admin/ops'
@@ -424,7 +425,7 @@ function cancelDelete() {
     </div>
 
     <div v-else class="max-h-[520px] overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
-      <div class="max-h-[520px] overflow-y-auto">
+      <TableScroll viewport-class="max-h-[520px]">
         <div v-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
           <div v-for="row in sortedRules" :key="row.id" class="space-y-2 p-4">
             <div class="flex items-start justify-between gap-2">
@@ -504,7 +505,7 @@ function cancelDelete() {
             </tr>
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
 
     <BaseDialog
