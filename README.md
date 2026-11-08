@@ -11,14 +11,14 @@
 [![Redis](https://img.shields.io/badge/Redis-8--alpine-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-## v0.3.1 Highlights
+## v0.4.0 Highlights
 
-- Expanded default model/alias metadata for GPT-6, Claude 5, Gemini 3.1/4 and Grok families; actual access still depends on the upstream account.
-- Added configurable per-user active API Key and hourly successful-creation limits (`0` disables each limit).
-- Added `gateway.min_output_tokens` for supported protocol conversions (default 128, minimum 16); it raises only a client-supplied value below the floor and does not inject a limit when omitted.
-- Hardened multipart image part-size validation and prevent Cloudflare 1010 edge blocks from being treated as invalid-account failures.
+- In-app notification center: header bell with unread badge, `/notifications` page with type filters and mark-all-read; low-balance alerts now land in-app alongside email.
+- PWA support: install the console to desktop/home screen with manifest, auto-updating service worker and install buttons.
+- Six accent themes via the new appearance menu, plus a complete Japanese locale with key-parity tests.
+- Operational chart PNG export, undoable toasts, and smoother mobile table scrolling and dashboard skeletons.
 
-[Full v0.3.1 release notes](docs/release-notes/RELEASE_NOTES_v0.3.1.md).
+[Full v0.4.0 release notes](docs/release-notes/RELEASE_NOTES_v0.4.0.md).
 
 ## Project Overview
 

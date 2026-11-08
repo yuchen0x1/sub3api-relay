@@ -13,18 +13,18 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.3.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.0 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)
 
 </div>
 
-## v0.3.1 更新重点
+## v0.4.0 更新重点
 
-- 新增 GPT-6、Claude 5、Gemini 3.1/4 与 Grok 系列默认模型/别名信息（实际可用性取决于上游账号）。
-- 新增每用户有效 API Key 数量与每小时创建次数限制，可在系统设置中调整，设为 `0` 可关闭。
-- 新增协议转换时的最小输出 Token 设置；默认 128，最小 16，仅对客户端已提供且低于下限的参数生效。
-- 加固图片 multipart 单字段大小校验，并避免 Cloudflare 1010 边缘拦截误判为账号故障。
+- 新增站内通知中心：顶栏通知铃铛、`/notifications` 页面（类型筛选、全部标记已读）；余额不足提醒除邮件外同步落站内。
+- 新增 PWA 支持：可将控制台安装到桌面/主屏，含 manifest、自动更新的 Service Worker 与安装按钮。
+- 新增 6 套强调色（外观菜单切换）与完整日语语言包，附键集一致性测试。
+- 运维图表支持 PNG 导出，Toast 支持撤销操作，移动端表格滚动与仪表盘骨架屏体验优化。
 
-[完整 v0.3.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)。
+[完整 v0.4.0 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)。
 
 | 主页 | 使用记录 |
 | --- | --- |
@@ -38,7 +38,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.3.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.3.1.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.4.0 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒

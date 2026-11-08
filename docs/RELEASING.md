@@ -5,7 +5,7 @@ The canonical source and update/download channel is GitHub:
 
 ## Local preparation
 
-1. Keep the release version at `0.3.1` unless the user explicitly requests a version change; the source tag format is `vX.Y.Z`.
+1. Keep the release version at `0.4.0` unless the user explicitly requests a version change; the source tag format is `vX.Y.Z`.
 2. Keep `backend/cmd/server/VERSION`, `frontend/package.json`, release-note filename and asset names consistent.
 3. Update README changelog links/highlights and ensure installation, cloning and download links use `yuchen0x1/sub3api-relay`.
 4. Run relevant backend/frontend tests and inspect all existing worktree edits. Preserve unrelated changes.

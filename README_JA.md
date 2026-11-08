@@ -13,18 +13,18 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.3.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.3.1.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.0 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.0.md)
 
 </div>
 
-## v0.3.1 の主な更新
+## v0.4.0 の主な更新
 
-- GPT-6、Claude 5、Gemini 3.1/4、Grok 系列のデフォルトモデル/エイリアス情報を追加しました（利用可否は上流アカウントに依存します）。
-- ユーザーごとの有効 API Key 数と毎時作成数の上限を追加し、システム設定で調整できます。`0` で制限を無効化します。
-- プロトコル変換時の最小出力 Token 設定を追加しました。既定値は128、最小値は16で、クライアントが指定した小さい上限のみ引き上げます。
-- 画像 multipart のパートサイズ検証を強化し、Cloudflare 1010 をアカウント障害として誤処理しないようにしました。
+- 站内通知センターを新設：ヘッダーのベル通知（未読バッジ）、`/notifications` ページ（タイプ別フィルタ、すべて既読）。残高不足アラートはメールに加えて站内にも通知されます。
+- PWA 対応：コンソールをデスクトップ/ホーム画面にインストール可能。manifest、自動更新 Service Worker、インストールボタン付き。
+- 外観メニューから選べる 6 種類のアクセントカラーと、完全な日本語ロケール（キー整合性テスト付き）。
+- 運用監視グラフの PNG エクスポート、取り消し可能な Toast、モバイル表スクロールとダッシュボードスケルトンの改善。
 
-[完全な v0.3.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.3.1.md)。
+[完全な v0.4.0 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.0.md)。
 
 | ホーム | 利用履歴 |
 | --- | --- |
@@ -38,7 +38,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.3.1 全変更](docs/release-notes/RELEASE_NOTES_v0.3.1.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.4.0 全変更](docs/release-notes/RELEASE_NOTES_v0.4.0.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
