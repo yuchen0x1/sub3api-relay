@@ -107,7 +107,7 @@ WHERE user_id = $1`
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	items := make([]service.UserNotification, 0, limit)
 	for rows.Next() {

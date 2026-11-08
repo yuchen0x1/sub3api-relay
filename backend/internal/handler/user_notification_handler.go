@@ -56,8 +56,8 @@ func (h *UserNotificationHandler) List(c *gin.Context) {
 		out = append(out, *dto.UserNotificationFromService(&result.Items[i]))
 	}
 	response.Success(c, gin.H{
-		"items":        out,
-		"total":        result.Total,
+		"items":         out,
+		"total":         result.Total,
 		"next_after_id": result.NextAfterID,
 	})
 }
