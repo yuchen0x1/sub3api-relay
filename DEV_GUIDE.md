@@ -264,19 +264,29 @@ psql -U sub3api -h 127.0.0.1 -d sub3api -f migration.sql
 ### Git 操作
 
 ```bash
-# 同步上游
-git fetch upstream
-git checkout main
-git merge upstream/main
-git push origin main
+# 主分支是唯一的长期集成与发布来源
+git fetch origin --prune
+git switch main
+git pull --ff-only origin main
 
-# 创建功能分支
-git checkout -b feature/xxx
+# 日常更新使用短期分支提交 PR，合并目标统一为 main
+git switch -c feature/xxx
+git push -u origin feature/xxx
 
-# Rebase 到最新 main
-git fetch upstream
-git rebase upstream/main
+# PR 合并后清理本地与远程短期分支
+git switch main
+git pull --ff-only origin main
+git branch -d feature/xxx
+git push origin --delete feature/xxx
+
+# 发布使用版本标签，不建立长期 release 分支
+git tag vX.Y.Z
+git push origin vX.Y.Z
+
+# Dependabot 分支由自动化维护，合并或关闭对应 PR 后再清理
 ```
+
+分支约定：`main` 是唯一长期分支；功能、缺陷修复和依赖升级分支均为短期分支，PR 合并后删除。发布由 `vX.Y.Z` 标签触发，不保留长期 `upgrade/*`、`release/*` 或 `hotfix/*` 分支。
 
 ### 前端操作
 
