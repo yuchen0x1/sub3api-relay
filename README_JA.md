@@ -1,10 +1,8 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="Sub3API Logo" width="128" />
-
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.10-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -26,18 +24,6 @@
 
 [完全な v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
 
-| ホーム | 利用履歴 |
-| --- | --- |
-| ![Sub3API ホーム](assets/screenshots/v0.1.175/home.webp) | ![利用履歴](assets/screenshots/v0.1.175/usage.webp) |
-
-| システム設定 | 運用監視 |
-| --- | --- |
-| ![システム設定](assets/screenshots/v0.1.175/settings.webp) | ![運用監視](assets/screenshots/v0.1.175/ops-dashboard.webp) |
-
-| チャネル監視 |
-| --- |
-| ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
-
 [v0.4.1 全変更](docs/release-notes/RELEASE_NOTES_v0.4.1.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
@@ -51,7 +37,7 @@
 
 ## 概要
 
-Sub3API は個人利用向けのバックエンド専用 AI API ゲートウェイです。主流クライアント互換の API 中継を提供し、登録、Web UI、決済、商用配布機能は既定で無効です。
+Sub3API は個人利用と小規模チーム向けの AI API ゲートウェイおよび管理プラットフォームです。主流クライアント互換の API 中継と、リリース版・Docker イメージに組み込まれた管理画面を提供します。登録、決済、その他の SaaS 機能はデプロイ方法と設定に応じて有効化・無効化できます。
 
 Sub3API は、個人利用と内部運用向けに、認証、上流アカウントのスケジューリング、利用記録、負荷分散、API 中継を提供します。
 
@@ -80,9 +66,9 @@ Sub3API を拡張・統合するコミュニティプロジェクト（現在は
 
 | コンポーネント | 技術 |
 |-----------|------------|
-| バックエンド | Go 1.26.5, Gin, Ent |
-| データベース | PostgreSQL 15+ |
-| キャッシュ/キュー | Redis 7+ |
+| バックエンド | Go 1.26.10, Gin, Ent, Wire |
+| データベース | PostgreSQL 15+、Docker Compose の既定値は `postgres:18-alpine` |
+| キャッシュ/キュー | Redis 7+、Docker Compose の既定値は `redis:8-alpine` |
 
 ---
 
@@ -102,13 +88,13 @@ Nginx はデフォルトでアンダースコアを含むヘッダー（例: `se
 
 ### 方法1: スクリプトによるインストール（推奨）
 
-GitHub Releases からビルド済みバイナリをダウンロードするワンクリックインストールスクリプトです。CI は資産のビルドと検証のみを行い、GitHub Release と添付ファイルはメンテナーが手動で公開します。
+GitHub Releases からビルド済みバイナリをダウンロードするワンクリックインストールスクリプトです。バージョンタグを push すると、Release workflow が資産をビルド・検証し、GitHub Release と添付ファイルを自動公開します。
 
 #### 前提条件
 
 - Linux サーバー（amd64 または arm64）
-- PostgreSQL 15+（インストール済みかつ稼働中）
-- Redis 7+（インストール済みかつ稼働中）
+- PostgreSQL 15+（インストール済みかつ稼働中。Docker Compose の既定値は 18-alpine）
+- Redis 7+（インストール済みかつ稼働中。Docker Compose の既定値は 8-alpine）
 - root 権限
 
 #### インストール手順
@@ -291,7 +277,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 対象リリースを固定し、イメージを取得してコンテナを再作成
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.187|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.1|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```
@@ -356,11 +342,11 @@ cd sub3api-relay/deploy
 
 #### 前提条件
 
-- Go 1.26.5
+- Go 1.26.10
 - Node.js 24
 - pnpm 11.20.0
-- PostgreSQL 15+
-- Redis 7+
+- PostgreSQL 15+（Docker Compose の既定値は 18-alpine）
+- Redis 7+（Docker Compose の既定値は 8-alpine）
 
 #### ビルド手順
 

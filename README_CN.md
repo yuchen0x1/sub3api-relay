@@ -1,17 +1,15 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="Sub3API Logo" width="128" />
-
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.10-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
 <a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="yuchen0x1%2Fsub3api-relay | Trendshift" width="250" height="55"/></a>
 
-**个人使用的纯后端 AI API 网关**
+**面向个人和小团队的 AI API 网关与管理平台**
 
 [English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)
 
@@ -25,18 +23,6 @@
 - 改进代理处理、调度缓存、桌面端地址配置和管理台设置可靠性。
 
 [完整 v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
-
-| 主页 | 使用记录 |
-| --- | --- |
-| ![Sub3API 主页](assets/screenshots/v0.1.175/home.webp) | ![使用记录](assets/screenshots/v0.1.175/usage.webp) |
-
-| 系统设置 | 运维监控 |
-| --- | --- |
-| ![系统设置](assets/screenshots/v0.1.175/settings.webp) | ![运维监控](assets/screenshots/v0.1.175/ops-dashboard.webp) |
-
-| 渠道监控 |
-| --- |
-| ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
 查看 [v0.4.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
@@ -52,7 +38,7 @@
 
 ## 项目概述
 
-Sub3API 是面向个人使用的纯后端 AI API 网关，提供兼容主流客户端的 API 中转能力，默认关闭注册、前端界面、支付和商业化分发功能。
+Sub3API 是面向个人自建和内部团队的 AI API 网关与管理平台，提供兼容主流客户端的 API 中转能力，并随发行版和 Docker 镜像提供嵌入式管理台。注册、支付和其他 SaaS 能力可按部署模式与配置启用或关闭。
 
 Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和请求转发能力，适合个人自建和内部使用。
 
@@ -81,9 +67,9 @@ Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和�
 
 | 组件 | 技术 |
 |------|------|
-| 后端 | Go 1.26.5, Gin, Ent |
-| 数据库 | PostgreSQL 15+ |
-| 缓存/队列 | Redis 7+ |
+| 后端 | Go 1.26.10, Gin, Ent, Wire |
+| 数据库 | PostgreSQL 15+；Docker Compose 默认 `postgres:18-alpine` |
+| 缓存/队列 | Redis 7+；Docker Compose 默认 `redis:8-alpine` |
 
 ---
 
@@ -103,13 +89,13 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 
 ### 方式一：脚本安装（推荐）
 
-一键安装脚本，从 GitHub Releases 下载预编译二进制。CI 仅构建并验证发行资产，正式 GitHub Release 及其附件由维护者手动发布。
+一键安装脚本，从 GitHub Releases 下载预编译二进制。推送版本标签后，Release workflow 会自动构建、验证并上传 GitHub Release 及其附件。
 
 #### 前置条件
 
 - Linux 服务器（amd64 或 arm64）
-- PostgreSQL 15+（已安装并运行）
-- Redis 7+（已安装并运行）
+- PostgreSQL 15+（已安装并运行；Docker Compose 默认使用 18-alpine）
+- Redis 7+（已安装并运行；Docker Compose 默认使用 8-alpine）
 - Root 权限
 
 #### 安装步骤
@@ -303,7 +289,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 固定目标版本、拉取镜像并重建容器
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.1.187|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.1|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```
@@ -368,11 +354,11 @@ cd sub3api-relay/deploy
 
 #### 前置条件
 
-- Go 1.26.5
+- Go 1.26.10
 - Node.js 24
 - pnpm 11.20.0
-- PostgreSQL 15+
-- Redis 7+
+- PostgreSQL 15+（Docker Compose 默认使用 18-alpine）
+- Redis 7+（Docker Compose 默认使用 8-alpine）
 
 #### 编译步骤
 
