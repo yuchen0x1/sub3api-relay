@@ -11,6 +11,10 @@
 [![Redis](https://img.shields.io/badge/Redis-8--alpine-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
+<p align="center">
+  <img src="assets/sub3api-promo.png" alt="Sub3API AI API 网关宣传图" width="100%">
+</p>
+
 ## v0.4.1 Highlights
 
 - GitHub update checks now fall back to public release pages when the API is rate-limited, while preserving release asset downloads.
