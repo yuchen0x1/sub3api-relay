@@ -283,10 +283,10 @@ git push origin --delete feature/xxx
 git tag vX.Y.Z
 git push origin vX.Y.Z
 
-# Dependabot 分支由自动化维护，合并或关闭对应 PR 后再清理
+# 自动依赖更新分支已关闭；依赖升级由维护者在 main 上统一处理
 ```
 
-分支约定：`main` 是唯一长期分支；功能、缺陷修复和依赖升级分支均为短期分支，PR 合并后删除。发布由 `vX.Y.Z` 标签触发，不保留长期 `upgrade/*`、`release/*` 或 `hotfix/*` 分支。
+分支约定：`main` 是唯一分支。功能、缺陷修复和依赖升级都直接在 `main` 上完成并推送；发布由 `vX.Y.Z` 标签触发，不保留 `upgrade/*`、`dependabot/*`、`release/*` 或 `hotfix/*` 分支。
 
 ### 前端操作
 
