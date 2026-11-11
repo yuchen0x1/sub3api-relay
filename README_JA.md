@@ -13,18 +13,18 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.0 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.0.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)
 
 </div>
 
-## v0.4.0 の主な更新
+## v0.4.1 の主な更新
 
-- 站内通知センターを新設：ヘッダーのベル通知（未読バッジ）、`/notifications` ページ（タイプ別フィルタ、すべて既読）。残高不足アラートはメールに加えて站内にも通知されます。
-- PWA 対応：コンソールをデスクトップ/ホーム画面にインストール可能。manifest、自動更新 Service Worker、インストールボタン付き。
-- 外観メニューから選べる 6 種類のアクセントカラーと、完全な日本語ロケール（キー整合性テスト付き）。
-- 運用監視グラフの PNG エクスポート、取り消し可能な Toast、モバイル表スクロールとダッシュボードスケルトンの改善。
+- GitHub API がレート制限された場合、更新確認は公開 Release ページへ自動的にフォールバックし、リリース資産のダウンロードも維持します。
+- Docker のローカル開発ではホストのループバック公開経由で setup ウィザードを利用でき、公開バインドの初期化保護は維持されます。
+- Vertex 管理 GCS bucket を設定していないローカル環境で、バッチ画像設定による再起動ループを防ぎます。
+- プロキシ処理、スケジューラキャッシュ、デスクトップの接続先設定、管理画面設定の信頼性を改善しました。
 
-[完全な v0.4.0 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.0.md)。
+[完全な v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
 
 | ホーム | 利用履歴 |
 | --- | --- |
@@ -38,7 +38,7 @@
 | --- |
 | ![チャネル監視](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-[v0.4.0 全変更](docs/release-notes/RELEASE_NOTES_v0.4.0.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.4.1 全変更](docs/release-notes/RELEASE_NOTES_v0.4.1.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 

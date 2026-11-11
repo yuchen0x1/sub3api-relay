@@ -143,7 +143,25 @@ func isLocalSetupRequest(req *http.Request) bool {
 		host = strings.Trim(strings.TrimSpace(req.RemoteAddr), "[]")
 	}
 	addr, err := netip.ParseAddr(host)
-	return err == nil && addr.Unmap().IsLoopback()
+	if err != nil {
+		return false
+	}
+	addr = addr.Unmap()
+	if addr.IsLoopback() {
+		return true
+	}
+
+	// Docker Desktop/NAT rewrites a host-loopback connection to the
+	// container's bridge gateway (for example, 172.18.0.1).  Compose passes
+	// the host bind address explicitly so this compatibility path is only
+	// enabled when the published port is actually bound to a loopback host
+	// address.  It never trusts forwarded headers and it remains disabled for
+	// publicly bound deployments.
+	return addr.IsPrivate() && isDockerLoopbackBinding()
+}
+
+func isDockerLoopbackBinding() bool {
+	return isLocalSetupHost(strings.TrimSpace(os.Getenv("SETUP_DOCKER_BIND_HOST")))
 }
 
 func isLocalSetupHost(rawHost string) bool {

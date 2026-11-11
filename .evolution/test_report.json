@@ -1,0 +1,25 @@
+{
+  "run_at": "2026-11-12",
+  "environment": {
+    "os": "Windows",
+    "docker": "client 29.9.3 present; Linux daemon unavailable",
+    "go": "not available on current PATH",
+    "node": "available",
+    "pnpm": "11.20.0"
+  },
+  "results": [
+    {"scope":"frontend typecheck","command":"pnpm typecheck","status":"PASS","evidence":"vue-tsc exited 0"},
+    {"scope":"frontend lint","command":"pnpm lint:check -- --quiet","status":"PASS","evidence":"eslint exited 0 after removing the unused trackMount warning"},
+    {"scope":"frontend unit/component tests","command":"pnpm test:run","status":"PASS","evidence":"226 files, 1538 tests passed; jsdom emitted network AggregateError noise but process exited 0"},
+    {"scope":"frontend production build","command":"pnpm build","status":"PASS (previous baseline)","evidence":"recorded by frontend audit; chunk-size warnings remain"},
+    {"scope":"targeted AccountsView regression","command":"pnpm test:run -- src/views/admin/__tests__/AccountsView.bulkEdit.spec.ts","status":"PASS","evidence":"1 file, 7 tests passed"},
+    {"scope":"desktop TypeScript","command":"desktop/node_modules/.bin/tsc.cmd -b","status":"PASS","evidence":"direct local binary exited 0"},
+    {"scope":"desktop production build","command":"desktop/node_modules/.bin/vite.cmd build","status":"PASS","evidence":"41 modules transformed; build exited 0"},
+    {"scope":"desktop tests","command":"desktop/node_modules/.bin/vitest.cmd run","status":"PASS","evidence":"4 files, 19 tests passed"},
+    {"scope":"backend build/unit/vet","command":"go build / go test -tags=unit / go vet","status":"NOT RUN THIS TURN","evidence":"Go executable absent from PATH; prior verified results are recorded in .autonomous-upgrade/UPGRADE_LOG.md"},
+    {"scope":"backend integration","command":"Docker-backed PostgreSQL/Redis tests","status":"BLOCKED","evidence":"Docker daemon npipe unavailable; integration harness is designed to skip locally when Docker is absent"},
+    {"scope":"desktop package scripts","command":"pnpm --dir desktop build/test","status":"BLOCKED","evidence":"pnpm attempted install and stopped at ERR_PNPM_IGNORED_BUILDS for esbuild; direct binaries passed"},
+    {"scope":"browser E2E / live deployment","command":"Playwright/live service","status":"NOT RUN","evidence":"No project service was started and no external deployment was claimed"}
+  ],
+  "regression_summary":"All runnable frontend and desktop checks passed. Backend and Docker-backed integration status remains unverified in this workstation and is not marked passed."
+}

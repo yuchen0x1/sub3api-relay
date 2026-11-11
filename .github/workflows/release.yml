@@ -1,4 +1,4 @@
-name: Release build validation
+name: Release build and publish
 
 on:
   push:
@@ -7,12 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag to validate (e.g., v0.3.1); this workflow does not publish a release"
+        description: "Version tag to validate and build (e.g., v0.3.1); manual runs do not publish a release"
         required: true
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-and-validate:
@@ -38,7 +38,7 @@ jobs:
           test "$(tr -d '\r\n' < backend/cmd/server/VERSION)" = "$VERSION"
           test "$(node -p "require('./frontend/package.json').version")" = "$VERSION"
           test -s "$NOTES"
-          echo "Validated $RELEASE_TAG. This workflow builds assets only; it does not publish a GitHub Release."
+          echo "Validated $RELEASE_TAG. Tag-triggered runs publish the GitHub Release after the assets pass validation."
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -97,7 +97,7 @@ jobs:
           rm -rf "$deploy_bundle"
           printf 'Built local CI assets in release-assets/:\n'
           ls -1 release-assets
-          printf 'No GitHub release, tag, or container image was published; build outputs are workflow artifacts only.\n'
+          printf 'Built release assets for %s. A tag-triggered run publishes them below; manual runs remain validation-only.\n' "$RELEASE_TAG"
 
       - name: Build container image (no push)
         run: |
@@ -111,3 +111,16 @@ jobs:
           name: sub3api-${{ env.RELEASE_TAG }}-release-assets
           path: release-assets/*
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Sub3API ${{ env.RELEASE_TAG }}
+          body_path: docs/release-notes/RELEASE_NOTES_${{ env.RELEASE_TAG }}.md
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

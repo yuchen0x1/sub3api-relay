@@ -184,3 +184,7 @@ desktop/vitest.config.js
 .zcode/
 /data/
 dist-release/
+
+# 发行构建产物（由 .github/workflows/release.yml 生成，仅作 workflow artifact 上传）
+# 单个版本目录可达数百 MB，不进入版本库
+release-assets/

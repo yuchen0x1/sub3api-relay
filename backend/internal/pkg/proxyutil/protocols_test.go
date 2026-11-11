@@ -1,6 +1,7 @@
 package proxyutil
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -11,6 +12,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"hash/fnv"
 	"io"
 	"math/big"
@@ -333,22 +335,30 @@ func TestTrojanDialerEndToEnd(t *testing.T) {
 
 // --- VMess end-to-end against a local AEAD server ---
 
-func startFakeVMESSListener(t *testing.T) net.Listener {
+func startFakeVMESSListener(t *testing.T) (net.Listener, <-chan error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+	serverErrs := make(chan error, 1)
 	go func() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
 				return
 			}
-			go handleFakeVMESSConn(conn)
+			go func() {
+				if err := handleFakeVMESSConn(conn); err != nil {
+					select {
+					case serverErrs <- err:
+					default:
+					}
+				}
+			}()
 		}
 	}()
-	return listener
+	return listener, serverErrs
 }
 
-func handleFakeVMESSConn(conn net.Conn) {
+func handleFakeVMESSConn(conn net.Conn) error {
 	defer func() { _ = conn.Close() }()
 	const (
 		saltHeaderLenKey = "VMess Header AEAD Key_Length"
@@ -365,46 +375,69 @@ func handleFakeVMESSConn(conn net.Conn) {
 
 	var authID [16]byte
 	if _, err := io.ReadFull(conn, authID[:]); err != nil {
-		return
+		return fmt.Errorf("read auth id: %w", err)
 	}
 	var sealedLength [18]byte
 	if _, err := io.ReadFull(conn, sealedLength[:]); err != nil {
-		return
+		return fmt.Errorf("read sealed header length: %w", err)
 	}
 	var nonce [8]byte
 	if _, err := io.ReadFull(conn, nonce[:]); err != nil {
-		return
+		return fmt.Errorf("read header nonce: %w", err)
 	}
 	lengthGCM := vmessAESGCM(vmessKDF16(cmdKey, saltHeaderLenKey, string(authID[:]), string(nonce[:])))
 	lengthPlain, err := lengthGCM.Open(nil, vmessKDF(cmdKey, saltHeaderLenIV, string(authID[:]), string(nonce[:]))[:12], sealedLength[:], authID[:])
 	if err != nil {
-		return
+		return fmt.Errorf("decrypt header length: %w", err)
 	}
 	headerLength := int(binary.BigEndian.Uint16(lengthPlain))
 	sealedHeader := make([]byte, headerLength+16)
 	if _, err := io.ReadFull(conn, sealedHeader); err != nil {
-		return
+		return fmt.Errorf("read encrypted header: %w", err)
 	}
 	headerGCM := vmessAESGCM(vmessKDF16(cmdKey, saltHeaderKey, string(authID[:]), string(nonce[:])))
 	header, err := headerGCM.Open(nil, vmessKDF(cmdKey, saltHeaderIV, string(authID[:]), string(nonce[:]))[:12], sealedHeader, authID[:])
 	if err != nil {
-		return
+		return fmt.Errorf("decrypt request header: %w", err)
 	}
 	// header: [1 ver][16 IV][16 key][1 respAuth][1 opt][1 sec][1 rsv][1 cmd][addr][FNV4]
 	if len(header) < 42 || header[0] != 1 {
-		return
+		return fmt.Errorf("invalid request header: length=%d version=%d", len(header), header[0])
 	}
 	reqIV := header[1:17]
 	reqKey := header[17:33]
 	respAuth := header[33]
 	opt := header[34]
 	if opt&vmessOptChunkStream == 0 || opt&vmessOptChunkMasking == 0 {
-		return
+		return fmt.Errorf("request options lack chunk stream/masking: %02x", opt)
 	}
 	fnv1a := fnv.New32a()
 	_, _ = fnv1a.Write(header[:len(header)-4])
 	if binary.BigEndian.Uint32(header[len(header)-4:]) != fnv1a.Sum32() {
-		return
+		return fmt.Errorf("request header checksum mismatch")
+	}
+	// Consume and authenticate the client's first request chunk before closing
+	// the TCP connection. Closing with unread client data can produce a reset
+	// on Windows and make the response appear intermittently truncated.
+	requestMask := vmessShakeMask(reqIV)
+	var requestLength [2]byte
+	if _, err := io.ReadFull(conn, requestLength[:]); err != nil {
+		return fmt.Errorf("read request chunk length: %w", err)
+	}
+	requestSize := binary.BigEndian.Uint16(requestLength[:]) ^ nextMaskForTest(requestMask)
+	if requestSize == 0 {
+		return fmt.Errorf("empty request chunk")
+	}
+	requestCiphertext := make([]byte, int(requestSize)+16)
+	if _, err := io.ReadFull(conn, requestCiphertext); err != nil {
+		return fmt.Errorf("read encrypted request chunk: %w", err)
+	}
+	requestPayload, err := vmessAESGCM(reqKey).Open(nil, vmessChunkNonce(reqIV, 0), requestCiphertext, nil)
+	if err != nil {
+		return fmt.Errorf("decrypt request chunk: %w", err)
+	}
+	if !bytes.Contains(requestPayload, []byte("GET /anything HTTP/1.1")) {
+		return fmt.Errorf("unexpected HTTP request payload: %q", requestPayload)
 	}
 
 	reqKeyHash := sha256.Sum256(reqKey)
@@ -422,8 +455,8 @@ func handleFakeVMESSConn(conn net.Conn) {
 
 	out := respLenGCM.Seal(nil, respLenIV, []byte{0, byte(len(respHeaderPayload))}, nil)
 	out = append(out, respHeaderGCM.Seal(nil, respHeaderIV, respHeaderPayload, nil)...)
-	if _, err := conn.Write(out); err != nil {
-		return
+	if err := writeVMESSRecord(conn, out); err != nil {
+		return fmt.Errorf("write response header: %w", err)
 	}
 
 	// body: masked chunks under respKey/respIV.
@@ -433,15 +466,15 @@ func handleFakeVMESSConn(conn net.Conn) {
 		var sizeBytes [2]byte
 		binary.BigEndian.PutUint16(sizeBytes[:], uint16(len(payload))^mask)
 		sealed := respBodyGCM.Seal(nil, vmessChunkNonce(respIV, counter), payload, nil)
-		if _, err := conn.Write(sizeBytes[:]); err != nil {
+		if err := writeVMESSRecord(conn, sizeBytes[:]); err != nil {
 			return false
 		}
-		_, err := conn.Write(sealed)
-		return err == nil
+		return writeVMESSRecord(conn, sealed) == nil
 	}
 	if !writeChunk(0, []byte("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nvm")) {
-		return
+		return fmt.Errorf("write response body chunk")
 	}
+	return nil
 }
 
 func nextMaskForTest(shake interface{ Read([]byte) (int, error) }) uint16 {
@@ -451,7 +484,7 @@ func nextMaskForTest(shake interface{ Read([]byte) (int, error) }) uint16 {
 }
 
 func TestVMESSDialerEndToEnd(t *testing.T) {
-	listener := startFakeVMESSListener(t)
+	listener, serverErrs := startFakeVMESSListener(t)
 	defer func() { _ = listener.Close() }()
 
 	addr, ok := listener.Addr().(*net.TCPAddr)
@@ -468,6 +501,13 @@ func TestVMESSDialerEndToEnd(t *testing.T) {
 
 	client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
 	resp, err := client.Get("http://target.example.com/anything")
+	if err != nil {
+		select {
+		case serverErr := <-serverErrs:
+			t.Fatalf("fake VMess server rejected request: %v (client error: %v)", serverErr, err)
+		default:
+		}
+	}
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)

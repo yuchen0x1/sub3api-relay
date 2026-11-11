@@ -3,6 +3,7 @@ package repository
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
@@ -17,6 +18,21 @@ func http2KeepAliveTestPoolSettings() poolSettings {
 		idleConnTimeout:       90 * time.Second,
 		responseHeaderTimeout: time.Minute,
 	}
+}
+
+// Go 1.26 exposes explicit HTTP/2 configuration through TLSNextProto, while
+// Go 1.27 moved it to Transport.Protocols. Inspect the public HTTP2() method
+// reflectively so this test remains buildable with both supported toolchains.
+func transportHasHTTP2ForTest(tr *http.Transport) bool {
+	if tr.TLSNextProto["h2"] != nil {
+		return true
+	}
+	protocols := reflect.ValueOf(tr).Elem().FieldByName("Protocols")
+	if !protocols.IsValid() || protocols.IsNil() {
+		return false
+	}
+	method := protocols.Elem().MethodByName("HTTP2")
+	return method.IsValid() && method.Call(nil)[0].Bool()
 }
 
 // Codex/OpenAI 上游改走 HTTP/2 后，池化连接被代理/NAT 静默掐断会成为“死连接”：
@@ -34,7 +50,7 @@ func TestEnableOpenAIHTTP2KeepAlive_EnablesPingHealthCheck(t *testing.T) {
 	require.Positive(t, h2.ReadIdleTimeout, "必须启用空闲 PING 探测以剔除死连接")             //nolint:staticcheck // 断言弃用字段的配置效果
 	require.Equal(t, openAIHTTP2ReadIdleTimeout, h2.ReadIdleTimeout)            //nolint:staticcheck // 见上
 	require.Equal(t, openAIHTTP2PingTimeout, h2.PingTimeout, "PING 无响应必须有超时判定") //nolint:staticcheck // 见上
-	require.NotNil(t, tr.TLSNextProto["h2"], "http2 必须已挂到底层 http.Transport 上")
+	require.True(t, transportHasHTTP2ForTest(tr), "HTTP/2 必须已配置到底层 http.Transport")
 }
 
 // openai_h2 模式构建的 Transport 必须带上 H2 PING 健康探测，从源头剔除死连接。
@@ -42,7 +58,7 @@ func TestBuildUpstreamTransport_OpenAIH2_EnablesPingHealthCheck(t *testing.T) {
 	tr, err := buildUpstreamTransport(http2KeepAliveTestPoolSettings(), nil, upstreamProtocolModeOpenAIH2)
 	require.NoError(t, err)
 	require.True(t, tr.ForceAttemptHTTP2, "openai_h2 必须启用 HTTP/2")
-	require.NotNil(t, tr.TLSNextProto["h2"], "openai_h2 必须显式配置 http2 以启用 ReadIdleTimeout")
+	require.True(t, transportHasHTTP2ForTest(tr), "openai_h2 必须显式启用 HTTP/2")
 }
 
 // 非 H2 模式（default/h1）不应因本次改动被误配置：default 走 Go 自动 H2（惰性配置，
@@ -62,6 +78,6 @@ func TestBuildUpstreamTransport_OpenAIH2_WithHTTPProxy_EnablesKeepAlive(t *testi
 	tr, err := buildUpstreamTransport(http2KeepAliveTestPoolSettings(), proxyURL, upstreamProtocolModeOpenAIH2)
 	require.NoError(t, err)
 	require.True(t, tr.ForceAttemptHTTP2)
-	require.NotNil(t, tr.TLSNextProto["h2"], "经代理的 openai_h2 也必须启用 http2 keepalive")
+	require.True(t, transportHasHTTP2ForTest(tr), "经代理的 openai_h2 也必须启用 HTTP/2")
 	require.NotNil(t, tr.Proxy, "HTTP 代理仍须通过 Transport.Proxy 生效")
 }

@@ -91,6 +91,7 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
   const [reloadToken, setReloadToken] = useState(0)
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [mutationError, setMutationError] = useState<unknown>(null)
   const [formAccountId, setFormAccountId] = useState("")
   const [formProxyId, setFormProxyId] = useState("")
   const [formName, setFormName] = useState("")
@@ -141,6 +142,7 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
       totalCapacity: summary?.totalCapacity ?? exits.length * perAssignment,
     }
   }, [summary, exits])
+  const mutationErrorCopy = mutationError ? errorCopy(mutationError) : null
 
   function resetConfirmTimer() {
     if (confirmTimer.current !== null) window.clearTimeout(confirmTimer.current)
@@ -152,9 +154,12 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
 
   async function runExitMutation(exit: StaticProxyExit, action: () => Promise<unknown>) {
     setPendingId(exit.id)
+    setMutationError(null)
     try {
       await action()
       reload()
+    } catch (mutationFailure: unknown) {
+      setMutationError(mutationFailure)
     } finally {
       setPendingId(null)
     }
@@ -224,6 +229,7 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
       </form>
       <p className="exit-capacity-note">Each enabled exit contributes {formatNumber(stats.perAssignment || 10)} concurrent slots; multiple exits on one account multiply the account capacity.</p>
       {formError ? <div className="error-panel" role="alert"><strong>Could not add the exit</strong><p>{formError}</p></div> : null}
+      {mutationErrorCopy ? <div className="error-panel" role="alert"><strong>{mutationErrorCopy.title}</strong><p>{mutationErrorCopy.detail}</p></div> : null}
 
       <div className="table-frame">
         <div className="table-toolbar"><h3>Static exit assignments</h3><button className="refresh-button" type="button" onClick={reload}>Refresh</button></div>

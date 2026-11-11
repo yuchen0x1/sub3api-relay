@@ -201,7 +201,9 @@ func (s *PasskeyService) BeginRegistration(
 		waUser,
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
 		webauthn.WithExclusions(webauthn.Credentials(waUser.credentials).CredentialDescriptors()),
-		webauthn.WithExtensions(protocol.AuthenticationExtensions{"credProps": true}),
+		// webauthn v0.18 起扩展改为带 ceremony 校验的 ExtensionOption，
+		// credProps 提供专用构造器；原先的 map 字面量不再被接受。
+		webauthn.WithExtensions(webauthn.WithExtensionCredProps()),
 	)
 	if err != nil {
 		return nil, "", fmt.Errorf("begin passkey registration: %w", err)

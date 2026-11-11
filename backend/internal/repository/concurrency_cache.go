@@ -843,6 +843,26 @@ func (c *concurrencyCache) GetStaticProxyLiveConcurrency(ctx context.Context, ac
 	}, liveLeaseTTLSeconds).Int()
 }
 
+// RefreshStaticProxyLiveSlot renews an existing live static-proxy reservation.
+// Both the account aggregate member and the assignment member must still be
+// present; if either has expired (or was released), the whole reservation is
+// considered lost and callers must re-acquire. Renewing both keys in one Lua
+// script keeps the aggregate and assignment views consistent with Redis
+// Cluster hash tags.
+func (c *concurrencyCache) RefreshStaticProxyLiveSlot(ctx context.Context, accountID, staticProxyID int64, requestID string) (bool, error) {
+	if c == nil || c.rdb == nil || accountID <= 0 || staticProxyID <= 0 || requestID == "" {
+		return false, nil
+	}
+	result, err := refreshLiveLeaseScript.Run(ctx, c.rdb, []string{
+		staticProxyLiveAggregateKey(accountID),
+		staticProxyLiveAssignmentKey(accountID, staticProxyID),
+	}, liveLeaseTTLSeconds, requestID).Int()
+	if err != nil {
+		return false, err
+	}
+	return result == 1, nil
+}
+
 func (c *concurrencyCache) GetAccountConcurrency(ctx context.Context, accountID int64) (int, error) {
 	key := accountSlotKey(accountID)
 	// 时间戳在 Lua 脚本内使用 Redis TIME 命令获取

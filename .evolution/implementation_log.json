@@ -1,0 +1,24 @@
+{
+  "changes": [
+    {
+      "priority": "P2",
+      "files": ["desktop/src/features/staticExits/components/StaticExitsPage.tsx"],
+      "change": "Catch static-exit toggle/delete failures and render the existing normalized API/network error copy instead of creating an unhandled rejected Promise.",
+      "verification": "desktop TypeScript build and Vitest suite passed via direct local binaries"
+    },
+    {
+      "priority": "P2",
+      "files": ["desktop/src/lib/config.ts", "desktop/README.md"],
+      "change": "Align the desktop default API URL with the repository development backend at http://127.0.0.1:18081 while preserving VITE_SUB3API_BASE_URL override support.",
+      "verification": "desktop TypeScript build and Vite production build passed"
+    },
+    {
+      "priority": "P3",
+      "files": ["frontend/src/views/admin/__tests__/AccountsView.bulkEdit.spec.ts"],
+      "change": "Use the existing wrapper tracking helper for all mounts, removing the lint warning and making the async-component teardown cleanup effective.",
+      "verification": "targeted 7-test suite, lint --quiet, and typecheck passed"
+    }
+  ],
+  "preexisting_changes_preserved": true,
+  "no_git_reset_or_remote_push": true
+}

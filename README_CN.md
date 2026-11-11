@@ -13,18 +13,18 @@
 
 **个人使用的纯后端 AI API 网关**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.0 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)
 
 </div>
 
-## v0.4.0 更新重点
+## v0.4.1 更新重点
 
-- 新增站内通知中心：顶栏通知铃铛、`/notifications` 页面（类型筛选、全部标记已读）；余额不足提醒除邮件外同步落站内。
-- 新增 PWA 支持：可将控制台安装到桌面/主屏，含 manifest、自动更新的 Service Worker 与安装按钮。
-- 新增 6 套强调色（外观菜单切换）与完整日语语言包，附键集一致性测试。
-- 运维图表支持 PNG 导出，Toast 支持撤销操作，移动端表格滚动与仪表盘骨架屏体验优化。
+- GitHub API 限流时，更新检查会自动回退到公开 Release 页面，并保留发布资产下载能力。
+- Docker 本地开发通过宿主机回环端口访问 setup 向导，同时继续保护公开绑定的初始化入口。
+- 本地未配置 Vertex 托管 GCS bucket 时不会再因批量图片配置进入重启循环。
+- 改进代理处理、调度缓存、桌面端地址配置和管理台设置可靠性。
 
-[完整 v0.4.0 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)。
+[完整 v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
 
 | 主页 | 使用记录 |
 | --- | --- |
@@ -38,7 +38,7 @@
 | --- |
 | ![渠道监控](assets/screenshots/v0.1.175/channel-monitor.webp) |
 
-查看 [v0.4.0 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.0.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.4.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒

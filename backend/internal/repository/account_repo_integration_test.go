@@ -82,10 +82,21 @@ type failAtomicSchedulerOutboxSQLExecutor struct {
 	sqlExecutor
 }
 
+// failAtomicSchedulerOutboxSQLExecutor 让 scheduler_outbox 的 INSERT 失败，
+// 用于验证 "更新账号 + 写入 outbox" 这条单语句事务会整体回滚。
+//
+// 实现要点：必须破坏真正的 NOT NULL 列 event_type（SQL 中的 $8，即从 0 开始的
+// args[7]）。早先这里改的是 args[len(args)-1]，也就是最后一个参数
+// expectedDigest（$9）。那把 CAS 摘要置空只会让 WHERE 条件不匹配、UPDATE
+// 影响 0 行，INSERT 因此没有行可插，语句既不报错也不回滚，
+// 于是测试看到 err == nil 且 applied == false。必须按参数语义定位。
 func (e *failAtomicSchedulerOutboxSQLExecutor) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	if strings.Contains(query, "WITH updated AS") && strings.Contains(query, "INSERT INTO scheduler_outbox") && len(args) > 0 {
-		args = append([]any(nil), args...)
-		args[len(args)-1] = nil // event_type is NOT NULL; the whole statement must roll back.
+	if strings.Contains(query, "WITH updated AS") && strings.Contains(query, "INSERT INTO scheduler_outbox") {
+		const eventTypeArgIndex = 7 // $8 = event_type（NOT NULL）
+		if len(args) > eventTypeArgIndex {
+			args = append([]any(nil), args...)
+			args[eventTypeArgIndex] = nil
+		}
 	}
 	return e.sqlExecutor.ExecContext(ctx, query, args...)
 }

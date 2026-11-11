@@ -303,16 +303,18 @@ func newVMESSSession(cfg *vmessConfig, conn net.Conn, destHost string, destPort 
 	if _, err := rand.Read(session.reqIV[:]); err != nil {
 		return nil, fmt.Errorf("generate vmess request IV: %w", err)
 	}
-	if _, err := rand.Read([]byte{session.respAuth}); err != nil {
+	var respAuth [1]byte
+	if _, err := rand.Read(respAuth[:]); err != nil {
 		return nil, fmt.Errorf("generate vmess response marker: %w", err)
 	}
+	session.respAuth = respAuth[0]
 	session.reqMask = vmessShakeMask(session.reqIV[:])
 
 	instruction, err := buildVMESSInstruction(session, cfg, destHost, destPort)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := conn.Write(sealVMESSAEADHeader(vmessCmdKey(cfg.UUID), instruction)); err != nil {
+	if err := writeVMESSRecord(conn, sealVMESSAEADHeader(vmessCmdKey(cfg.UUID), instruction)); err != nil {
 		return nil, fmt.Errorf("write vmess request header: %w", err)
 	}
 	return session, nil
@@ -433,15 +435,31 @@ func (s *vmessSession) Write(p []byte) (int, error) {
 		binary.BigEndian.PutUint16(header[:], size)
 		sealed := aead.Seal(nil, vmessChunkNonce(s.reqIV[:], s.reqChunks), chunk, nil)
 		s.reqChunks++
-		if _, err := s.Conn.Write(header[:]); err != nil {
+		if err := writeVMESSRecord(s.Conn, header[:]); err != nil {
 			return total, fmt.Errorf("write vmess chunk length: %w", err)
 		}
-		if _, err := s.Conn.Write(sealed); err != nil {
+		if err := writeVMESSRecord(s.Conn, sealed); err != nil {
 			return total, fmt.Errorf("write vmess chunk payload: %w", err)
 		}
 		total = end
 	}
 	return total, nil
+}
+
+// writeVMESSRecord handles short writes from net.Conn implementations while
+// preserving the record boundary on the wire.
+func writeVMESSRecord(conn net.Conn, record []byte) error {
+	for len(record) > 0 {
+		n, err := conn.Write(record)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return io.ErrShortWrite
+		}
+		record = record[n:]
+	}
+	return nil
 }
 
 // openResponseHeader decrypts the AEAD response header on first read.

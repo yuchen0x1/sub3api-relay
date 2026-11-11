@@ -11,14 +11,14 @@
 [![Redis](https://img.shields.io/badge/Redis-8--alpine-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-## v0.4.0 Highlights
+## v0.4.1 Highlights
 
-- In-app notification center: header bell with unread badge, `/notifications` page with type filters and mark-all-read; low-balance alerts now land in-app alongside email.
-- PWA support: install the console to desktop/home screen with manifest, auto-updating service worker and install buttons.
-- Six accent themes via the new appearance menu, plus a complete Japanese locale with key-parity tests.
-- Operational chart PNG export, undoable toasts, and smoother mobile table scrolling and dashboard skeletons.
+- GitHub update checks now fall back to public release pages when the API is rate-limited, while preserving release asset downloads.
+- Docker local setup works through host-loopback port mapping and keeps setup protection enabled for public bindings.
+- Local development no longer enters a restart loop when Vertex batch output has no managed GCS bucket configured.
+- Reliability updates improve proxy handling, scheduling caches, desktop endpoint configuration and administrative settings.
 
-[Full v0.4.0 release notes](docs/release-notes/RELEASE_NOTES_v0.4.0.md).
+[Full v0.4.1 release notes](docs/release-notes/RELEASE_NOTES_v0.4.1.md).
 
 ## Project Overview
 
@@ -92,7 +92,7 @@ Default URL: `http://127.0.0.1:8080`.
 
 ### 一键准备 Docker 部署文件
 
-`deploy/docker-deploy.sh` downloads a version-pinned deployment bundle from the canonical GitHub Release and verifies its SHA-256 checksums before writing files. The release build workflow only validates and builds assets; a maintainer must manually attach the generated bundles to the GitHub Release before this installer is usable.
+`deploy/docker-deploy.sh` downloads a version-pinned deployment bundle from the canonical GitHub Release and verifies its SHA-256 checksums before writing files. Pushing a version tag runs the release workflow, which validates the build and attaches the generated bundles to that GitHub Release automatically.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yuchen0x1/sub3api-relay/main/deploy/docker-deploy.sh | bash
@@ -264,6 +264,16 @@ underscores_in_headers on;
 - 数据库迁移必须新增 SQL 文件，不要修改已发布或可能已应用的迁移文件。
 - 涉及部署、环境变量或公开 API 的改动，需要同步更新 README 或 `deploy/`、`docs/` 下对应文档。
 - Release 版本需要保持 `backend/cmd/server/VERSION` 与 `frontend/package.json` 一致。
+
+## Star History
+
+<a href="https://star-history.com/#yuchen0x1/sub3api-relay&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yuchen0x1/sub3api-relay&type=Date" />
+ </picture>
+</a>
 
 ## License
 

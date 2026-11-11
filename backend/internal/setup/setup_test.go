@@ -176,6 +176,7 @@ func TestCompleteAdminSetupRejectsWithoutPendingMarker(t *testing.T) {
 }
 
 func TestIsLocalSetupRequest(t *testing.T) {
+	t.Setenv("SETUP_DOCKER_BIND_HOST", "")
 	tests := []struct {
 		name       string
 		remoteAddr string
@@ -189,6 +190,7 @@ func TestIsLocalSetupRequest(t *testing.T) {
 		{name: "public address", remoteAddr: "203.0.113.10:12345", host: "127.0.0.1:8080", want: false},
 		{name: "DNS rebinding host", remoteAddr: "127.0.0.1:12345", host: "attacker.example", want: false},
 		{name: "forwarded loopback", remoteAddr: "127.0.0.1:12345", host: "127.0.0.1:8080", headers: http.Header{"X-Forwarded-For": []string{"203.0.113.10"}}, want: false},
+		{name: "docker bridge without opt-in", remoteAddr: "172.18.0.1:12345", host: "127.0.0.1:8080", want: false},
 	}
 
 	for _, test := range tests {
@@ -202,6 +204,30 @@ func TestIsLocalSetupRequest(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("docker bridge with loopback host binding", func(t *testing.T) {
+		t.Setenv("SETUP_DOCKER_BIND_HOST", "127.0.0.1")
+		req := &http.Request{
+			RemoteAddr: "172.18.0.1:12345",
+			Host:       "localhost:8080",
+			Header:     make(http.Header),
+		}
+		if !isLocalSetupRequest(req) {
+			t.Fatal("Docker bridge request should be local when the published host bind is loopback")
+		}
+	})
+
+	t.Run("docker bridge with public host binding", func(t *testing.T) {
+		t.Setenv("SETUP_DOCKER_BIND_HOST", "0.0.0.0")
+		req := &http.Request{
+			RemoteAddr: "172.18.0.1:12345",
+			Host:       "localhost:8080",
+			Header:     make(http.Header),
+		}
+		if isLocalSetupRequest(req) {
+			t.Fatal("Docker bridge request should remain remote when the published host bind is public")
+		}
+	})
 }
 
 func TestValidateSetupTargetAddress(t *testing.T) {

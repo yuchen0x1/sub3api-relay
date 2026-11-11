@@ -515,8 +515,10 @@ const baseSettingsResponse = {
   },
 };
 
+const mountedWrappers: { unmount: () => void }[] = []
+
 function mountView() {
-  return mount(SettingsView, {
+  const wrapper = mount(SettingsView, {
     global: {
       stubs: {
         AppLayout: AppLayoutStub,
@@ -531,9 +533,12 @@ function mountView() {
         ProxySelector: true,
         ImageUpload: ImageUploadStub,
         BackupSettings: true,
+        SettingRevisionsModal: true,
       },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 async function openGatewayTab(wrapper: ReturnType<typeof mountView>) {

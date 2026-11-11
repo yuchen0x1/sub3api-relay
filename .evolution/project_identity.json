@@ -1,0 +1,17 @@
+{
+  "project_name": "Sub3API",
+  "project_root": "E:\\移动云盘同步盘\\Sub3api",
+  "repository": "https://github.com/yuchen0x1/sub3api-relay.git",
+  "branch": "upgrade/autonomous-2026-11-10",
+  "head": "4ba6d66f76e768f202d8b80e9258f5856d0cd508",
+  "version": "0.4.0",
+  "project_type": ["AI API gateway", "web administration platform", "Tauri desktop application"],
+  "stack": {
+    "backend": "Go 1.26.10, Gin, Ent, PostgreSQL/SQLite, Redis",
+    "frontend": "Vue 3, TypeScript, Vite 8, Pinia, Vue Router, Tailwind CSS",
+    "desktop": "React 19, Vite 7, Tauri 2"
+  },
+  "task_id": "evolution-2026-11-12-sub3api",
+  "scope": "single project only",
+  "generated_at": "2026-11-12T02:00:00+08:00"
+}

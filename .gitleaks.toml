@@ -1,0 +1,140 @@
+# gitleaks 配置
+#
+# 目标：每周定时扫描保持绿色，让真正的凭据泄漏能被看见。
+#
+# 历史上 Secret Scanning 报告 135 条，经逐条核对全部为误报，分为四类：
+#   1. 公开的 OAuth 客户端凭据（Google Gemini CLI / Antigravity）。
+#      这类 client_secret 随官方客户端分发，不构成凭据泄漏；
+#      允许用户用环境变量覆盖，见 internal/pkg/geminicli/constants.go。
+#   2. 测试用占位密钥（0123456789abcdef…、DUMMY、wx_prepay_123 等）。
+#   3. generic-api-key 规则误判的标识符与 SQL 列名
+#      （token_consumed、sora_s3_bucket、aliyun_captcha_access_key_secret …）。
+#   4. 文档/示例配置里的演示值（docs/、ADMIN_PAYMENT_INTEGRATION_API.md、
+#      deploy/*.example）。
+#
+# 这里按“具体值”豁免，而不是整目录放行：将来若在测试或文档中写入真实密钥，
+# 只要值不匹配下面这些模式，仍会被扫出。
+
+title = "Sub3API gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "已人工核实的误报；详见文件头说明"
+regexTarget = "match"
+regexes = [
+  # --- 1. 公开 OAuth 客户端凭据（官方客户端内置，非机密） ---
+  # Gemini CLI / Google Code Assist
+  '''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''',
+  # Antigravity OAuth 客户端
+  '''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''',
+
+  # --- 2. 测试占位值与演示值 ---
+  # 重复数字/十六进制占位密钥，如 0123456789abcdef0123456789abcdef。
+  # 必须精确到占位串本身：若允许任意 hex 后缀，真实的高熵 hex 密钥也会被放行。
+  # 允许同一模式重复若干次（测试里常见 32/40/48/64 位的重复占位）。
+  '''(?i)(?:0123456789abcdef|fedcba9876543210)(?:0123456789abcdef|fedcba9876543210)*''',
+  # 只写了前缀省略号的假 PEM 私钥（MIIEvQIBADANBg...），不是合法密钥材料
+  '''MIIEvQIBADANBg(?:\.\.\.)?''',
+  # 只有 "data"/"secret" 占位正文的假 PEM 块；Go 测试里正文是字面量 \n，
+  # 正则需匹配反斜杠加 n 两个字符。
+  '''-----BEGIN PRIVATE KEY-----secret-----END PRIVATE KEY-----''',
+  '''-----BEGIN RSA PRIVATE KEY-----\\ndata\\n-----END RSA PRIVATE KEY-----''',
+  # Google OAuth access token 占位
+  '''ya29\.a0AfH6SMDUMMY''',
+  # 微信支付 prepay_id 演示值
+  '''wx_prepay_123''',
+  # 支付文档示例订单号
+  '''(?:pay-)?cm1234567890(?:-success)?''',
+  # 迁移校验和测试固件（精确值；不加 hex 通配后缀，避免放行真实 hex 密钥）
+  '''d2ea657ec24995664a8ddc1bfb9c3fe3''',
+  # 测试 UUID
+  '''fd277bc5-ff7e-45d1-8aa9-f54e1df318f1''',
+  # jwt.io 官方示例 token（sub=1234567890, 签名固定为 signaturepart）
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.signaturepart''',
+  # 测试用内容脱敏样本
+  '''token=abc123456789xyz''',
+  # 测试用模型 ID
+  '''claude-haiku-4-5-20251001''',
+  # 测试假 key：sk- 前缀 + 纯十六进制或标识性后缀，如 sk-xapikey0123456789。
+  # 注意只匹配“明显非真实密钥”的形态，真实 sk- 密钥不受影响。
+  '''sk-(?:xapikey|goog|xapi)\d+''',
+  # 历史 e2e 测试里曾硬编码的网关测试 key（现已改为 env，仅存在于旧提交）
+  '''sk-8e572bc3b3de92ace4f41f4256c28600ca11805732a7b693b5c44741346bbbb3''',
+  '''sk-5950197a2085b38bbe5a1b229cc02b8ece914963fc44cacc06d497ae8b87410f''',
+  # Sora 客户端历史上的固定 sentinel token 前缀（协议常量，非凭据）
+  '''wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D''',
+
+  # --- 3. 规则误判的标识符 / SQL 列名 / 模型版本串 ---
+  # Anthropic beta 版本串，被 generic-api-key 当作密钥
+  '''(?:oauth|interleaved-thinking)-\d{4}-\d{2}-\d{2}(?:,(?:oauth|interleaved-thinking)-\d{4}-\d{2}-\d{2})*''',
+  # SQL upsert 列名
+  '''token_consumed''',
+  # 设置项键名（常量值，不是密钥本身）
+  '''aliyun_captcha_(?:access_key_id|access_key_secret|scene_id|prefix|region)''',
+  '''sora_s3_bucket''',
+  '''max_ingress_connections_per_api_key''',
+  '''inject_beta_for_apikey''',
+  '''sora_media_require_api_key''',
+  '''validate_id_token''',
+]
+
+# 示例配置与接入文档只包含上述公开凭据和占位值，按路径豁免，
+# 避免示例文件需要长期维护一份重复的 allowlist。
+paths = [
+  '''^deploy/\.env\.example$''',
+  '''^deploy/config\.example\.yaml$''',
+  '''^docs/ADMIN_PAYMENT_INTEGRATION_API\.md$''',
+  '''^ADMIN_PAYMENT_INTEGRATION_API\.md$''',
+]
+
+# 迁移校验和测试固件：migrations_runner_checksum_test.go 中固化了迁移文件的
+# SHA-256 值，会被 generic-api-key 误判为密钥。
+#
+# 不使用 `[0-9a-f]{64}` 这类“形态”规则：gitleaks 对 paths 与 regexes 默认取“或”，
+# 而当前版本不支持 matchCondition = "AND"，形态规则会退化成整仓放行，
+# 真实的高熵 hex 密钥从此扫不出来。
+# 这里逐个枚举该测试文件实际使用的 36 个固定值（全历史一致），
+# 其余任何 hex 串仍按默认规则检测。
+[[allowlists]]
+description = "迁移文件 SHA-256 校验和（枚举）"
+regexTarget = "match"
+regexes = [
+  '''0000{16}0{16}0{16}0{16}''',
+  '''022aadd97bb53e755f0cf7a3a957e0cb1a1353b0c39ec4de3234acd2871fd04f''',
+  '''04b082b5a239c525154fe9185d324ee2b05ff90da9297e10dba19f9be79aa59a''',
+  '''0580b4602d85435edf9aca1633db580bb3932f26517f75134106f80275ec2ace''',
+  '''07edb09fa8d04ffb172b0621e3c22f4d1757d20a24ae267b3b36b087ab72d488''',
+  '''08a248652cbab7cfde147fc6ef8cda464f2477674e20b718312faa252e0481c0''',
+  '''0bbe809ae48a9d811dabda1ba1c74955bd71c4a9cc610f9128816818dfa6c11e''',
+  '''11df0189325d29c37d8a5a78e9bf23d9f8ff37af29d415358b5217d7d65af624''',
+  '''182c193f3359946cf094090cd9e57d5c3fd9abaffbc1e8fc378646b8a6fa12b4''',
+  '''222b4a09c797c22e5922b6b172327c824f5463aaa8760e4f621bc5c22e2be0f3''',
+  '''32cf87ee787b1bb36b5c691367c96eee37518fa3eed6f3322cf68795e3745279''',
+  '''34aadc0db59a4e390f92a12b73bd74642d9724f33124f73638ae00089ea5e074''',
+  '''4642fcb1ccd7954b1d3eef8f795cfba2ce21431257346cc5a7568cde61a60b13''',
+  '''4cc121d97c7f59e9def9397b7d0314d4dfbfe4cd831698359456dd49bf995ece''',
+  '''4cf39e508be9fd1a5aa41610cbbebeb80385c9adda45bf78a706de9db4f1385f''',
+  '''540fcaed6767cee55659c0785ef644e3c1846a474ccbcde1057b95eb8bdb120a''',
+  '''551e498aa5616d2d91096e9d72cf9fb36e418ee22eacc557f8811cadbc9e20ee''',
+  '''66207e7aa5dd0429c2e2c0fabdaf79783ff157fa0af2e81adff2ee03790ec65c''',
+  '''68dbf4f6ab661ce3e6062185f578a248333254e63c8e66406066f2b3d972f067''',
+  '''707431450603e70a43ce9fbd61e0c12fa67da4875158ccefabacea069587ab22''',
+  '''82de761156e03876653e7a6a4eee883cd927847036f779b0b9f34c42a8af7a7d''',
+  '''9ba0369779484625edcea7a7d1d4582397e31546db9149b05004990a3f16c630''',
+  '''a38243ca0a72c3a01c0a92b7986423054d6133c0399441f853b99802852720fb''',
+  '''aad3816e44f58ff007ea4df8092aae580f3f85180314c1deb1b1054b20892bbf''',
+  '''b54194d7a3e4fbf710e0a3590d22a2fe7966804c487052a356e0b55f53ef96b0''',
+  '''b75f8f56d39455682787696a3d92ad25b055444ca328fb7fca9a460a15d68d99''',
+  '''bdd9dbe1f2de4cfaeaa2764dce760827c386c5e23ef010a886365a5dc4270dab''',
+  '''d2ea657ec24995664a8ddc1bfb9c3fe317646c7bcd12517dee8478bc6c36244a''',
+  '''e0cdf835d6c688d64100f483d31bc02ac9ebad414bf1837af239a84bf75b8227''',
+  '''e3d1f433be2b564cfbdc549adf98fce13c5c7b363ebc20fd05b765d0563b0925''',
+  '''e77921f79d539bc24575cb9c16cbe566d2b23ce816190343d0a7568f6a3fcf61''',
+  '''e8aeb9b713aebd3a4792e0a86fef11dfe02ad52349b07d1c739add803e545a5b''',
+  '''ebd2c67cce0116393fb4f1b5d5116a67c6aceb73820dfb5133d1ff6f36d72d34''',
+  '''f7757bd929ac67ffb08ce69fa4cf20fad39dbff9d5a5085fb2adabb7607e5877''',
+  '''ffd3e8a2c9295fa9cbefefd629a78268877e5b51bc970a82d9b3f46ec4ebd15e''',
+  '''f{64}''',
+]

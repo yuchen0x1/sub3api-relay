@@ -22,6 +22,11 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 仓库根的 .gitleaks.toml 会按值豁免已人工核实的误报
+          # （公开 OAuth 客户端凭据、测试占位值、规则误判的标识符）。
+          # 未显式传入时 gitleaks-action 也会自动发现该文件；
+          # 这里显式指定，避免 action 版本变化后静默回退到默认规则。
+          GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
 
   backend-security:
     runs-on: ubuntu-latest

@@ -2980,6 +2980,10 @@ const BackupSettings = defineAsyncComponent(() => import('@/views/admin/BackupVi
 const OpenAIFastPolicyUserSelector = defineAsyncComponent(() => import('@/views/admin/settings/OpenAIFastPolicyUserSelector.vue'))
 const SettingsGeneralTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsGeneralTab.vue'))
 const SettingsSecurityTab = defineAsyncComponent(() => import('@/views/admin/settings/SettingsSecurityTab.vue'))
+// 模板用 <SettingRevisionsModal> 展示设置修订历史，必须显式注册。
+// 此前缺少该导入，Vue 只在运行时报 "Failed to resolve component"，
+// 点击“修订历史”按钮不会有任何反应。
+const SettingRevisionsModal = defineAsyncComponent(() => import('@/components/admin/settings/SettingRevisionsModal.vue'))
 
 import Icon from "@/components/icons/Icon.vue";
 import Select from "@/components/common/Select.vue";

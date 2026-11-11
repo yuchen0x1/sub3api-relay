@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { createTestI18n, settleAsyncComponents } from '@/__tests__/helpers/test-i18n'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import AccountsView from '../AccountsView.vue'
@@ -64,15 +65,6 @@ vi.mock('@/stores/auth', () => ({
   })
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({
-      t: (key: string) => key
-    })
-  }
-})
 
 const DataTableStub = {
   props: ['columns', 'data'],
@@ -121,6 +113,15 @@ const BulkEditAccountModalStub = {
   template: '<div data-test="bulk-edit-modal" :data-show="String(show)" :data-target-mode="target?.mode ?? \'\'"></div>'
 }
 
+const testI18n = createTestI18n()
+
+const mountedWrappers: { unmount: () => void }[] = []
+const trackMount = <T extends { unmount: () => void }>(wrapper: T): T => {
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
+
 describe('admin AccountsView bulk edit scope', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -155,10 +156,23 @@ describe('admin AccountsView bulk edit scope', () => {
     probeUpstreamBilling.mockResolvedValue({})
     probeUpstreamBillingBatch.mockResolvedValue([])
   })
+  afterEach(async () => {
+    // 让 defineAsyncComponent 的二级动态 import（如 BulkEditAccountModal ->
+    // GroupSelector）完成，然后卸载，避免 jsdom 销毁后才 resolve。
+    await flushPromises()
+    await settleAsyncComponents()
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount()
+    }
+    mountedWrappers.length = 0
+    await flushPromises()
+  })
+
 
   it('opens bulk edit in filtered-results mode from the bulk actions dropdown', async () => {
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: {
@@ -192,7 +206,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
     await wrapper.get('[data-test="edit-filtered"]').trigger('click')
@@ -222,8 +236,9 @@ describe('admin AccountsView bulk edit scope', () => {
       pages: 1
     })
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: {
@@ -257,7 +272,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
 
@@ -291,8 +306,9 @@ describe('admin AccountsView bulk edit scope', () => {
     })
     getUpstreamBillingProbeSettings.mockResolvedValue({ enabled: false, interval_minutes: 30 })
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: { template: '<div><slot name="table" /></div>' },
@@ -331,7 +347,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
 
@@ -354,8 +370,9 @@ describe('admin AccountsView bulk edit scope', () => {
       .mockResolvedValueOnce({ items: [account(7)], total: 2, page: 1, page_size: 1, pages: 2 })
       .mockResolvedValueOnce({ items: [account(11)], total: 2, page: 2, page_size: 1, pages: 2 })
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: { template: '<div><slot name="table" /><slot name="pagination" /></div>' },
@@ -387,7 +404,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
     await wrapper.get('[data-test="select-row"] input').trigger('change')
@@ -428,8 +445,9 @@ describe('admin AccountsView bulk edit scope', () => {
       }
     ])
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: { template: '<div><slot name="table" /><slot name="pagination" /></div>' },
@@ -461,7 +479,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
     await wrapper.get('[data-test="next-page"]').trigger('click')
@@ -504,8 +522,9 @@ describe('admin AccountsView bulk edit scope', () => {
     ])
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: { template: '<div><slot name="table" /></div>' },
@@ -537,7 +556,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
     await wrapper.get('[data-test="select-row"] input').trigger('change')
@@ -575,8 +594,9 @@ describe('admin AccountsView bulk edit scope', () => {
       }
     })
 
-    const wrapper = mount(AccountsView, {
+    const wrapper = trackMount(mount(AccountsView, {
       global: {
+        plugins: [testI18n],
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
           TablePageLayout: { template: '<div><slot name="table" /></div>' },
@@ -608,7 +628,7 @@ describe('admin AccountsView bulk edit scope', () => {
           Icon: true
         }
       }
-    })
+    }))
 
     await flushPromises()
     await wrapper.get('[data-testid="upstream-billing-probe"]').trigger('click')

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { createTestI18n, settleAsyncComponents } from '@/__tests__/helpers/test-i18n'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import AccountsView from '../AccountsView.vue'
@@ -52,15 +53,6 @@ vi.mock('@/stores/auth', () => ({
   })
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({
-      t: (key: string) => key
-    })
-  }
-})
 
 // Render the per-column header slots so we can assert the usage-window header hint.
 const DataTableStub = {
@@ -91,6 +83,7 @@ const HelpTooltipStub = {
 function mountView() {
   return mount(AccountsView, {
     global: {
+      plugins: [testI18n],
       stubs: {
         AppLayout: { template: '<div><slot /></div>' },
         TablePageLayout: {
@@ -128,6 +121,15 @@ function mountView() {
   })
 }
 
+const testI18n = createTestI18n()
+
+const mountedWrappers: { unmount: () => void }[] = []
+const trackMount = <T extends { unmount: () => void }>(wrapper: T): T => {
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
+
 describe('admin AccountsView usage windows hint', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -154,9 +156,21 @@ describe('admin AccountsView usage windows hint', () => {
     getAllProxies.mockResolvedValue([])
     getAllGroups.mockResolvedValue([])
   })
+  afterEach(async () => {
+    // 让 defineAsyncComponent 的二级动态 import（如 BulkEditAccountModal ->
+    // GroupSelector）完成，然后卸载，避免 jsdom 销毁后才 resolve。
+    await flushPromises()
+    await settleAsyncComponents()
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount()
+    }
+    mountedWrappers.length = 0
+    await flushPromises()
+  })
+
 
   it('renders an explanatory tooltip next to the usage windows column header', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const header = wrapper.find('[data-test="usage-header"]')
@@ -171,7 +185,7 @@ describe('admin AccountsView usage windows hint', () => {
 
   it('keeps Ollama Cloud in the single usage column and ignores legacy column preferences', async () => {
     localStorage.setItem('account-hidden-columns', JSON.stringify(['ollama_cloud_usage']))
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const columns = wrapper.getComponent(DataTableStub).props('columns') as Array<{ key: string }>
@@ -180,7 +194,7 @@ describe('admin AccountsView usage windows hint', () => {
   })
 
   it('renders the upstream billing trust warning next to the declared-rate column', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const header = wrapper.find('[data-test="upstream-billing-header"]')
@@ -216,7 +230,7 @@ describe('admin AccountsView usage windows hint', () => {
       pages: 1
     })
 
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     expect(wrapper.get('[data-test="account-rate"]').text()).toBe('0.065x')

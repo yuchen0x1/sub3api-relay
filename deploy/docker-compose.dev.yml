@@ -46,6 +46,10 @@ services:
       - JWT_SECRET=${JWT_SECRET:-}
       - SETUP_ALLOW_REMOTE=${SETUP_ALLOW_REMOTE:-false}
       - SETUP_REMOTE_TOKEN=${SETUP_REMOTE_TOKEN:-}
+      # Docker Desktop rewrites host-loopback connections to the bridge
+      # gateway. The backend only treats that source as local when the host
+      # port is actually bound to a loopback address.
+      - SETUP_DOCKER_BIND_HOST=${BIND_HOST:-127.0.0.1}
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
       - TZ=${TZ:-Asia/Shanghai}
@@ -74,7 +78,9 @@ services:
       - GATEWAY_IMAGE_CONCURRENCY_MAX_WAITING_REQUESTS=${GATEWAY_IMAGE_CONCURRENCY_MAX_WAITING_REQUESTS:-100}
       - BATCH_IMAGE_ENABLED=${BATCH_IMAGE_ENABLED:-true}
       - BATCH_IMAGE_QUEUE_ENABLED=${BATCH_IMAGE_QUEUE_ENABLED:-true}
-      - BATCH_IMAGE_VERTEX_ENABLED=${BATCH_IMAGE_VERTEX_ENABLED:-true}
+      # Vertex batch output requires a configured managed GCS bucket. Keep it
+      # disabled for local development unless the bucket settings are present.
+      - BATCH_IMAGE_VERTEX_ENABLED=${BATCH_IMAGE_VERTEX_ENABLED:-false}
       - BATCH_IMAGE_VERTEX_PROJECT_ID=${BATCH_IMAGE_VERTEX_PROJECT_ID:-}
       - BATCH_IMAGE_VERTEX_LOCATION=${BATCH_IMAGE_VERTEX_LOCATION:-global}
       - BATCH_IMAGE_VERTEX_MANAGED_GCS_BUCKET=${BATCH_IMAGE_VERTEX_MANAGED_GCS_BUCKET:-}

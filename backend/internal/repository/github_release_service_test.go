@@ -341,6 +341,50 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 	require.Equal(s.T(), "app-linux-amd64.tar.gz", release.Assets[0].Name)
 }
 
+type githubReleaseFallbackTransport struct{}
+
+func (githubReleaseFallbackTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	response := &http.Response{
+		StatusCode: http.StatusNotFound,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader("not found")),
+		Request:    req,
+	}
+	switch {
+	case req.URL.Host == "api.github.com" && req.URL.Path == "/repos/test/repo/releases/latest":
+		response.StatusCode = http.StatusForbidden
+		response.Body = io.NopCloser(strings.NewReader(`{"message":"rate limit exceeded"}`))
+	case req.URL.Host == "github.com" && req.URL.Path == "/test/repo/releases/latest":
+		response.StatusCode = http.StatusFound
+		response.Header.Set("Location", "https://github.com/test/repo/releases/tag/v1.2.3")
+		response.Body = io.NopCloser(strings.NewReader("redirect"))
+	case req.URL.Host == "github.com" && req.URL.Path == "/test/repo/releases/tag/v1.2.3":
+		response.StatusCode = http.StatusOK
+		response.Body = io.NopCloser(strings.NewReader("release page"))
+	case req.URL.Host == "github.com" && req.URL.Path == "/test/repo/releases/expanded_assets/v1.2.3":
+		response.StatusCode = http.StatusOK
+		response.Body = io.NopCloser(strings.NewReader(`
+			<a href="/test/repo/releases/download/v1.2.3/checksums.txt">checksums</a>
+			<a href="/test/repo/releases/download/v1.2.3/sub3api_1.2.3_windows_amd64.tar.gz">windows</a>
+		`))
+	}
+	return response, nil
+}
+
+func TestFetchLatestReleaseFallsBackToGitHubWebWhenAPIIsRateLimited(t *testing.T) {
+	client := &githubReleaseClient{
+		httpClient: &http.Client{Transport: githubReleaseFallbackTransport{}},
+	}
+
+	release, err := client.FetchLatestRelease(context.Background(), "test/repo")
+	require.NoError(t, err)
+	require.Equal(t, "v1.2.3", release.TagName)
+	require.Equal(t, "https://github.com/test/repo/releases/tag/v1.2.3", release.HTMLURL)
+	require.Len(t, release.Assets, 2)
+	require.Equal(t, "checksums.txt", release.Assets[0].Name)
+	require.Equal(t, "https://github.com/test/repo/releases/download/v1.2.3/sub3api_1.2.3_windows_amd64.tar.gz", release.Assets[1].BrowserDownloadURL)
+}
+
 func (s *GitHubReleaseServiceSuite) TestFetchLatestProjectReleaseUsesGitHub() {
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(s.T(), "/repos/yuchen0x1/sub3api-relay/releases/latest", r.URL.Path)

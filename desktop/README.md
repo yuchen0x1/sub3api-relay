@@ -23,7 +23,7 @@ pnpm test:run
 pnpm build
 ```
 
-Set `VITE_SUB3API_BASE_URL` when the backend is not available at `http://localhost:3000`:
+The desktop shell defaults to the local development backend at `http://127.0.0.1:18081`. Set `VITE_SUB3API_BASE_URL` when the backend is hosted elsewhere:
 
 ```bash
 VITE_SUB3API_BASE_URL=https://sub3api.example.com pnpm dev

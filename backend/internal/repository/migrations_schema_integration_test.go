@@ -187,7 +187,14 @@ WHERE ns.nspname = 'public'
 		tx,
 		"channel_model_pricing",
 		"chk_channel_model_pricing_max_reasoning_effort_multiplier_positive",
-		"max_reasoning_effort_multiplier IS NULL OR max_reasoning_effort_multiplier > 0",
+		// PostgreSQL 会重新格式化 CHECK 定义：表达式被加括号、字面量被追加
+		// 类型转换。PG18 返回的文本形如
+		//   CHECK (((max_reasoning_effort_multiplier IS NULL) OR
+		//           (max_reasoning_effort_multiplier > (0)::numeric)))
+		// 因此断言语义片段，而不是依赖某个大版本的精确排版。
+		"max_reasoning_effort_multiplier",
+		"IS NULL",
+		"max_reasoning_effort_multiplier > ",
 	)
 }
 

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { createTestI18n, settleAsyncComponents } from '@/__tests__/helpers/test-i18n'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import AccountsView from '../AccountsView.vue'
@@ -52,15 +53,6 @@ vi.mock('@/stores/auth', () => ({
   })
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({
-      t: (key: string) => key
-    })
-  }
-})
 
 // Render the scheduler-score cell slot for every row so the fallback logic is observable.
 const DataTableStub = {
@@ -77,6 +69,7 @@ const DataTableStub = {
 function mountView() {
   return mount(AccountsView, {
     global: {
+      plugins: [testI18n],
       stubs: {
         AppLayout: { template: '<div><slot /></div>' },
         TablePageLayout: {
@@ -128,6 +121,15 @@ const baseAccount = {
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z'
 }
+
+const testI18n = createTestI18n()
+
+const mountedWrappers: { unmount: () => void }[] = []
+const trackMount = <T extends { unmount: () => void }>(wrapper: T): T => {
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
 
 describe('admin AccountsView scheduler score column', () => {
   beforeEach(() => {
@@ -192,9 +194,21 @@ describe('admin AccountsView scheduler score column', () => {
     getAllProxies.mockResolvedValue([])
     getAllGroups.mockResolvedValue([])
   })
+  afterEach(async () => {
+    // 让 defineAsyncComponent 的二级动态 import（如 BulkEditAccountModal ->
+    // GroupSelector）完成，然后卸载，避免 jsdom 销毁后才 resolve。
+    await flushPromises()
+    await settleAsyncComponents()
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount()
+    }
+    mountedWrappers.length = 0
+    await flushPromises()
+  })
+
 
   it('falls back to the base score for ungrouped accounts instead of showing a dash', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     expect(listAccounts.mock.calls[0]?.[2]).toEqual(expect.objectContaining({
@@ -209,7 +223,7 @@ describe('admin AccountsView scheduler score column', () => {
   })
 
   it('renders per-group scores for grouped accounts', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const groupedCell = wrapper.find('[data-test="scheduler-score-2"]')
@@ -243,7 +257,7 @@ describe('admin AccountsView scheduler score column', () => {
   })
 
   it('still shows a dash when no scheduler score is available', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const emptyCell = wrapper.find('[data-test="scheduler-score-3"]')

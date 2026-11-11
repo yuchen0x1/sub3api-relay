@@ -152,8 +152,8 @@ func (s *BalanceNotifyService) writeBalanceLowInAppNotification(user *User, bala
 		title = fmt.Sprintf("[%s] 余额不足提醒", siteName)
 	}
 	meta := map[string]any{
-		"balance":     balance,
-		"threshold":   threshold,
+		"balance":      balance,
+		"threshold":    threshold,
 		"recharge_url": rechargeURL,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

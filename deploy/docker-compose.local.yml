@@ -102,6 +102,8 @@ services:
       - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
       - SETUP_ALLOW_REMOTE=${SETUP_ALLOW_REMOTE:-false}
       - SETUP_REMOTE_TOKEN=${SETUP_REMOTE_TOKEN:-}
+      # Preserve local setup semantics through Docker Desktop's NAT bridge.
+      - SETUP_DOCKER_BIND_HOST=${BIND_HOST:-127.0.0.1}
 
       # =======================================================================
       # TOTP (2FA) Configuration

@@ -78,7 +78,11 @@ func TestSchedulerCacheSnapshotUsesSlimMetadataButKeepsFullAccount(t *testing.T)
 
 	got := snapshot[0]
 	require.NotNil(t, got)
-	require.Equal(t, "gemini-api-key", got.GetCredential("api_key"))
+	// 安全约束：Redis 只参与调度，绝不能保存 api_key / access_token 等长期凭据。
+	// 网关会在选中账号后从数据库重新水合完整凭据（见 scheduler_cache.go 中
+	// marshalSchedulerCacheAccount 的说明）。因此这里断言密钥被剔除，
+	// 而不是断言它们仍然存在。
+	require.Empty(t, got.GetCredential("api_key"))
 	require.Equal(t, "proj-1", got.GetCredential("project_id"))
 	require.Equal(t, "ai_studio", got.GetCredential("oauth_type"))
 	require.NotEmpty(t, got.GetModelMapping())

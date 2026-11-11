@@ -1,0 +1,70 @@
+# 统一换行符，避免 Windows 检出后 gofmt / golangci-lint 报“File is not properly formatted”
+#
+# 背景：仓库原先没有 .gitattributes，在 core.autocrlf=true 的 Windows 环境中
+# 检出为 CRLF，而 gofmt 只接受 LF，导致 lint 出现与代码无关的假阳性。
+
+# 默认：文本文件入库统一为 LF，二进制文件不参与转换
+* text=auto eol=lf
+
+# 显式声明文本类型（覆盖 text=auto 的探测结果）
+*.go      text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.vue     text eol=lf
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+*.json    text eol=lf
+*.css     text eol=lf
+*.scss    text eol=lf
+*.html    text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.toml    text eol=lf
+*.sql     text eol=lf
+*.sh      text eol=lf
+*.rs      text eol=lf
+*.sum     text eol=lf
+*.mod     text eol=lf
+Dockerfile text eol=lf
+Makefile   text eol=lf
+
+# 部署脚本必须以 LF 交付，否则容器内 /bin/sh 会因 CRLF 报错
+deploy/*.sh    text eol=lf
+deploy/**/*.sh text eol=lf
+
+# Windows 专用脚本保留 CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# 二进制文件
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.tar   binary
+*.exe   binary
+*.dll   binary
+*.so    binary
+*.dylib binary
+*.wasm  binary
+*.sqlite  binary
+*.db      binary
+
+# 锁文件视为文本，便于 review 与冲突合并
+pnpm-lock.yaml text eol=lf
+Cargo.lock     text eol=lf
+
+# 已有文件（LICENSE）历史上以 CRLF 入库，保持原样避免无意义的整文件 diff
+LICENSE -text

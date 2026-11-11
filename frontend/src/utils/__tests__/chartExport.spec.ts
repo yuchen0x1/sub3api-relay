@@ -61,9 +61,13 @@ describe('chartExport', () => {
 
   it('downloads the composed image under the requested filename', () => {
     let captured: HTMLAnchorElement | null = null
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-      captured = this
-    })
+    const createElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string, options?: ElementCreationOptions) => {
+      const element = createElement(tagName, options)
+      if (tagName.toLowerCase() === 'a') captured = element as HTMLAnchorElement
+      return element
+    }) as typeof document.createElement)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
 
     expect(downloadChartPng({ canvas: makeCanvas() }, 'ops-latency-x.png')).toBe(true)
     expect(captured).not.toBeNull()

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createTestI18n, settleAsyncComponents } from '@/__tests__/helpers/test-i18n'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import AccountsView from '../AccountsView.vue'
@@ -58,17 +59,20 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({ token: 'test-token' })
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({ t: (key: string) => key })
-  }
-})
+
+const testI18n = createTestI18n()
+
+const mountedWrappers: { unmount: () => void }[] = []
+const trackMount = <T extends { unmount: () => void }>(wrapper: T): T => {
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
 
 const mountView = () =>
   mount(AccountsView, {
     global: {
+      plugins: [testI18n],
       stubs: {
         AppLayout: { template: '<div><slot /></div>' },
         TablePageLayout: {
@@ -122,9 +126,21 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
+  afterEach(async () => {
+    // 让 defineAsyncComponent 的二级动态 import（如 BulkEditAccountModal ->
+    // GroupSelector）完成，然后卸载，避免 jsdom 销毁后才 resolve。
+    await flushPromises()
+    await settleAsyncComponents()
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount()
+    }
+    mountedWrappers.length = 0
+    await flushPromises()
+  })
+
 
   it('AccountActionMenu 的 duplicate 事件一键复制账号并刷新列表', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     wrapper.findComponent(AccountActionMenu).vm.$emit('duplicate', { id: 42, name: 'parent-acc' })
@@ -140,7 +156,7 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
   it('同一账号复制请求未完成时忽略重复点击', async () => {
     let resolveDuplicate!: (account: { id: number; name: string }) => void
     duplicateAccount.mockImplementationOnce(() => new Promise(resolve => { resolveDuplicate = resolve }))
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const menu = wrapper.findComponent(AccountActionMenu)
@@ -157,7 +173,7 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
   it('复制失败时显示后端错误', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     duplicateAccount.mockRejectedValueOnce(new Error('duplicate failed'))
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     wrapper.findComponent(AccountActionMenu).vm.$emit('duplicate', { id: 42, name: 'parent-acc' })
@@ -169,7 +185,7 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
   })
 
   it('AccountActionMenu 的 create-spark-shadow 事件触发 createSparkShadow API + 成功提示', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     const menu = wrapper.findComponent(AccountActionMenu)
@@ -191,7 +207,7 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
   })
 
   it('用户取消确认时不调用 API', async () => {
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     wrapper.findComponent(AccountActionMenu).vm.$emit('create-spark-shadow', { id: 42, name: 'parent-acc' })
@@ -212,6 +228,7 @@ describe('admin AccountsView — 外审 F2:spark 影子创建接线', () => {
 const mountViewWithRow = () =>
   mount(AccountsView, {
     global: {
+      plugins: [testI18n],
       stubs: {
         AppLayout: { template: '<div><slot /></div>' },
         TablePageLayout: {

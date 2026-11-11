@@ -7,6 +7,9 @@
 .gitignore
 .gitattributes
 
+# 发行构建产物（数百 MB，且与本镜像构建无关）
+release-assets/
+
 # Documentation
 *.md
 !deploy/DOCKER.md

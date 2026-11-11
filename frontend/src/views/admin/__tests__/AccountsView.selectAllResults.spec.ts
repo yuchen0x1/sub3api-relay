@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { createTestI18n, settleAsyncComponents } from '@/__tests__/helpers/test-i18n'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import AccountsView from '../AccountsView.vue'
@@ -56,15 +57,6 @@ vi.mock('@/stores/auth', () => ({
   })
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({
-      t: (key: string) => key
-    })
-  }
-})
 
 const makeAccounts = (count: number) => Array.from({ length: count }, (_, index) => ({
   id: index + 1,
@@ -97,8 +89,18 @@ const AccountTableFiltersStub = {
   template: '<button data-test="change-filter" @click="$emit(\'change\')">change filter</button>'
 }
 
+const testI18n = createTestI18n()
+
+const mountedWrappers: { unmount: () => void }[] = []
+const trackMount = <T extends { unmount: () => void }>(wrapper: T): T => {
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
+
 const mountView = () => mount(AccountsView, {
   global: {
+    plugins: [testI18n],
     stubs: {
       AppLayout: { template: '<div><slot /></div>' },
       TablePageLayout: {
@@ -155,6 +157,18 @@ describe('admin AccountsView select all filtered results', () => {
     getAllProxies.mockResolvedValue([])
     getAllGroups.mockResolvedValue([])
   })
+  afterEach(async () => {
+    // 让 defineAsyncComponent 的二级动态 import（如 BulkEditAccountModal ->
+    // GroupSelector）完成，然后卸载，避免 jsdom 销毁后才 resolve。
+    await flushPromises()
+    await settleAsyncComponents()
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount()
+    }
+    mountedWrappers.length = 0
+    await flushPromises()
+  })
+
 
   it('selects all matching IDs in one commit and clears the selection when filters change', async () => {
     const allAccounts = makeAccounts(45)
@@ -177,7 +191,7 @@ describe('admin AccountsView select all filtered results', () => {
       }
     })
 
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     await wrapper.get('[data-test="select-all-results"]').trigger('click')
@@ -212,7 +226,7 @@ describe('admin AccountsView select all filtered results', () => {
       }
     })
 
-    const wrapper = mountView()
+    const wrapper = trackMount(mountView())
     await flushPromises()
 
     await wrapper.get('[data-test="select-page"]').trigger('click')

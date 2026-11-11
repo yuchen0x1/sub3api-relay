@@ -66,3 +66,30 @@ jobs:
           version: v2.9
           args: --timeout=30m
           working-directory: backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 11.20.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+      - name: Lint
+        run: pnpm --dir frontend lint:check
+      - name: Typecheck
+        run: pnpm --dir frontend typecheck
+      # 前端测试已修复环境 teardown 问题（根因：AccountsView 的
+      # defineAsyncComponent 弹窗在 mount 时即加载，而测试只 mock 了
+      # useI18n 未安装 i18n 插件，导致异常发生在 jsdom 销毁之后）。
+      # 现在全量 226 个文件 / 1538 个用例 0 错误，作为硬门禁执行。
+      - name: Unit tests
+        run: pnpm --dir frontend exec vitest run

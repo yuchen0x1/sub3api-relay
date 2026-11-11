@@ -1,0 +1,26 @@
+{
+  "status": "PARTIAL",
+  "phase": "audit-and-safe-fixes",
+  "updated_at": "2026-11-12T02:00:00+08:00",
+  "completed": [
+    "project identity and repository state audit",
+    "backend/frontend/desktop static audit",
+    "frontend typecheck, lint, build, and 226-file/1538-test run",
+    "desktop TypeScript build, Vite build, and 4-file/19-test run via direct local binaries",
+    "desktop static-exit mutation error handling",
+    "desktop default API endpoint alignment",
+    "frontend AccountsView test cleanup warning"
+  ],
+  "blocked_or_unverified": [
+    "backend rerun blocked because Go toolchain is absent from PATH",
+    "Docker integration tests blocked because Docker Desktop Linux daemon is unavailable",
+    "desktop package scripts invoke pnpm install and are blocked by ignored esbuild build scripts; direct binaries passed",
+    "live browser UI and external deployment/import were not verified"
+  ],
+  "next": [
+    "run backend build/unit/vet/govulncheck in CI or a Go-enabled environment",
+    "run PostgreSQL/Redis integration suite with Docker enabled",
+    "add component-level desktop regression tests for mutation error rendering",
+    "consider distributed DingTalk token cache and usage aggregation optimization"
+  ]
+}

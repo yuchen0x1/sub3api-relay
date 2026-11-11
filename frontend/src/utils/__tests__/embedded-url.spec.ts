@@ -1,26 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildEmbeddedUrl, detectTheme } from '../embedded-url'
 
+// buildEmbeddedUrl 是纯函数（baseUrl 由参数传入），detectTheme 只读 document，
+// 因此本文件不需要伪造 window.location。
+// 此前用 Object.defineProperty 替换 location，在 --pool=vmThreads 下会被 jsdom
+// 以 "Cannot redefine property: location" 拒绝，造成与本测试意图无关的失败。
 describe('embedded-url', () => {
-  const originalLocation = window.location
-
-  beforeEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: {
-        origin: 'https://app.example.com',
-        href: 'https://app.example.com/user/purchase',
-      },
-      writable: true,
-      configurable: true,
-    })
-  })
-
   afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    })
     document.documentElement.classList.remove('dark')
     vi.restoreAllMocks()
   })

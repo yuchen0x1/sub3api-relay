@@ -3,7 +3,6 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 // API 键字段名是契约键，经计算变量写入，值使用测试占位，避免静态误判为真实凭据。
-const apiKeyField = ['api', 'key'].join('_')
 const grokKeyValue = ['grok', 'test'].join('-')
 const claudeKeyValue = ['grok', 'claude', 'test'].join('-')
 const codexKeyValue = ['grok', 'codex', 'test'].join('-')

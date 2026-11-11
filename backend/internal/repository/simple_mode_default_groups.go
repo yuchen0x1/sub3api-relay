@@ -20,15 +20,22 @@ func ensureSimpleModeDefaultGroups(ctx context.Context, client *dbent.Client) er
 		return err
 	}
 
-	requiredByPlatform := map[string]int{
-		service.PlatformOpenAI:      1,
-		service.PlatformGemini:      1,
-		service.PlatformAntigravity: 2,
-		service.PlatformGrok:        1,
-		service.PlatformManus:       1,
+	// 顺序固定，避免 map 随机遍历导致各组创建顺序在不同实例间不一致
+	// （首次启动的日志、审计记录与测试断言都会受影响）。
+	requiredByPlatform := []struct {
+		platform string
+		minCount int
+	}{
+		{service.PlatformAnthropic, 1},
+		{service.PlatformOpenAI, 1},
+		{service.PlatformGemini, 1},
+		{service.PlatformAntigravity, 2},
+		{service.PlatformGrok, 1},
+		{service.PlatformManus, 1},
 	}
 
-	for platform, minCount := range requiredByPlatform {
+	for _, req := range requiredByPlatform {
+		platform, minCount := req.platform, req.minCount
 		count, err := client.Group.Query().
 			Where(group.PlatformEQ(platform), group.DeletedAtIsNil()).
 			Count(ctx)
