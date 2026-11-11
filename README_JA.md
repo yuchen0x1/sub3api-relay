@@ -24,7 +24,7 @@
 
 [完全な v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
 
-[v0.4.1 全変更](docs/release-notes/RELEASE_NOTES_v0.4.1.md)・[ローカル準備と GitHub 手動リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.4.1 全変更](docs/release-notes/RELEASE_NOTES_v0.4.1.md)・[ローカル準備と GitHub リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 

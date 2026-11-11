@@ -24,7 +24,7 @@
 
 [完整 v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
 
-查看 [v0.4.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)、[本地准备与手动 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.4.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)、[本地准备与 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
