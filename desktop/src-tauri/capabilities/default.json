@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default permissions for the Sub3API Cockpit window.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "process:allow-restart",
+    "updater:default"
+  ]
+}

@@ -37,6 +37,9 @@ jobs:
           NOTES="docs/release-notes/RELEASE_NOTES_${RELEASE_TAG}.md"
           test "$(tr -d '\r\n' < backend/cmd/server/VERSION)" = "$VERSION"
           test "$(node -p "require('./frontend/package.json').version")" = "$VERSION"
+          test "$(node -p "require('./desktop/package.json').version")" = "$VERSION"
+          test "$(node -p "require('./desktop/src-tauri/tauri.conf.json').version")" = "$VERSION"
+          test "$(sed -n 's/^version = "\([^"]*\)"/\1/p' desktop/src-tauri/Cargo.toml | head -1)" = "$VERSION"
           test -s "$NOTES"
           echo "Validated $RELEASE_TAG. Tag-triggered runs publish the GitHub Release after the assets pass validation."
 
@@ -124,3 +127,67 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  desktop-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build-and-validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            rust-target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 11.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install desktop dependencies
+        run: pnpm --dir desktop install --frozen-lockfile
+
+      - name: Build and upload signed desktop updater artifacts
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Sub3API ${{ env.RELEASE_TAG }}
+          releaseBody: Signed desktop updater assets for ${{ env.RELEASE_TAG }}. See the release notes attached by the server release job.
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.rust-target }}
+          uploadUpdaterJson: true

@@ -11,20 +11,20 @@
 
 **面向个人和小团队的 AI API 网关与管理平台**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.2 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)
 
 </div>
 
-## v0.4.1 更新重点
+## v0.4.2 更新重点
 
 - GitHub API 限流时，更新检查会自动回退到公开 Release 页面，并保留发布资产下载能力。
 - Docker 本地开发通过宿主机回环端口访问 setup 向导，同时继续保护公开绑定的初始化入口。
 - 本地未配置 Vertex 托管 GCS bucket 时不会再因批量图片配置进入重启循环。
 - 改进代理处理、调度缓存、桌面端地址配置和管理台设置可靠性。
 
-[完整 v0.4.1 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
+[完整 v0.4.2 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)。
 
-查看 [v0.4.1 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.1.md)、[本地准备与 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
+查看 [v0.4.2 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)、[本地准备与 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
 
 
 ## ⚠️ 重要提醒
@@ -289,7 +289,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 固定目标版本、拉取镜像并重建容器
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.1|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.2|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```

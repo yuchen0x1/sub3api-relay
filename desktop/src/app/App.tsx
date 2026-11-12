@@ -3,6 +3,7 @@ import { AccountsPage } from "../features/accounts/components/AccountsPage"
 import { StaticExitsPage } from "../features/staticExits/components/StaticExitsPage"
 import { AuthScheme, AuthSession, authTokenStore } from "../lib/auth/tokenStore"
 import { apiBaseUrl } from "../lib/config"
+import { UpdatePanel } from "../features/updater/components/UpdatePanel"
 
 type AppView = "accounts" | "static-exits"
 
@@ -91,6 +92,7 @@ export function App() {
       </header>
       <main className="main-content">
         <SessionControls session={session} onSessionChange={setSession} />
+        <UpdatePanel />
         <nav className="view-tabs" aria-label="Control plane sections">
           {(Object.keys(VIEW_META) as AppView[]).map((viewKey) => (
             <button

@@ -15,14 +15,17 @@
   <img src="assets/sub3api-promo.png" alt="Sub3API AI API 网关宣传图" width="100%">
 </p>
 
-## v0.4.1 Highlights
+## v0.4.2 Highlights
 
 - GitHub update checks now fall back to public release pages when the API is rate-limited, while preserving release asset downloads.
 - Docker local setup works through host-loopback port mapping and keeps setup protection enabled for public bindings.
 - Local development no longer enters a restart loop when Vertex batch output has no managed GCS bucket configured.
 - Reliability updates improve proxy handling, scheduling caches, desktop endpoint configuration and administrative settings.
+- The Tauri desktop shell now uses the signed official updater and reports real download progress from GitHub Releases.
 
-[Full v0.4.1 release notes](docs/release-notes/RELEASE_NOTES_v0.4.1.md).
+[Full v0.4.2 release notes](docs/release-notes/RELEASE_NOTES_v0.4.2.md).
+
+Automatic update behavior and release-secret setup are documented in [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
 
 ## Project Overview
 

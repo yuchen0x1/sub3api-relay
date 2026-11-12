@@ -38,6 +38,8 @@ fn clear_auth_session(state: tauri::State<AuthState>) -> Result<(), String> {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AuthState::default())
         .invoke_handler(tauri::generate_handler![get_auth_session, set_auth_session, clear_auth_session])
         .run(tauri::generate_context!("tauri.conf.json"))

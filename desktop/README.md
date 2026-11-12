@@ -11,6 +11,7 @@ This directory is a focused, clean-room desktop control-plane scaffold for Sub3A
 - Explicit loading, authentication/error, retry, and empty states.
 - Volatile admin session state. Tauri stores the selected API key or bearer JWT in managed Rust state for the process lifetime. Vite/browser mode uses module memory only. No token is written to `localStorage`, `sessionStorage`, a file, or a web cookie.
 - Unit tests for capacity calculation and response normalization.
+- Signed Tauri updater integration with a real GitHub Release endpoint, download progress, and relaunch after installation.
 
 ## Run
 
@@ -30,6 +31,8 @@ VITE_SUB3API_BASE_URL=https://sub3api.example.com pnpm dev
 ```
 
 For the native shell, install the Tauri 2 system prerequisites and run `pnpm tauri dev`. The native build runs the same frontend build through `src-tauri/tauri.conf.json`.
+
+Packaged builds check `https://github.com/yuchen0x1/sub3api-relay/releases/latest/download/latest.json`. Release CI supplies `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; the public key is committed in `src-tauri/tauri.conf.json`.
 
 ## Lock strategy
 

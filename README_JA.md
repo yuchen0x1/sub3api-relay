@@ -11,20 +11,20 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.2 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.2.md)
 
 </div>
 
-## v0.4.1 の主な更新
+## v0.4.2 の主な更新
 
 - GitHub API がレート制限された場合、更新確認は公開 Release ページへ自動的にフォールバックし、リリース資産のダウンロードも維持します。
 - Docker のローカル開発ではホストのループバック公開経由で setup ウィザードを利用でき、公開バインドの初期化保護は維持されます。
 - Vertex 管理 GCS bucket を設定していないローカル環境で、バッチ画像設定による再起動ループを防ぎます。
 - プロキシ処理、スケジューラキャッシュ、デスクトップの接続先設定、管理画面設定の信頼性を改善しました。
 
-[完全な v0.4.1 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.1.md)。
+[完全な v0.4.2 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.2.md)。
 
-[v0.4.1 全変更](docs/release-notes/RELEASE_NOTES_v0.4.1.md)・[ローカル準備と GitHub リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[v0.4.2 全変更](docs/release-notes/RELEASE_NOTES_v0.4.2.md)・[ローカル準備と GitHub リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
 
 ## ⚠️ 重要なお知らせ
 
@@ -277,7 +277,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 ```bash
 # 対象リリースを固定し、イメージを取得してコンテナを再作成
-sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.1|' .env
+sed -i.bak 's|^SUB3API_IMAGE=.*|SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.4.2|' .env
 docker compose pull sub3api
 docker compose up -d --no-deps sub3api
 ```
