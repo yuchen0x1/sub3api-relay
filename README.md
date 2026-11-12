@@ -21,11 +21,11 @@
 - Docker local setup works through host-loopback port mapping and keeps setup protection enabled for public bindings.
 - Local development no longer enters a restart loop when Vertex batch output has no managed GCS bucket configured.
 - Reliability updates improve proxy handling, scheduling caches, desktop endpoint configuration and administrative settings.
-- The Tauri desktop shell now uses the signed official updater and reports real download progress from GitHub Releases.
+- The repository keeps an optional Tauri shell, but the supported product release remains the Web management console, server binaries, and Docker deployment.
 
 [Full v0.4.2 release notes](docs/release-notes/RELEASE_NOTES_v0.4.2.md).
 
-Automatic update behavior and release-secret setup are documented in [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
+Supported server, Web, and Docker update behavior is documented in [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
 
 ## Project Overview
 
