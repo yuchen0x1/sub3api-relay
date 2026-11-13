@@ -2,7 +2,7 @@
 
 # Sub3API
 
-[![Go](https://img.shields.io/badge/Go-1.26.10-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.11-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
@@ -11,20 +11,22 @@
 
 **面向个人和小团队的 AI API 网关与管理平台**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.3 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.4 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md)
 
 </div>
 
 ## 最新更新
 
-### v0.4.3 · 2026-11-13
+### v0.4.4 · 2026-11-13
+
+- 统一使用 Go 1.26.11，修复 HTTP 服务并发崩溃风险，增加发布前漏洞检查。
 
 - 正确保留无限期备份设置；最大份数只限制定时备份，清理失败保留记录。
 - 备份、恢复与删除操作避免冲突，管理台可查看失败详情。
 - S3 配置保留的密钥继续加密；大备份上传降低内存占用，需预留临时磁盘空间。
 - SQL 恢复出错停止并回滚；所有发行归档均纳入 SHA-256 校验清单。
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.4.3 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.4.4 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
 
 ## ⚠️ 重要提醒
 
@@ -66,7 +68,7 @@ Sub3API 提供 API 鉴权、上游账号调度、计费记录、负载均衡和�
 
 | 组件 | 技术 |
 |------|------|
-| 后端 | Go 1.26.10, Gin, Ent, Wire |
+| 后端 | Go 1.26.11, Gin, Ent, Wire |
 | 数据库 | PostgreSQL 15+；Docker Compose 默认 `postgres:18-alpine` |
 | 缓存/队列 | Redis 7+；Docker Compose 默认 `redis:8-alpine` |
 
@@ -353,7 +355,7 @@ cd sub3api-relay/deploy
 
 #### 前置条件
 
-- Go 1.26.10
+- Go 1.26.11
 - Node.js 24
 - pnpm 11.20.0
 - PostgreSQL 15+（Docker Compose 默认使用 18-alpine）

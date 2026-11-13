@@ -1,6 +1,6 @@
 module github.com/yuchen0x1/sub3api-relay
 
-go 1.26.10
+go 1.26.11
 
 require (
 	entgo.io/ent v0.14.5

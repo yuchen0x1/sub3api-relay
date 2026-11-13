@@ -4,7 +4,7 @@
 
 > 面向个人自建和内部团队使用的 AI API 中转、账号调度、用量计费与运维管理平台。
 
-[![Go](https://img.shields.io/badge/Go-1.26.10-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.26.11-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Vue](https://img.shields.io/badge/Vue-3-42B883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18--alpine-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -17,7 +17,9 @@
 
 ## 最新更新
 
-### v0.4.3 · 2026-11-13
+### v0.4.4 · 2026-11-13
+
+- 升级至 Go 1.26.11，修复 HTTP 服务并发崩溃风险；发行包通过可达漏洞检查后才发布。
 
 - 备份的「永不过期」与「不限份数」设置正确保留，手动备份不再被定时任务的份数限制误清理。
 - 备份、恢复和删除操作避免冲突；管理台展示失败详情，页面轮询更稳定。
@@ -25,7 +27,7 @@
 - 恢复遇到 SQL 错误立即停止并回滚；清理失败保留记录，便于重试。
 - 发行包附带覆盖全部服务端、Web 与部署归档的 SHA-256 校验清单。
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.4.3 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.4.4 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 
@@ -51,7 +53,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 
 | 模块 | 技术 |
 | --- | --- |
-| 后端 | Go 1.26.10, Gin, Ent, Wire, zap |
+| 后端 | Go 1.26.11, Gin, Ent, Wire, zap |
 | 前端 | Vue 3, Vite 8, TypeScript, Pinia, Vue Router, Tailwind CSS |
 | 数据库 | PostgreSQL；Docker Compose 默认 `postgres:18-alpine` |
 | 缓存 | Redis；Docker Compose 默认 `redis:8-alpine` |
@@ -76,7 +78,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 
 ### 本地开发
 
-- Go 1.26.10
+- Go 1.26.11
 - Node.js 24
 - pnpm 11.20.0
 - PostgreSQL 与 Redis，或使用 `deploy/docker-compose.dev.yml` 从源码构建本地容器环境

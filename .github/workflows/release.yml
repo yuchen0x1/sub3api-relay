@@ -47,7 +47,20 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Verify Go version
-        run: go version | grep -q 'go1.26.10'
+        run: go version | grep -q 'go1.26.11'
+
+      - name: Check reachable Go vulnerabilities before release
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          status=0
+          govulncheck -format json ./... > govulncheck.json || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
+            echo "govulncheck failed with exit code $status" >&2
+            exit "$status"
+          fi
+          python3 scripts/check-govuln-report.py govulncheck.json
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5

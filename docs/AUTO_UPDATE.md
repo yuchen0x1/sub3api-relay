@@ -25,7 +25,7 @@ The current release workflow uses the built-in `GITHUB_TOKEN` with `contents: wr
 1. Update `backend/cmd/server/VERSION` and `frontend/package.json` to the same semantic version.
 2. Add `docs/release-notes/RELEASE_NOTES_vX.Y.Z.md`.
 3. Run the project checks appropriate to the changed code.
-4. Push the commit and tag, for example `v0.4.3`.
+4. Push the commit and tag, for example `v0.4.4`.
 5. Confirm the Release contains the server archives, Web bundle, deployment bundle, and `checksums.txt`.
 
 ## Failure handling

@@ -1,6 +1,6 @@
 [package]
 name = "sub3api-cockpit"
-version = "0.4.3"
+version = "0.4.4"
 description = "Sub3API desktop control plane"
 authors = ["Sub3API contributors"]
 edition = "2021"

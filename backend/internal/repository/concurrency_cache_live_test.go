@@ -143,10 +143,10 @@ func TestStaticProxyLiveSlotRefreshRejectsInvalidInput(t *testing.T) {
 	_, _, liveCache, ctx := staticProxyLiveLeaseFixture(t)
 
 	for _, tc := range []struct {
-		name         string
-		accountID    int64
-		staticProxy  int64
-		requestID    string
+		name        string
+		accountID   int64
+		staticProxy int64
+		requestID   string
 	}{
 		{"zero account", 0, 101, "id"},
 		{"negative account", -1, 101, "id"},
