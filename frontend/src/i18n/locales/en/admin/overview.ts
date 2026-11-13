@@ -122,9 +122,9 @@ export default {
         cronExpr: 'Cron Expression',
         cronHint: 'e.g. "0 2 * * *" means every day at 2:00 AM',
         retainDays: 'Backup Expire Days',
-        retainDaysHint: 'Backup files auto-delete after this many days, 0 = never expire',
+        retainDaysHint: 'Expiry for new scheduled backups; 0 disables time expiry. Expired files are cleaned after a successful scheduled backup.',
         retainCount: 'Max Retain Count',
-        retainCountHint: 'Maximum number of backups to keep, 0 = unlimited',
+        retainCountHint: 'Limits completed scheduled backups only; 0 = unlimited. Manual backups keep their individual expiry.',
         saved: 'Schedule configuration saved'
       },
       operations: {

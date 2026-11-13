@@ -122,9 +122,9 @@ export default {
         cronExpr: 'Cron 表达式',
         cronHint: '例如 "0 2 * * *" 表示每天凌晨 2 点',
         retainDays: '备份过期天数',
-        retainDaysHint: '备份文件超过此天数后自动删除，0 = 永不过期',
+        retainDaysHint: '新定时备份的过期天数，0 = 不按时间过期。成功执行定时备份后清理已到期文件。',
         retainCount: '最大保留份数',
-        retainCountHint: '最多保留的备份数量，0 = 不限制',
+        retainCountHint: '仅限制已完成的定时备份，0 = 不限制；手动备份按创建时的过期时间保留。',
         saved: '定时备份配置已保存'
       },
       operations: {

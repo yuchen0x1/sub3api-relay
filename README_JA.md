@@ -11,20 +11,20 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.2 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.2.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.3 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.3.md)
 
 </div>
 
-## v0.4.2 の主な更新
+## 最新の更新
 
-- GitHub API がレート制限された場合、更新確認は公開 Release ページへ自動的にフォールバックし、リリース資産のダウンロードも維持します。
-- Docker のローカル開発ではホストのループバック公開経由で setup ウィザードを利用でき、公開バインドの初期化保護は維持されます。
-- Vertex 管理 GCS bucket を設定していないローカル環境で、バッチ画像設定による再起動ループを防ぎます。
-- プロキシ処理、スケジューラキャッシュ、デスクトップの接続先設定、管理画面設定の信頼性を改善しました。
+### v0.4.3 · 2026-11-13
 
-[完全な v0.4.2 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.2.md)。
+- バックアップの無期限保存設定を保持し、保存件数の上限は定期バックアップだけに適用します。
+- バックアップ・復元・削除の競合を防ぎ、管理画面にエラーの詳細を表示します。
+- S3 設定変更時も既存の秘密鍵を暗号化して保存します。大容量バックアップには一時ディスク領域が必要です。
+- SQL 復元エラー時は処理を中断してロールバックし、すべての配布アーカイブに SHA-256 チェックサムを提供します。
 
-[v0.4.2 全変更](docs/release-notes/RELEASE_NOTES_v0.4.2.md)・[ローカル準備と GitHub リリース手順](docs/RELEASING.md)・[AI 自動デプロイ](deploy/AI_DEPLOY.md)・[デプロイ手順](deploy/README.md)
+[更新履歴](docs/releases/release-notes.md) · [v0.4.3 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.3.md) · [リリース手順](docs/RELEASING.md)
 
 ## ⚠️ 重要なお知らせ
 

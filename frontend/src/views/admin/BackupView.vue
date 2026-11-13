@@ -183,7 +183,7 @@
               <label class="text-xs text-gray-600 dark:text-gray-400">{{ t('admin.backup.operations.expireDays') }}</label>
               <input v-model.number="manualExpireDays" type="number" min="0" class="input w-20 text-xs" />
             </div>
-            <button type="button" class="btn btn-primary btn-sm" :disabled="creatingBackup" @click="createBackup">
+            <button type="button" class="btn btn-primary btn-sm" :disabled="operationBusy || loadingBackups" @click="createBackup">
               {{ creatingBackup ? t('admin.backup.operations.backing') : t('admin.backup.operations.createBackup') }}
             </button>
             <button type="button" class="btn btn-secondary btn-sm" :disabled="loadingBackups" @click="loadBackups">
@@ -208,7 +208,7 @@
             </thead>
             <tbody>
               <tr v-for="record in backups" :key="record.id" class="border-b border-gray-100 align-top dark:border-dark-800">
-                <td class="py-3 pr-4 font-mono text-xs">{{ record.id }}</td>
+                <td class="py-3 pr-4 font-mono text-xs" :title="record.id">{{ record.id.slice(0, 8) }}</td>
                 <td class="py-3 pr-4">
                   <span
                     class="rounded px-2 py-0.5 text-xs"
@@ -218,8 +218,13 @@
                       ? t(`admin.backup.progress.${record.progress}`)
                       : t(`admin.backup.status.${record.status}`) }}
                   </span>
+                  <p v-if="record.error_message" class="mt-2 max-w-xs break-words text-xs text-red-600 dark:text-red-400">{{ record.error_message }}</p>
+                  <p v-if="record.restore_status" class="mt-2 text-xs" :class="record.restore_status === 'failed' ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'">
+                    {{ t('admin.backup.actions.restore') }}: {{ t(`admin.backup.status.${record.restore_status}`) }}
+                  </p>
+                  <p v-if="record.restore_error" class="mt-1 max-w-xs break-words text-xs text-red-600 dark:text-red-400">{{ record.restore_error }}</p>
                 </td>
-                <td class="py-3 pr-4 text-xs">{{ record.file_name }}</td>
+                <td class="py-3 pr-4 text-xs break-all">{{ record.file_name }}</td>
                 <td class="py-3 pr-4 text-xs">{{ formatSize(record.size_bytes) }}</td>
                 <td class="py-3 pr-4 text-xs">
                   {{ record.expires_at ? formatDate(record.expires_at) : t('admin.backup.neverExpire') }}
@@ -242,7 +247,7 @@
                       v-if="record.status === 'completed'"
                       type="button"
                       class="btn btn-secondary btn-xs"
-                      :disabled="restoringId === record.id"
+                      :disabled="operationBusy"
                       @click="restoreBackup(record.id)"
                     >
                       {{ restoringId === record.id ? t('common.loading') : t('admin.backup.actions.restore') }}
@@ -250,6 +255,7 @@
                     <button
                       type="button"
                       class="btn btn-danger btn-xs"
+                      :disabled="operationBusy"
                       @click="removeBackup(record.id)"
                     >
                       {{ t('common.delete') }}
@@ -433,6 +439,11 @@ const loadingBackups = ref(false)
 const creatingBackup = ref(false)
 const restoringId = ref('')
 const manualExpireDays = ref(14)
+const operationBusy = computed(() => creatingBackup.value || Boolean(restoringId.value) ||
+  backups.value.some(record => record.status === 'running' || record.status === 'pending' || record.restore_status === 'running'))
+let disposed = false
+let backupPollGeneration = 0
+let restorePollGeneration = 0
 
 // Polling
 const pollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
@@ -448,16 +459,21 @@ function updateRecordInList(updated: BackupRecord) {
 
 function startPolling(backupId: string) {
   stopPolling()
+  const generation = backupPollGeneration
+  let inFlight = false
   let count = 0
   pollingTimer.value = setInterval(async () => {
+    if (inFlight || disposed || generation !== backupPollGeneration) return
     if (count++ >= MAX_POLL_COUNT) {
       stopPolling()
       creatingBackup.value = false
       appStore.showWarning(t('admin.backup.operations.backupRunning'))
       return
     }
+    inFlight = true
     try {
       const record = await adminAPI.backup.getBackup(backupId)
+      if (disposed || generation !== backupPollGeneration) return
       updateRecordInList(record)
       if (record.status === 'completed' || record.status === 'failed') {
         stopPolling()
@@ -471,11 +487,14 @@ function startPolling(backupId: string) {
       }
     } catch {
       // 轮询失败时不中断
+    } finally {
+      inFlight = false
     }
   }, 2000)
 }
 
 function stopPolling() {
+  backupPollGeneration++
   if (pollingTimer.value) {
     clearInterval(pollingTimer.value)
     pollingTimer.value = null
@@ -484,16 +503,21 @@ function stopPolling() {
 
 function startRestorePolling(backupId: string) {
   stopRestorePolling()
+  const generation = restorePollGeneration
+  let inFlight = false
   let count = 0
   restoringPollingTimer.value = setInterval(async () => {
+    if (inFlight || disposed || generation !== restorePollGeneration) return
     if (count++ >= MAX_POLL_COUNT) {
       stopRestorePolling()
       restoringId.value = ''
       appStore.showWarning(t('admin.backup.operations.restoreRunning'))
       return
     }
+    inFlight = true
     try {
       const record = await adminAPI.backup.getBackup(backupId)
+      if (disposed || generation !== restorePollGeneration) return
       updateRecordInList(record)
       if (record.restore_status === 'completed' || record.restore_status === 'failed') {
         stopRestorePolling()
@@ -507,11 +531,14 @@ function startRestorePolling(backupId: string) {
       }
     } catch {
       // 轮询失败时不中断
+    } finally {
+      inFlight = false
     }
   }, 2000)
 }
 
 function stopRestorePolling() {
+  restorePollGeneration++
   if (restoringPollingTimer.value) {
     clearInterval(restoringPollingTimer.value)
     restoringPollingTimer.value = null
@@ -525,14 +552,15 @@ function handleVisibilityChange() {
   } else {
     // 标签页恢复时刷新列表，检查是否仍有活跃操作
     loadBackups().then(() => {
+      if (disposed || document.hidden) return
       const running = backups.value.find(r => r.status === 'running')
+      creatingBackup.value = Boolean(running)
       if (running) {
-        creatingBackup.value = true
         startPolling(running.id)
       }
       const restoring = backups.value.find(r => r.restore_status === 'running')
+      restoringId.value = restoring?.id || ''
       if (restoring) {
-        restoringId.value = restoring.id
         startRestorePolling(restoring.id)
       }
     })
@@ -656,8 +684,8 @@ async function loadSchedule() {
     scheduleForm.value = {
       enabled: cfg.enabled,
       cron_expr: cfg.cron_expr || '0 2 * * *',
-      retain_days: cfg.retain_days || 14,
-      retain_count: cfg.retain_count || 10,
+      retain_days: cfg.retain_days ?? 14,
+      retain_count: cfg.retain_count ?? 10,
     }
   } catch (error) {
     appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
@@ -680,7 +708,7 @@ async function loadBackups() {
   loadingBackups.value = true
   try {
     const result = await adminAPI.backup.listBackups()
-    backups.value = result.items || []
+    if (!disposed) backups.value = result.items || []
   } catch (error) {
     appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
   } finally {
@@ -704,7 +732,7 @@ async function createBackup() {
       creatingBackup.value = false
       return
     }
-    if (error?.response?.status === 409) {
+    if (error?.status === 409 || error?.response?.status === 409) {
       appStore.showWarning(t('admin.backup.operations.alreadyInProgress'))
     } else {
       appStore.showError(error?.message || t('errors.networkError'))
@@ -793,6 +821,7 @@ onMounted(async () => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
   await Promise.all([loadS3Config(), loadImageStorageConfig(), loadSchedule(), loadBackups()])
 
+  if (disposed || document.hidden) return
   // 如果有正在 running 的备份，恢复轮询
   const runningBackup = backups.value.find(r => r.status === 'running')
   if (runningBackup) {
@@ -807,6 +836,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  disposed = true
   stopPolling()
   stopRestorePolling()
   document.removeEventListener('visibilitychange', handleVisibilityChange)

@@ -122,9 +122,9 @@ export default {
         cronExpr: 'Cron 式',
         cronHint: '例： "0 2 * * *" は毎日午前2時を意味します',
         retainDays: 'バックアップの有効日数',
-        retainDaysHint: 'バックアップファイルはこの日数を超えると自動削除されます。0 = 無期限',
+        retainDaysHint: '新規定期バックアップの有効日数。0 は期限なし。定期バックアップ成功後に期限切れファイルを削除します。',
         retainCount: '最大保持数',
-        retainCountHint: '保持するバックアップの最大数。0 = 無制限',
+        retainCountHint: '完了した定期バックアップのみ対象。0 は無制限。手動バックアップは個別の有効期限を保持します。',
         saved: '定期バックアップ設定を保存しました'
       },
       operations: {

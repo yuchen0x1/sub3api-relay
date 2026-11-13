@@ -72,19 +72,20 @@ jobs:
           VERSION="${RELEASE_TAG#v}"
           mkdir -p release-assets
           RELEASE_ASSETS_DIR="$PWD/release-assets"
+          RELEASE_COMMIT="$(git rev-parse HEAD)"
+          RELEASE_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64; do
             GOOS="${target%/*}"
             GOARCH="${target#*/}"
             name="sub3api_${VERSION}_${GOOS}_${GOARCH}"
             output="$RELEASE_ASSETS_DIR/$name"
             if [ "$GOOS" = windows ]; then output="$output.exe"; fi
-            (cd backend && CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -tags embed -ldflags="-X main.Version=$VERSION" -o "$output" ./cmd/server)
+            (cd backend && CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -tags embed -ldflags="-s -w -X main.Version=$VERSION -X main.Commit=$RELEASE_COMMIT -X main.Date=$RELEASE_DATE -X main.BuildType=release" -o "$output" ./cmd/server)
             stage=$(mktemp -d)
             if [ "$GOOS" = windows ]; then cp "$output" "$stage/sub3api.exe"; else cp "$output" "$stage/sub3api"; fi
             tar -C "$stage" -czf "$RELEASE_ASSETS_DIR/${name}.tar.gz" .
             rm -rf "$stage" "$output"
           done
-          (cd release-assets && sha256sum sub3api_*.tar.gz > checksums.txt)
           tar -C backend/internal/web/dist -czf "$RELEASE_ASSETS_DIR/sub3api_${VERSION}_web.tar.gz" .
           deploy_bundle=$(mktemp -d)
           cp deploy/install.sh deploy/docker-deploy.sh deploy/docker-compose.local.yml "$deploy_bundle/"
@@ -95,6 +96,7 @@ jobs:
             tar -czf "$RELEASE_ASSETS_DIR/sub3api_${VERSION}_deploy.tar.gz" .
           )
           rm -rf "$deploy_bundle"
+          (cd release-assets && sha256sum sub3api_*.tar.gz > checksums.txt)
           printf 'Built local CI assets in release-assets/:\n'
           ls -1 release-assets
           printf 'Built release assets for %s. A tag-triggered run publishes them below; manual runs remain validation-only.\n' "$RELEASE_TAG"

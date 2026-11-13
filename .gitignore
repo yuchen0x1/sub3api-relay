@@ -148,6 +148,8 @@ docs/*
 !docs/RELEASING.md
 !docs/release-notes/
 !docs/release-notes/*.md
+!docs/releases/
+!docs/releases/*.md
 .serena/
 .codex/
 aicodex

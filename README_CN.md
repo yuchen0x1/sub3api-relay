@@ -11,21 +11,20 @@
 
 **面向个人和小团队的 AI API 网关与管理平台**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.2 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.3 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md)
 
 </div>
 
-## v0.4.2 更新重点
+## 最新更新
 
-- GitHub API 限流时，更新检查会自动回退到公开 Release 页面，并保留发布资产下载能力。
-- Docker 本地开发通过宿主机回环端口访问 setup 向导，同时继续保护公开绑定的初始化入口。
-- 本地未配置 Vertex 托管 GCS bucket 时不会再因批量图片配置进入重启循环。
-- 改进代理处理、调度缓存、桌面端地址配置和管理台设置可靠性。
+### v0.4.3 · 2026-11-13
 
-[完整 v0.4.2 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)。
+- 正确保留无限期备份设置；最大份数只限制定时备份，清理失败保留记录。
+- 备份、恢复与删除操作避免冲突，管理台可查看失败详情。
+- S3 配置保留的密钥继续加密；大备份上传降低内存占用，需预留临时磁盘空间。
+- SQL 恢复出错停止并回滚；所有发行归档均纳入 SHA-256 校验清单。
 
-查看 [v0.4.2 完整更新说明](docs/release-notes/RELEASE_NOTES_v0.4.2.md)、[本地准备与 GitHub 发版流程](docs/RELEASING.md)、[AI 自动部署说明](deploy/AI_DEPLOY.md) 和[部署说明](deploy/README.md)。
-
+[完整更新历史](docs/releases/release-notes.md) · [v0.4.3 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
 
 ## ⚠️ 重要提醒
 
@@ -281,7 +280,7 @@ docker compose -f docker-compose.local.yml logs -f sub3api
 
 #### 访问
 
-访问反向代理发布的 HTTPS 地址。Compose 默认只绑定 `127.0.0.1:8080`，在配置可信 TLS 反向代理或 SSH 隧道前不会直接暴露到公网。
+Sub3API 是网页管理台与 API 网关一体的 Web 应用：Vue 管理台在构建时嵌入 Go 服务，由同一个源站提供，不需要另起一个前端容器。访问反向代理发布的 HTTPS 地址。Compose 默认把宿主机端口绑定到 `127.0.0.1:8080`，这是给同机 Caddy/Nginx 反代使用的源站地址，不是公网入口；公网应开放反向代理的 80/443，不要直接暴露应用、PostgreSQL 或 Redis 端口。
 
 首次启动完成基础设施准备后，访问 `/setup` 设置站长账号和密码；随后访问 `/login` 登录。新部署不会生成 `admin/admin` 默认凭证。
 

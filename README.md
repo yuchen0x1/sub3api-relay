@@ -15,17 +15,17 @@
   <img src="assets/sub3api-promo.png" alt="Sub3API AI API 网关宣传图" width="100%">
 </p>
 
-## v0.4.2 Highlights
+## 最新更新
 
-- GitHub update checks now fall back to public release pages when the API is rate-limited, while preserving release asset downloads.
-- Docker local setup works through host-loopback port mapping and keeps setup protection enabled for public bindings.
-- Local development no longer enters a restart loop when Vertex batch output has no managed GCS bucket configured.
-- Reliability updates improve proxy handling, scheduling caches, desktop endpoint configuration and administrative settings.
-- The repository keeps an optional Tauri shell, but the supported product release remains the Web management console, server binaries, and Docker deployment.
+### v0.4.3 · 2026-11-13
 
-[Full v0.4.2 release notes](docs/release-notes/RELEASE_NOTES_v0.4.2.md).
+- 备份的「永不过期」与「不限份数」设置正确保留，手动备份不再被定时任务的份数限制误清理。
+- 备份、恢复和删除操作避免冲突；管理台展示失败详情，页面轮询更稳定。
+- 修改 S3 配置时继续加密保存已有密钥；大备份上传使用临时磁盘，降低内存占用。
+- 恢复遇到 SQL 错误立即停止并回滚；清理失败保留记录，便于重试。
+- 发行包附带覆盖全部服务端、Web 与部署归档的 SHA-256 校验清单。
 
-Supported server, Web, and Docker update behavior is documented in [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
+[完整更新历史](docs/releases/release-notes.md) · [v0.4.3 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.3.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 
@@ -55,7 +55,7 @@ Sub3API 是一个 Go 后端 + 嵌入式 Vue 管理台的 AI API 网关。它将�
 | 前端 | Vue 3, Vite 8, TypeScript, Pinia, Vue Router, Tailwind CSS |
 | 数据库 | PostgreSQL；Docker Compose 默认 `postgres:18-alpine` |
 | 缓存 | Redis；Docker Compose 默认 `redis:8-alpine` |
-| 构建发布 | Docker, Docker Compose, GoReleaser, pnpm 11.20.0 |
+| 构建发布 | Docker, Docker Compose, GitHub Actions, pnpm 11.20.0 |
 | 测试 | Go test, golangci-lint, Vitest, vue-tsc |
 
 ## 系统要求
@@ -90,12 +90,23 @@ git clone https://github.com/yuchen0x1/sub3api-relay.git
 cd sub3api-relay/deploy
 cp .env.example .env
 chmod 600 .env
-# 编辑 .env，至少修改 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY、ADMIN_PASSWORD
+# 编辑 .env，设置 POSTGRES_PASSWORD、JWT_SECRET、TOTP_ENCRYPTION_KEY 等部署密钥
 docker compose up -d
 docker compose logs -f sub3api
 ```
 
+首次启动完成基础设施初始化后，打开 `http://127.0.0.1:8080/setup` 自行创建唯一站长账号；系统不会创建 `admin/admin` 默认账号。
+
 Default URL: `http://127.0.0.1:8080`.
+
+### Public Web Deployment
+
+The Vue admin UI is built into the Go server and served from the same origin as
+the API; there is no separate frontend service to publish. Docker Compose binds
+the host port to `127.0.0.1` by default intentionally. For Internet access, put
+Caddy or another trusted TLS reverse proxy on ports 80/443 and proxy the whole
+site to `127.0.0.1:8080`. Configure the domain in `deploy/Caddyfile`; do not
+expose PostgreSQL, Redis, or the application port directly to the Internet.
 
 ### 一键准备 Docker 部署文件
 
@@ -138,10 +149,11 @@ Common environment variables:
 | `POSTGRES_PASSWORD` | 无 | Docker Compose 必填，PostgreSQL 密码 |
 | `POSTGRES_USER` | `sub3api` | PostgreSQL 用户 |
 | `POSTGRES_DB` | `sub3api` | PostgreSQL 数据库名 |
-| `SERVER_PORT` | `8080` | 宿主机访问端口；容器内服务仍监听 `8080` |
-| `BIND_HOST` | `127.0.0.1` | Docker Compose 端口绑定地址 |
-| `ADMIN_EMAIL` | `admin` | 首次初始化管理员账号 |
-| `ADMIN_PASSWORD` | `admin` | 首次初始化管理员密码，生产环境必须修改 |
+| `SERVER_PORT` | `8080` | 宿主机发布端口；容器内服务仍监听 `8080` |
+| `BIND_HOST` | `127.0.0.1` | 宿主机发布绑定地址；公网域名部署应通过 TLS 反向代理访问 |
+| `AUTO_SETUP_OWNER_SETUP` | `true` | 首次启动后由站长在 `/setup` 创建管理员账号 |
+| `SETUP_ALLOW_REMOTE` | `false` | 是否允许远程提交首次设置；启用时必须配合一次性 token |
+| `SETUP_REMOTE_TOKEN` | 空 | 远程首次设置使用的一次性随机 token |
 | `JWT_SECRET` | 空 | 建议固定为 `openssl rand -hex 32`，否则重启可能导致会话失效 |
 | `TOTP_ENCRYPTION_KEY` | 空 | 建议固定为 `openssl rand -hex 32`，否则已绑定 TOTP 可能失效 |
 | `RUN_MODE` | `standard` | `standard` 启用完整计费/余额逻辑；`simple` 隐藏部分 SaaS 功能并跳过余额校验 |
@@ -214,7 +226,7 @@ Vite 开发服务器默认端口来自 `VITE_DEV_PORT`，未设置时为 `18082`
 - **邮箱**：`admin@example.com`
 - **密码**：`admin12345`
 
-> ⚠️ 以上凭据仅用于本地开发。首次初始化生产环境时，必须通过 `ADMIN_EMAIL`、`ADMIN_PASSWORD` 或安装向导设置唯一且高强度的管理员凭据；已有管理员账号不会因修改环境变量而被覆盖。
+> ⚠️ 以上凭据仅用于本地开发。Docker Compose 生产部署默认通过 `/setup` 由站长创建账号，不会使用 `admin/admin` 默认凭据；不要将本地开发账号用于生产。
 
 ### 从源码构建完整 Docker 镜像
 
@@ -241,9 +253,9 @@ chmod 600 .env
 docker compose up -d
 ```
 
-### 登录后修改 `.env` 的 `ADMIN_PASSWORD` 不生效
+### 修改环境变量没有更改已有账号密码
 
-`ADMIN_PASSWORD` 只在首次创建管理员账号时使用。已有账号需要在管理台修改密码。
+已有账号密码保存在应用数据库中。请登录管理台修改密码；更改部署环境变量不会重置已有账号。
 
 ### 前端开发服务器连不上后端
 

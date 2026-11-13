@@ -32,6 +32,12 @@ build/
 **/node_modules/
 
 # Local agent and audit artifacts
+artifacts/
+**/.cache/
+frontend/e2e/.auth/
+frontend/e2e/.artifacts/
+frontend/test-results/
+frontend/playwright-report/
 .tmp/
 .uiaudit/
 .mimosa/

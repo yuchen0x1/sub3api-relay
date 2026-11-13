@@ -1,0 +1,73 @@
+# Sub3API 更新历史
+
+## v0.4.3
+
+发布日期：2026-11-13
+
+本版本集中改进数据库备份、恢复与管理台反馈，保持现有数据格式兼容，无数据库结构迁移。
+
+### 备份与恢复
+
+- 正确保留「保留天数 = 0（永不过期）」和「最大份数 = 0（不限）」设置。
+- 手动备份按自身到期时间保留；最大份数只限制已完成的定时备份，避免误删长期保留的手动备份。
+- 删除或清理失败时保留备份记录，便于查看与重试；读取异常或损坏的记录不会被空列表覆盖。
+- 同一服务进程内，备份、恢复与删除避免冲突；恢复开始前先记录状态，关闭服务时不再接受新任务。
+- 同一秒创建的备份使用不同对象名称；压缩、上传或数据库导出收尾失败会正确标记任务失败。
+- PostgreSQL 恢复在单个事务中执行，遇到 SQL 错误立即停止，避免把部分恢复误报为成功。
+
+### 存储与管理台
+
+- 修改 S3 配置且不重新填写密钥时，已有密钥继续加密保存。
+- 大备份上传改为临时文件暂存，降低内存占用；上传完成或失败后清理临时文件。
+- 管理台展示备份和恢复失败详情，禁止冲突操作，避免轮询重叠及页面离开后的过期响应。
+- 修复非法备份请求与保留范围的校验，并同步中文、英文、日文提示。
+
+### 发行与部署
+
+- `checksums.txt` 覆盖全部 7 个平台二进制归档、Web 包和部署包，共 9 个归档。
+- 服务端发行二进制移除调试符号与本机构建路径，并写入版本、提交、构建时间和发行类型。
+- 部署文档补充首次创建站长账号和公网反向代理说明，明确没有 `admin/admin` 默认账号。
+
+### 升级注意事项
+
+- 升级前保留数据库与部署配置备份，继续使用原有 `TOTP_ENCRYPTION_KEY`。已有明文 S3 配置可通过重新保存配置转为加密；这不等于轮换存储访问密钥。
+- 临时目录需要至少容纳单次压缩后的数据库备份，确保服务账号有写权限，并按实际备份规模预留磁盘空间。
+- 备份互斥限于单个服务进程，多副本部署仍需安排唯一备份执行实例。
+- 本次发布提供服务端、Web 和部署归档；不发布桌面安装包或新的容器镜像。Docker 用户可从此标签构建镜像，已有镜像渠道需单独发布后再升级。
+- SHA-256 用于完整性校验，不能替代独立的发布者签名。
+
+[v0.4.3 完整说明与验证范围](../release-notes/RELEASE_NOTES_v0.4.3.md)
+
+## 历史版本
+
+各版本原始说明保留如下：
+
+- [v0.4.2](../release-notes/RELEASE_NOTES_v0.4.2.md)
+- [v0.4.1](../release-notes/RELEASE_NOTES_v0.4.1.md)
+- [v0.4.0](../release-notes/RELEASE_NOTES_v0.4.0.md)
+- [v0.3.1](../release-notes/RELEASE_NOTES_v0.3.1.md)
+- [v0.3.0](../release-notes/RELEASE_NOTES_v0.3.0.md)
+- [v0.1.204](../release-notes/RELEASE_NOTES_v0.1.204.md)
+- [v0.1.203](../release-notes/RELEASE_NOTES_v0.1.203.md)
+- [v0.1.202](../release-notes/RELEASE_NOTES_v0.1.202.md)
+- [v0.1.201](../release-notes/RELEASE_NOTES_v0.1.201.md)
+- [v0.1.200](../release-notes/RELEASE_NOTES_v0.1.200.md)
+- [v0.1.199](../release-notes/RELEASE_NOTES_v0.1.199.md)
+- [v0.1.198](../release-notes/RELEASE_NOTES_v0.1.198.md)
+- [v0.1.197](../release-notes/RELEASE_NOTES_v0.1.197.md)
+- [v0.1.196](../release-notes/RELEASE_NOTES_v0.1.196.md)
+- [v0.1.195](../release-notes/RELEASE_NOTES_v0.1.195.md)
+- [v0.1.194](../release-notes/RELEASE_NOTES_v0.1.194.md)
+- [v0.1.193](../release-notes/RELEASE_NOTES_v0.1.193.md)
+- [v0.1.192](../release-notes/RELEASE_NOTES_v0.1.192.md)
+- [v0.1.191](../release-notes/RELEASE_NOTES_v0.1.191.md)
+- [v0.1.190](../release-notes/RELEASE_NOTES_v0.1.190.md)
+- [v0.1.189](../release-notes/RELEASE_NOTES_v0.1.189.md)
+- [v0.1.188](../release-notes/RELEASE_NOTES_v0.1.188.md)
+- [v0.1.187](../release-notes/RELEASE_NOTES_v0.1.187.md)
+- [v0.1.186](../release-notes/RELEASE_NOTES_v0.1.186.md)
+- [v0.1.185](../release-notes/RELEASE_NOTES_v0.1.185.md)
+- [v0.1.184](../release-notes/RELEASE_NOTES_v0.1.184.md)
+- [v0.1.183](../release-notes/RELEASE_NOTES_v0.1.183.md)
+- [v0.1.182](../release-notes/RELEASE_NOTES_v0.1.182.md)
+- [v0.1.181](../release-notes/RELEASE_NOTES_v0.1.181.md)

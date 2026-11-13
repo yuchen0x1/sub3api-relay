@@ -634,16 +634,18 @@ func TestRefreshIfNeeded_RequestPathDBRereadMissingGrokRefreshCredentialReturnsP
 }
 
 func TestRefreshIfNeeded_LateSuccessAfterDeadlineDoesNotPersist(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
 	account := &Account{ID: 85, Platform: PlatformGrok, Type: AccountTypeOAuth, Status: StatusActive}
 	repo := &refreshAPIAccountRepo{account: account}
 	executor := &refreshAPIExecutorStub{
 		needsRefresh: true,
 		credentials:  map[string]any{"access_token": "late-token"},
-		delay:        30 * time.Millisecond,
+		// Wait for cancellation itself. Sleep ordering is not guaranteed when
+		// Windows schedules both timers late under a full-suite workload.
+		onRefresh: func() { <-ctx.Done() },
 	}
 	api := NewOAuthRefreshAPI(repo, nil)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
 
 	result, err := api.RefreshIfNeeded(ctx, account, executor, time.Hour)
 

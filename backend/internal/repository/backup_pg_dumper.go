@@ -56,12 +56,26 @@ func (d *PgDumper) Dump(ctx context.Context) (io.ReadCloser, error) {
 
 // Restore executes psql to restore from a streaming reader
 func (d *PgDumper) Restore(ctx context.Context, data io.Reader) error {
+	cmd := d.restoreCommand(ctx)
+	cmd.Stdin = data
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%v: %s", err, string(output))
+	}
+	return nil
+}
+
+func (d *PgDumper) restoreCommand(ctx context.Context) *exec.Cmd {
 	args := []string{
 		"-h", d.cfg.Host,
 		"-p", fmt.Sprintf("%d", d.cfg.Port),
 		"-U", d.cfg.User,
 		"-d", d.cfg.DBName,
+		"--no-psqlrc",
+		"--set=ON_ERROR_STOP=on",
 		"--single-transaction",
+		"--file=-",
 	}
 
 	cmd := exec.CommandContext(ctx, "psql", args...)
@@ -72,13 +86,7 @@ func (d *PgDumper) Restore(ctx context.Context, data io.Reader) error {
 		cmd.Env = append(cmd.Environ(), "PGSSLMODE="+d.cfg.SSLMode)
 	}
 
-	cmd.Stdin = data
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%v: %s", err, string(output))
-	}
-	return nil
+	return cmd
 }
 
 // cmdReadCloser wraps a command stdout pipe and waits for the process on Close

@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"time"
 
@@ -38,25 +38,37 @@ func NewS3BackupStoreFactory() service.BackupObjectStoreFactory {
 }
 
 func (s *S3BackupStore) Upload(ctx context.Context, key string, body io.Reader, contentType string) (int64, error) {
-	// 读取全部内容以获取大小（S3 PutObject 需要知道内容长度）
-	// 注意：阿里云 OSS 不兼容 s3manager 分片上传的签名方式，因此使用 PutObject
-	data, err := io.ReadAll(body)
+	// Keep the seekable PutObject body needed by OSS without retaining the
+	// entire database backup in RAM. CreateTemp creates a private (0600) file.
+	file, err := os.CreateTemp("", "sub3api-backup-*.gz")
+	if err != nil {
+		return 0, fmt.Errorf("create backup upload spool: %w", err)
+	}
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
+	}()
+	size, err := io.Copy(file, body)
 	if err != nil {
 		return 0, fmt.Errorf("read body: %w", err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return 0, fmt.Errorf("rewind backup upload spool: %w", err)
 	}
 
 	finish := servertiming.ObserveDependency(ctx, "s3")
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      &s.bucket,
-		Key:         &key,
-		Body:        bytes.NewReader(data),
-		ContentType: &contentType,
+		Bucket:        &s.bucket,
+		Key:           &key,
+		Body:          file,
+		ContentLength: &size,
+		ContentType:   &contentType,
 	})
 	finish()
 	if err != nil {
 		return 0, fmt.Errorf("S3 PutObject: %w", err)
 	}
-	return int64(len(data)), nil
+	return size, nil
 }
 
 func (s *S3BackupStore) Download(ctx context.Context, key string) (io.ReadCloser, error) {
