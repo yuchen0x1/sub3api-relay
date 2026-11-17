@@ -17,21 +17,24 @@ function isLocaleCode(value: string): value is LocaleCode {
   return value === 'en' || value === 'zh' || value === 'ja'
 }
 
-function getDefaultLocale(): LocaleCode {
-  const saved = localStorage.getItem(LOCALE_KEY)
-  if (saved && isLocaleCode(saved)) {
-    return saved
+/** Resolve saved preference, then browser/system locale list, then English default. */
+export function resolveLocale(saved: unknown, locales: readonly string[] = []): LocaleCode {
+  if (typeof saved === 'string' && isLocaleCode(saved)) return saved
+  for (const value of locales) {
+    const locale = String(value || '').toLowerCase()
+    if (locale.startsWith('zh')) return 'zh'
+    if (locale.startsWith('ja')) return 'ja'
+    if (locale.startsWith('en')) return 'en'
   }
-
-  const browserLang = navigator.language.toLowerCase()
-  if (browserLang.startsWith('zh')) {
-    return 'zh'
-  }
-  if (browserLang.startsWith('ja')) {
-    return 'ja'
-  }
-
   return DEFAULT_LOCALE
+}
+
+function getDefaultLocale(): LocaleCode {
+  const saved = globalThis.localStorage?.getItem(LOCALE_KEY)
+  const browserLocales = globalThis.navigator?.languages?.length
+    ? globalThis.navigator.languages
+    : [globalThis.navigator?.language ?? '']
+  return resolveLocale(saved, browserLocales)
 }
 
 export const i18n = createI18n({
