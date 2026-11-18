@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   shell:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Check deployment scripts
@@ -102,3 +102,4 @@ jobs:
       # 现在全量 226 个文件 / 1538 个用例 0 错误，作为硬门禁执行。
       - name: Unit tests
         run: pnpm --dir frontend exec vitest run
+
