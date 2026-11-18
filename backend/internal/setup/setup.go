@@ -394,9 +394,14 @@ func TestDatabaseConnection(cfg *DatabaseConfig) error {
 
 	// Create database if not exists
 	if !exists {
-		// 注意：数据库名不能参数化，依赖前置输入校验保障安全。
-		// Note: Database names cannot be parameterized, but we've already validated cfg.DBName
-		// in the handler using validateDBName() which only allows [a-zA-Z][a-zA-Z0-9_]*
+		// 数据库名不能参数化。除 handler 入口的 validateDBName() 外，在执行点
+		// 再做一次相同校验作为纵深防御，防止未来新增调用路径绕过入口校验。
+		// Database names cannot be parameterized. validateDBName() runs at the
+		// handler entry; re-check it here as defense in depth so a future call
+		// path cannot skip that validation.
+		if !validateDBName(cfg.DBName) {
+			return fmt.Errorf("invalid database name %q", cfg.DBName)
+		}
 		_, err := db.ExecContext(ctx, fmt.Sprintf("CREATE DATABASE %s", cfg.DBName))
 		if err != nil {
 			return fmt.Errorf("failed to create database '%s': %w", cfg.DBName, err)

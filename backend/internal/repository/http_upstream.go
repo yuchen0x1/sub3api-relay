@@ -277,7 +277,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	}
 	proxyInfo := "direct"
 	if proxyURL != "" {
-		proxyInfo = proxyURL
+		proxyInfo = redactProxyForLog(proxyURL)
 	}
 	slog.Debug("tls_fingerprint_enabled", "account_id", accountID, "target", targetHost, "proxy", proxyInfo, "profile", profile.Name)
 
@@ -550,7 +550,7 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	// 创建带 TLS 指纹的 Transport
-	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyKey)
+	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", redactProxyForLog(proxyKey))
 	transport, proxyCloser, err := buildUpstreamTransportWithTLSFingerprintManaged(settings, parsedProxy, profile)
 	if err != nil {
 		s.mu.Unlock()
@@ -1071,7 +1071,7 @@ func (s *httpUpstreamService) recordOpenAIHTTP2Failure(profile service.HTTPUpstr
 	activated, until := state.recordFailure(time.Now(), settings.fallbackErrorThreshold, settings.fallbackWindow, settings.fallbackTTL)
 	if activated {
 		slog.Warn("openai_http2_proxy_fallback_activated",
-			"proxy", proxyKey,
+			"proxy", redactProxyForLog(proxyKey),
 			"fallback_until", until.Format(time.RFC3339))
 	}
 }
@@ -1148,6 +1148,21 @@ func (s *openAIHTTP2FallbackState) recordFailure(now time.Time, threshold int, w
 	s.windowStart = time.Time{}
 	s.errorCount = 0
 	return true, s.fallbackUntil
+}
+
+// redactProxyForLog 返回可安全写入日志的代理标识：剥离 userinfo，
+// 只保留 scheme://host[:port]（含路径与查询），避免代理凭据进入日志。
+// 解析失败时原样返回（调用方随后会因解析失败走错误路径）。
+func redactProxyForLog(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.User == nil {
+		return raw
+	}
+	parsed.User = nil
+	return parsed.String()
 }
 
 // normalizeProxyURL 标准化代理 URL

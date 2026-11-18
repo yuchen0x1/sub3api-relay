@@ -9,6 +9,11 @@ on:
     # Weekly Monday scan; keep results current between releases.
     - cron: "23 4 * * 1"
 
+concurrency:
+  # Serialize per-ref analyses; cancel stale pushes to avoid duplicate runs.
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

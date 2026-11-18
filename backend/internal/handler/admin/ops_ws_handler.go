@@ -695,14 +695,15 @@ func loadOpsWSRuntimeLimitsFromEnv() opsWSRuntimeLimits {
 	}
 
 	if v := strings.TrimSpace(os.Getenv(envOpsWSMaxConns)); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+		// 上限防止超出 int32 的值在收窄转换时回绕。
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 && parsed <= math.MaxInt32 {
 			cfg.MaxConns = int32(parsed)
 		} else {
 			logger.LegacyPrintf("handler.admin.ops_ws", "[OpsWS] invalid %s=%q (expected int>0); using default=%d", envOpsWSMaxConns, v, cfg.MaxConns)
 		}
 	}
 	if v := strings.TrimSpace(os.Getenv(envOpsWSMaxConnsPerIP)); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 && parsed <= math.MaxInt32 {
 			cfg.MaxConnsPerIP = int32(parsed)
 		} else {
 			logger.LegacyPrintf("handler.admin.ops_ws", "[OpsWS] invalid %s=%q (expected int>=0); using default=%d", envOpsWSMaxConnsPerIP, v, cfg.MaxConnsPerIP)

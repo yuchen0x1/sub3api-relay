@@ -89,6 +89,8 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 
+// 仅用于 DOM 元素 id 唯一性（非安全上下文；不使用 crypto.randomUUID 以兼容
+// 明文 HTTP 自托管环境下的 insecure context）。
 const uid = Math.random().toString(36).slice(2, 10)
 const buttonId = `aliyun-captcha-button-${uid}`
 const elementId = `aliyun-captcha-element-${uid}`

@@ -309,9 +309,19 @@ func TestTrojanDialerEndToEnd(t *testing.T) {
 			}
 			go func(raw net.Conn) {
 				defer func() { _ = raw.Close() }()
+				// auth hash + CRLF + address + CRLF + tunneled HTTP 请求头。
+				// 单次 Read 在负载下可能只读到握手前缀，导致响应先于请求
+				// 头到达引发偶发 RST；这里循环读取到 HTTP 头边界再回写。
 				buf := make([]byte, 4096)
-				// auth hash + CRLF + address + CRLF (single read suffices locally)
-				if _, err := raw.Read(buf); err != nil {
+				total := 0
+				for total < len(buf) {
+					n, rerr := raw.Read(buf[total:])
+					total += n
+					if rerr != nil || bytes.Index(buf[:total], []byte("\r\n\r\n")) >= 0 {
+						break
+					}
+				}
+				if total == 0 {
 					return
 				}
 				if _, err := raw.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\ntl")); err != nil {
