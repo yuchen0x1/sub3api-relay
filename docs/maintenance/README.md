@@ -82,6 +82,8 @@
 
 ## 维护入口
 
-[完整的 30 个项目证据、版本和活动快照](research.md) · [实时 CI](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/backend-ci.yml) · [安全扫描](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/security-scan.yml) · [发布流水线](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/release.yml) · [当前正式版本](https://github.com/yuchen0x1/sub3api-relay/releases/latest)
+[完整的 30 个项目证据、版本和活动快照](research.md) · [实时 CI](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/backend-ci.yml) · [安全扫描](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/security-scan.yml) · [代码扫描（CodeQL）](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/codeql.yml) · [发布流水线](https://github.com/yuchen0x1/sub3api-relay/actions/workflows/release.yml) · [当前正式版本](https://github.com/yuchen0x1/sub3api-relay/releases/latest)
+
+CodeQL 于 2026-11-19 启用，覆盖 Go 与 JavaScript/TypeScript，测试夹具已通过 `codeql-config.yml` 排除；首批生产代码命中在 [Issue #27](https://github.com/yuchen0x1/sub3api-relay/issues/27) 分诊。
 
 每月采集一次项目公开活动，核对发布资产；大版本前复核功能差距和真机覆盖。计费、真支付、真实账号、物理 NAS、手机及完整生产数据库恢复需独立验收。实验端未纳入原生安装器或自动更新覆盖。
