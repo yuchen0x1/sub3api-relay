@@ -1,0 +1,7 @@
+name: "Sub3API CodeQL config"
+# Test fixtures trip clear-text-storage rules without representing shipped
+# behavior; production findings stay in the alert list.
+paths-ignore:
+  - "**/__tests__"
+  - "**/*.spec.ts"
+  - "**/*.test.ts"

@@ -35,12 +35,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-          # Test fixtures trip clear-text-storage rules without representing
-          # shipped behavior; production findings stay in the alert list.
-          paths-ignore:
-            - "**/__tests__"
-            - "**/*.spec.ts"
-            - "**/*.test.ts"
+          config-file: .github/codeql/codeql-config.yml
       - name: Autobuild
         if: matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@5895b2c9be147bc7f1c75ce72c5cb577febb1907 # v4
