@@ -12,16 +12,28 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
+  ci:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/backend-ci.yml
+
+  security:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/security-scan.yml
+
   build-and-validate:
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
@@ -38,10 +50,13 @@ jobs:
           test "$(tr -d '\r\n' < backend/cmd/server/VERSION)" = "$VERSION"
           test "$(node -p "require('./frontend/package.json').version")" = "$VERSION"
           test -s "$NOTES"
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            git merge-base --is-ancestor HEAD origin/main
+          fi
           echo "Validated $RELEASE_TAG. Tag-triggered runs publish the GitHub Release after the assets pass validation."
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -63,12 +78,12 @@ jobs:
           python3 scripts/check-govuln-report.py govulncheck.json
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           version: 11.20.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: pnpm
@@ -114,29 +129,128 @@ jobs:
           ls -1 release-assets
           printf 'Built release assets for %s. A tag-triggered run publishes them below; manual runs remain validation-only.\n' "$RELEASE_TAG"
 
-      - name: Build container image (no push)
+      - name: Verify archive checksums and Linux executable
         run: |
-          docker buildx build --platform linux/amd64 --load \
-            --tag "sub3api:${RELEASE_TAG#v}-ci" \
-            --build-arg VERSION="${RELEASE_TAG#v}" .
+          cd release-assets
+          sha256sum --strict --check checksums.txt
+          tar -xOzf "sub3api_${RELEASE_TAG#v}_linux_amd64.tar.gz" ./sub3api > "$RUNNER_TEMP/sub3api"
+          chmod +x "$RUNNER_TEMP/sub3api"
+          "$RUNNER_TEMP/sub3api" -version 2>&1 | grep -F "Sub3API ${RELEASE_TAG#v} ("
+
+      - name: Exercise Linux systemd update and rollback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash deploy/tests/update-service-test.sh release-assets "${RELEASE_TAG#v}"
 
       - name: Upload build artifacts to workflow run
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: sub3api-${{ env.RELEASE_TAG }}-release-assets
           path: release-assets/*
           if-no-files-found: error
 
-      - name: Publish GitHub Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: Sub3API ${{ env.RELEASE_TAG }}
-          body_path: docs/release-notes/RELEASE_NOTES_${{ env.RELEASE_TAG }}.md
-          files: release-assets/*
-          fail_on_unmatched_files: true
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  smoke:
+    needs: build-and-validate
+    strategy:
+      matrix:
+        include:
+          - { runner: windows-latest, target: windows_amd64, binary: sub3api.exe }
+          - { runner: macos-15, target: darwin_arm64, binary: sub3api }
+          - { runner: ubuntu-24.04-arm, target: linux_arm64, binary: sub3api }
+    runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: sub3api-${{ env.RELEASE_TAG }}-release-assets
+      - name: Run packaged binary on matching host
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xzf "sub3api_${RELEASE_TAG#v}_${{ matrix.target }}.tar.gz"
+          "./${{ matrix.binary }}" -version 2>&1 | grep -F "Sub3API ${RELEASE_TAG#v} ("
+
+  image:
+    strategy:
+      matrix:
+        include:
+          - { runner: ubuntu-latest, arch: amd64 }
+          - { runner: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - name: Build and start the runtime image
+        run: |
+          set -euo pipefail
+          docker build --build-arg VERSION="${RELEASE_TAG#v}" --build-arg COMMIT="$(git rev-parse HEAD)" \
+            --build-arg GOPROXY=https://proxy.golang.org,direct --build-arg GOSUMDB=sum.golang.org -t sub3api:ci .
+          docker run --rm sub3api:ci -version 2>&1 | grep -F "Sub3API ${RELEASE_TAG#v} ("
+          docker run -d --name smoke -p 127.0.0.1:18080:8080 sub3api:ci
+          curl --retry 20 --retry-all-errors --retry-delay 1 -fsS http://127.0.0.1:18080/health
+          docker stop smoke
+          docker save sub3api:ci | gzip -1 > "$RUNNER_TEMP/image.tar.gz"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: image-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image.tar.gz
+          compression-level: 0
+          retention-days: 2
+
+  publish:
+    if: github.event_name == 'push'
+    needs: [ci, security, smoke, image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: sub3api-${{ env.RELEASE_TAG }}-release-assets
+          path: release-assets
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: image-*
+          path: images
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: 'release-assets/*'
+      - name: Publish tested image manifest and release
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release already exists: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          refs=()
+          for arch in amd64 arm64; do
+            docker load -i "images/image-$arch/image.tar.gz"
+            ref="$IMAGE:$GITHUB_SHA-$arch"
+            docker tag sub3api:ci "$ref"
+            docker push "$ref"
+            refs+=("$ref")
+          done
+          docker buildx imagetools create -t "$IMAGE:$RELEASE_TAG" -t "$IMAGE:${RELEASE_TAG#v}" "${refs[@]}"
+          docker buildx imagetools inspect "$IMAGE:$RELEASE_TAG"
+          gh release create "$RELEASE_TAG" --verify-tag --title "Sub3API $RELEASE_TAG" \
+            --notes-file "docs/release-notes/RELEASE_NOTES_$RELEASE_TAG.md" release-assets/*
+          if [[ "$(gh release view --json tagName --jq .tagName)" == "$RELEASE_TAG" ]]; then
+            docker buildx imagetools create -t "$IMAGE:latest" "$IMAGE:$RELEASE_TAG"
+          fi

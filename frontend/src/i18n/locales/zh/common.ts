@@ -1,5 +1,9 @@
 export default {
   common: {
+    webUpdateTitle: '管理台有新版本',
+    webUpdateSave: '请先保存正在编辑的内容，再刷新页面。',
+    webUpdateRefresh: '刷新管理台',
+    webUpdateLater: '稍后',
     loading: '加载中...',
     submitting: '提交中...',
     apply: '应用',

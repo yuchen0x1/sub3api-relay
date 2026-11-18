@@ -96,7 +96,7 @@ export default defineConfig(({ mode }) => {
       }),
       injectPublicSettings(backendUrl),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['logo.svg', 'logo-light.svg'],
         manifest: {
           name: 'Sub3API',

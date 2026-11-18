@@ -9,6 +9,7 @@ import { useAppStore } from '@/stores/app'
 import { updateFavicon } from '@/utils/branding'
 import { isIOSDevice } from '@/utils/device'
 import './style.css'
+import { registerWebUpdate } from '@/composables/useWebUpdate'
 import { registerSW } from 'virtual:pwa-register'
 
 function initIOSViewportZoomFix() {
@@ -56,13 +57,7 @@ async function bootstrap() {
   await router.isReady()
   app.mount('#app')
 
-  registerSW({
-    immediate: true,
-    onRegisteredSW(_swUrl, registration) {
-      if (!registration) return
-      window.setInterval(() => registration.update(), 60 * 60 * 1000)
-    }
-  })
+  registerWebUpdate(registerSW)
 }
 
 bootstrap()
