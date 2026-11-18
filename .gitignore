@@ -150,6 +150,9 @@ docs/*
 !docs/release-notes/*.md
 !docs/releases/
 !docs/releases/*.md
+!docs/maintenance/
+!docs/maintenance/*.md
+!docs/maintenance/*.txt
 .serena/
 .codex/
 aicodex

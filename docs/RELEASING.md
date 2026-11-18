@@ -17,11 +17,14 @@ The workflow artifact contains seven platform archives named `sub3api_<version>_
 
 Release binaries use `-trimpath`, omit debug symbols, and embed the version, commit, build time, and `release` deployment type. This reduces incidental build-path exposure without hiding the public source code.
 
-Build-time image validation is not image publication. The release workflow still does not push container images; verify the GitHub Release page and its asset list before describing a release as published.
+The workflow builds Linux AMD64 and ARM64 runtime images on matching runners and probes the setup server. Publication depends on CI, security, archive smoke checks and both image jobs. The publishing job attaches GitHub provenance to all release files and publishes the tested images as a versioned GHCR manifest. Check package visibility with an anonymous pull on first publication.
 
-## Update verification
+## Operator verification
 
-- Binary deployments require the tag-triggered GitHub release with the matching platform archive and `checksums.txt` before **Update Now** or installer upgrades can work.
-- Docker deployments require a separately published image; recreate the container rather than replacing a binary inside it.
-- Confirm the running version and health endpoint after restart.
-- Desktop installers, `latest.json`, and `.sig` files are not produced by this workflow. A future desktop update channel requires a separate signed release process and client installation verification.
+```bash
+gh attestation verify "$archive" --repo yuchen0x1/sub3api-relay --signer-workflow yuchen0x1/sub3api-relay/.github/workflows/release.yml --source-ref "refs/tags/$tag"
+```
+
+Run `sha256sum --check checksums.txt` with all archives present. A disposable Linux systemd job starts the previous published binary, exercises a failed health check and rollback, installs the candidate, checks its version and health, and repeats discovery. Production data recovery requires a separate test with the operator’s backups.
+
+The optional Tauri scaffolding has no signed release channel. See [maintenance coverage](maintenance/README.md).

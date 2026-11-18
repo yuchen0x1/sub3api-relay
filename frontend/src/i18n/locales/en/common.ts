@@ -1,5 +1,9 @@
 export default {
   common: {
+    webUpdateTitle: 'Console update available',
+    webUpdateSave: 'Save any changes before refreshing the page.',
+    webUpdateRefresh: 'Refresh console',
+    webUpdateLater: 'Later',
     loading: 'Loading...',
     submitting: 'Submitting...',
     apply: 'Apply',

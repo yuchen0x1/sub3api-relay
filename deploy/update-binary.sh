@@ -16,6 +16,7 @@ set -euo pipefail
 #   SUB3API_BACKUP_DIR   Backup directory        (default: <binary dir>/backups)
 #   SUB3API_HEALTH_URL   Health check URL        (default: http://127.0.0.1:8080/health)
 #   SUB3API_REPO         GitHub repository       (default: yuchen0x1/sub3api-relay)
+#   SUB3API_REQUIRE_ATTESTATION  Require GitHub build provenance via gh (v0.5.0+)
 #   SUB3API_FORCE        Set to 1 to reinstall the currently running version
 # =============================================================================
 
@@ -36,19 +37,24 @@ if [ "$(id -u)" -ne 0 ] && [ "${SUB3API_ALLOW_NON_ROOT:-}" != "1" ]; then
     exit 1
 fi
 
-for cmd in curl tar sha256sum systemctl; do
+for cmd in curl tar sha256sum systemctl flock; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         print_err "Required command not found: $cmd"
         exit 1
     fi
 done
 
+if [[ "${SUB3API_REQUIRE_ATTESTATION:-0}" == 1 ]] && ! command -v gh >/dev/null 2>&1; then
+    print_err "SUB3API_REQUIRE_ATTESTATION=1 requires the GitHub CLI (gh)."
+    exit 1
+fi
+
 resolve_version() {
     if [ -n "${1:-}" ]; then
         printf '%s\n' "$1"
         return
     fi
-    print_info "Fetching latest release version..."
+    print_info "Fetching latest release version..." >&2
     curl -fsSL --connect-timeout 10 --max-time 30 \
         "${SUB3API_RELEASE_API_URL}/releases/latest" |
         sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
@@ -109,6 +115,10 @@ download_release() {
         exit 1
     fi
     print_ok "Checksum verified"
+    if [[ "${SUB3API_REQUIRE_ATTESTATION:-0}" == 1 ]]; then
+        gh attestation verify "${TMP_DIR}/${asset}" --repo "$SUB3API_REPO" \
+            --signer-workflow "$SUB3API_REPO/.github/workflows/release.yml" --source-ref "refs/tags/v${version}"
+    fi
 
     tar -xzf "${TMP_DIR}/${asset}" -C "${TMP_DIR}"
     if [ ! -f "${TMP_DIR}/sub3api" ]; then
@@ -116,6 +126,12 @@ download_release() {
         exit 1
     fi
     chmod +x "${TMP_DIR}/sub3api"
+    local reported
+    reported="$("${TMP_DIR}/sub3api" -version 2>&1)"
+    if [[ "$reported" != *"Sub3API ${version} ("* ]]; then
+        print_err "Archive executable version does not match the release tag"
+        exit 1
+    fi
 }
 
 wait_health() {
@@ -132,7 +148,8 @@ wait_health() {
 restore_binary() {
     local backup="$1"
     local user
-    cp -a "$backup" "$SUB3API_BIN"
+    cp -a "$backup" "$STAGED_BIN"
+    mv -f "$STAGED_BIN" "$SUB3API_BIN"
     chmod +x "$SUB3API_BIN"
     user="$(systemctl show -p User --value "$SUB3API_SERVICE" 2>/dev/null || true)"
     if [ -n "$user" ] && [ "$user" != "root" ]; then
@@ -149,6 +166,10 @@ if [ -z "$TAG_VERSION" ]; then
     exit 1
 fi
 VERSION="$(normalize_version "$TAG_VERSION")"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    print_err "Expected a stable semantic version"
+    exit 1
+fi
 GOARCH="$(detect_goarch)"
 CURRENT_VERSION="$(get_current_version)"
 
@@ -169,26 +190,30 @@ fi
 print_info "Current version: ${CURRENT_VERSION:-unknown}"
 print_info "Target version:  ${VERSION}"
 
+# Serialize replacements, including rollback, on the same installation.
+exec 9>"${SUB3API_BIN}.update.lock"
+flock -n 9 || { print_err "Another update is running"; exit 1; }
+CURRENT_VERSION="$(get_current_version)"
+if [[ "$CURRENT_VERSION" == "$VERSION" && "${SUB3API_FORCE:-}" != 1 ]]; then exit 0; fi
+download_release "$VERSION" "$GOARCH"
 mkdir -p "$SUB3API_BACKUP_DIR"
 BACKUP_FILE="${SUB3API_BACKUP_DIR}/sub3api-${CURRENT_VERSION}-to-${VERSION}-$(date +%Y%m%d-%H%M%S)"
 cp -a "$SUB3API_BIN" "$BACKUP_FILE"
 print_ok "Backup created: ${BACKUP_FILE}"
 
-download_release "$VERSION" "$GOARCH"
+# Prepare a replacement on the same filesystem before stopping the service.
+STAGED_BIN="$(mktemp "${SUB3API_BIN}.new.XXXXXX")"
+trap 'rm -rf "$TMP_DIR"; rm -f "$STAGED_BIN"' EXIT
+cp --preserve=mode,ownership "$SUB3API_BIN" "$STAGED_BIN"
+cat "$TMP_DIR/sub3api" > "$STAGED_BIN"
 
 print_info "Stopping ${SUB3API_SERVICE} ..."
 systemctl stop "$SUB3API_SERVICE"
 
-if ! cp "$TMP_DIR/sub3api" "$SUB3API_BIN"; then
+if ! mv -f "$STAGED_BIN" "$SUB3API_BIN"; then
     print_err "Failed to install new binary"
     systemctl start "$SUB3API_SERVICE" || true
     exit 1
-fi
-chmod +x "$SUB3API_BIN"
-
-SERVICE_USER="$(systemctl show -p User --value "$SUB3API_SERVICE" 2>/dev/null || true)"
-if [ -n "$SERVICE_USER" ] && [ "$SERVICE_USER" != "root" ]; then
-    chown "$SERVICE_USER" "$SUB3API_BIN"
 fi
 
 print_info "Starting ${SUB3API_SERVICE} ..."

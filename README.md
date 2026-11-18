@@ -19,15 +19,15 @@
 
 <!-- github-release:start -->
 
-**[v0.4.5](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.4.5)** · 2026-11-17
+**[v0.5.0](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.0)** · 2026-11-18
 
-本版本完善 Vue 管理台语言解析，支持按浏览器语言列表自动选择语言，并保留手动切换和持久化能力。上游模型内容、API 协议字段和用户数据不参与翻译改写。
+管理台发现新版时可先保存编辑内容，再选择刷新或稍后处理。Linux 二进制升级支持校验构建来源，Docker 部署新增与发行版对应的 AMD64 和 ARM64 镜像。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
 <!-- github-release:end -->
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.4.4 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.0 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.0.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 

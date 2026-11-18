@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { onMounted, onBeforeUnmount, watch } from 'vue'
+import WebUpdateNotice from '@/components/common/WebUpdateNotice.vue'
 import Toast from '@/components/common/Toast.vue'
 import NavigationProgress from '@/components/common/NavigationProgress.vue'
 import { resolveRouteDocumentTitle } from '@/router/title'
@@ -113,5 +114,6 @@ onMounted(async () => {
   <NavigationProgress />
   <RouterView />
   <Toast />
+  <WebUpdateNotice />
   <AnnouncementPopup />
 </template>

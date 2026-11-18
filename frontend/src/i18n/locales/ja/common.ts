@@ -1,5 +1,9 @@
 export default {
   common: {
+    webUpdateTitle: '管理画面を更新できます',
+    webUpdateSave: '編集中の内容を保存してから再読み込みしてください。',
+    webUpdateRefresh: '再読み込み',
+    webUpdateLater: '後で',
     loading: '読み込み中...',
     submitting: '送信中...',
     apply: '適用',
