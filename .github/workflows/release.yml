@@ -191,7 +191,11 @@ jobs:
           docker build --build-arg VERSION="${RELEASE_TAG#v}" --build-arg COMMIT="$(git rev-parse HEAD)" \
             --build-arg GOPROXY=https://proxy.golang.org,direct --build-arg GOSUMDB=sum.golang.org -t sub3api:ci .
           docker run --rm sub3api:ci -version 2>&1 | grep -F "Sub3API ${RELEASE_TAG#v} ("
-          docker run -d --name smoke -p 127.0.0.1:18080:8080 sub3api:ci
+          # Match the compose contract (SERVER_HOST=0.0.0.0, SERVER_PORT=8080):
+          # a bare run binds the container loopback, which the host mapping
+          # below can never reach.
+          docker run -d --name smoke -e SERVER_HOST=0.0.0.0 -e SERVER_PORT=8080 \
+            -p 127.0.0.1:18080:8080 sub3api:ci
           curl --retry 20 --retry-all-errors --retry-delay 1 -fsS http://127.0.0.1:18080/health
           docker stop smoke
           docker save sub3api:ci | gzip -1 > "$RUNNER_TEMP/image.tar.gz"
