@@ -402,7 +402,10 @@ func TestDatabaseConnection(cfg *DatabaseConfig) error {
 		if !validateDBName(cfg.DBName) {
 			return fmt.Errorf("invalid database name %q", cfg.DBName)
 		}
-		_, err := db.ExecContext(ctx, fmt.Sprintf("CREATE DATABASE %s", cfg.DBName))
+		// PostgreSQL 标识符无法参数化，用 QuoteIdentifier 转义再加白名单校验，
+		// 双重保障。Identifiers cannot be parameterized; quote them per
+		// PostgreSQL rules on top of the whitelist check.
+		_, err := db.ExecContext(ctx, fmt.Sprintf("CREATE DATABASE %s", pq.QuoteIdentifier(cfg.DBName)))
 		if err != nil {
 			return fmt.Errorf("failed to create database '%s': %w", cfg.DBName, err)
 		}

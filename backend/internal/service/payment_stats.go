@@ -23,9 +23,7 @@ func (s *PaymentService) GetDashboardStats(ctx context.Context, days int) (*Dash
 	// days 直接参与 buildDailySeries 的容量分配与 AddDate 推算，
 	// 钳制上限防止异常参数触发超大分配。
 	const maxDashboardDays = 365
-	if days > maxDashboardDays {
-		days = maxDashboardDays
-	}
+	days = min(days, maxDashboardDays)
 	now := time.Now()
 	since := now.AddDate(0, 0, -days)
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

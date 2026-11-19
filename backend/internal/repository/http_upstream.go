@@ -1150,19 +1150,24 @@ func (s *openAIHTTP2FallbackState) recordFailure(now time.Time, threshold int, w
 	return true, s.fallbackUntil
 }
 
-// redactProxyForLog 返回可安全写入日志的代理标识：剥离 userinfo，
-// 只保留 scheme://host[:port]（含路径与查询），避免代理凭据进入日志。
-// 解析失败时原样返回（调用方随后会因解析失败走错误路径）。
+// redactProxyForLog 返回可安全写入日志的代理标识：重建 URL 时只复制
+// scheme/host/path/query，userinfo 凭据不进入结果，避免代理凭据进入日志。
+// 解析失败时返回占位标记（调用方随后会因解析失败走错误路径）。
 func redactProxyForLog(raw string) string {
 	if raw == "" {
 		return raw
 	}
 	parsed, err := url.Parse(raw)
-	if err != nil || parsed.User == nil {
-		return raw
+	if err != nil {
+		return "(unparsable-proxy-url)"
 	}
-	parsed.User = nil
-	return parsed.String()
+	cleaned := url.URL{
+		Scheme:   parsed.Scheme,
+		Host:     parsed.Host,
+		Path:     parsed.Path,
+		RawQuery: parsed.RawQuery,
+	}
+	return cleaned.String()
 }
 
 // normalizeProxyURL 标准化代理 URL
