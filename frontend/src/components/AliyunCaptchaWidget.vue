@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 interface AliyunCaptchaVerifyResult {
@@ -89,9 +89,8 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 
-// 仅用于 DOM 元素 id 唯一性（非安全上下文；不使用 crypto.randomUUID 以兼容
-// 明文 HTTP 自托管环境下的 insecure context）。
-const uid = Math.random().toString(36).slice(2, 10)
+// Vue's deterministic per-instance ID is only used to namespace SDK DOM elements.
+const uid = useId()
 const buttonId = `aliyun-captcha-button-${uid}`
 const elementId = `aliyun-captcha-element-${uid}`
 

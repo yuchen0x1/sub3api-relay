@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,26 +47,31 @@ func (h *PageHandler) GetPageContent(c *gin.Context) {
 		return
 	}
 
-	filePath := filepath.Join(h.pagesDir, slug+".md")
-	cleaned := filepath.Clean(filePath)
-	if !strings.HasPrefix(cleaned, filepath.Clean(h.pagesDir)) {
-		response.BadRequest(c, "Invalid page slug")
-		return
-	}
-
-	info, err := os.Stat(cleaned)
-	if err != nil || info.IsDir() {
+	root, err := os.OpenRoot(h.pagesDir)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "page not found"})
 		return
 	}
+	defer func() { _ = root.Close() }()
+
+	file, info, err := openRegularPageFile(root, slug+".md")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "page not found"})
+		return
+	}
+	defer func() { _ = file.Close() }()
 	if info.Size() > maxPageFileSize {
 		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "page too large"})
 		return
 	}
 
-	content, err := os.ReadFile(cleaned)
+	content, err := io.ReadAll(io.LimitReader(file, maxPageFileSize+1))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read page"})
+		return
+	}
+	if len(content) > maxPageFileSize {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "page too large"})
 		return
 	}
 
@@ -112,48 +118,51 @@ func (h *PageHandler) ServePageImage(c *gin.Context) {
 		return
 	}
 
-	imagesDir := filepath.Join(h.pagesDir, slug)
-	cleaned, ok := resolvePageImagePath(h.pagesDir, imagesDir, filename)
-	if !ok {
+	imagesDir, err := openPageImagesDir(h.pagesDir, slug)
+	if err != nil {
 		c.Status(http.StatusNotFound)
 		return
 	}
+	defer func() { _ = imagesDir.Close() }()
 
-	info, err := os.Stat(cleaned)
-	if err != nil || info.IsDir() {
-		c.Status(http.StatusNotFound)
-		return
-	}
-
-	c.File(cleaned)
-}
-
-func resolvePageImagePath(pagesDir, imagesDir, filename string) (string, bool) {
 	relPath, ok := cleanPageImageRelativePath(filename)
 	if !ok {
-		return "", false
+		c.Status(http.StatusNotFound)
+		return
 	}
-
-	cleanedPagesDir := filepath.Clean(pagesDir)
-	cleanedImagesDir := filepath.Clean(imagesDir)
-	cleanedTarget := filepath.Clean(filepath.Join(cleanedImagesDir, relPath))
-	if !isPathWithinBase(cleanedTarget, cleanedImagesDir) {
-		return "", false
-	}
-
-	realPagesDir, err := filepath.EvalSymlinks(cleanedPagesDir)
+	file, info, err := openRegularPageFile(imagesDir, relPath)
 	if err != nil {
-		return "", false
+		c.Status(http.StatusNotFound)
+		return
 	}
-	realImagesDir, err := filepath.EvalSymlinks(cleanedImagesDir)
-	if err != nil || !isPathWithinBase(realImagesDir, realPagesDir) {
-		return "", false
+	defer func() { _ = file.Close() }()
+	http.ServeContent(c.Writer, c.Request, filepath.Base(relPath), info.ModTime(), file)
+}
+
+func openPageImagesDir(pagesDir, slug string) (*os.Root, error) {
+	root, err := os.OpenRoot(pagesDir)
+	if err != nil {
+		return nil, err
 	}
-	realTarget, err := filepath.EvalSymlinks(cleanedTarget)
-	if err != nil || !isPathWithinBase(realTarget, realImagesDir) {
-		return "", false
+	defer func() { _ = root.Close() }()
+	return root.OpenRoot(slug)
+}
+
+// Check the same handle that will be used to read or serve the file.
+func openRegularPageFile(root *os.Root, name string) (*os.File, os.FileInfo, error) {
+	file, err := root.Open(name)
+	if err != nil {
+		return nil, nil, err
 	}
-	return realTarget, true
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		_ = file.Close()
+		if err == nil {
+			err = os.ErrNotExist
+		}
+		return nil, nil, err
+	}
+	return file, info, nil
 }
 
 func cleanPageImageRelativePath(filename string) (string, bool) {
@@ -191,14 +200,6 @@ func cleanPageImageRelativePath(filename string) (string, bool) {
 		return "", false
 	}
 	return relPath, true
-}
-
-func isPathWithinBase(path, base string) bool {
-	rel, err := filepath.Rel(filepath.Clean(base), filepath.Clean(path))
-	if err != nil {
-		return false
-	}
-	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // findSlugVisibility looks up the slug in custom_menu_items and returns (visibility, found).

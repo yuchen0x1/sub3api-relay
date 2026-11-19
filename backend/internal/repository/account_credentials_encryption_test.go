@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -12,6 +14,61 @@ import (
 )
 
 const testEncryptionKeyHex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+func mustPrepareCredentials(t *testing.T, cipher *credentialCipher, credentials map[string]any) map[string]any {
+	t.Helper()
+	stored, err := cipher.prepareForWrite(credentials)
+	require.NoError(t, err)
+	return stored
+}
+
+type failingCredentialEncryptor struct {
+	err error
+}
+
+func (e failingCredentialEncryptor) Encrypt(string) (string, error) { return "", e.err }
+func (e failingCredentialEncryptor) Decrypt(string) (string, error) { return "", e.err }
+
+func TestCredentialCipherEncryptionFailureBlocksWrites(t *testing.T) {
+	failure := errors.New("encryption failed")
+	cipher := &credentialCipher{encryptor: failingCredentialEncryptor{err: failure}}
+	credentials := map[string]any{"api_key": "sk-test-secret", "base_url": "https://example.com"}
+
+	stored, err := cipher.prepareForWrite(credentials)
+	require.ErrorIs(t, err, failure)
+	require.Nil(t, stored, "a partially encrypted document must never be returned")
+	require.Equal(t, "sk-test-secret", credentials["api_key"], "the caller's input must not be mutated")
+
+	doc, digest, keyDigest, err := prepareCredentialsStorage(cipher, credentials)
+	require.ErrorIs(t, err, failure)
+	require.Nil(t, doc)
+	require.Nil(t, digest)
+	require.Nil(t, keyDigest)
+
+	// Nil clients make any attempt to reach SQL before rejecting encryption fail.
+	repo := &accountRepository{credCipher: cipher}
+	require.ErrorIs(t, repo.UpdateCredentials(context.Background(), 1, credentials), failure)
+	count, err := repo.BulkUpdate(context.Background(), []int64{1}, service.AccountBulkUpdate{Credentials: credentials})
+	require.ErrorIs(t, err, failure)
+	require.Zero(t, count)
+}
+
+func TestCredentialCipherInvalidConfiguredKeyBlocksWrites(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.Totp.EncryptionKeyConfigured = true
+	cfg.Totp.EncryptionKey = "invalid-key"
+	cipher := NewAccountCredentialCipher(cfg)
+	require.Error(t, cipher.initErr)
+	stored, err := cipher.prepareForWrite(map[string]any{"api_key": "sk-test-secret"})
+	require.Error(t, err)
+	require.Nil(t, stored)
+}
+
+func TestCredentialCipherMarshalFailureBlocksWrites(t *testing.T) {
+	stored, err := testCipher(t).prepareForWrite(map[string]any{"api_key": make(chan int)})
+	require.Error(t, err)
+	require.Nil(t, stored)
+}
 
 func testCipher(t *testing.T) *credentialCipher {
 	t.Helper()
@@ -42,7 +99,7 @@ func jsonEqual(t *testing.T, a, b any) bool {
 func TestCredentialCipherPassthroughWhenDisabled(t *testing.T) {
 	cipher := &credentialCipher{}
 	in := map[string]any{"api_key": "sk-test-secret", "base_url": "https://x.example.com"}
-	out := cipher.prepareForWrite(in)
+	out := mustPrepareCredentials(t, cipher, in)
 	if out["api_key"] != "sk-test-secret" {
 		t.Fatalf("expected plaintext passthrough, got %v", out["api_key"])
 	}
@@ -64,7 +121,7 @@ func TestCredentialCipherRoundtrip(t *testing.T) {
 		"base_url":             "https://relay.example.com",
 		"expires_at":           "2099-01-01T00:00:00Z",
 	}
-	stored := cipher.prepareForWrite(in)
+	stored := mustPrepareCredentials(t, cipher, in)
 
 	for _, key := range []string{"api_key", "access_token", "refresh_token", "cookie", "service_account_json"} {
 		v, ok := stored[key].(string)
@@ -90,12 +147,12 @@ func TestCredentialCipherRoundtrip(t *testing.T) {
 // 幂等：已带信封的值不得二次加密。
 func TestCredentialCipherIdempotent(t *testing.T) {
 	cipher := testCipher(t)
-	first := cipher.prepareForWrite(map[string]any{"api_key": "sk-once"})
+	first := mustPrepareCredentials(t, cipher, map[string]any{"api_key": "sk-once"})
 	enveloped, ok := first["api_key"].(string)
 	if !ok {
 		t.Fatal("expected an encrypted string value")
 	}
-	second := cipher.prepareForWrite(first)
+	second := mustPrepareCredentials(t, cipher, first)
 	secondValue, ok := second["api_key"].(string)
 	if !ok {
 		t.Fatal("expected an encrypted string value")
@@ -108,7 +165,7 @@ func TestCredentialCipherIdempotent(t *testing.T) {
 // 错误密钥解密必须保留密文原文（显式失败而非注入垃圾值），且不 panic。
 func TestCredentialCipherWrongKeyKeepsCiphertext(t *testing.T) {
 	encryptCipher := testCipher(t)
-	stored := encryptCipher.prepareForWrite(map[string]any{"api_key": "sk-value"})
+	stored := mustPrepareCredentials(t, encryptCipher, map[string]any{"api_key": "sk-value"})
 
 	other := &config.Config{}
 	other.Totp.EncryptionKey = strings.Repeat("ab", 32)

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { defineComponent, h } from 'vue'
 import AliyunCaptchaWidget from '../AliyunCaptchaWidget.vue'
 
 interface CapturedInitOptions {
@@ -68,6 +69,30 @@ describe('AliyunCaptchaWidget', () => {
     expect(initOptions!.mode).toBe('popup')
     expect(initOptions!.SceneId).toBe('scene-1')
     expect(initOptions!.language).toBe('cn')
+
+    wrapper.unmount()
+  })
+
+  it('assigns distinct DOM IDs to multiple widget instances without random values', async () => {
+    const props = { sceneId: 'scene-1', prefix: 'prefix-1', region: 'cn' as const }
+    const wrapper = mount(defineComponent({
+      setup: () => () => h('div', [h(AliyunCaptchaWidget, props), h(AliyunCaptchaWidget, props)])
+    }), { attachTo: document.body, global: { plugins: [i18nStub] } })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const widgets = wrapper.findAllComponents(AliyunCaptchaWidget)
+    const firstButtonId = widgets[0].get('button').attributes('id')
+    const secondButtonId = widgets[1].get('button').attributes('id')
+    const firstElementId = widgets[0].find('div[id]').attributes('id')
+    const secondElementId = widgets[1].find('div[id]').attributes('id')
+
+    expect(firstButtonId).toBeTruthy()
+    expect(secondButtonId).toBeTruthy()
+    expect(firstButtonId).not.toBe(secondButtonId)
+    expect(firstElementId).toBeTruthy()
+    expect(secondElementId).toBeTruthy()
+    expect(firstElementId).not.toBe(secondElementId)
 
     wrapper.unmount()
   })

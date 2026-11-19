@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 // antigravityRetryLoopParams 重试循环的参数
@@ -132,8 +133,8 @@ func (s *AntigravityGatewayService) handleSmartRetry(p antigravityRetryLoopParam
 		if rateLimitDuration <= 0 {
 			rateLimitDuration = antigravityDefaultRateLimitDuration
 		}
-		logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d oauth_long_delay model=%s account=%d upstream_retry_delay=%v body=%s (model rate limit, switch account)",
-			p.prefix, resp.StatusCode, modelName, p.account.ID, rateLimitDuration, truncateForLog(respBody, 200))
+		logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d oauth_long_delay model=%s account=%d upstream_retry_delay=%v body_bytes=%d (model rate limit, switch account)",
+			p.prefix, resp.StatusCode, modelName, p.account.ID, rateLimitDuration, len(respBody))
 
 		resetAt := time.Now().Add(rateLimitDuration)
 		if !s.setAntigravityModelRateLimits(p.ctx, p.accountRepo, p.account, modelName, p.prefix, resp.StatusCode, resetAt, false) {
@@ -226,7 +227,7 @@ func (s *AntigravityGatewayService) handleSmartRetry(p antigravityRetryLoopParam
 
 			// 网络错误时，继续重试
 			if retryErr != nil || retryResp == nil {
-				log.Printf("%s status=smart_retry_network_error attempt=%d/%d error=%v", p.prefix, attempt, maxAttempts, retryErr)
+				log.Printf("%s status=smart_retry_network_error attempt=%d/%d error=%v", p.prefix, attempt, maxAttempts, logredact.ErrorSummary(retryErr))
 				continue
 			}
 
@@ -268,8 +269,8 @@ func (s *AntigravityGatewayService) handleSmartRetry(p antigravityRetryLoopParam
 				modelCapacityExhaustedUntil[modelName] = time.Now().Add(antigravityModelCapacityCooldown)
 				modelCapacityExhaustedMu.Unlock()
 			}
-			log.Printf("%s status=%d smart_retry_exhausted_model_capacity attempts=%d model=%s account=%d body=%s (model capacity exhausted, not switching account)",
-				p.prefix, resp.StatusCode, maxAttempts, modelName, p.account.ID, truncateForLog(retryBody, 200))
+			log.Printf("%s status=%d smart_retry_exhausted_model_capacity attempts=%d model=%s account=%d body_bytes=%d reason=model_capacity_exhausted (not switching account)",
+				p.prefix, resp.StatusCode, maxAttempts, modelName, p.account.ID, len(retryBody))
 			return &smartRetryResult{
 				action: smartRetryActionBreakWithResp,
 				resp: &http.Response{
@@ -283,8 +284,8 @@ func (s *AntigravityGatewayService) handleSmartRetry(p antigravityRetryLoopParam
 		// 单账号 503 退避重试模式：智能重试耗尽后不设限流、不切换账号，
 		// 直接返回 503 让 Handler 层的单账号退避循环做最终处理。
 		if resp.StatusCode == http.StatusServiceUnavailable && isSingleAccountRetry(p.ctx) {
-			logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d smart_retry_exhausted_single_account attempts=%d model=%s account=%d body=%s (return 503 directly)",
-				p.prefix, resp.StatusCode, antigravitySmartRetryMaxAttempts, modelName, p.account.ID, truncateForLog(retryBody, 200))
+			logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d smart_retry_exhausted_single_account attempts=%d model=%s account=%d body_bytes=%d reason=retry_exhausted (return 503 directly)",
+				p.prefix, resp.StatusCode, antigravitySmartRetryMaxAttempts, modelName, p.account.ID, len(retryBody))
 			return &smartRetryResult{
 				action: smartRetryActionBreakWithResp,
 				resp: &http.Response{
@@ -295,8 +296,8 @@ func (s *AntigravityGatewayService) handleSmartRetry(p antigravityRetryLoopParam
 			}
 		}
 
-		log.Printf("%s status=%d smart_retry_exhausted attempts=%d model=%s account=%d upstream_retry_delay=%v body=%s (switch account)",
-			p.prefix, resp.StatusCode, maxAttempts, modelName, p.account.ID, rateLimitDuration, truncateForLog(retryBody, 200))
+		log.Printf("%s status=%d smart_retry_exhausted attempts=%d model=%s account=%d upstream_retry_delay=%v body_bytes=%d (switch account)",
+			p.prefix, resp.StatusCode, maxAttempts, modelName, p.account.ID, rateLimitDuration, len(retryBody))
 
 		resetAt := time.Now().Add(rateLimitDuration)
 		s.setAntigravityModelRateLimits(p.ctx, p.accountRepo, p.account, modelName, p.prefix, resp.StatusCode, resetAt, true)
@@ -434,8 +435,8 @@ func (s *AntigravityGatewayService) handleSingleAccountRetryInPlace(
 	if retryBody == nil {
 		retryBody = respBody
 	}
-	logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d single_account_503_retry_exhausted attempts=%d total_waited=%v model=%s account=%d body=%s (return 503 directly)",
-		p.prefix, resp.StatusCode, antigravitySingleAccountSmartRetryMaxAttempts, totalWaited, modelName, p.account.ID, truncateForLog(retryBody, 200))
+	logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d single_account_503_retry_exhausted attempts=%d total_waited=%v model=%s account=%d body_bytes=%d (return 503 directly)",
+		p.prefix, resp.StatusCode, antigravitySingleAccountSmartRetryMaxAttempts, totalWaited, modelName, p.account.ID, len(retryBody))
 
 	return &smartRetryResult{
 		action: smartRetryActionBreakWithResp,
@@ -619,7 +620,7 @@ urlFallbackLoop:
 							Message:            upstreamMsg,
 							Detail:             getUpstreamDetail(respBody),
 						})
-						logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d retry=%d/%d body=%s", p.prefix, resp.StatusCode, attempt, antigravityMaxRetries, truncateForLog(respBody, 200))
+						logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d retry=%d/%d body_bytes=%d", p.prefix, resp.StatusCode, attempt, antigravityMaxRetries, len(respBody))
 						if !sleepAntigravityBackoffWithContext(p.ctx, attempt) {
 							logger.LegacyPrintf("service.antigravity_gateway", "%s status=context_canceled_during_backoff", p.prefix)
 							return nil, p.ctx.Err()
@@ -629,7 +630,7 @@ urlFallbackLoop:
 
 					// 重试用尽，标记账户限流
 					p.handleError(p.ctx, p.prefix, p.account, resp.StatusCode, resp.Header, respBody, p.requestedModel, p.groupID, p.sessionHash, p.isStickySession)
-					logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d rate_limited base_url=%s body=%s", p.prefix, resp.StatusCode, baseURL, truncateForLog(respBody, 200))
+					logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d rate_limited base_url=%s body_bytes=%d", p.prefix, resp.StatusCode, baseURL, len(respBody))
 					resp = &http.Response{
 						StatusCode: resp.StatusCode,
 						Header:     resp.Header.Clone(),
@@ -654,7 +655,7 @@ urlFallbackLoop:
 							Message:            upstreamMsg,
 							Detail:             getUpstreamDetail(respBody),
 						})
-						logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d retry=%d/%d body=%s", p.prefix, resp.StatusCode, attempt, antigravityMaxRetries, truncateForLog(respBody, 500))
+						logger.LegacyPrintf("service.antigravity_gateway", "%s status=%d retry=%d/%d body_bytes=%d", p.prefix, resp.StatusCode, attempt, antigravityMaxRetries, len(respBody))
 						if !sleepAntigravityBackoffWithContext(p.ctx, attempt) {
 							logger.LegacyPrintf("service.antigravity_gateway", "%s status=context_canceled_during_backoff", p.prefix)
 							return nil, p.ctx.Err()
@@ -990,7 +991,7 @@ func parseAntigravitySmartRetryInfo(body []byte) *antigravitySmartRetryInfo {
 			// 例如: "0.5s", "10s", "4m50s", "1h30m", "200ms" 等
 			dur, err := time.ParseDuration(delay)
 			if err != nil {
-				logger.LegacyPrintf("service.antigravity_gateway", "[Antigravity] failed to parse retryDelay: %s error=%v", delay, err)
+				logger.LegacyPrintf("service.antigravity_gateway", "[Antigravity] retry_delay_parse_failed error=%v", err)
 				continue
 			}
 			retryDelay = dur
@@ -1209,8 +1210,8 @@ func (s *AntigravityGatewayService) handleUpstreamError(
 
 	// 429：尝试解析模型级限流，解析失败时兜底为账号级限流
 	if statusCode == 429 {
-		if logBody, maxBytes := s.getLogConfig(); logBody {
-			logger.LegacyPrintf("service.antigravity_gateway", "[Antigravity-Debug] 429 response body: %s", truncateString(string(body), maxBytes))
+		if logBody, _ := s.getLogConfig(); logBody {
+			logger.LegacyPrintf("service.antigravity_gateway", "[Antigravity-Debug] status=429 body_bytes=%d reason=rate_limited", len(body))
 		}
 
 		resetAt := ParseGeminiRateLimitResetTime(body)

@@ -1,0 +1,1308 @@
+{
+  "baseline_commit": "779b4351f2fcc34b25f772d6abebfa5d402c3cc1",
+  "baseline_date": "2026-11-19",
+  "counts": {
+    "fixed": 70,
+    "false_positive": 77,
+    "needs_decision": 3,
+    "accepted": 12
+  },
+  "alerts": [
+    {
+      "number": 2,
+      "rule": "js/incomplete-multi-character-sanitization",
+      "disposition": "fixed",
+      "baseline_path": "frontend/src/views/user/CustomPageView.vue",
+      "baseline_line": 253,
+      "reason": "HTML was already sanitized by DOMPurify, but headings were reconstructed with partial tag regexes after sanitization. The new detached DOM path reads textContent, assigns generated IDs, and sanitizes serialized HTML again. Added malicious attributes/URLs and multiline-heading regression coverage."
+    },
+    {
+      "number": 3,
+      "rule": "js/clear-text-storage-of-sensitive-data",
+      "disposition": "false_positive",
+      "baseline_path": "frontend/src/views/admin/UsersView.vue",
+      "baseline_line": 1182,
+      "reason": "UsersView persists apiKeyGroup as a numeric filter ID; loading checks typeof number. It is neither an API key nor a credential. Reviewed saved filter structure; dismissed on GitHub with this evidence."
+    },
+    {
+      "number": 4,
+      "rule": "js/clear-text-storage-of-sensitive-data",
+      "disposition": "fixed",
+      "baseline_path": "frontend/src/views/auth/RegisterView.vue",
+      "baseline_line": 501,
+      "reason": "Registration previously wrote the user's password and one-time Turnstile proof to sessionStorage. Only email metadata is now stored; secrets are consumed once from module memory. Reloaded verification requires password re-entry via the registration form and retains the email. Legacy stored secrets are scrubbed; ordinary registration and reload recovery have regression tests."
+    },
+    {
+      "number": 5,
+      "rule": "js/clear-text-storage-of-sensitive-data",
+      "disposition": "needs_decision",
+      "baseline_path": "frontend/src/api/auth.ts",
+      "baseline_line": 82,
+      "reason": "refresh_token (and the companion access token) remains readable by same-origin JavaScript in localStorage. Replacing storage only with sessionStorage does not fix XSS. Existing refresh rotation, Web Locks, peer reconciliation, OAuth, SSE and desktop flows require a coordinated HttpOnly-cookie/CSRF/CORS migration, or explicit acceptance of losing reload/new-tab login for memory-only storage. Authentication behavior is preserved; this genuine risk remains open."
+    },
+    {
+      "number": 6,
+      "rule": "js/clear-text-storage-of-sensitive-data",
+      "disposition": "false_positive",
+      "baseline_path": "frontend/src/utils/oauthAffiliate.ts",
+      "baseline_line": 38,
+      "reason": "oauthAffiliate persists a normalized referral attribution code, not an authentication token. Its TTL and consumption lifecycle are enforced; knowing a referral code does not grant user or API access."
+    },
+    {
+      "number": 7,
+      "rule": "js/clear-text-storage-of-sensitive-data",
+      "disposition": "false_positive",
+      "baseline_path": "frontend/src/utils/oauthAffiliate.ts",
+      "baseline_line": 94,
+      "reason": "The second oauthAffiliate storage path holds the same non-secret referral attribution code, not an OAuth credential. Storage is bounded by expiry and cleared after registration; not sensitive-data cleartext storage."
+    },
+    {
+      "number": 20,
+      "rule": "js/insecure-randomness",
+      "disposition": "fixed",
+      "baseline_path": "frontend/src/components/AliyunCaptchaWidget.vue",
+      "baseline_line": 94,
+      "reason": "Math.random was used only to namespace captcha SDK DOM IDs, never to verify a challenge. Replaced with Vue useId, preserving insecure-context self-hosting support and same-app instance uniqueness. Captcha verification still depends on the SDK/server proof, not this identifier."
+    },
+    {
+      "number": 24,
+      "rule": "go/incorrect-integer-conversion",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/account.go",
+      "baseline_line": 2437,
+      "reason": "ComputeQuotaResetAt now checks the truncated daily hour against 0–23 before narrowing to int, preserving legacy round-toward-zero behavior."
+    },
+    {
+      "number": 25,
+      "rule": "go/incorrect-integer-conversion",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/account.go",
+      "baseline_line": 2456,
+      "reason": "ComputeQuotaResetAt now bounds the weekly hour before narrowing. The neighboring weekday is checked before narrowing too."
+    },
+    {
+      "number": 26,
+      "rule": "go/incorrect-integer-conversion",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/account.go",
+      "baseline_line": 2488,
+      "reason": "NormalizeFixedQuotaWindows checks the daily hour before conversion, using midnight for out-of-range or nonfinite values."
+    },
+    {
+      "number": 27,
+      "rule": "go/incorrect-integer-conversion",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/account.go",
+      "baseline_line": 2508,
+      "reason": "NormalizeFixedQuotaWindows bounds weekday and weekly hour before conversion, preventing architecture-dependent conversion during rollover."
+    },
+    {
+      "number": 28,
+      "rule": "go/uncontrolled-allocation-size",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/repository/user_notification_repo.go",
+      "baseline_line": 112,
+      "reason": "userNotificationRepository.List bounds limit to at most 100 with a positive default before the make. The SQL lookup also limits returned rows to limit+1 and scopes them by user ID."
+    },
+    {
+      "number": 29,
+      "rule": "go/uncontrolled-allocation-size",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/securityaudit/prompt_event_repository.go",
+      "baseline_line": 87,
+      "reason": "PostgreSQLRepository.ListEvents itself normalizes pageSize to 1–100 before allocating, including direct repository callers."
+    },
+    {
+      "number": 31,
+      "rule": "go/uncontrolled-allocation-size",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/admin_user.go",
+      "baseline_line": 1318,
+      "reason": "Production call site is the admin Generate handler. Its sole count input passes Gin min=1,max=100 binding before calling GenerateRedeemCodes."
+    },
+    {
+      "number": 32,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/pkg/proxyutil/vless.go",
+      "baseline_line": 99,
+      "reason": "VLESS handshake host and port come from the administrator-configured proxy record or an administrator's imported subscription entry. The client's tunneled destination cannot override the WebSocket handshake host. Internal proxies are supported."
+    },
+    {
+      "number": 33,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/pkg/proxyutil/vmess.go",
+      "baseline_line": 264,
+      "reason": "VMess handshake constructs its authority from configured proxy ServerHost/ServerPort. Proxy creation, import, and testing are admin routes. Network policy for the operator's chosen proxy is a deployment decision."
+    },
+    {
+      "number": 34,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/securityaudit/prompt_qwen3guard.go",
+      "baseline_line": 224,
+      "reason": "The worker chooses ActiveEndpoint from administrative prompt audit configuration. Chunk text is inserted into the request JSON, while ChatCompletionsURL uses only the configured HTTP(S) base and a fixed suffix. Private Guard is a supported deployment."
+    },
+    {
+      "number": 35,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/securityaudit/prompt_service.go",
+      "baseline_line": 251,
+      "reason": "The probe accepting a candidate BaseURL is behind /admin authentication. NormalizeBaseURL rejects unsupported schemes, userinfo, queries and fragments. Stored secrets are reapplied only on exact normalized URL match. Its dialer intentionally allows internal Guard installations."
+    },
+    {
+      "number": 36,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1765,
+      "reason": "Moderation uses the saved risk-center base URL or the admin-only API-key test configuration. End users' prompts and images populate request JSON only. Internal moderation deployments and configured proxy selection are supported."
+    },
+    {
+      "number": 37,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/crs_sync_service.go",
+      "baseline_line": 1324,
+      "reason": "CRS sync and preview are administrator routes. The submitted and validated HTTP(S) authority is the intended remote CRS instance, including private instances, and this login sends the submitted CRS credentials to its fixed login path."
+    },
+    {
+      "number": 38,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/crs_sync_service.go",
+      "baseline_line": 1362,
+      "reason": "CRS export follows the login on the same admin-specified base and appends a fixed export path. The Authorization token comes from that configured CRS login, with no endpoint parameter available to ordinary users."
+    },
+    {
+      "number": 39,
+      "rule": "go/request-forgery",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_codex_models_service.go",
+      "baseline_line": 469,
+      "reason": "The flagged client.Do is the OAuth branch, whose requestEndpoint is chatgptCodexModelsURL. Client version is encoded in the query. Admin-configured API-key base URLs take the separate validated httpUpstream.Do branch."
+    },
+    {
+      "number": 40,
+      "rule": "go/request-forgery",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/openai_ws_client.go",
+      "baseline_line": 128,
+      "reason": "Gateway callers derive the WebSocket URL from fixed OpenAI endpoints or stored administrator-managed API-key account base URLs, then validate the HTTP base and translate its scheme. Ordinary users may trigger scheduling but cannot supply the dial URL."
+    },
+    {
+      "number": 41,
+      "rule": "go/request-forgery",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/vertex_service_account.go",
+      "baseline_line": 254,
+      "reason": "The production exchange caller obtains its key through parseVertexServiceAccountKey and parseVertexServiceAccountJSON, which overwrites imported token_uri unconditionally with https://oauth2.googleapis.com/token before request construction."
+    },
+    {
+      "number": 42,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/admin/openai_oauth_handler.go",
+      "baseline_line": 628,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 43,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gateway_handler.go",
+      "baseline_line": 545,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 44,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gateway_handler.go",
+      "baseline_line": 1057,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 45,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 677,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 46,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 680,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 47,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 2288,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 48,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_images.go",
+      "baseline_line": 357,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 49,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_images.go",
+      "baseline_line": 360,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 50,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/logger/logger.go",
+      "baseline_line": 490,
+      "reason": "共享入口已加固：LegacyPrintf对error参数在格式化前使用安全摘要，覆盖初始化前log.Print和初始化后各zap级别；保留ID、计数、正常字符串。不是声称每条合并数据流均可利用：Ent查询类型、数字ID、已脱敏authorization/x-api-key分支本身是误报；上游错误对象可能含完整URL/任意响应体，统一阻止其回显。"
+    },
+    {
+      "number": 51,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/logger/logger.go",
+      "baseline_line": 502,
+      "reason": "共享入口已加固：LegacyPrintf对error参数在格式化前使用安全摘要，覆盖初始化前log.Print和初始化后各zap级别；保留ID、计数、正常字符串。不是声称每条合并数据流均可利用：Ent查询类型、数字ID、已脱敏authorization/x-api-key分支本身是误报；上游错误对象可能含完整URL/任意响应体，统一阻止其回显。"
+    },
+    {
+      "number": 52,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/logger/logger.go",
+      "baseline_line": 504,
+      "reason": "共享入口已加固：LegacyPrintf对error参数在格式化前使用安全摘要，覆盖初始化前log.Print和初始化后各zap级别；保留ID、计数、正常字符串。不是声称每条合并数据流均可利用：Ent查询类型、数字ID、已脱敏authorization/x-api-key分支本身是误报；上游错误对象可能含完整URL/任意响应体，统一阻止其回显。"
+    },
+    {
+      "number": 53,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/logger/logger.go",
+      "baseline_line": 506,
+      "reason": "共享入口已加固：LegacyPrintf对error参数在格式化前使用安全摘要，覆盖初始化前log.Print和初始化后各zap级别；保留ID、计数、正常字符串。不是声称每条合并数据流均可利用：Ent查询类型、数字ID、已脱敏authorization/x-api-key分支本身是误报；上游错误对象可能含完整URL/任意响应体，统一阻止其回显。"
+    },
+    {
+      "number": 54,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/logger/logger.go",
+      "baseline_line": 508,
+      "reason": "共享入口已加固：LegacyPrintf对error参数在格式化前使用安全摘要，覆盖初始化前log.Print和初始化后各zap级别；保留ID、计数、正常字符串。不是声称每条合并数据流均可利用：Ent查询类型、数字ID、已脱敏authorization/x-api-key分支本身是误报；上游错误对象可能含完整URL/任意响应体，统一阻止其回显。"
+    },
+    {
+      "number": 55,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/websearch/manager.go",
+      "baseline_line": 118,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 56,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/websearch/manager.go",
+      "baseline_line": 124,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 57,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/pkg/websearch/manager.go",
+      "baseline_line": 128,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 58,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/repository/billing_cache.go",
+      "baseline_line": 362,
+      "reason": "记录的是 int64 数据库 API Key ID（%d），不是 APIKey.Key；Redis错误也不包含API key值。保留诊断ID。"
+    },
+    {
+      "number": 60,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 286,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 61,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 516,
+      "reason": "确认泄露并修复：连接缓存键由包含userinfo的代理URL.String构造，创建/复用/淘汰日志直接输出。原proxy字段在VMess场景还会输出含认证节点JSON的base64 Host。现在日志只用允许协议+endpoint，VMess用占位符，保留真实缓存键用于隔离。"
+    },
+    {
+      "number": 62,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 530,
+      "reason": "确认泄露并修复：连接缓存键由包含userinfo的代理URL.String构造，创建/复用/淘汰日志直接输出。原proxy字段在VMess场景还会输出含认证节点JSON的base64 Host。现在日志只用允许协议+endpoint，VMess用占位符，保留真实缓存键用于隔离。"
+    },
+    {
+      "number": 63,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 535,
+      "reason": "确认泄露并修复：连接缓存键由包含userinfo的代理URL.String构造，创建/复用/淘汰日志直接输出。原proxy字段在VMess场景还会输出含认证节点JSON的base64 Host。现在日志只用允许协议+endpoint，VMess用占位符，保留真实缓存键用于隔离。"
+    },
+    {
+      "number": 64,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 559,
+      "reason": "确认泄露并修复：连接缓存键由包含userinfo的代理URL.String构造，创建/复用/淘汰日志直接输出。原proxy字段在VMess场景还会输出含认证节点JSON的base64 Host。现在日志只用允许协议+endpoint，VMess用占位符，保留真实缓存键用于隔离。"
+    },
+    {
+      "number": 65,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 559,
+      "reason": "确认泄露并修复：连接缓存键由包含userinfo的代理URL.String构造，创建/复用/淘汰日志直接输出。原proxy字段在VMess场景还会输出含认证节点JSON的base64 Host。现在日志只用允许协议+endpoint，VMess用占位符，保留真实缓存键用于隔离。"
+    },
+    {
+      "number": 67,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/account_usage_service.go",
+      "baseline_line": 1186,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 68,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/antigravity_gateway_retry.go",
+      "baseline_line": 229,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 69,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/antigravity_oauth_service.go",
+      "baseline_line": 153,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 70,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/antigravity_oauth_service.go",
+      "baseline_line": 245,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 71,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/api_key_service.go",
+      "baseline_line": 463,
+      "reason": "APIKey命中是Ent APIKey client/query类型及拦截器元数据，不是Key列值；此处按userID做COUNT并记录查询错误，SARIF路径中的格式化为%T类型名。"
+    },
+    {
+      "number": 72,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/claude_token_provider.go",
+      "baseline_line": 91,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 73,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1071,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 74,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/gemini_oauth_service.go",
+      "baseline_line": 543,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 75,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/gemini_oauth_service.go",
+      "baseline_line": 553,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 76,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/gemini_oauth_service.go",
+      "baseline_line": 600,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 77,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/gemini_oauth_service.go",
+      "baseline_line": 815,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 78,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/gemini_token_provider.go",
+      "baseline_line": 128,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 79,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/oauth_refresh_api.go",
+      "baseline_line": 200,
+      "reason": "日志中的cache_key/key是锁及访问令牌缓存的索引，不是缓存值或令牌；由平台+数字账号ID或project_id构成，服务账号使用短SHA-256指纹。"
+    },
+    {
+      "number": 80,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/oauth_refresh_api.go",
+      "baseline_line": 383,
+      "reason": "日志中的cache_key/key是锁及访问令牌缓存的索引，不是缓存值或令牌；由平台+数字账号ID或project_id构成，服务账号使用短SHA-256指纹。"
+    },
+    {
+      "number": 81,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/oauth_refresh_api.go",
+      "baseline_line": 402,
+      "reason": "日志中的cache_key/key是锁及访问令牌缓存的索引，不是缓存值或令牌；由平台+数字账号ID或project_id构成，服务账号使用短SHA-256指纹。"
+    },
+    {
+      "number": 82,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/openai_token_provider.go",
+      "baseline_line": 181,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 83,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/ratelimit_service.go",
+      "baseline_line": 1683,
+      "reason": "GetCredential(\"plan_type\")是订阅计划字符串，非api_key/access_token；只记录计划变更元数据。"
+    },
+    {
+      "number": 84,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/ratelimit_service.go",
+      "baseline_line": 2180,
+      "reason": "modelKey为请求模型/模型映射冷却索引，记录账号ID、模型、固定reason和reset_at；未记录任何认证密钥。"
+    },
+    {
+      "number": 85,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/ratelimit_service.go",
+      "baseline_line": 2183,
+      "reason": "modelKey为请求模型/模型映射冷却索引，记录账号ID、模型、固定reason和reset_at；未记录任何认证密钥。"
+    },
+    {
+      "number": 86,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/subscription_expiry_service.go",
+      "baseline_line": 135,
+      "reason": "withAPIKeys/withAPIKey为Ent关系查询字段，不是密钥内容；订阅过期提醒的日志参数是List失败的error。SARIF将查询结构字段整体标为敏感。"
+    },
+    {
+      "number": 87,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/token_cache_invalidator.go",
+      "baseline_line": 64,
+      "reason": "日志中的cache_key/key是锁及访问令牌缓存的索引，不是缓存值或令牌；由平台+数字账号ID或project_id构成，服务账号使用短SHA-256指纹。"
+    },
+    {
+      "number": 88,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/token_cache_invalidator.go",
+      "baseline_line": 111,
+      "reason": "latest_version来自_token_version毫秒时间戳，和访问/刷新令牌值无关；保留版本比较诊断。"
+    },
+    {
+      "number": 89,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/handler/content_moderation_helper.go",
+      "baseline_line": 51,
+      "reason": "APIKeyName来自 apiKey.Name 展示名称，与认证密钥 APIKey.Key 独立；命中依赖字段名启发式，未记录密钥值。"
+    },
+    {
+      "number": 90,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gateway_handler_chat_completions.go",
+      "baseline_line": 322,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 91,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gateway_handler_responses.go",
+      "baseline_line": 316,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 92,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gateway_handler.go",
+      "baseline_line": 2107,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 93,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/gemini_v1beta_handler.go",
+      "baseline_line": 541,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 94,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/grok_media.go",
+      "baseline_line": 403,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 95,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/grok_x_search.go",
+      "baseline_line": 200,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 96,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_chat_completions.go",
+      "baseline_line": 263,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 97,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_chat_completions.go",
+      "baseline_line": 338,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 98,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_alpha_search.go",
+      "baseline_line": 198,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 99,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_count_tokens.go",
+      "baseline_line": 197,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 100,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 584,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 101,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 1139,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 102,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 1204,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 103,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 1213,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 104,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 1994,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 105,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 2243,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 106,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_gateway_handler.go",
+      "baseline_line": 2252,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 107,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_images.go",
+      "baseline_line": 268,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 108,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/openai_images.go",
+      "baseline_line": 284,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 109,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 1401,
+      "reason": "日志中的proxyURL.Host仅在已匹配socks5/socks5h/http分支使用；userinfo及password存储在URL.User，与Host分离。VMess不会进入这些分支。"
+    },
+    {
+      "number": 110,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/repository/http_upstream.go",
+      "baseline_line": 1410,
+      "reason": "日志中的proxyURL.Host仅在已匹配socks5/socks5h/http分支使用；userinfo及password存储在URL.User，与Host分离。VMess不会进入这些分支。"
+    },
+    {
+      "number": 111,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/securityaudit/prompt_logging.go",
+      "baseline_line": 65,
+      "reason": "Prompt Audit日志中的APIKeyID为int64记录ID，safeAttrs仅接受已允许字段；未传入APIKey.Key。"
+    },
+    {
+      "number": 112,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/securityaudit/prompt_logging.go",
+      "baseline_line": 71,
+      "reason": "Prompt Audit日志中的APIKeyID为int64记录ID，safeAttrs仅接受已允许字段；未传入APIKey.Key。"
+    },
+    {
+      "number": 113,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/securityaudit/prompt_logging.go",
+      "baseline_line": 77,
+      "reason": "Prompt Audit日志中的APIKeyID为int64记录ID，safeAttrs仅接受已允许字段；未传入APIKey.Key。"
+    },
+    {
+      "number": 114,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/batch_image_processor.go",
+      "baseline_line": 103,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 115,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/batch_image_public.go",
+      "baseline_line": 462,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 116,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/batch_image_public.go",
+      "baseline_line": 469,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 117,
+      "rule": "go/clear-text-logging",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/batch_image_worker.go",
+      "baseline_line": 173,
+      "reason": "上游/代理/OAuth错误日志已修复或加固：可能带URL认证信息、API查询密钥或响应体回显。改为固定诊断摘要并保留事件上下文，避免任意错误内容进入日志。"
+    },
+    {
+      "number": 118,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 819,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 119,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 829,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 120,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 839,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 121,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 850,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 122,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 872,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 123,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 881,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 124,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 890,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 125,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 902,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 126,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 916,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 127,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 926,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 128,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 939,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 129,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 966,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 130,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 984,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 131,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1013,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 132,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1026,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 133,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1035,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 134,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1063,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 135,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 1094,
+      "reason": "各命中参数均为 input.APIKeyID int64 的数据库引用，日志保留用户/分组/协议/状态等诊断字段，不输出认证密钥；1071行的原始上游错误单独按#73修复。"
+    },
+    {
+      "number": 136,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/gateway_scheduling.go",
+      "baseline_line": 338,
+      "reason": "in_account_map是map查找的ok布尔值；账号对象中的Proxy.Password不会经该表达式输出。"
+    },
+    {
+      "number": 137,
+      "rule": "go/clear-text-logging",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_live.go",
+      "baseline_line": 344,
+      "reason": "fmt.Sprintf(\"%T\", err)只输出Go动态类型，绝不调用Error()或序列化密码；此处已有安全日志设计。"
+    },
+    {
+      "number": 138,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/pkg/apicompat/responses_namespace.go",
+      "baseline_line": 79,
+      "reason": "Namespace flattening adds element counts of tools and the map built by visiting their function children. Both are materialized from the bounded request and each is backed by allocations with non-byte elements, which preclude an overflowing sum."
+    },
+    {
+      "number": 139,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/pkg/apicompat/responses_to_anthropic_request.go",
+      "baseline_line": 355,
+      "reason": "others and kept partition a single parsed message's existing Anthropic content blocks. Their total cannot exceed len(blocks)."
+    },
+    {
+      "number": 140,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/pkg/apicompat/responses_to_anthropic_request.go",
+      "baseline_line": 355,
+      "reason": "Both operands at this sink are slices of nontrivial structs derived from the same materialized blocks. At most one output block is retained per original block, so the addition cannot overflow."
+    },
+    {
+      "number": 141,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_codex_transform.go",
+      "baseline_line": 1308,
+      "reason": "The map conversion adds one reserved metadata key to an already instantiated map[string]string. Request JSON ordinarily decodes to map[string]any and does not take this allocation branch."
+    },
+    {
+      "number": 142,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_messages_digest_session.go",
+      "baseline_line": 22,
+      "reason": "Digest preallocation is the decoded Anthropic messages slice length plus at most one system entry. The gateway limits body size, and each materialized message is a multi-word struct."
+    },
+    {
+      "number": 143,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_model_alias.go",
+      "baseline_line": 171,
+      "reason": "The variadic alternates at billing call sites are supplied by server code as a small, fixed list of model candidates. Client model strings do not determine the argument count."
+    },
+    {
+      "number": 144,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_responses_lite_tools.go",
+      "baseline_line": 159,
+      "reason": "Existing additional_tools and moved namespace tools are derived from the same bounded request. Their sum counts materialized interface slice elements and cannot reach int overflow."
+    },
+    {
+      "number": 145,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_responses_lite_tools.go",
+      "baseline_line": 159,
+      "reason": "The second operand at the Lite merge is the slice of tools selected to migrate. It is built from actual decoded tool definitions rather than from an unchecked numeric field."
+    },
+    {
+      "number": 146,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_responses_tool_schema.go",
+      "baseline_line": 64,
+      "reason": "Schema rewrite reserves body length plus a constant per encountered explicit null. Each hit corresponds to a checked offset in the bounded gateway request, and default HTTP and WebSocket limits keep the capacity below the machine int range."
+    },
+    {
+      "number": 147,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_payload.go",
+      "baseline_line": 170,
+      "reason": "Create copies the already-decoded request map and reserves a single additional entry. The body or WebSocket message is independently bounded before decoding."
+    },
+    {
+      "number": 148,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_payload.go",
+      "baseline_line": 202,
+      "reason": "The allocation copies a materialized map[string]string of handshake metadata with one extra field. JSON-derived map[string]any is updated directly, and no remote numeric field supplies the capacity."
+    },
+    {
+      "number": 149,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_payload.go",
+      "baseline_line": 629,
+      "reason": "Previous replay messages can accumulate indefinitely across individually bounded frames. The optional replay history now checks combined byte and entry memory budget before allocating. Native WS keeps continuation anchors when replay is unavailable."
+    },
+    {
+      "number": 150,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_payload.go",
+      "baseline_line": 629,
+      "reason": "The second source at the replay allocation is checked against the same shared 64 MiB budget, including both direct input and accumulated output appends. A bridge turn requiring unavailable history gets WebSocket status 1009 instead of replaying partial history."
+    },
+    {
+      "number": 151,
+      "rule": "go/allocation-size-overflow",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_support.go",
+      "baseline_line": 74,
+      "reason": "Prewarm copies one already-built WS payload map and adds the constant generate field. Its source is bounded before JSON decode and the allocation uses existing entry count plus one."
+    },
+    {
+      "number": 153,
+      "rule": "go/email-injection",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/email_service.go",
+      "baseline_line": 216,
+      "reason": "buildSMTPMessage rejects CR/LF in parsed envelope addresses, normalizes line breaks in display name and subject before MIME formatting, and emits the quoted-printable body after the header separator through SMTP DATA dot framing. Existing message tests cover header handling."
+    },
+    {
+      "number": 154,
+      "rule": "go/reflected-xss",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/handler/ops_error_logger.go",
+      "baseline_line": 652,
+      "reason": "The ops writer wraps only gateway HTTP routes, forwards an already prepared API response, and captures a bounded prefix of errors for audit. It does not select HTML rendering or copy request values into headers. Response media type is controlled at the producing route."
+    },
+    {
+      "number": 155,
+      "rule": "go/reflected-xss",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/server/middleware/server_timing.go",
+      "baseline_line": 64,
+      "reason": "The timing middleware forwards the handler's already prepared body and adds one formatted Server-Timing header. A caller's UI-scope flag does not bypass role checks or become HTML response content."
+    },
+    {
+      "number": 156,
+      "rule": "go/reflected-xss",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/openai_compact_sse_keepalive.go",
+      "baseline_line": 215,
+      "reason": "The compact wrapper itself only forwards bytes. A reachable upstream passthrough branch did propagate active Content-Type labels. The output paths now select safe JSON/SSE media types while preserving the API body."
+    },
+    {
+      "number": 157,
+      "rule": "go/reflected-xss",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_gateway_passthrough.go",
+      "baseline_line": 1146,
+      "reason": "The pending-line writer is inside the streaming passthrough branch, which sets text/event-stream before writing the raw SSE protocol. The separately reviewed non-streaming media type path is addressed under #156."
+    },
+    {
+      "number": 158,
+      "rule": "go/reflected-xss",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/service/openai_images_json_keepalive.go",
+      "baseline_line": 194,
+      "reason": "The image JSON keepalive writer forwards data from the successful image response. The producer now constrains media type to JSON variants for non-streaming responses and text/event-stream for streaming responses, overriding untrusted active types."
+    },
+    {
+      "number": 159,
+      "rule": "go/reflected-xss",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_ws_forwarder_v2.go",
+      "baseline_line": 414,
+      "reason": "emitStreamMessage emits data-prefixed SSE frames under the reqStream branch with Content-Type explicitly set to text/event-stream. Client data is not inserted into an HTML document."
+    },
+    {
+      "number": 160,
+      "rule": "go/path-injection",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/page_handler.go",
+      "baseline_line": 122,
+      "reason": "The previous os.Stat was a fresh lookup after resolving symlinks. The handler now resolves and opens within the slug os.Root and checks the metadata of the same open handle."
+    },
+    {
+      "number": 161,
+      "rule": "go/path-injection",
+      "disposition": "fixed",
+      "baseline_path": "backend/internal/handler/page_handler.go",
+      "baseline_line": 128,
+      "reason": "Serving via http.ServeContent on the confined file handle removes the path reopen after validation while preserving streaming, range and modification-time behavior. Markdown reads are rooted and size-bounded as well."
+    },
+    {
+      "number": 162,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/handler/admin/snapshot_cache.go",
+      "baseline_line": 155,
+      "reason": "The admin snapshot ETag is a SHA-256 validator of serialized response bytes. It is neither an authenticator nor a password verifier."
+    },
+    {
+      "number": 163,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "needs_decision",
+      "baseline_path": "backend/internal/repository/account_credentials_encryption.go",
+      "baseline_line": 55,
+      "reason": "The persisted credentials_digest covers a canonical credentials document that can include operator-selected low-entropy passwords. If the database is read without the configured encryption key, a known or guessable remainder of the document can enable offline guesses despite GCM. Move to a domain-separated HMAC with a stable deployment key and versioned digest. Coordinate legacy/current dual-match CAS and dedup predicates, decrypt-and-backfill, worker rollout, and key rotation before retiring legacy values."
+    },
+    {
+      "number": 164,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "needs_decision",
+      "baseline_path": "backend/internal/repository/account_credentials_encryption.go",
+      "baseline_line": 59,
+      "reason": "credentials_api_key_digest supports encrypted Ollama identity comparison. SHA-256 is adequate for high-entropy API keys against guessing, but imported custom api_key values have no token entropy guarantee and the digest is stored beside ciphertext. A stable, separately domain-separated versioned HMAC can cover such keys. Migrate with dual legacy/current comparison, backfill and rotation in lockstep with existing database consumers."
+    },
+    {
+      "number": 165,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/repository/scheduler_outbox_repo.go",
+      "baseline_line": 230,
+      "reason": "SHA-256 identifies duplicate durable scheduler events by type, account/group IDs and JSON payload. It is an equality checksum with no password verification or authentication step."
+    },
+    {
+      "number": 166,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_codex_models_service.go",
+      "baseline_line": 548,
+      "reason": "The hash computes a content ETag for the rewritten Codex models manifest body. No password verification uses it."
+    },
+    {
+      "number": 167,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_codex_models_service.go",
+      "baseline_line": 693,
+      "reason": "Sorted outbound headers, including upstream Authorization, are hashed into a process-local models manifest cache key to avoid cross-credential cache reuse. The hash is not an exposed verifier or a stored login password."
+    },
+    {
+      "number": 168,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/handler/admin/account_data.go",
+      "baseline_line": 587,
+      "reason": "Credential identity fields are compared as stable SHA-256 digests in local admin import de-duplication structures. The digest is not emitted or persisted by this routine."
+    },
+    {
+      "number": 169,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/pkg/proxyutil/shadowsocks.go",
+      "baseline_line": 162,
+      "reason": "Legacy Shadowsocks SIP004 AEAD requires EVP_BytesToKey(MD5) for interoperable master-key derivation from its configured password. The result feeds protocol-specific session derivation. Replacing MD5 requires a coordinated protocol change."
+    },
+    {
+      "number": 170,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/pkg/proxyutil/trojan.go",
+      "baseline_line": 142,
+      "reason": "Trojan peers require lower-case hex SHA-224 of the configured password in the TLS handshake payload. The algorithm is mandated by the wire protocol, and changing it breaks all existing Trojan peers."
+    },
+    {
+      "number": 171,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/api_key_auth_cache_impl.go",
+      "baseline_line": 200,
+      "reason": "SHA-256 gives stable L1/L2 lookup and invalidation keys for API credentials, not account password storage. Generated keys use randomness, but users may intentionally supply a custom key, so Redis/auth-cache access remains sensitive and weak custom tokens are guessable if that cache is disclosed."
+    },
+    {
+      "number": 172,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/auth_service.go",
+      "baseline_line": 1869,
+      "reason": "resolvedTokenVersion fingerprints the user's email and already bcrypt-hashed password to invalidate JWTs after a password change. The SHA-256 output is a change detector, with authentication handled separately."
+    },
+    {
+      "number": 173,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "accepted",
+      "baseline_path": "backend/internal/service/content_moderation.go",
+      "baseline_line": 2567,
+      "reason": "Moderation uses a stable provider-key fingerprint for health state and admin-side key selection/removal rather than authenticating passwords. Provider keys are expected to be machine-generated, but an operator may configure a weak custom value and admins receive the fingerprint."
+    },
+    {
+      "number": 174,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/gateway_claude_oauth_body.go",
+      "baseline_line": 519,
+      "reason": "This SHA-256 produces a deterministic session-routing UUID from account and request anchors. It never verifies a password or authenticates a user."
+    },
+    {
+      "number": 175,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/gemini_session.go",
+      "baseline_line": 63,
+      "reason": "Gemini builds a cache partition prefix from numeric user/API-key identifiers, IP, normalized user agent, platform and model. The underlying API-key secret and password are not inputs."
+    },
+    {
+      "number": 176,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/notification_email_service.go",
+      "baseline_line": 859,
+      "reason": "The helper hashes normalized email addresses/identities for deterministic preference and delivery lookups. Their digests are identifiers rather than anonymization or authentication. Token signing uses HMAC independently."
+    },
+    {
+      "number": 177,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/ollama_cloud_usage.go",
+      "baseline_line": 1058,
+      "reason": "The service fingerprints an Ollama API key to group in-memory usage accounting by provider identity. The digest is not accepted as a login or upstream credential."
+    },
+    {
+      "number": 178,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_codex_models_service.go",
+      "baseline_line": 684,
+      "reason": "Account IDs, configured proxy URL and request URL are keyed together in the process-local models manifest cache. This prevents response reuse across request configuration and does not establish password security."
+    },
+    {
+      "number": 179,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/openai_sticky_compat.go",
+      "baseline_line": 46,
+      "reason": "The SHA-256 digest indexes legacy OpenAI sticky-session entries using session IDs. It maintains rolling cache compatibility and does not prove session authentication."
+    },
+    {
+      "number": 180,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/usage_billing.go",
+      "baseline_line": 135,
+      "reason": "The usage operation fingerprint binds account/key IDs, usage/cost fields, model information and optional payload checksum for billing idempotency. It is not a password verifier."
+    },
+    {
+      "number": 181,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/usage_billing.go",
+      "baseline_line": 211,
+      "reason": "The batch-image hold fingerprint covers IDs, costs and optional payload checksum for idempotency. No login password enters the fingerprint."
+    },
+    {
+      "number": 182,
+      "rule": "go/weak-sensitive-data-hashing",
+      "disposition": "false_positive",
+      "baseline_path": "backend/internal/service/vertex_service_account.go",
+      "baseline_line": 139,
+      "reason": "Vertex hashes the service account's client email and key ID to index its token cache. Private-key bytes and passwords are not hashed at this sink."
+    }
+  ]
+}

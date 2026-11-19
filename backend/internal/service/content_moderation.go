@@ -24,6 +24,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/httpclient"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/pagination"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/servertiming"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 const (
@@ -1068,12 +1069,12 @@ func (s *ContentModerationService) checkSync(ctx context.Context, input ContentM
 			"allow_block", allowBlock,
 			"queue_delay_ms", queueDelay,
 			"latency_ms", latency,
-			"error", err)
+			"error", logredact.ErrorSummary(err))
 		if queueDelay != nil {
 			s.asyncErrors.Add(1)
 		}
 		if cfg.RecordNonHits {
-			log := s.buildLog(input, cfg, ContentModerationActionError, false, "", 0, nil, content.ExcerptText(), &latency, queueDelay, err.Error())
+			log := s.buildLog(input, cfg, ContentModerationActionError, false, "", 0, nil, content.ExcerptText(), &latency, queueDelay, logredact.ErrorSummary(err))
 			_ = s.repo.CreateLog(ctx, log)
 		}
 		return allow

@@ -17,6 +17,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/proxyutil"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 // ProviderConfig holds the configuration for a single search provider.
@@ -115,17 +116,17 @@ func (m *Manager) SearchWithBestProvider(ctx context.Context, req SearchRequest)
 					// Account-level proxy is shared by all providers — no point
 					// trying others with the same broken proxy; signal account switch.
 					slog.Warn("websearch: account proxy error, aborting failover",
-						"provider", cfg.Type, "error", err)
+						"provider", cfg.Type, "error", logredact.ErrorSummary(err))
 					return nil, "", fmt.Errorf("%w: %s", ErrProxyUnavailable, err.Error())
 				}
 				// Provider-specific proxy failed — try the next provider which
 				// may use a different (or no) proxy.
 				slog.Warn("websearch: provider proxy error, trying next provider",
-					"provider", cfg.Type, "error", err)
+					"provider", cfg.Type, "error", logredact.ErrorSummary(err))
 				continue
 			}
 			slog.Warn("websearch: provider search failed",
-				"provider", cfg.Type, "error", err)
+				"provider", cfg.Type, "error", logredact.ErrorSummary(err))
 			continue
 		}
 		return resp, cfg.Type, nil

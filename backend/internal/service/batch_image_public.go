@@ -15,6 +15,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -459,14 +460,14 @@ func (s *BatchImagePublicService) abortOrphanProviderJob(ctx context.Context, pr
 		logger.L().Warn("batch_image.orphan_provider_job_cancel_failed",
 			zap.String("batch_id", job.BatchID),
 			zap.String("provider", provider.Name()),
-			zap.Error(err),
+			zap.String("error", logredact.ErrorSummary(err)),
 		)
 	}
 	if err := provider.Cleanup(ctx, &orphan, account, CleanupTargetInput); err != nil {
 		logger.L().Warn("batch_image.orphan_provider_job_cleanup_failed",
 			zap.String("batch_id", job.BatchID),
 			zap.String("provider", provider.Name()),
-			zap.Error(err),
+			zap.String("error", logredact.ErrorSummary(err)),
 		)
 	}
 	if err := s.Repo.AppendBatchImageEvent(ctx, job.BatchID, "provider_job_aborted_after_submit", map[string]any{

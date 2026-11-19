@@ -129,7 +129,7 @@ import Icon from '@/components/icons/Icon.vue'
 import { buildApiUrl } from '@/api/client'
 import { buildEmbeddedUrl, detectTheme } from '@/utils/embedded-url'
 import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { sanitizeMarkdownAndBuildToc } from '@/utils/safeMarkdown'
 
 interface TocItem {
   id: string
@@ -190,14 +190,6 @@ const isValidUrl = computed(() => {
   return url.startsWith('https://')
 })
 
-function generateHeadingId(text: string, index: number): string {
-  const base = text
-    .toLowerCase()
-    .replace(/[^\w一-鿿]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return base ? `${base}-${index}` : `heading-${index}`
-}
-
 function isRelativeMarkdownAsset(src: string): boolean {
   const trimmed = src.trim()
   if (!trimmed || /^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('//') || trimmed.startsWith('/')) {
@@ -241,23 +233,8 @@ async function fetchAndRenderMarkdown(slug: string) {
     )
 
     const html = marked.parse(raw) as string
-    const sanitized = DOMPurify.sanitize(html)
-
-    // Inject IDs into headings and build TOC
-    const toc: TocItem[] = []
-    let headingIndex = 0
-    const withIds = sanitized.replace(
-      /<(h[1-4])[^>]*>(.*?)<\/h[1-4]>/gi,
-      (_, tag: string, content: string) => {
-        const level = parseInt(tag[1])
-        const text = content.replace(/<[^>]+>/g, '').trim()
-        const id = generateHeadingId(text, headingIndex++)
-        toc.push({ id, text, level })
-        return `<${tag} id="${id}">${content}</${tag}>`
-      }
-    )
-
-    renderedHtml.value = withIds
+    const { html: rendered, toc } = sanitizeMarkdownAndBuildToc(html)
+    renderedHtml.value = rendered
     tocItems.value = toc
   } catch {
     renderedHtml.value = '<p class="text-red-500">Failed to load page</p>'

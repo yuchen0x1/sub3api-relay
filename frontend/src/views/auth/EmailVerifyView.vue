@@ -23,7 +23,8 @@
           </div>
           <div class="text-sm text-amber-700 dark:text-amber-400">
             <p class="font-medium">{{ t('auth.sessionExpired') }}</p>
-            <p class="mt-1">{{ t('auth.sessionExpiredDesc') }}</p>
+            <p v-if="email" class="mt-1">{{ t('auth.registrationPasswordNotSaved') }}</p>
+            <p v-else class="mt-1">{{ t('auth.sessionExpiredDesc') }}</p>
           </div>
         </div>
       </div>
@@ -168,6 +169,10 @@ import {
   normalizeRegistrationEmailSuffixWhitelist
 } from '@/utils/registrationEmailPolicy'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
+import {
+  clearPendingRegistration,
+  loadPendingRegistration,
+} from '@/utils/pendingRegistration'
 
 const { t, locale } = useI18n()
 
@@ -248,34 +253,15 @@ watch(validationToastMessage, (value, previousValue) => {
 onMounted(async () => {
   const activePendingSession = authStore.pendingAuthSession as PendingAuthSessionSummary | null
 
-  // Load registration data from sessionStorage
-  const registerDataStr = sessionStorage.getItem('register_data')
-  if (registerDataStr) {
-    try {
-      const registerData = JSON.parse(registerDataStr)
-      email.value = registerData.email || ''
-      password.value = registerData.password || ''
-      initialTurnstileToken.value = registerData.turnstile_token || ''
-      pendingAuthToken.value = registerData.pending_auth_token || activePendingSession?.token || ''
-      pendingAuthTokenField.value = registerData.pending_auth_token_field || activePendingSession?.token_field || 'pending_auth_token'
-      pendingProvider.value = registerData.pending_provider || activePendingSession?.provider || ''
-      pendingRedirect.value = registerData.pending_redirect || activePendingSession?.redirect || ''
-      pendingAdoptionDecision.value = registerData.pending_adoption_decision
-        ? {
-            adoptDisplayName: registerData.pending_adoption_decision.adopt_display_name === true,
-            adoptAvatar: registerData.pending_adoption_decision.adopt_avatar === true
-          }
-        : null
-      hasRegisterData.value = !!(email.value && password.value)
-    } catch {
-      hasRegisterData.value = false
-    }
-  } else if (activePendingSession) {
-    pendingAuthToken.value = activePendingSession.token
-    pendingAuthTokenField.value = activePendingSession.token_field
-    pendingProvider.value = activePendingSession.provider
-    pendingRedirect.value = activePendingSession.redirect || ''
-  }
+  const registration = loadPendingRegistration()
+  email.value = registration.email
+  password.value = registration.password
+  initialTurnstileToken.value = registration.turnstileToken
+  pendingAuthToken.value = activePendingSession?.token || ''
+  pendingAuthTokenField.value = activePendingSession?.token_field || 'pending_auth_token'
+  pendingProvider.value = activePendingSession?.provider || ''
+  pendingRedirect.value = activePendingSession?.redirect || ''
+  hasRegisterData.value = !!(email.value && password.value)
 
   // Load public settings
   try {
@@ -408,7 +394,7 @@ async function sendCode(): Promise<void> {
       ? getPendingOAuthSendCodeSessionResponse(response as PendingOAuthSendVerifyCodeResponse)
       : null
     if (pendingSendCodeSession) {
-      sessionStorage.removeItem('register_data')
+      clearPendingRegistration()
       persistPendingOAuthSession(
         pendingSendCodeSession.provider || pendingProvider.value,
         pendingSendCodeSession.redirect,
@@ -505,7 +491,7 @@ async function handleVerify(): Promise<void> {
         payload
       )
       if (isPendingOAuthSessionResponse(data)) {
-        sessionStorage.removeItem('register_data')
+        clearPendingRegistration()
         persistPendingOAuthSession(data.provider || pendingProvider.value, data.redirect)
         await router.push(resolvePendingOAuthCallbackRoute(data.provider || pendingProvider.value))
         return
@@ -528,7 +514,7 @@ async function handleVerify(): Promise<void> {
     }
 
     // Clear session data
-    sessionStorage.removeItem('register_data')
+    clearPendingRegistration()
     clearAllAffiliateReferralCodes()
 
     // Show success toast
@@ -548,8 +534,8 @@ async function handleVerify(): Promise<void> {
 }
 
 function handleBack(): void {
-  // Clear session data
-  sessionStorage.removeItem('register_data')
+  // Keep only the email so a fresh registration form can prefill it.
+  clearPendingRegistration(email.value)
 
   // Go back to registration
   router.push('/register')

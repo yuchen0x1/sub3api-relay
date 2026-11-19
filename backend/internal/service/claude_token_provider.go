@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 const (
@@ -88,7 +90,7 @@ func (p *ClaudeTokenProvider) GetAccessToken(ctx context.Context, account *Accou
 			if p.refreshPolicy.OnRefreshError == ProviderRefreshErrorReturn {
 				return "", err
 			}
-			slog.Warn("claude_token_refresh_failed", "account_id", account.ID, "error", err)
+			slog.Warn("claude_token_refresh_failed", "account_id", account.ID, "error", logredact.ErrorSummary(err))
 			refreshFailed = true
 		} else if result.LockHeld {
 			if p.refreshPolicy.OnLockHeld == ProviderLockHeldWaitForCache && p.tokenCache != nil {

@@ -691,7 +691,7 @@ func (s *AntigravityGatewayService) writeMappedClaudeError(c *gin.Context, accou
 	MarkResponseCommitted(c)
 	upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(body))
 	upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
-	logBody, maxBytes := s.getLogConfig()
+	logBody, _ := s.getLogConfig()
 	upstreamDetail := s.getUpstreamErrorDetail(body)
 	setOpsUpstreamError(c, upstreamStatus, upstreamMsg, upstreamDetail)
 	appendOpsUpstreamError(c, OpsUpstreamErrorEvent{
@@ -705,9 +705,9 @@ func (s *AntigravityGatewayService) writeMappedClaudeError(c *gin.Context, accou
 		Detail:             upstreamDetail,
 	})
 
-	// 记录上游错误详情便于排障（可选：由配置控制；不回显到客户端）
+	// Record response metadata even when optional upstream diagnostics are enabled.
 	if logBody {
-		logger.LegacyPrintf("service.antigravity_gateway", "[antigravity-Forward] upstream_error status=%d body=%s", upstreamStatus, truncateForLog(body, maxBytes))
+		logger.LegacyPrintf("service.antigravity_gateway", "[antigravity-Forward] upstream_error status=%d body_bytes=%d reason=upstream_http_error", upstreamStatus, len(body))
 	}
 
 	// 检查错误透传规则
@@ -954,7 +954,7 @@ returnResponse:
 	// 转换 Gemini 响应为 Claude 格式
 	claudeResp, agUsage, err := antigravity.TransformGeminiToClaude(geminiBody, originalModel)
 	if err != nil {
-		logger.LegacyPrintf("service.antigravity_gateway", "[antigravity-Forward] transform_error error=%v body=%s", err, string(geminiBody))
+		logger.LegacyPrintf("service.antigravity_gateway", "[antigravity-Forward] transform_error error=%v body_bytes=%d reason=response_transform_failed", err, len(geminiBody))
 		return nil, nil, fmt.Errorf("failed to parse upstream response: %w", err)
 	}
 

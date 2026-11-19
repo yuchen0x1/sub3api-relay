@@ -28,6 +28,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/securityaudit"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -530,7 +531,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					zap.String("account_platform", account.Platform),
 					zap.Bool("fallback_error_response_written", wroteFallback),
 					zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				}
 				if account.Proxy != nil {
 					forwardFailedFields = append(forwardFailedFields,
@@ -1042,7 +1043,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					zap.String("account_platform", account.Platform),
 					zap.Bool("fallback_error_response_written", wroteFallback),
 					zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				}
 				if account.Proxy != nil {
 					forwardFailedFields = append(forwardFailedFields,
@@ -2104,7 +2105,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 
 	// 转发请求（不记录使用量）
 	if err := h.gatewayService.ForwardCountTokens(c.Request.Context(), c, account, parsedReq); err != nil {
-		reqLog.Error("gateway.count_tokens_forward_failed", zap.Int64("account_id", account.ID), zap.Error(err))
+		reqLog.Error("gateway.count_tokens_forward_failed", zap.Int64("account_id", account.ID), zap.String("error", logredact.ErrorSummary(err)))
 		// 错误响应已在 ForwardCountTokens 中处理
 		// 上游未服务该会话，立即释放选号时注册的会话槽（客户端可能已断开，用独立 ctx）
 		h.gatewayService.ReleaseAccountSession(context.Background(), account, sessionHash)

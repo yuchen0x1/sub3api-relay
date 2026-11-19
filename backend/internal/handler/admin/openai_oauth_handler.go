@@ -12,6 +12,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/response"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 
 	"github.com/gin-gonic/gin"
 )
@@ -625,7 +626,7 @@ func (h *OpenAIOAuthHandler) ResetQuota(c *gin.Context) {
 	usage, usageErr := h.quotaService.QueryUsage(postCtx, accountID)
 	switch {
 	case usageErr != nil || usage == nil:
-		slog.Warn("openai_quota_reset_cache_refresh_failed", "account_id", accountID, "error", usageErr)
+		slog.Warn("openai_quota_reset_cache_refresh_failed", "account_id", accountID, "error", logredact.ErrorSummary(usageErr))
 		resetResponse.WarningCode = openAIQuotaResetWarningCacheRefreshFailed
 	default:
 		if err := h.quotaService.CacheResetCreditsSnapshot(postCtx, accountID, usage.RateLimitResetCredits); err != nil {
