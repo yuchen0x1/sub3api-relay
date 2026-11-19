@@ -550,8 +550,9 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	// 创建带 TLS 指纹的 Transport。直接记录解析结果的 Host 字段（不含
-	// userinfo），避免含凭据的完整代理键进入日志。
-	proxyLog := proxyKey
+	// userinfo），避免含凭据的完整代理键进入日志；parsedProxy 为 nil
+	// 表示直连，proxyKey 恒为 "direct"，不参与赋值。
+	proxyLog := "direct"
 	if parsedProxy != nil {
 		proxyLog = parsedProxy.Host
 	}
