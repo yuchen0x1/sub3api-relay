@@ -549,8 +549,13 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 		}
 	}
 
-	// 创建带 TLS 指纹的 Transport
-	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", redactProxyForLog(proxyKey))
+	// 创建带 TLS 指纹的 Transport。直接记录解析结果的 Host 字段（不含
+	// userinfo），避免含凭据的完整代理键进入日志。
+	proxyLog := proxyKey
+	if parsedProxy != nil {
+		proxyLog = parsedProxy.Host
+	}
+	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyLog)
 	transport, proxyCloser, err := buildUpstreamTransportWithTLSFingerprintManaged(settings, parsedProxy, profile)
 	if err != nil {
 		s.mu.Unlock()

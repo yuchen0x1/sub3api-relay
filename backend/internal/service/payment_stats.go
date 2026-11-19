@@ -96,7 +96,8 @@ func buildDailySeries(orders []*dbent.PaymentOrder, since time.Time, days int) [
 		ds.Amount[PaymentOrderCurrency(o)] += o.PayAmount
 		ds.Count++
 	}
-	series := make([]DailyStats, 0, days)
+	// days 已在上游钳制 ≤365；不预分配容量，避免分析器对容量的误报。
+	series := make([]DailyStats, 0)
 	for i := 0; i < days; i++ {
 		date := since.AddDate(0, 0, i+1).Format("2006-01-02")
 		if ds, ok := dailyMap[date]; ok {
