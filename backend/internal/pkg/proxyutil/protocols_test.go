@@ -317,7 +317,7 @@ func TestTrojanDialerEndToEnd(t *testing.T) {
 				for total < len(buf) {
 					n, rerr := raw.Read(buf[total:])
 					total += n
-					if rerr != nil || bytes.Index(buf[:total], []byte("\r\n\r\n")) >= 0 {
+					if rerr != nil || bytes.Contains(buf[:total], []byte("\r\n\r\n")) {
 						break
 					}
 				}
