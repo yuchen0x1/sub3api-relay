@@ -1,5 +1,12 @@
 # Sub3API 更新历史
 
+## v0.5.2 · 2026-11-19
+
+- 更新后端 Go 依赖：`aws-sdk-go-v2/credentials` 1.21.0、`spf13/viper` 1.21.0、`testcontainers-go/modules/postgres` 0.45.0。
+- 更新前端依赖：`vue` 3.5.45、`dompurify` 3.4.18、`vite-plugin-checker` 1.0.0。
+- 更新 CI 动作：`actions/setup-node` 7.1.0、`pnpm/action-setup` 6.1.1、`gitleaks/gitleaks-action` 3.0.0。
+- 无数据库迁移，完成 Go 全量测试、前端构建与安全扫描验证。
+
 ## v0.5.1 · 2026-11-19
 
 - 每日支付限额纳入待支付订单预占，按充值订单实际应付金额统计。
