@@ -73,8 +73,11 @@ jobs:
           while IFS= read -r file; do
             [ -n "$file" ] || continue
             tag=$(basename "$file" .md | sed 's/^RELEASE_NOTES_//')
-            if ! gh release view "$tag" --json isDraft,isPrerelease,tagName \
-              --jq 'select(.isDraft == false and .isPrerelease == false) | .tagName' >/dev/null; then
+            # select() yields no output for drafts/prereleases; test for the
+            # actual release tag on stdout instead of relying on exit status.
+            published=$(gh release view "$tag" --json isDraft,isPrerelease,tagName \
+              --jq 'select(.isDraft == false and .isPrerelease == false) | .tagName' 2>/dev/null || true)
+            if [ "$published" != "$tag" ]; then
               echo "No published stable release for $tag; skipping." >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
