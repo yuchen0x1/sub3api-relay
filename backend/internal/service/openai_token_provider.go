@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 const (
@@ -178,7 +180,7 @@ func (p *OpenAITokenProvider) GetAccessToken(ctx context.Context, account *Accou
 			if p.refreshPolicy.OnRefreshError == ProviderRefreshErrorReturn {
 				return "", err
 			}
-			slog.Warn("openai_token_refresh_failed", "account_id", account.ID, "error", err)
+			slog.Warn("openai_token_refresh_failed", "account_id", account.ID, "error", logredact.ErrorSummary(err))
 			p.metrics.refreshFailure.Add(1)
 			refreshFailed = true
 		} else if result.LockHeld {

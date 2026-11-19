@@ -8,6 +8,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/domain"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -194,6 +195,6 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 	defaultMappedModel := preferredMappedModel
 
 	if err := h.gatewayService.ForwardCountTokensAsAnthropic(c.Request.Context(), c, account, forwardBody, defaultMappedModel); err != nil {
-		reqLog.Error("openai_count_tokens.forward_failed", zap.Int64("account_id", account.ID), zap.Error(err))
+		reqLog.Error("openai_count_tokens.forward_failed", zap.Int64("account_id", account.ID), zap.String("error", logredact.ErrorSummary(err)))
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -400,7 +401,7 @@ func (h *OpenAIGatewayHandler) handleGrokMedia(c *gin.Context, endpoint service.
 			}
 			reqLog.Warn("grok_media.forward_failed",
 				zap.Int64("account_id", account.ID),
-				zap.Error(err),
+				zap.String("error", logredact.ErrorSummary(err)),
 			)
 			return
 		}

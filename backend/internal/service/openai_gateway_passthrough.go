@@ -1414,7 +1414,8 @@ func (s *OpenAIGatewayService) handleNonStreamingResponsePassthrough(
 		return nil, fmt.Errorf("restore OpenAI passthrough namespace response: %w", err)
 	}
 	if !writeOpenAICompactSSEBridge(c, resp.StatusCode, body) {
-		c.Data(resp.StatusCode, contentType, body)
+		setOpenAIJSONResponseType(c.Writer.Header(), contentType)
+		c.Data(resp.StatusCode, "application/json", body)
 	}
 	return &openaiNonStreamingResultPassthrough{
 		OpenAIUsage:      usage,
@@ -1477,14 +1478,13 @@ func (s *OpenAIGatewayService) handlePassthroughSSEToJSON(resp *http.Response, c
 
 	writeOpenAIPassthroughResponseHeaders(c.Writer.Header(), resp.Header, s.responseHeaderFilter)
 
-	contentType := "application/json; charset=utf-8"
-	if !ok {
-		contentType = resp.Header.Get("Content-Type")
-		if contentType == "" {
+	if !writeOpenAICompactSSEBridge(c, resp.StatusCode, body) {
+		contentType := "application/json; charset=utf-8"
+		if !ok {
 			contentType = "text/event-stream"
 		}
-	}
-	if !writeOpenAICompactSSEBridge(c, resp.StatusCode, body) {
+		c.Header("Content-Type", contentType)
+		c.Header("X-Content-Type-Options", "nosniff")
 		c.Data(resp.StatusCode, contentType, body)
 	}
 

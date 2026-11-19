@@ -289,6 +289,7 @@ export default {
     verifyYourEmail: 'Verify Your Email',
     sessionExpired: 'Session expired',
     sessionExpiredDesc: 'Please go back to the registration page and start again.',
+    registrationPasswordNotSaved: 'For your protection, the password is not saved after a refresh. Go back to registration and enter it again.',
     verificationCode: 'Verification Code',
     verificationCodeHint: 'Enter the 6-digit code sent to your email',
     sendingCode: 'Sending...',

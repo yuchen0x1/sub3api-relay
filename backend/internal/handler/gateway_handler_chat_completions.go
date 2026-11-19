@@ -12,6 +12,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/ip"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -319,7 +320,7 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 				zap.Int64("account_id", account.ID),
 				zap.Bool("fallback_error_response_written", wroteFallback),
 				zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-				zap.Error(err),
+				zap.String("error", logredact.ErrorSummary(err)),
 			)
 			return
 		}

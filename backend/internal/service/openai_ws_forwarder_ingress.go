@@ -508,6 +508,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		grokCacheSeedPayload := firstPayload.payloadRaw
 		var bridgeReplayInput []json.RawMessage
 		bridgeReplayInputExists := false
+		bridgeReplayInputTooLarge := false
 		for turn := 1; ; turn++ {
 			if turn > 1 && hooks != nil && hooks.BeforeRequest != nil {
 				if err := hooks.BeforeRequest(turn, currentBridgePayload.payloadRaw, currentBridgePayload.originalModel); err != nil {
@@ -525,13 +526,19 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 			bridgePayloadRaw := currentBridgePayload.payloadRaw
 			bridgePayloadBytes := currentBridgePayload.payloadBytes
 			needsBridgeReplay := currentBridgePayload.previousResponseID != "" || openAIWSRawPayloadHasToolCallOutput(currentBridgePayload.payloadRaw)
+			if needsBridgeReplay && bridgeReplayInputTooLarge {
+				return NewOpenAIWSClientCloseError(coderws.StatusMessageTooBig, errOpenAIWSReplayInputTooLarge.Error(), nil)
+			}
 			turnReplayInput, turnReplayInputExists, replayInputErr := buildOpenAIWSReplayInputSequence(
 				bridgeReplayInput,
 				bridgeReplayInputExists,
 				currentBridgePayload.payloadRaw,
 				needsBridgeReplay,
 			)
-			if replayInputErr != nil {
+			if errors.Is(replayInputErr, errOpenAIWSReplayInputTooLarge) && needsBridgeReplay {
+				return NewOpenAIWSClientCloseError(coderws.StatusMessageTooBig, errOpenAIWSReplayInputTooLarge.Error(), nil)
+			}
+			if replayInputErr != nil && !errors.Is(replayInputErr, errOpenAIWSReplayInputTooLarge) {
 				return fmt.Errorf("build websocket http bridge replay input: %w", replayInputErr)
 			}
 			if needsBridgeReplay && turnReplayInputExists {
@@ -591,11 +598,13 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 			if result == nil {
 				return errors.New("websocket http bridge turn result is nil")
 			}
-			bridgeReplayInput = cloneOpenAIWSRawMessages(turnReplayInput)
+			bridgeReplayInput = turnReplayInput
 			bridgeReplayInputExists = turnReplayInputExists
-			if result.wsReplayInputExists {
-				bridgeReplayInput = append(bridgeReplayInput, cloneOpenAIWSRawMessages(result.wsReplayInput)...)
-				bridgeReplayInputExists = true
+			bridgeReplayInputTooLarge = errors.Is(replayInputErr, errOpenAIWSReplayInputTooLarge)
+			if !bridgeReplayInputTooLarge && result.wsReplayInputExists {
+				bridgeReplayInput, replayInputErr = cloneBoundedOpenAIWSReplayInput(bridgeReplayInput, result.wsReplayInput)
+				bridgeReplayInputExists = replayInputErr == nil
+				bridgeReplayInputTooLarge = replayInputErr != nil
 			}
 			if bridgeTurnState := strings.TrimSpace(result.ResponseHeaders.Get(openAIWSTurnStateHeader)); bridgeTurnState != "" {
 				turnState = bridgeTurnState
@@ -1156,8 +1165,10 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 	var lastTurnStrictState *openAIWSIngressPreviousTurnStrictState
 	lastTurnReplayInput := []json.RawMessage(nil)
 	lastTurnReplayInputExists := false
+	lastTurnReplayInputTooLarge := false
 	currentTurnReplayInput := []json.RawMessage(nil)
 	currentTurnReplayInputExists := false
+	currentTurnReplayInputTooLarge := false
 	skipBeforeTurn := false
 	hasCurrentOrReplayFunctionCallOutput := func(payload []byte) bool {
 		if openAIWSRawPayloadHasToolCallOutput(payload) {
@@ -1181,7 +1192,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		if !isOpenAIWSIngressPreviousResponseNotFound(relayErr) {
 			return false
 		}
-		if turnPrevRecoveryTried || !s.openAIWSIngressPreviousResponseRecoveryEnabled() {
+		if turnPrevRecoveryTried || currentTurnReplayInputTooLarge || !s.openAIWSIngressPreviousResponseRecoveryEnabled() {
 			return false
 		}
 		// 携带 function_call_output 的请求不能丢弃 previous_response_id：
@@ -1326,12 +1337,20 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 				)
 			}
 		}
-		nextReplayInput, nextReplayInputExists, replayInputErr := buildOpenAIWSReplayInputSequence(
-			lastTurnReplayInput,
-			lastTurnReplayInputExists,
-			currentPayload,
-			currentPreviousResponseID != "",
-		)
+		var nextReplayInput []json.RawMessage
+		var nextReplayInputExists bool
+		var replayInputErr error
+		if currentPreviousResponseID != "" && lastTurnReplayInputTooLarge {
+			replayInputErr = errOpenAIWSReplayInputTooLarge
+		} else {
+			nextReplayInput, nextReplayInputExists, replayInputErr = buildOpenAIWSReplayInputSequence(
+				lastTurnReplayInput,
+				lastTurnReplayInputExists,
+				currentPayload,
+				currentPreviousResponseID != "",
+			)
+		}
+		currentTurnReplayInputTooLarge = errors.Is(replayInputErr, errOpenAIWSReplayInputTooLarge)
 		if replayInputErr != nil {
 			logOpenAIWSModeInfo(
 				"ingress_ws_replay_input_skip account_id=%d turn=%d conn_id=%s reason=build_error cause=%s",
@@ -1349,7 +1368,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		replayHasFunctionCallOutput := currentTurnReplayInputExists &&
 			openAIWSRawItemsHasFunctionCallOutput(currentTurnReplayInput)
 		hasFunctionCallOutput = hasFunctionCallOutput || replayHasFunctionCallOutput
-		if storeDisabled && turn > 1 && currentPreviousResponseID != "" {
+		if storeDisabled && turn > 1 && currentPreviousResponseID != "" && !currentTurnReplayInputTooLarge {
 			shouldKeepPreviousResponseID := false
 			strictReason := ""
 			var strictErr error
@@ -1471,7 +1490,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 					hasReplayToolContext := hasFCOutput &&
 						currentTurnReplayInputExists &&
 						openAIWSRawItemsHaveToolCallContextForOutputs(currentTurnReplayInput)
-					if !turnPrevRecoveryTried && currentPreviousResponseID != "" && (!hasFCOutput || hasReplayToolContext) {
+					if !turnPrevRecoveryTried && !currentTurnReplayInputTooLarge && currentPreviousResponseID != "" && (!hasFCOutput || hasReplayToolContext) {
 						updatedPayload, removed, dropErr := dropPreviousResponseIDFromRawPayload(currentPayload)
 						if dropErr != nil || !removed {
 							reason := "not_removed"
@@ -1610,11 +1629,13 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		responseID := strings.TrimSpace(result.RequestID)
 		lastTurnResponseID = responseID
 		lastTurnPayload = cloneOpenAIWSPayloadBytes(currentPayload)
-		lastTurnReplayInput = cloneOpenAIWSRawMessages(currentTurnReplayInput)
+		lastTurnReplayInput = currentTurnReplayInput
 		lastTurnReplayInputExists = currentTurnReplayInputExists
-		if result.wsReplayInputExists {
-			lastTurnReplayInput = append(lastTurnReplayInput, cloneOpenAIWSRawMessages(result.wsReplayInput)...)
-			lastTurnReplayInputExists = true
+		lastTurnReplayInputTooLarge = currentTurnReplayInputTooLarge
+		if !lastTurnReplayInputTooLarge && result.wsReplayInputExists {
+			lastTurnReplayInput, replayInputErr = cloneBoundedOpenAIWSReplayInput(lastTurnReplayInput, result.wsReplayInput)
+			lastTurnReplayInputExists = replayInputErr == nil
+			lastTurnReplayInputTooLarge = replayInputErr != nil
 		}
 		nextStrictState, strictStateErr := buildOpenAIWSIngressPreviousTurnStrictState(currentPayload)
 		if strictStateErr != nil {

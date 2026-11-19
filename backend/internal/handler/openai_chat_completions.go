@@ -15,6 +15,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/openai_compat"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -260,7 +261,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 				reqLog.Warn("openai_chat_completions.forward_partial_error_with_image_result",
 					zap.Int64("account_id", account.ID),
 					zap.Int("image_count", result.ImageCount),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 			} else {
 				var failoverErr *service.UpstreamFailoverError
@@ -335,7 +336,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 					zap.Int64("account_id", account.ID),
 					zap.Bool("fallback_error_response_written", wroteFallback),
 					zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 				return
 			}

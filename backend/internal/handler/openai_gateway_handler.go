@@ -20,6 +20,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/securityaudit"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 
 	coderws "github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
@@ -581,7 +582,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 				reqLog.Warn("openai.forward_partial_error_with_image_result",
 					zap.Int64("account_id", account.ID),
 					zap.Int("image_count", result.ImageCount),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 			} else {
 				var failoverErr *service.UpstreamFailoverError
@@ -671,7 +672,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 					zap.Int64("account_id", account.ID),
 					zap.Bool("fallback_error_response_written", wroteFallback),
 					zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				}
 				if shouldLogOpenAIForwardFailureAsWarn(c, wroteFallback) {
 					reqLog.Warn("openai.forward_failed", fields...)
@@ -1136,7 +1137,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 				reqLog.Warn("openai_messages.forward_partial_error_with_image_result",
 					zap.Int64("account_id", account.ID),
 					zap.Int("image_count", result.ImageCount),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 			} else {
 				var failoverErr *service.UpstreamFailoverError
@@ -1201,7 +1202,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 				if result != nil && result.ClientDisconnect {
 					reqLog.Info("openai_messages.client_disconnected",
 						zap.Int64("account_id", account.ID),
-						zap.Error(err),
+						zap.String("error", logredact.ErrorSummary(err)),
 					)
 					return
 				}
@@ -1210,7 +1211,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 				reqLog.Warn("openai_messages.forward_failed",
 					zap.Int64("account_id", account.ID),
 					zap.Bool("fallback_error_response_written", wroteFallback),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 				return
 			}
@@ -1991,7 +1992,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 
 		token, _, err := h.gatewayService.GetRequestCredential(ctx, c, account)
 		if err != nil {
-			reqLog.Warn("openai.websocket_get_access_token_failed", zap.Int64("account_id", account.ID), zap.Error(err))
+			reqLog.Warn("openai.websocket_get_access_token_failed", zap.Int64("account_id", account.ID), zap.String("error", logredact.ErrorSummary(err)))
 			if ctx.Err() != nil {
 				return
 			}
@@ -2240,7 +2241,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 			if errors.Is(err, service.ErrStaticProxyCapacityUnavailable) {
 				reqLog.Warn("openai.websocket_static_proxy_capacity_exhausted",
 					zap.Int64("account_id", account.ID),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 				closeOpenAIClientWS(wsConn, coderws.StatusTryAgainLater, "static proxy capacity exceeded; please retry later")
 				return
@@ -2249,7 +2250,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 			if errors.Is(context.Cause(ctx), service.ErrOpenAIWSIngressLeaseLost) {
 				reqLog.Warn("openai.websocket_ingress_lease_lost",
 					zap.Int64("account_id", account.ID),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 				closeOpenAIClientWS(wsConn, coderws.StatusTryAgainLater, "websocket ingress capacity lease lost; please reconnect")
 				return
@@ -2259,7 +2260,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 			if errors.As(err, &closeErr) && closeErr.StatusCode() == coderws.StatusNormalClosure {
 				reqLog.Info("openai.websocket_ingress_closed_normally",
 					zap.Int64("account_id", account.ID),
-					zap.String("reason", closeErr.Reason()),
+					zap.String("reason", logredact.ErrorSummary(closeErr)),
 				)
 				closeOpenAIClientWS(wsConn, closeErr.StatusCode(), closeErr.Reason())
 				return
@@ -2271,7 +2272,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 			closeStatus, closeReason := summarizeWSCloseErrorForLog(err)
 			proxyFailedFields := []zap.Field{
 				zap.Int64("account_id", account.ID),
-				zap.Error(err),
+				zap.String("error", logredact.ErrorSummary(err)),
 				zap.String("close_status", closeStatus),
 				zap.String("close_reason", closeReason),
 			}
@@ -3319,7 +3320,7 @@ func summarizeWSCloseErrorForLog(err error) (string, string) {
 	if errors.As(err, &closeErr) {
 		reason := strings.TrimSpace(closeErr.Reason)
 		if reason != "" {
-			closeReason = reason
+			closeReason = logredact.ErrorSummary(closeErr)
 		}
 	}
 	return closeStatus, closeReason

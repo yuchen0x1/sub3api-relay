@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 const (
@@ -125,7 +127,7 @@ func (p *GeminiTokenProvider) GetAccessToken(ctx context.Context, account *Accou
 
 		detected, tierID, err := p.geminiOAuthService.fetchProjectID(ctx, accessToken, proxyURL)
 		if err != nil {
-			log.Printf("[GeminiTokenProvider] Auto-detect project_id failed: %v, fallback to AI Studio API mode", err)
+			log.Printf("[GeminiTokenProvider] Auto-detect project_id failed: %v, fallback to AI Studio API mode", logredact.ErrorSummary(err))
 			return accessToken, nil
 		}
 		detected = strings.TrimSpace(detected)

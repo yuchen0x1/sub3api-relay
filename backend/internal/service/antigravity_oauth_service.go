@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/antigravity"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 )
 
 type AntigravityOAuthService struct {
@@ -142,7 +143,7 @@ func (s *AntigravityOAuthService) ExchangeCode(ctx context.Context, input *Antig
 	// 获取用户信息
 	userInfo, err := client.GetUserInfo(ctx, tokenResp.AccessToken)
 	if err != nil {
-		fmt.Printf("[AntigravityOAuth] 警告: 获取用户信息失败: %v\n", err)
+		fmt.Printf("[AntigravityOAuth] 警告: 获取用户信息失败: %v\n", logredact.ErrorSummary(err))
 	} else {
 		result.Email = userInfo.Email
 	}
@@ -150,7 +151,7 @@ func (s *AntigravityOAuthService) ExchangeCode(ctx context.Context, input *Antig
 	// 获取 project_id + plan_type（部分账户类型可能没有），失败时重试
 	loadResult, loadErr := s.loadProjectIDWithRetry(ctx, tokenResp.AccessToken, proxyURL, 3)
 	if loadErr != nil {
-		fmt.Printf("[AntigravityOAuth] 警告: 获取 project_id 失败（重试后）: %v\n", loadErr)
+		fmt.Printf("[AntigravityOAuth] 警告: 获取 project_id 失败（重试后）: %v\n", logredact.ErrorSummary(loadErr))
 		result.ProjectIDMissing = true
 	}
 	if loadResult != nil {
@@ -234,7 +235,7 @@ func (s *AntigravityOAuthService) ValidateRefreshToken(ctx context.Context, refr
 	}
 	userInfo, err := client.GetUserInfo(ctx, tokenInfo.AccessToken)
 	if err != nil {
-		fmt.Printf("[AntigravityOAuth] 警告: 获取用户信息失败: %v\n", err)
+		fmt.Printf("[AntigravityOAuth] 警告: 获取用户信息失败: %v\n", logredact.ErrorSummary(err))
 	} else {
 		tokenInfo.Email = userInfo.Email
 	}
@@ -242,7 +243,7 @@ func (s *AntigravityOAuthService) ValidateRefreshToken(ctx context.Context, refr
 	// 获取 project_id + plan_type（容错，失败不阻塞）
 	loadResult, loadErr := s.loadProjectIDWithRetry(ctx, tokenInfo.AccessToken, proxyURL, 3)
 	if loadErr != nil {
-		fmt.Printf("[AntigravityOAuth] 警告: 获取 project_id 失败（重试后）: %v\n", loadErr)
+		fmt.Printf("[AntigravityOAuth] 警告: 获取 project_id 失败（重试后）: %v\n", logredact.ErrorSummary(loadErr))
 		tokenInfo.ProjectIDMissing = true
 	}
 	if loadResult != nil {

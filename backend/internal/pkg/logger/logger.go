@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -479,7 +480,17 @@ func inferStdLogLevel(msg string) Level {
 
 // LegacyPrintf 用于平滑迁移历史的 printf 风格日志到结构化 logger。
 func LegacyPrintf(component, format string, args ...any) {
-	msg := normalizeStdLogMessage(fmt.Sprintf(format, args...))
+	// Errors from HTTP/proxy/OAuth clients may embed URLs or upstream bodies.
+	// Summarize before formatting so both bootstrap and structured sinks are safe.
+	safeArgs := make([]any, len(args))
+	for i, arg := range args {
+		if err, ok := arg.(error); ok {
+			safeArgs[i] = logredact.ErrorSummary(err)
+		} else {
+			safeArgs[i] = arg
+		}
+	}
+	msg := normalizeStdLogMessage(fmt.Sprintf(format, safeArgs...))
 	if msg == "" {
 		return
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -265,7 +266,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 				reqLog.Warn("openai.images.forward_partial_error_with_image_result",
 					zap.Int64("account_id", account.ID),
 					zap.Int("image_count", result.ImageCount),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				)
 			} else {
 				var imageUpstreamErr *service.OpenAIImagesUpstreamError
@@ -281,7 +282,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 						zap.Int("status_code", imageUpstreamErr.StatusCode),
 						zap.String("error_type", imageUpstreamErr.ErrorType),
 						zap.String("error_code", imageUpstreamErr.Code),
-						zap.Error(err),
+						zap.String("error", logredact.ErrorSummary(err)),
 					)
 					return
 				}
@@ -351,7 +352,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 					zap.Int64("account_id", account.ID),
 					zap.Bool("fallback_error_response_written", wroteFallback),
 					zap.Bool("upstream_error_response_already_written", upstreamErrorAlreadyCommunicated),
-					zap.Error(err),
+					zap.String("error", logredact.ErrorSummary(err)),
 				}
 				if shouldLogOpenAIForwardFailureAsWarn(c, wroteFallback) {
 					reqLog.Warn("openai.images.forward_failed", fields...)

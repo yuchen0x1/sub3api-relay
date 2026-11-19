@@ -32,6 +32,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"golang.org/x/mod/semver"
 )
 
@@ -283,7 +284,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 
 	entry, err := s.acquireClientWithTLS(proxyURL, accountID, accountConcurrency, profile, upstreamProfile)
 	if err != nil {
-		slog.Debug("tls_fingerprint_acquire_client_failed", "account_id", accountID, "error", err)
+		slog.Debug("tls_fingerprint_acquire_client_failed", "account_id", accountID, "error", logredact.ErrorSummary(err))
 		return nil, err
 	}
 
@@ -292,7 +293,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	resp, err := servertiming.Do(client, req)
 	if err != nil {
 		releaseUpstreamClientEntry(entry)
-		slog.Debug("tls_fingerprint_request_failed", "account_id", accountID, "error", err)
+		slog.Debug("tls_fingerprint_request_failed", "account_id", accountID, "error", logredact.ErrorSummary(err))
 		return nil, err
 	}
 
@@ -501,6 +502,9 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	// TLS 指纹客户端使用独立的缓存键，加 "tls:" 前缀
 	cacheKey := "tls:" + buildCacheKey(isolation, proxyKey, accountID, upstreamProtocolModeDefault)
 	poolKey := buildPoolKey(settings, upstreamProtocolModeDefault) + ":tls"
+	// The real cache key includes credentials to isolate connections. The log
+	// identifier preserves the pool mode and proxy endpoint without those secrets.
+	cacheLogKey := "tls:" + buildCacheKey(isolation, redactProxyForLog(proxyURL), accountID, upstreamProtocolModeDefault)
 
 	now := time.Now()
 	nowUnix := now.UnixNano()
@@ -513,7 +517,7 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 			atomic.AddInt64(&entry.inFlight, 1)
 		}
 		s.mu.RUnlock()
-		slog.Debug("tls_fingerprint_reusing_client", "account_id", accountID, "cache_key", cacheKey)
+		slog.Debug("tls_fingerprint_reusing_client", "account_id", accountID, "cache_key", cacheLogKey)
 		return entry, nil
 	}
 	s.mu.RUnlock()
@@ -527,12 +531,12 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 				atomic.AddInt64(&entry.inFlight, 1)
 			}
 			s.mu.Unlock()
-			slog.Debug("tls_fingerprint_reusing_client", "account_id", accountID, "cache_key", cacheKey)
+			slog.Debug("tls_fingerprint_reusing_client", "account_id", accountID, "cache_key", cacheLogKey)
 			return entry, nil
 		}
 		slog.Debug("tls_fingerprint_evicting_stale_client",
 			"account_id", accountID,
-			"cache_key", cacheKey,
+			"cache_key", cacheLogKey,
 			"proxy_changed", entry.proxyKey != proxyKey,
 			"pool_changed", entry.poolKey != poolKey)
 		s.removeClientLocked(cacheKey, entry)
@@ -549,14 +553,10 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 		}
 	}
 
-	// 创建带 TLS 指纹的 Transport。直接记录解析结果的 Host 字段（不含
-	// userinfo），避免含凭据的完整代理键进入日志；parsedProxy 为 nil
-	// 表示直连，proxyKey 恒为 "direct"，不参与赋值。
-	proxyLog := "direct"
-	if parsedProxy != nil {
-		proxyLog = parsedProxy.Host
-	}
-	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyLog)
+	// Proxy protocols can carry credentials outside userinfo: VMess embeds a
+	// complete node descriptor in Host and proxy queries can contain auth data.
+	proxyLog := redactProxyForLog(proxyURL)
+	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheLogKey, "proxy", proxyLog)
 	transport, proxyCloser, err := buildUpstreamTransportWithTLSFingerprintManaged(settings, parsedProxy, profile)
 	if err != nil {
 		s.mu.Unlock()
@@ -1156,24 +1156,25 @@ func (s *openAIHTTP2FallbackState) recordFailure(now time.Time, threshold int, w
 	return true, s.fallbackUntil
 }
 
-// redactProxyForLog 返回可安全写入日志的代理标识：重建 URL 时只复制
-// scheme/host/path/query，userinfo 凭据不进入结果，避免代理凭据进入日志。
-// 解析失败时返回占位标记（调用方随后会因解析失败走错误路径）。
+// redactProxyForLog logs only a proxy's protocol and endpoint. VMess stores
+// credentials in its base64 Host, so it has no safe endpoint to copy here.
 func redactProxyForLog(raw string) string {
-	if raw == "" {
-		return raw
+	if raw == "" || raw == directProxyKey {
+		return directProxyKey
 	}
 	parsed, err := url.Parse(raw)
-	if err != nil {
+	if err != nil || parsed.Host == "" {
 		return "(unparsable-proxy-url)"
 	}
-	cleaned := url.URL{
-		Scheme:   parsed.Scheme,
-		Host:     parsed.Host,
-		Path:     parsed.Path,
-		RawQuery: parsed.RawQuery,
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https", "socks5", "socks5h", "vless", "ss", "trojan":
+		cleaned := url.URL{Scheme: strings.ToLower(parsed.Scheme), Host: parsed.Host}
+		return cleaned.String()
+	case "vmess":
+		return "vmess://[redacted]"
+	default:
+		return "(unsupported-proxy-url)"
 	}
-	return cleaned.String()
 }
 
 // normalizeProxyURL 标准化代理 URL

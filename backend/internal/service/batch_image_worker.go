@@ -7,6 +7,7 @@ import (
 
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -170,7 +171,7 @@ func (w *BatchImageWorker) RunOnce(ctx context.Context) error {
 	if err != nil {
 		logger.L().Warn("batch_image.worker_process_failed",
 			zap.String("batch_id", reserved.BatchID),
-			zap.Error(err),
+			zap.String("error", logredact.ErrorSummary(err)),
 		)
 		return w.queue.RequeueAfter(ctx, reserved.BatchID, w.opts.ErrorRetryDelay)
 	}

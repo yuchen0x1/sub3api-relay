@@ -15,6 +15,7 @@ import (
 
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -100,7 +101,7 @@ func (p *BatchImageProviderProcessor) Process(ctx context.Context, batchID strin
 			zap.String("batch_id", job.BatchID),
 			zap.String("provider", job.Provider),
 			zap.String("provider_job_name", batchImageDerefString(job.ProviderJobName)),
-			zap.Error(err),
+			zap.String("error", logredact.ErrorSummary(err)),
 		)
 		return BatchImageProcessResult{RequeueAfter: batchImageProviderErrorRequeue}, nil
 	}

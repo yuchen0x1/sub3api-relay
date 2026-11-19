@@ -15,6 +15,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/logger"
 	middleware2 "github.com/yuchen0x1/sub3api-relay/internal/server/middleware"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"go.uber.org/zap"
 )
 
@@ -195,7 +196,7 @@ func (h *OpenAIGatewayHandler) AlphaSearch(c *gin.Context) {
 			if c.Writer.Size() == writerSizeBeforeForward {
 				h.errorResponse(c, http.StatusBadGateway, "upstream_error", "Upstream request failed")
 			}
-			reqLog.Warn("openai_alpha_search.forward_failed", zap.Int64("account_id", account.ID), zap.Error(err))
+			reqLog.Warn("openai_alpha_search.forward_failed", zap.Int64("account_id", account.ID), zap.String("error", logredact.ErrorSummary(err)))
 			return
 		}
 

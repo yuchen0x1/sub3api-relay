@@ -145,6 +145,8 @@ docs/*
 !docs/CHANNEL_MONITOR.md
 !docs/LOADTEST.md
 !docs/SECURITY_BOUNDARY.md
+!docs/security-codeql-triage-2026-11-19.md
+!docs/security-codeql-triage-2026-11-19.json
 !docs/legal/
 !docs/legal/*.md
 !docs/RELEASING.md

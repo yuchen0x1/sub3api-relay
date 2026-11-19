@@ -288,6 +288,7 @@ export default {
     verifyYourEmail: 'メールを確認してください',
     sessionExpired: 'セッションが期限切れです',
     sessionExpiredDesc: '登録ページに戻ってやり直してください。',
+    registrationPasswordNotSaved: '安全のため、更新後はパスワードを保存しません。登録ページに戻り、パスワードを再入力してください。',
     verificationCode: '認証コード',
     verificationCodeHint: 'メールに送信された6桁の認証コードを入力してください',
     sendingCode: '送信中...',

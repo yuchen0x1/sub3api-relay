@@ -288,6 +288,7 @@ export default {
     verifyYourEmail: '验证您的邮箱',
     sessionExpired: '会话已过期',
     sessionExpiredDesc: '请返回注册页面重新开始。',
+    registrationPasswordNotSaved: '为了保护密码，刷新后不会保存注册密码。请返回注册页面重新输入密码。',
     verificationCode: '验证码',
     verificationCodeHint: '请输入发送到您邮箱的6位验证码',
     sendingCode: '发送中...',

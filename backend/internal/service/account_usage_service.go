@@ -20,6 +20,7 @@ import (
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/tlsfingerprint"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/usagestats"
 	"github.com/yuchen0x1/sub3api-relay/internal/pkg/xai"
+	"github.com/yuchen0x1/sub3api-relay/internal/util/logredact"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )
@@ -1183,7 +1184,7 @@ func antigravityCacheTTL(info *UsageInfo) time.Duration {
 func buildAntigravityDegradedUsage(err error) *UsageInfo {
 	now := time.Now()
 	errMsg := fmt.Sprintf("usage API error: %v", err)
-	slog.Warn("antigravity usage fetch failed, returning degraded response", "error", err)
+	slog.Warn("antigravity usage fetch failed, returning degraded response", "error", logredact.ErrorSummary(err))
 
 	info := &UsageInfo{
 		UpdatedAt: &now,

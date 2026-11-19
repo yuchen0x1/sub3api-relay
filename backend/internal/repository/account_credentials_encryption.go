@@ -23,6 +23,7 @@ const credentialEnvelopePrefix = "enc:v1:"
 // 随机临时密钥跨进程不可解密，绝不能用于持久化凭据。
 type credentialCipher struct {
 	encryptor service.SecretEncryptor
+	initErr   error
 }
 
 // NewAccountCredentialCipher 构造凭据字段级加密器。
@@ -35,10 +36,10 @@ func NewAccountCredentialCipher(cfg *config.Config) *credentialCipher {
 	}
 	encryptor, err := NewAESEncryptor(cfg)
 	if err != nil {
-		// Load() 已校验密钥格式，此处失败属于程序性错误，直接拒绝启用加密
-		// 而不是静默降级（配置了坏密钥比不加密更危险）。
-		slog.Error("account credential encryption disabled: invalid encryption key", "err", err)
-		return &credentialCipher{}
+		// Load() 通常已校验密钥格式。即使绕过该校验，后续凭据写入也必须
+		// 显式失败，不能把配置错误当成主动关闭加密并写入明文。
+		slog.Error("account credential writes blocked: invalid encryption key", "err", err)
+		return &credentialCipher{initErr: err}
 	}
 	return &credentialCipher{encryptor: encryptor}
 }
@@ -66,8 +67,8 @@ func canonicalCredentialsPayload(credentials map[string]any) (payload []byte, di
 
 // prepareCredentialsStorage 返回可直接写入 DB 的凭据文档与摘要指针，
 // 供 ent builder 链式调用使用。摘要永远基于明文 canonical payload 计算，
-// 与加密开关无关（单向摘要不含明文信息，提前写入保证加密开关切换时
-// CAS 守卫语义一致）。
+// 与加密开关无关（提前写入保证加密开关切换时 CAS 守卫语义一致）。
+// SHA-256 摘要不是口令哈希：低熵凭据仍可能被离线猜测，不能替代数据库访问控制。
 func prepareCredentialsStorage(credCipher *credentialCipher, credentials map[string]any) (doc map[string]any, docDigest *string, apiKeyDigest *string, err error) {
 	payload, digest, apiKeyDigest, err := canonicalCredentialsPayload(credentials)
 	if err != nil {
@@ -76,7 +77,10 @@ func prepareCredentialsStorage(credCipher *credentialCipher, credentials map[str
 	_ = payload
 	doc = normalizeJSONMap(credentials)
 	if credCipher != nil {
-		doc = credCipher.prepareForWrite(doc)
+		doc, err = credCipher.prepareForWrite(doc)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	return doc, &digest, apiKeyDigest, nil
 }
@@ -121,9 +125,12 @@ func credentialsDigestFromJSON(raw string) *string {
 // prepareForWrite 返回可直接写入 DB 的凭据副本：敏感子键值替换为 enc:v1: 信封。
 // 非敏感子键(model_mapping、base_url 等)与 JSON 结构保持不变。
 // 已带信封的值跳过（幂等），避免双重加密。
-func (c *credentialCipher) prepareForWrite(credentials map[string]any) map[string]any {
+func (c *credentialCipher) prepareForWrite(credentials map[string]any) (map[string]any, error) {
+	if c.initErr != nil {
+		return nil, fmt.Errorf("account credential encryption unavailable: %w", c.initErr)
+	}
 	if len(credentials) == 0 || c.encryptor == nil {
-		return credentials
+		return credentials, nil
 	}
 	out := make(map[string]any, len(credentials))
 	changed := false
@@ -138,25 +145,20 @@ func (c *credentialCipher) prepareForWrite(credentials map[string]any) map[strin
 		}
 		plain, err := json.Marshal(value)
 		if err != nil {
-			// 序列化失败的值保持原样写入：该值本就无法通过 jsonb 往返，
-			// 由既有写入校验兜底，这里不放大错误面。
-			out[key] = value
-			continue
+			return nil, fmt.Errorf("marshal account credential %q: %w", key, err)
 		}
 		enc, err := c.encryptor.Encrypt(string(plain))
 		if err != nil {
-			slog.Warn("encrypt account credential value failed; storing plaintext", "key", key, "err", err)
-			out[key] = value
-			continue
+			return nil, fmt.Errorf("encrypt account credential %q: %w", key, err)
 		}
 		// AESEncryptor.Encrypt 已输出 base64，信封直接拼接。
 		out[key] = credentialEnvelopePrefix + enc
 		changed = true
 	}
 	if !changed {
-		return credentials
+		return credentials, nil
 	}
-	return out
+	return out, nil
 }
 
 // restoreForRead 返回解密后的凭据副本。解密失败的值保留信封原文并告警——

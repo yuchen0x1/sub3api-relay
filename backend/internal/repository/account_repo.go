@@ -784,7 +784,10 @@ func (r *accountRepository) UpdateCredentials(ctx context.Context, id int64, cre
 	}
 	credDoc := credentials
 	if r.credCipher != nil {
-		credDoc = r.credCipher.prepareForWrite(credentials)
+		credDoc, err = r.credCipher.prepareForWrite(credentials)
+		if err != nil {
+			return err
+		}
 	}
 	encPayload, err := json.Marshal(credDoc)
 	if err != nil {
@@ -3000,7 +3003,11 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 		setClauses = append(setClauses, "credentials_digest = NULL")
 		mergedDoc := updates.Credentials
 		if r.credCipher != nil {
-			mergedDoc = r.credCipher.prepareForWrite(updates.Credentials)
+			var err error
+			mergedDoc, err = r.credCipher.prepareForWrite(updates.Credentials)
+			if err != nil {
+				return 0, err
+			}
 		}
 		payload, err := json.Marshal(mergedDoc)
 		if err != nil {

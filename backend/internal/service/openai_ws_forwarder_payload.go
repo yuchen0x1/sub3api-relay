@@ -604,6 +604,37 @@ func openAIWSRawPayloadHasToolCallOutput(payload []byte) bool {
 	return false
 }
 
+// Replay spans multiple WebSocket messages, so a per-message read limit does
+// not bound the retained history. Count memory for each RawMessage as well as
+// its bytes, so a large number of small items cannot evade the budget.
+const openAIWSReplayInputBudget = 64 << 20
+const openAIWSReplayInputItemOverhead = 24 // RawMessage slice header on 64-bit
+
+var errOpenAIWSReplayInputTooLarge = errors.New("websocket replay input exceeds memory limit")
+
+func cloneBoundedOpenAIWSReplayInput(previous, current []json.RawMessage) ([]json.RawMessage, error) {
+	remaining := openAIWSReplayInputBudget
+	for _, items := range [][]json.RawMessage{previous, current} {
+		for _, item := range items {
+			remaining -= openAIWSReplayInputItemOverhead
+			if len(item) > remaining {
+				return nil, errOpenAIWSReplayInputTooLarge
+			}
+			remaining -= len(item)
+		}
+	}
+	if len(previous)+len(current) == 0 {
+		return nil, nil
+	}
+	combined := make([]json.RawMessage, 0, len(previous)+len(current))
+	for _, items := range [][]json.RawMessage{previous, current} {
+		for _, item := range items {
+			combined = append(combined, bytes.Clone(item))
+		}
+	}
+	return combined, nil
+}
+
 func buildOpenAIWSReplayInputSequence(
 	previousFullInput []json.RawMessage,
 	previousFullInputExists bool,
@@ -614,22 +645,12 @@ func buildOpenAIWSReplayInputSequence(
 	if currentErr != nil {
 		return nil, false, currentErr
 	}
-	if !hasPreviousResponseID {
-		return cloneOpenAIWSRawMessages(currentItems), currentExists, nil
+	if !hasPreviousResponseID || !previousFullInputExists || openAIWSRawItemsHasPrefix(currentItems, previousFullInput) {
+		items, err := cloneBoundedOpenAIWSReplayInput(nil, currentItems)
+		return items, currentExists && err == nil, err
 	}
-	if !previousFullInputExists {
-		return cloneOpenAIWSRawMessages(currentItems), currentExists, nil
-	}
-	if !currentExists || len(currentItems) == 0 {
-		return cloneOpenAIWSRawMessages(previousFullInput), true, nil
-	}
-	if openAIWSRawItemsHasPrefix(currentItems, previousFullInput) {
-		return cloneOpenAIWSRawMessages(currentItems), true, nil
-	}
-	merged := make([]json.RawMessage, 0, len(previousFullInput)+len(currentItems))
-	merged = append(merged, cloneOpenAIWSRawMessages(previousFullInput)...)
-	merged = append(merged, cloneOpenAIWSRawMessages(currentItems)...)
-	return merged, true, nil
+	items, err := cloneBoundedOpenAIWSReplayInput(previousFullInput, currentItems)
+	return items, err == nil, err
 }
 
 func setOpenAIWSPayloadInputSequence(

@@ -214,6 +214,11 @@ import { useAuthStore, useAppStore } from '@/stores'
 import { getPublicSettings, isWeChatWebOAuthEnabled } from '@/api/auth'
 import { buildAuthErrorMessage } from '@/utils/authError'
 import {
+  clearPendingRegistration,
+  readPendingRegistrationEmail,
+  storePendingRegistration,
+} from '@/utils/pendingRegistration'
+import {
   formatRegistrationEmailSuffixWhitelistForMessage,
   isRegistrationEmailSuffixAllowed,
   normalizeRegistrationEmailSuffixWhitelist
@@ -299,6 +304,12 @@ watch(validationToastMessage, (value, previousValue) => {
 // ==================== Lifecycle ====================
 
 onMounted(async () => {
+  const pendingEmail = readPendingRegistrationEmail()
+  if (pendingEmail) {
+    formData.email = pendingEmail
+    clearPendingRegistration()
+  }
+
   try {
     const settings = await getPublicSettings()
     registrationEnabled.value = settings.registration_enabled
@@ -495,15 +506,12 @@ async function handleRegister(): Promise<void> {
   try {
     // If email verification is enabled, redirect to verification page
     if (emailVerifyEnabled.value) {
-      // Store registration data in sessionStorage
-      sessionStorage.setItem(
-        'register_data',
-        JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          turnstile_token: turnstileToken.value
-        })
-      )
+      // Keep only the email in session storage; passwords and Turnstile proofs remain in memory.
+      storePendingRegistration({
+        email: formData.email,
+        password: formData.password,
+        turnstile_token: turnstileToken.value,
+      })
 
       // Navigate to email verification page
       await router.push('/email-verify')
