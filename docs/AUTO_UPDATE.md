@@ -38,5 +38,5 @@ The current release workflow uses the built-in `GITHUB_TOKEN` with `contents: wr
 
 - From v0.5.0, set `SUB3API_REQUIRE_ATTESTATION=1` when invoking `deploy/update-binary.sh` to also require GitHub CLI provenance verification for the archive, repository, workflow and tag. Install a current `gh` first. Failure stops the update before service interruption. Earlier releases have no such attestation. The admin-panel binary updater uses SHA-256.
 - Web/PWA sessions check when opened and hourly while visible and online. A waiting worker displays a save-and-refresh notice. “Later” dismisses it for the current document. Closing all tabs permits the browser to activate the new worker. The v0.4.5 client follows its original refresh policy on first transition.
-- For Compose use `SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.5.0`, run `docker compose pull sub3api` and `docker compose up -d sub3api`. Check `/health` and the reported version. Keep the previous image digest and a database backup for rollback.
+- For Compose use `SUB3API_IMAGE=ghcr.io/yuchen0x1/sub3api-relay:0.5.1`, run `docker compose pull sub3api` and `docker compose up -d sub3api`. Check `/health` and the reported version. Keep the previous image digest and a database backup for rollback.
 - The optional Tauri shell is not an official desktop distribution.

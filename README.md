@@ -19,15 +19,15 @@
 
 <!-- github-release:start -->
 
-**[v0.5.0](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.0)** · 2026-11-18
+**[v0.5.1](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.1)** · 2026-11-19
 
-管理台发现新版时可先保存编辑内容，再选择刷新或稍后处理。Linux 二进制升级支持校验构建来源，Docker 部署新增与发行版对应的 AMD64 和 ARM64 镜像。
+支付订单限额和结账信息错误处理修复。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
 <!-- github-release:end -->
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.5.0 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.0.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.1 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.1.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 

@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"github.com/shopspring/decimal"
 	dbent "github.com/yuchen0x1/sub3api-relay/ent"
 	"github.com/yuchen0x1/sub3api-relay/ent/paymentorder"
+	entuser "github.com/yuchen0x1/sub3api-relay/ent/user"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment"
 	"github.com/yuchen0x1/sub3api-relay/internal/payment/provider"
 	infraerrors "github.com/yuchen0x1/sub3api-relay/internal/pkg/errors"
@@ -155,10 +157,20 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 		return nil, fmt.Errorf("begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Serialize limit checks per user on databases that support row locks.
+	if s.entClient.Driver().Dialect() != dialect.SQLite {
+		if _, err := tx.User.Query().Where(entuser.IDEQ(req.UserID)).ForUpdate().Only(ctx); err != nil {
+			return nil, fmt.Errorf("lock user for payment order: %w", err)
+		}
+	}
 	if err := s.checkPendingLimit(ctx, tx, req.UserID, cfg.MaxPendingOrders); err != nil {
 		return nil, err
 	}
-	if err := s.checkDailyLimit(ctx, tx, req.UserID, limitAmount, cfg.DailyLimit); err != nil {
+	dailyLimitAmount := limitAmount
+	if req.OrderType == payment.OrderTypeBalance {
+		dailyLimitAmount = payAmount
+	}
+	if err := s.checkDailyLimit(ctx, tx, req.UserID, dailyLimitAmount, cfg.DailyLimit); err != nil {
 		return nil, err
 	}
 	tm := cfg.OrderTimeoutMin
@@ -327,7 +339,17 @@ func (s *PaymentService) checkDailyLimit(ctx context.Context, tx *dbent.Tx, user
 		return nil
 	}
 	ts := psStartOfDayUTC(time.Now())
-	orders, err := tx.PaymentOrder.Query().Where(paymentorder.UserIDEQ(userID), paymentorder.StatusIn(OrderStatusPaid, OrderStatusRecharging, OrderStatusCompleted), paymentorder.PaidAtGTE(ts)).All(ctx)
+	// Pending orders reserve limit capacity because they can still be paid later.
+	orders, err := tx.PaymentOrder.Query().Where(
+		paymentorder.UserIDEQ(userID),
+		paymentorder.Or(
+			paymentorder.And(
+				paymentorder.StatusIn(OrderStatusPaid, OrderStatusRecharging, OrderStatusCompleted, OrderStatusFailed),
+				paymentorder.PaidAtGTE(ts),
+			),
+			paymentorder.StatusEQ(OrderStatusPending),
+		),
+	).All(ctx)
 	if err != nil {
 		return fmt.Errorf("query daily usage: %w", err)
 	}
