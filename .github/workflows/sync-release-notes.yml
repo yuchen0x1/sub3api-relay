@@ -1,0 +1,82 @@
+name: Sync release notes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/release-notes/RELEASE_NOTES_v*.md'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to refresh (default: current VERSION)'
+        required: false
+        type: string
+  schedule:
+    # Refresh published release bodies if a repository-notes merge was missed.
+    - cron: '12 3 * * 2'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Resolve release tag and notes file
+        id: notes
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_TAG" ]; then
+            tag="$INPUT_TAG"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # Sync every notes file changed by this push, not just VERSION.
+            files=$(git diff --name-only --diff-filter=ACMR \
+              "${{ github.event.before }}" "${{ github.sha }}" -- \
+              'docs/release-notes/RELEASE_NOTES_v*.md' | grep -v '^$' || true)
+            if [ -z "$files" ]; then
+              echo "No release notes changed in this push." >> "$GITHUB_STEP_SUMMARY"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            printf '%s\n' "$files" > release-note-files.txt
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            tag="v$(tr -d '[:space:]' < backend/cmd/server/VERSION)"
+          fi
+          if [ "${tag#v}" = "$tag" ]; then
+            echo "Tag must start with v: $tag" >&2
+            exit 1
+          fi
+          file="docs/release-notes/RELEASE_NOTES_${tag}.md"
+          if [ ! -f "$file" ]; then
+            echo "Missing notes file: $file" >&2
+            exit 1
+          fi
+          printf '%s\n' "$file" > release-note-files.txt
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+      - name: Sync every changed release body
+        if: steps.notes.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            tag=$(basename "$file" .md | sed 's/^RELEASE_NOTES_//')
+            if ! gh release view "$tag" --json isDraft,isPrerelease,tagName \
+              --jq 'select(.isDraft == false and .isPrerelease == false) | .tagName' >/dev/null; then
+              echo "No published stable release for $tag; skipping." >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            gh release edit "$tag" --notes-file "$file"
+            echo "Synced [$tag](https://github.com/${{ github.repository }}/releases/tag/$tag) from \`$file\`." >> "$GITHUB_STEP_SUMMARY"
+          done < release-note-files.txt
