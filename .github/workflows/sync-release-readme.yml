@@ -1,4 +1,5 @@
 name: Sync release to README
+
 on:
   release:
     types: [published, edited, released, unpublished, deleted]
@@ -11,7 +12,7 @@ on:
     - cron: '36 3 * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sync-release-readme
@@ -22,14 +23,20 @@ jobs:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch' || github.event.workflow_run.event == 'workflow_call'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Update the release section on the default branch
+      # API-only: never check out or execute release/PR content with this token.
+      - name: Update README on a maintenance branch and open or reuse a PR
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           retries: 3
           script: |
             const { owner, repo } = context.repo
-            const branch = context.payload.repository.default_branch
+            const branch = 'automation/sync-release-readme'
+            const defaultBranch = context.payload.repository.default_branch
+            if (branch === defaultBranch) throw new Error('Maintenance branch must differ from the default branch')
             const start = '<!-- github-release:start -->'
             const end = '<!-- github-release:end -->'
             const releases = 'https://github.com/' + owner + '/' + repo + '/releases'
@@ -68,32 +75,100 @@ jobs:
             } catch (error) {
               if (error.status !== 404) throw error
             }
-            const path = 'README.md'
-            const file = (await github.rest.repos.getContent({ owner, repo, path, ref: branch })).data
-            const before = Buffer.from(file.content, 'base64').toString('utf8')
-            const first = before.indexOf(start)
-            const last = before.indexOf(end)
-            if (first < 0 || last < first || first !== before.lastIndexOf(start) || last !== before.lastIndexOf(end)) {
-              throw new Error('Expected one github-release marker pair in README.md')
+
+            async function readReadme(ref) {
+              const file = (await github.rest.repos.getContent({ owner, repo, path: 'README.md', ref })).data
+              if (Array.isArray(file) || file.type !== 'file' || file.encoding !== 'base64') {
+                throw new Error('Expected README.md to be a base64-encoded file')
+              }
+              return Buffer.from(file.content, 'base64').toString('utf8')
             }
-            const english = /^## Latest release\s*$/im.test(before)
-            const history = english ? 'Release history' : '全部发行记录'
-            let lines = ['[' + history + '](' + releases + ')']
-            if (latest) {
-              const label = escapeMarkdown(latest.tag_name)
-              const url = releases + '/tag/' + encodeURIComponent(latest.tag_name)
-              lines.unshift('**[' + label + '](' + url + ')** · ' + latest.published_at.slice(0, 10))
-              const overview = summary(latest.body)
-              if (overview) lines.splice(1, 0, overview)
-            } else {
-              lines.unshift(english ? 'No published stable release.' : '尚无已发布的正式版本。')
+
+            function render(before) {
+              const first = before.indexOf(start)
+              const last = before.indexOf(end)
+              if (first < 0 || last < first || first !== before.lastIndexOf(start) || last !== before.lastIndexOf(end)) {
+                throw new Error('Expected one github-release marker pair in README.md')
+              }
+              const english = /^## Latest release\s*$/im.test(before)
+              const history = english ? 'Release history' : '全部发行记录'
+              const lines = ['[' + history + '](' + releases + ')']
+              if (latest) {
+                const label = escapeMarkdown(latest.tag_name)
+                const url = releases + '/tag/' + encodeURIComponent(latest.tag_name)
+                if (!/^\d{4}-\d{2}-\d{2}T/.test(latest.published_at || '')) throw new Error('Invalid publication date')
+                lines.unshift('**[' + label + '](' + url + ')** · ' + latest.published_at.slice(0, 10))
+                const overview = summary(latest.body)
+                if (overview) lines.splice(1, 0, overview)
+              } else {
+                lines.unshift(english ? 'No published stable release.' : '尚无已发布的正式版本。')
+              }
+              const nl = before.includes('\r\n') ? '\r\n' : '\n'
+              return before.slice(0, first + start.length) + nl + nl + lines.join(nl + nl) + nl + nl + before.slice(last)
             }
-            const nl = before.includes('\r\n') ? '\r\n' : '\n'
-            const after = before.slice(0, first + start.length) + nl + nl + lines.join(nl + nl) + nl + nl + before.slice(last)
-            if (after !== before) {
-              await github.rest.repos.createOrUpdateFileContents({
-                owner, repo, branch, path, sha: file.sha,
-                message: 'docs: sync README with GitHub Releases',
-                content: Buffer.from(after).toString('base64')
-              })
+
+            const base = (await github.rest.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` })).data.object.sha
+            const current = await readReadme(base)
+            if (render(current) === current) {
+              core.info('README already matches the latest stable release; no commit or PR is needed.')
+              return
+            }
+
+            for (let attempt = 1; attempt <= 5; attempt++) {
+              let head
+              try {
+                head = (await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })).data.object.sha
+              } catch (error) {
+                if (error.status !== 404) throw error
+              }
+              const parent = head || base
+              const before = await readReadme(parent)
+              const after = render(before)
+              if (after === before) break
+              const commit = (await github.rest.git.getCommit({ owner, repo, commit_sha: parent })).data
+              const blob = (await github.rest.git.createBlob({ owner, repo, content: after, encoding: 'utf-8' })).data
+              const tree = (await github.rest.git.createTree({
+                owner, repo, base_tree: commit.tree.sha,
+                tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: blob.sha }]
+              })).data
+              const next = (await github.rest.git.createCommit({
+                owner, repo, message: 'docs: sync README with GitHub Releases', tree: tree.sha, parents: [parent]
+              })).data
+              try {
+                if (head) {
+                  await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: next.sha, force: false })
+                } else {
+                  await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: next.sha })
+                }
+                break
+              } catch (error) {
+                if (![409, 422].includes(error.status) || attempt === 5) throw error
+                core.info(`Maintenance branch changed concurrently; retrying without replacing its commits (${attempt}/5).`)
+              }
+            }
+
+            const open = (await github.rest.pulls.list({ owner, repo, state: 'open', base: defaultBranch, head: `${owner}:${branch}` })).data[0]
+            if (open) {
+              core.info(`Reusing README synchronization PR #${open.number}: ${open.html_url}`)
+              return
+            }
+            const comparison = (await github.rest.repos.compareCommitsWithBasehead({
+              owner, repo, basehead: `${defaultBranch}...${branch}`
+            })).data
+            if (comparison.ahead_by === 0 || comparison.files.length === 0) {
+              core.info('Maintenance branch has no changes; no PR is needed.')
+              return
+            }
+            try {
+              const pr = (await github.rest.pulls.create({
+                owner, repo, base: defaultBranch, head: branch,
+                title: 'docs: sync README with GitHub Releases',
+                body: 'Updates the README latest-release section from the latest published stable GitHub Release. Review the diff and pass all required checks before merging. If GITHUB_TOKEN does not trigger checks, a maintainer must close and reopen this PR with their own account.'
+              })).data
+              core.info(`Created README synchronization PR #${pr.number}: ${pr.html_url}`)
+            } catch (error) {
+              if (error.status !== 422) throw error
+              const raced = (await github.rest.pulls.list({ owner, repo, state: 'open', base: defaultBranch, head: `${owner}:${branch}` })).data[0]
+              if (!raced) throw error
+              core.info(`Another run created README synchronization PR #${raced.number}: ${raced.html_url}`)
             }

@@ -27,7 +27,7 @@
 
 <!-- github-release:end -->
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.5.2 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.2.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.2 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.2.md) · [v0.5.4 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.4.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 
