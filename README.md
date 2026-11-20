@@ -19,9 +19,9 @@
 
 <!-- github-release:start -->
 
-**[v0.5.2](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.2)** · 2026-11-19
+**[v0.5.3](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.3)** · 2026-11-19
 
-本次补丁更新后端、管理台和 CI 依赖，包含构建及安全扫描工具的主版本升级。升级无需数据库迁移。
+本次为安全补丁版本：修复并分类处置 CodeQL 静态扫描发现的安全告警，升级无需数据库迁移。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
