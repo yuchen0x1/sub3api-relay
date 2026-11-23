@@ -84,6 +84,7 @@ import UserAttributeForm from '@/components/user/UserAttributeForm.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useStepUp, isStepUpBlocked, isStepUpCancelled, stepUpBlockReason } from '@/composables/useStepUp'
 import TotpStepUpDialog from '@/components/auth/TotpStepUpDialog.vue'
+import { secureRandomString } from '@/utils/secureRandom'
 
 const props = defineProps<{ show: boolean, user: AdminUser | null }>()
 const emit = defineEmits(['close', 'success'])
@@ -101,8 +102,7 @@ watch(() => props.user, (u) => {
 
 const generatePassword = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*'
-  let p = ''; for (let i = 0; i < 16; i++) p += chars.charAt(Math.floor(Math.random() * chars.length))
-  form.password = p
+  form.password = secureRandomString(16, chars)
 }
 const copyPassword = async () => {
   if (form.password && await copyToClipboard(form.password, t('admin.users.passwordCopiedField'))) {
