@@ -19,9 +19,9 @@
 
 <!-- github-release:start -->
 
-**[v0.5.3](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.3)** · 2026-11-19
+**[v0.5.5](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.5)** · 2026-11-23
 
-本次为安全补丁版本：修复并分类处置 CodeQL 静态扫描发现的安全告警，升级无需数据库迁移。
+管理员创建和编辑用户时生成的随机密码改用浏览器原生安全随机数源，避免弱随机数降低凭据强度。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
