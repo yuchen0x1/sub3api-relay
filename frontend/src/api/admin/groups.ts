@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '../client'
+import { secureRandomId } from '@/utils/secureRandom'
 import type {
   AdminGroup,
   GroupPlatform,
@@ -190,7 +191,7 @@ export async function duplicate(id: number): Promise<AdminGroup> {
     ? duplicateOperationKeys.get(scope.key) ?? getStoredDuplicateOperationKey(scope.key)
     : null
   if (!idempotencyKey) {
-    const requestID = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const requestID = secureRandomId()
     idempotencyKey = `group-duplicate-${scope?.adminID ?? 'unknown-admin'}-${id}-${requestID}`
   }
   if (scope) {

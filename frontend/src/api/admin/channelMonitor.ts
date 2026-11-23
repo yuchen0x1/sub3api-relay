@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '../client'
+import { secureRandomId } from '@/utils/secureRandom'
 
 export type Provider = 'openai' | 'anthropic' | 'gemini' | 'grok'
 export type MonitorStatus = 'operational' | 'degraded' | 'failed' | 'error'
@@ -217,7 +218,7 @@ export async function duplicate(id: number): Promise<ChannelMonitor> {
     ? duplicateOperationKeys.get(scope.key) ?? getStoredDuplicateOperationKey(scope.key)
     : null
   if (!idempotencyKey) {
-    const requestID = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const requestID = secureRandomId()
     idempotencyKey = `channel-monitor-duplicate-${scope?.adminID ?? 'unknown-admin'}-${id}-${requestID}`
   }
   if (scope) {

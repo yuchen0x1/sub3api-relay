@@ -19,15 +19,15 @@
 
 <!-- github-release:start -->
 
-**[v0.5.2](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.2)** · 2026-11-19
+**v0.5.5 · 待发布**
 
-本次补丁更新后端、管理台和 CI 依赖，包含构建及安全扫描工具的主版本升级。升级无需数据库迁移。
+管理员生成用户密码改用浏览器原生安全随机数源，保持现有长度、字符集和复制流程。升级无需数据库迁移。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
 <!-- github-release:end -->
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.5.2 升级说明](docs/release-notes/RELEASE_NOTES_v0.5.2.md) · [v0.5.4 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.4.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.5 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.5.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 
