@@ -19,9 +19,9 @@
 
 <!-- github-release:start -->
 
-**v0.5.6 · 待发布**
+**[v0.5.6](https://github.com/yuchen0x1/sub3api-relay/releases/tag/v0.5.6)** · 2026-11-26
 
-升级 WebSocket 依赖并修复全历史密钥扫描配置，恢复每周安全扫描的有效信号；同步发行文档与前端依赖锁定。升级无需数据库迁移。
+本次补丁修复了安全扫描和依赖层面的两个问题：全历史密钥扫描配置在固定版本 gitleaks 下实际未生效，以及 WebSocket 依赖存在已公开的弱随机数安全公告。同时统一了前端依赖覆盖、清理了陈旧审计产物，并同步中英日文发行说明。升级无需数据库迁移或配置变更。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
