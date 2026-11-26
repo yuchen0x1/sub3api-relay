@@ -11,13 +11,9 @@ The canonical source and update/download channel is GitHub:
 4. Run relevant backend/frontend tests and inspect all existing worktree edits. Preserve unrelated changes.
 5. Validate `.github/workflows/release.yml`. The pinned Go toolchain and reachable-vulnerability gate must pass before publishing. Tag-triggered runs upload server archives, Web and deployment bundles, and checksums to the GitHub Release and retain them as workflow-run artifacts; manual runs only retain workflow artifacts. The optional Tauri shell is not part of the supported release channel.
 
-## Pending v0.5.4 maintenance
-
-The pending source version is `0.5.4`; it is not a published release. The public `v0.5.3` Release has no assets because its source version metadata did not match its tag. Keep that tag unchanged. After this maintenance change passes required checks and is merged, publication requires a separately authorized new `v0.5.4` tag on the checked main commit. Re-running the old tag cannot pick up these changes.
-
 ## README synchronization through protected branches
 
-`sync-release-readme.yml` uses the pinned, API-only GitHub script to update `automation/sync-release-readme` and create or reuse a PR into the default branch. It preserves existing maintenance-branch commits, updates only the release marker block, uses non-forced ref updates, and does nothing when the default README is already current. Release text is escaped data and is never executed.
+`sync-release-readme.yml` uses the pinned, API-only GitHub script to rebuild `automation/sync-release-readme` from the current default branch and create or reuse a PR into that branch. Only `README.md` is managed by this branch, so each run starts from current `main` instead of stacking commits on a stale branch; this prevents the synchronization PR from remaining permanently conflicted after later release commits. Release text is escaped data and is never executed.
 
 Repository Actions settings must allow GitHub Actions to create pull requests (`can_approve_pull_request_reviews: true`); the default workflow permission can remain read-only. This workflow requests only job-scoped `contents: write` and `pull-requests: write`. A permissions failure must be resolved by a maintainer, not by bypassing protection.
 

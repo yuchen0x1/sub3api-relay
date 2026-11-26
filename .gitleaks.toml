@@ -2,7 +2,7 @@
 #
 # 目标：每周定时扫描保持绿色，让真正的凭据泄漏能被看见。
 #
-# 历史上 Secret Scanning 报告 135 条，经逐条核对全部为误报，分为四类：
+# 全历史扫描曾报告 136 条，经逐条核对全部为误报，分为四类：
 #   1. 公开的 OAuth 客户端凭据（Google Gemini CLI / Antigravity）。
 #      这类 client_secret 随官方客户端分发，不构成凭据泄漏；
 #      允许用户用环境变量覆盖，见 internal/pkg/geminicli/constants.go。
@@ -12,6 +12,10 @@
 #   4. 文档/示例配置里的演示值（docs/、ADMIN_PAYMENT_INTEGRATION_API.md、
 #      deploy/*.example）。
 #
+# 注意：gitleaks-action v3 内置的 gitleaks 8.24.3 在全局范围只识别单个
+# `[allowlist]` 表；写成 `[[allowlists]]` 会被静默忽略，导致所有历史误报重新出现，
+# 定时扫描长期失败。这里必须保持单表，新增豁免直接追加到下面的 regexes/paths。
+#
 # 这里按“具体值”豁免，而不是整目录放行：将来若在测试或文档中写入真实密钥，
 # 只要值不匹配下面这些模式，仍会被扫出。
 
@@ -20,7 +24,7 @@ title = "Sub3API gitleaks config"
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "已人工核实的误报；详见文件头说明"
 regexTarget = "match"
 regexes = [
@@ -41,8 +45,11 @@ regexes = [
   # 正则需匹配反斜杠加 n 两个字符。
   '''-----BEGIN PRIVATE KEY-----secret-----END PRIVATE KEY-----''',
   '''-----BEGIN RSA PRIVATE KEY-----\\ndata\\n-----END RSA PRIVATE KEY-----''',
-  # Google OAuth access token 占位
+  # Google OAuth access token / client_secret 占位
   '''ya29\.a0AfH6SMDUMMY''',
+  '''GOCSPX-your-client-secret''',
+  # 基线提交里的字母表顺序假值（现文件已改为 your-client-secret）
+  '''GOCSPX-abcdefghijklmnopqrstuvwxyz_0123456789''',
   # 微信支付 prepay_id 演示值
   '''wx_prepay_123''',
   # 支付文档示例订单号
@@ -78,29 +85,16 @@ regexes = [
   '''inject_beta_for_apikey''',
   '''sora_media_require_api_key''',
   '''validate_id_token''',
-]
 
-# 示例配置与接入文档只包含上述公开凭据和占位值，按路径豁免，
-# 避免示例文件需要长期维护一份重复的 allowlist。
-paths = [
-  '''^deploy/\.env\.example$''',
-  '''^deploy/config\.example\.yaml$''',
-  '''^docs/ADMIN_PAYMENT_INTEGRATION_API\.md$''',
-  '''^ADMIN_PAYMENT_INTEGRATION_API\.md$''',
-]
-
-# 迁移校验和测试固件：migrations_runner_checksum_test.go 中固化了迁移文件的
-# SHA-256 值，会被 generic-api-key 误判为密钥。
-#
-# 不使用 `[0-9a-f]{64}` 这类“形态”规则：gitleaks 对 paths 与 regexes 默认取“或”，
-# 而当前版本不支持 matchCondition = "AND"，形态规则会退化成整仓放行，
-# 真实的高熵 hex 密钥从此扫不出来。
-# 这里逐个枚举该测试文件实际使用的 36 个固定值（全历史一致），
-# 其余任何 hex 串仍按默认规则检测。
-[[allowlists]]
-description = "迁移文件 SHA-256 校验和（枚举）"
-regexTarget = "match"
-regexes = [
+  # --- 4. 迁移校验和测试固件 ---
+  # migrations_runner_checksum_test.go 中固化了迁移文件的 SHA-256 值，
+  # 会被 generic-api-key 误判为密钥。
+  #
+  # 不使用 `[0-9a-f]{64}` 这类“形态”规则：全局 allowlist 对 paths 与 regexes
+  # 取“或”，且不支持 matchCondition = "AND"，形态规则会退化成整仓放行，
+  # 真实的高熵 hex 密钥从此扫不出来。
+  # 这里逐个枚举该测试文件实际使用的 36 个固定值（全历史一致），
+  # 其余任何 hex 串仍按默认规则检测。
   '''0000{16}0{16}0{16}0{16}''',
   '''022aadd97bb53e755f0cf7a3a957e0cb1a1353b0c39ec4de3234acd2871fd04f''',
   '''04b082b5a239c525154fe9185d324ee2b05ff90da9297e10dba19f9be79aa59a''',
@@ -137,4 +131,13 @@ regexes = [
   '''f7757bd929ac67ffb08ce69fa4cf20fad39dbff9d5a5085fb2adabb7607e5877''',
   '''ffd3e8a2c9295fa9cbefefd629a78268877e5b51bc970a82d9b3f46ec4ebd15e''',
   '''f{64}''',
+]
+
+# 示例配置与接入文档只包含上述公开凭据和占位值，按路径豁免，
+# 避免示例文件需要长期维护一份重复的 allowlist。
+paths = [
+  '''^deploy/\.env\.example$''',
+  '''^deploy/config\.example\.yaml$''',
+  '''^docs/ADMIN_PAYMENT_INTEGRATION_API\.md$''',
+  '''^ADMIN_PAYMENT_INTEGRATION_API\.md$''',
 ]

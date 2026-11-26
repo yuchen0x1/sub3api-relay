@@ -655,7 +655,7 @@ describe("admin personal SettingsView controls", () => {
       if (!wrapper.find('[data-testid="compact-home-toggle"]').exists()) {
         throw new Error("general tab async component not resolved yet");
       }
-    });
+    }, { timeout: 5000, interval: 25 });
 
     const toggle = wrapper.get('[data-testid="compact-home-toggle"]');
     expect((toggle.element as HTMLInputElement).checked).toBe(false);

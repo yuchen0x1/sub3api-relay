@@ -11,22 +11,19 @@
 
 **面向个人和小团队的 AI API 网关与管理平台**
 
-[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.4.4 更新说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md)
+[English](README.md) | 中文 | [日本語](README_JA.md) | [v0.5.6 更新说明](docs/release-notes/RELEASE_NOTES_v0.5.6.md)
 
 </div>
 
 ## 最新更新
 
-### v0.4.4 · 2026-11-13
+### v0.5.6 · 待发布
 
-- 统一使用 Go 1.26.11，修复 HTTP 服务并发崩溃风险，增加发布前漏洞检查。
+- 升级 WebSocket 依赖，修复已公开的弱随机数安全公告。
+- 修复全历史密钥扫描配置失效，恢复每周安全扫描的有效信号。
+- 统一前端依赖覆盖与锁文件，同步中英日文发行说明。
 
-- 正确保留无限期备份设置；最大份数只限制定时备份，清理失败保留记录。
-- 备份、恢复与删除操作避免冲突，管理台可查看失败详情。
-- S3 配置保留的密钥继续加密；大备份上传降低内存占用，需预留临时磁盘空间。
-- SQL 恢复出错停止并回滚；所有发行归档均纳入 SHA-256 校验清单。
-
-[完整更新历史](docs/releases/release-notes.md) · [v0.4.4 升级说明](docs/release-notes/RELEASE_NOTES_v0.4.4.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.6 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.6.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
 
 ## ⚠️ 重要提醒
 
