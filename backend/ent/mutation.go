@@ -2375,64 +2375,66 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 // AccountMutation represents an operation that mutates the Account nodes in the graph.
 type AccountMutation struct {
 	config
-	op                          Op
-	typ                         string
-	id                          *int64
-	created_at                  *time.Time
-	updated_at                  *time.Time
-	deleted_at                  *time.Time
-	name                        *string
-	notes                       *string
-	platform                    *string
-	_type                       *string
-	credentials                 *map[string]interface{}
-	credentials_digest          *string
-	credentials_api_key_digest  *string
-	extra                       *map[string]interface{}
-	proxy_fallback_origin_id    *int64
-	addproxy_fallback_origin_id *int64
-	concurrency                 *int
-	addconcurrency              *int
-	load_factor                 *int
-	addload_factor              *int
-	priority                    *int
-	addpriority                 *int
-	weight                      *int
-	addweight                   *int
-	rate_multiplier             *float64
-	addrate_multiplier          *float64
-	status                      *string
-	error_message               *string
-	last_used_at                *time.Time
-	expires_at                  *time.Time
-	auto_pause_on_expired       *bool
-	schedulable                 *bool
-	rate_limited_at             *time.Time
-	rate_limit_reset_at         *time.Time
-	overload_until              *time.Time
-	temp_unschedulable_until    *time.Time
-	temp_unschedulable_reason   *string
-	session_window_start        *time.Time
-	session_window_end          *time.Time
-	session_window_status       *string
-	quota_dimension             *account.QuotaDimension
-	clearedFields               map[string]struct{}
-	groups                      map[int64]struct{}
-	removedgroups               map[int64]struct{}
-	clearedgroups               bool
-	proxy                       *int64
-	clearedproxy                bool
-	parent                      *int64
-	clearedparent               bool
-	children                    map[int64]struct{}
-	removedchildren             map[int64]struct{}
-	clearedchildren             bool
-	usage_logs                  map[int64]struct{}
-	removedusage_logs           map[int64]struct{}
-	clearedusage_logs           bool
-	done                        bool
-	oldValue                    func(context.Context) (*Account, error)
-	predicates                  []predicate.Account
+	op                            Op
+	typ                           string
+	id                            *int64
+	created_at                    *time.Time
+	updated_at                    *time.Time
+	deleted_at                    *time.Time
+	name                          *string
+	notes                         *string
+	platform                      *string
+	_type                         *string
+	credentials                   *map[string]interface{}
+	credentials_digest_version    *int16
+	addcredentials_digest_version *int16
+	credentials_digest            *string
+	credentials_api_key_digest    *string
+	extra                         *map[string]interface{}
+	proxy_fallback_origin_id      *int64
+	addproxy_fallback_origin_id   *int64
+	concurrency                   *int
+	addconcurrency                *int
+	load_factor                   *int
+	addload_factor                *int
+	priority                      *int
+	addpriority                   *int
+	weight                        *int
+	addweight                     *int
+	rate_multiplier               *float64
+	addrate_multiplier            *float64
+	status                        *string
+	error_message                 *string
+	last_used_at                  *time.Time
+	expires_at                    *time.Time
+	auto_pause_on_expired         *bool
+	schedulable                   *bool
+	rate_limited_at               *time.Time
+	rate_limit_reset_at           *time.Time
+	overload_until                *time.Time
+	temp_unschedulable_until      *time.Time
+	temp_unschedulable_reason     *string
+	session_window_start          *time.Time
+	session_window_end            *time.Time
+	session_window_status         *string
+	quota_dimension               *account.QuotaDimension
+	clearedFields                 map[string]struct{}
+	groups                        map[int64]struct{}
+	removedgroups                 map[int64]struct{}
+	clearedgroups                 bool
+	proxy                         *int64
+	clearedproxy                  bool
+	parent                        *int64
+	clearedparent                 bool
+	children                      map[int64]struct{}
+	removedchildren               map[int64]struct{}
+	clearedchildren               bool
+	usage_logs                    map[int64]struct{}
+	removedusage_logs             map[int64]struct{}
+	clearedusage_logs             bool
+	done                          bool
+	oldValue                      func(context.Context) (*Account, error)
+	predicates                    []predicate.Account
 }
 
 var _ ent.Mutation = (*AccountMutation)(nil)
@@ -2845,6 +2847,76 @@ func (m *AccountMutation) OldCredentials(ctx context.Context) (v map[string]inte
 // ResetCredentials resets all changes to the "credentials" field.
 func (m *AccountMutation) ResetCredentials() {
 	m.credentials = nil
+}
+
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (m *AccountMutation) SetCredentialsDigestVersion(i int16) {
+	m.credentials_digest_version = &i
+	m.addcredentials_digest_version = nil
+}
+
+// CredentialsDigestVersion returns the value of the "credentials_digest_version" field in the mutation.
+func (m *AccountMutation) CredentialsDigestVersion() (r int16, exists bool) {
+	v := m.credentials_digest_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialsDigestVersion returns the old "credentials_digest_version" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldCredentialsDigestVersion(ctx context.Context) (v *int16, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialsDigestVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialsDigestVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialsDigestVersion: %w", err)
+	}
+	return oldValue.CredentialsDigestVersion, nil
+}
+
+// AddCredentialsDigestVersion adds i to the "credentials_digest_version" field.
+func (m *AccountMutation) AddCredentialsDigestVersion(i int16) {
+	if m.addcredentials_digest_version != nil {
+		*m.addcredentials_digest_version += i
+	} else {
+		m.addcredentials_digest_version = &i
+	}
+}
+
+// AddedCredentialsDigestVersion returns the value that was added to the "credentials_digest_version" field in this mutation.
+func (m *AccountMutation) AddedCredentialsDigestVersion() (r int16, exists bool) {
+	v := m.addcredentials_digest_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (m *AccountMutation) ClearCredentialsDigestVersion() {
+	m.credentials_digest_version = nil
+	m.addcredentials_digest_version = nil
+	m.clearedFields[account.FieldCredentialsDigestVersion] = struct{}{}
+}
+
+// CredentialsDigestVersionCleared returns if the "credentials_digest_version" field was cleared in this mutation.
+func (m *AccountMutation) CredentialsDigestVersionCleared() bool {
+	_, ok := m.clearedFields[account.FieldCredentialsDigestVersion]
+	return ok
+}
+
+// ResetCredentialsDigestVersion resets all changes to the "credentials_digest_version" field.
+func (m *AccountMutation) ResetCredentialsDigestVersion() {
+	m.credentials_digest_version = nil
+	m.addcredentials_digest_version = nil
+	delete(m.clearedFields, account.FieldCredentialsDigestVersion)
 }
 
 // SetCredentialsDigest sets the "credentials_digest" field.
@@ -4389,7 +4461,7 @@ func (m *AccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AccountMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 35)
 	if m.created_at != nil {
 		fields = append(fields, account.FieldCreatedAt)
 	}
@@ -4413,6 +4485,9 @@ func (m *AccountMutation) Fields() []string {
 	}
 	if m.credentials != nil {
 		fields = append(fields, account.FieldCredentials)
+	}
+	if m.credentials_digest_version != nil {
+		fields = append(fields, account.FieldCredentialsDigestVersion)
 	}
 	if m.credentials_digest != nil {
 		fields = append(fields, account.FieldCredentialsDigest)
@@ -4516,6 +4591,8 @@ func (m *AccountMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case account.FieldCredentials:
 		return m.Credentials()
+	case account.FieldCredentialsDigestVersion:
+		return m.CredentialsDigestVersion()
 	case account.FieldCredentialsDigest:
 		return m.CredentialsDigest()
 	case account.FieldCredentialsAPIKeyDigest:
@@ -4593,6 +4670,8 @@ func (m *AccountMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldType(ctx)
 	case account.FieldCredentials:
 		return m.OldCredentials(ctx)
+	case account.FieldCredentialsDigestVersion:
+		return m.OldCredentialsDigestVersion(ctx)
 	case account.FieldCredentialsDigest:
 		return m.OldCredentialsDigest(ctx)
 	case account.FieldCredentialsAPIKeyDigest:
@@ -4709,6 +4788,13 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCredentials(v)
+		return nil
+	case account.FieldCredentialsDigestVersion:
+		v, ok := value.(int16)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialsDigestVersion(v)
 		return nil
 	case account.FieldCredentialsDigest:
 		v, ok := value.(string)
@@ -4900,6 +4986,9 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *AccountMutation) AddedFields() []string {
 	var fields []string
+	if m.addcredentials_digest_version != nil {
+		fields = append(fields, account.FieldCredentialsDigestVersion)
+	}
 	if m.addproxy_fallback_origin_id != nil {
 		fields = append(fields, account.FieldProxyFallbackOriginID)
 	}
@@ -4926,6 +5015,8 @@ func (m *AccountMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *AccountMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case account.FieldCredentialsDigestVersion:
+		return m.AddedCredentialsDigestVersion()
 	case account.FieldProxyFallbackOriginID:
 		return m.AddedProxyFallbackOriginID()
 	case account.FieldConcurrency:
@@ -4947,6 +5038,13 @@ func (m *AccountMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *AccountMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case account.FieldCredentialsDigestVersion:
+		v, ok := value.(int16)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCredentialsDigestVersion(v)
+		return nil
 	case account.FieldProxyFallbackOriginID:
 		v, ok := value.(int64)
 		if !ok {
@@ -5002,6 +5100,9 @@ func (m *AccountMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(account.FieldNotes) {
 		fields = append(fields, account.FieldNotes)
+	}
+	if m.FieldCleared(account.FieldCredentialsDigestVersion) {
+		fields = append(fields, account.FieldCredentialsDigestVersion)
 	}
 	if m.FieldCleared(account.FieldCredentialsDigest) {
 		fields = append(fields, account.FieldCredentialsDigest)
@@ -5073,6 +5174,9 @@ func (m *AccountMutation) ClearField(name string) error {
 		return nil
 	case account.FieldNotes:
 		m.ClearNotes()
+		return nil
+	case account.FieldCredentialsDigestVersion:
+		m.ClearCredentialsDigestVersion()
 		return nil
 	case account.FieldCredentialsDigest:
 		m.ClearCredentialsDigest()
@@ -5156,6 +5260,9 @@ func (m *AccountMutation) ResetField(name string) error {
 		return nil
 	case account.FieldCredentials:
 		m.ResetCredentials()
+		return nil
+	case account.FieldCredentialsDigestVersion:
+		m.ResetCredentialsDigestVersion()
 		return nil
 	case account.FieldCredentialsDigest:
 		m.ResetCredentialsDigest()

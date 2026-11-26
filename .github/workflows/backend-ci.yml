@@ -41,6 +41,7 @@ jobs:
         run: |
           /bin/bash deploy/tests/install-setup-security-test.sh
           /bin/bash deploy/tests/install-github-token-test.sh
+          /bin/bash deploy/tests/update-binary-migration-test.sh
           /bin/bash deploy/tests/docker-deploy-security-test.sh
       - name: Unit tests
         working-directory: backend

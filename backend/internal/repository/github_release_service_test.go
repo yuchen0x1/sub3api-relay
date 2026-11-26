@@ -85,13 +85,14 @@ func TestGitHubReleaseClientRedirectAuthorization(t *testing.T) {
 		name     string
 		url      string
 		wantAuth string
+		wantErr  bool
 	}{
 		{name: "same HTTPS authority", url: "https://api.github.com/redirected", wantAuth: "Bearer update-secret"},
-		{name: "HTTP", url: "http://api.github.com/redirected"},
-		{name: "subdomain", url: "https://sub.api.github.com/redirected"},
-		{name: "userinfo", url: "https://user@api.github.com/redirected"},
-		{name: "custom port", url: "https://api.github.com:8443/redirected"},
-		{name: "different host", url: "https://example.com/redirected"},
+		{name: "HTTP", url: "http://api.github.com/redirected", wantErr: true},
+		{name: "subdomain", url: "https://sub.api.github.com/redirected", wantErr: true},
+		{name: "userinfo", url: "https://user@api.github.com/redirected", wantErr: true},
+		{name: "custom port", url: "https://api.github.com:8443/redirected", wantErr: true},
+		{name: "different host", url: "https://example.com/redirected", wantErr: true},
 	}
 
 	checkRedirect := githubAPICheckRedirect(nil)
@@ -101,10 +102,49 @@ func TestGitHubReleaseClientRedirectAuthorization(t *testing.T) {
 			require.NoError(t, err)
 			req.Header.Set("Authorization", "Bearer update-secret")
 
-			require.NoError(t, checkRedirect(req, nil))
+			err = checkRedirect(req, nil)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 			require.Equal(t, tt.wantAuth, req.Header.Get("Authorization"))
 		})
 	}
+}
+
+func TestGitHubReleaseDownloadRedirectsStayOnTrustedHTTPSHosts(t *testing.T) {
+	checkRedirect := githubReleaseDownloadCheckRedirect(nil)
+	for _, target := range []string{
+		"https://github.com/repo/releases/download/v1/asset.tar.gz",
+		"https://release-assets.githubusercontent.com/asset",
+		"https://objects.githubusercontent.com/asset",
+	} {
+		req, err := http.NewRequest(http.MethodGet, target, nil)
+		require.NoError(t, err)
+		require.NoError(t, checkRedirect(req, nil), target)
+	}
+	for _, target := range []string{
+		"https://example.com/asset",
+		"http://objects.githubusercontent.com/asset",
+		"https://github.com.evil.example/asset",
+		"https://objects.githubusercontent.com:8443/asset",
+		"https://api.github.com/repos/test/repo",
+	} {
+		req, err := http.NewRequest(http.MethodGet, target, nil)
+		require.NoError(t, err)
+		require.Error(t, checkRedirect(req, nil), target)
+	}
+}
+
+func TestGitHubAPICheckRedirectPreservesDefaultHopLimit(t *testing.T) {
+	checkRedirect := githubAPICheckRedirect(nil)
+	request, err := http.NewRequest(http.MethodGet, "https://api.github.com/redirect", nil)
+	require.NoError(t, err)
+
+	via := make([]*http.Request, 10)
+	require.ErrorContains(t, checkRedirect(request, via), "stopped after 10 redirects")
+	require.NoError(t, checkRedirect(request, via[:9]))
 }
 
 func TestGitHubReleaseClientDoesNotAuthorizeDownloads(t *testing.T) {
@@ -245,6 +285,18 @@ func (s *GitHubReleaseServiceSuite) TestFetchChecksumFile_Success() {
 	body, err := s.client.FetchChecksumFile(context.Background(), s.srv.URL)
 	require.NoError(s.T(), err, "FetchChecksumFile")
 	require.Equal(s.T(), "sum", string(body), "checksum body mismatch")
+}
+
+func (s *GitHubReleaseServiceSuite) TestFetchChecksumFile_EnforcesMaxSize() {
+	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(bytes.Repeat([]byte("x"), (1<<20)+1))
+	}))
+
+	s.client = newTestGitHubReleaseClient()
+
+	_, err := s.client.FetchChecksumFile(context.Background(), s.srv.URL)
+	require.ErrorContains(s.T(), err, "checksum file exceeds maximum size")
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchChecksumFile_Non200() {

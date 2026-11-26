@@ -105,6 +105,20 @@ func (_c *AccountCreate) SetCredentials(v map[string]interface{}) *AccountCreate
 	return _c
 }
 
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (_c *AccountCreate) SetCredentialsDigestVersion(v int16) *AccountCreate {
+	_c.mutation.SetCredentialsDigestVersion(v)
+	return _c
+}
+
+// SetNillableCredentialsDigestVersion sets the "credentials_digest_version" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableCredentialsDigestVersion(v *int16) *AccountCreate {
+	if v != nil {
+		_c.SetCredentialsDigestVersion(*v)
+	}
+	return _c
+}
+
 // SetCredentialsDigest sets the "credentials_digest" field.
 func (_c *AccountCreate) SetCredentialsDigest(v string) *AccountCreate {
 	_c.mutation.SetCredentialsDigest(v)
@@ -776,6 +790,10 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
 		_node.Credentials = value
 	}
+	if value, ok := _c.mutation.CredentialsDigestVersion(); ok {
+		_spec.SetField(account.FieldCredentialsDigestVersion, field.TypeInt16, value)
+		_node.CredentialsDigestVersion = &value
+	}
 	if value, ok := _c.mutation.CredentialsDigest(); ok {
 		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)
 		_node.CredentialsDigest = &value
@@ -1103,6 +1121,30 @@ func (u *AccountUpsert) SetCredentials(v map[string]interface{}) *AccountUpsert 
 // UpdateCredentials sets the "credentials" field to the value that was provided on create.
 func (u *AccountUpsert) UpdateCredentials() *AccountUpsert {
 	u.SetExcluded(account.FieldCredentials)
+	return u
+}
+
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (u *AccountUpsert) SetCredentialsDigestVersion(v int16) *AccountUpsert {
+	u.Set(account.FieldCredentialsDigestVersion, v)
+	return u
+}
+
+// UpdateCredentialsDigestVersion sets the "credentials_digest_version" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateCredentialsDigestVersion() *AccountUpsert {
+	u.SetExcluded(account.FieldCredentialsDigestVersion)
+	return u
+}
+
+// AddCredentialsDigestVersion adds v to the "credentials_digest_version" field.
+func (u *AccountUpsert) AddCredentialsDigestVersion(v int16) *AccountUpsert {
+	u.Add(account.FieldCredentialsDigestVersion, v)
+	return u
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (u *AccountUpsert) ClearCredentialsDigestVersion() *AccountUpsert {
+	u.SetNull(account.FieldCredentialsDigestVersion)
 	return u
 }
 
@@ -1710,6 +1752,34 @@ func (u *AccountUpsertOne) SetCredentials(v map[string]interface{}) *AccountUpse
 func (u *AccountUpsertOne) UpdateCredentials() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateCredentials()
+	})
+}
+
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (u *AccountUpsertOne) SetCredentialsDigestVersion(v int16) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsDigestVersion(v)
+	})
+}
+
+// AddCredentialsDigestVersion adds v to the "credentials_digest_version" field.
+func (u *AccountUpsertOne) AddCredentialsDigestVersion(v int16) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddCredentialsDigestVersion(v)
+	})
+}
+
+// UpdateCredentialsDigestVersion sets the "credentials_digest_version" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateCredentialsDigestVersion() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsDigestVersion()
+	})
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (u *AccountUpsertOne) ClearCredentialsDigestVersion() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsDigestVersion()
 	})
 }
 
@@ -2558,6 +2628,34 @@ func (u *AccountUpsertBulk) SetCredentials(v map[string]interface{}) *AccountUps
 func (u *AccountUpsertBulk) UpdateCredentials() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateCredentials()
+	})
+}
+
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (u *AccountUpsertBulk) SetCredentialsDigestVersion(v int16) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetCredentialsDigestVersion(v)
+	})
+}
+
+// AddCredentialsDigestVersion adds v to the "credentials_digest_version" field.
+func (u *AccountUpsertBulk) AddCredentialsDigestVersion(v int16) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.AddCredentialsDigestVersion(v)
+	})
+}
+
+// UpdateCredentialsDigestVersion sets the "credentials_digest_version" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateCredentialsDigestVersion() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateCredentialsDigestVersion()
+	})
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (u *AccountUpsertBulk) ClearCredentialsDigestVersion() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearCredentialsDigestVersion()
 	})
 }
 

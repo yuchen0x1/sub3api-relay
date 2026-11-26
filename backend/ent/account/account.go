@@ -32,6 +32,8 @@ const (
 	FieldType = "type"
 	// FieldCredentials holds the string denoting the credentials field in the database.
 	FieldCredentials = "credentials"
+	// FieldCredentialsDigestVersion holds the string denoting the credentials_digest_version field in the database.
+	FieldCredentialsDigestVersion = "credentials_digest_version"
 	// FieldCredentialsDigest holds the string denoting the credentials_digest field in the database.
 	FieldCredentialsDigest = "credentials_digest"
 	// FieldCredentialsAPIKeyDigest holds the string denoting the credentials_api_key_digest field in the database.
@@ -145,6 +147,7 @@ var Columns = []string{
 	FieldPlatform,
 	FieldType,
 	FieldCredentials,
+	FieldCredentialsDigestVersion,
 	FieldCredentialsDigest,
 	FieldCredentialsAPIKeyDigest,
 	FieldExtra,
@@ -304,6 +307,11 @@ func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByCredentialsDigestVersion orders the results by the credentials_digest_version field.
+func ByCredentialsDigestVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCredentialsDigestVersion, opts...).ToFunc()
 }
 
 // ByCredentialsDigest orders the results by the credentials_digest field.

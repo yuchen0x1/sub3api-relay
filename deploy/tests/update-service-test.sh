@@ -39,9 +39,18 @@ update() {
     sudo env SUB3API_BIN="$work/sub3api" SUB3API_SERVICE="$unit" SUB3API_BACKUP_DIR="$work/backups" \
         SUB3API_RELEASE_API_URL=http://127.0.0.1:18172 \
         SUB3API_RELEASE_DOWNLOAD_URL=http://127.0.0.1:18172 SUB3API_HEALTH_URL="$1" \
+        SUB3API_DATABASE_BACKUP_CONFIRMED=1 \
         bash deploy/update-binary.sh
 }
-if update "http://127.0.0.1:1"; then echo "Failed health check should roll back" >&2; exit 1; fi
+if update "http://127.0.0.1:1"; then echo "Failed health check should fail the update" >&2; exit 1; fi
+if printf '%s\n' "$version" | awk -F. '{ exit !(($1 + 0) > 0 || ($2 + 0) > 5 || (($2 + 0) == 5 && ($3 + 0) >= 7)) }'; then
+    # This setup-only fixture has no initialized database. The real upgrade
+    # must stay stopped across migration 207 until database/config recovery.
+    ! sudo systemctl is-active --quiet "$unit"
+    "$work/sub3api" -version 2>&1 | grep -F "Sub3API $version ("
+    tar -xzf "$work/old/$artifact" -C "$work"
+    sudo systemctl start "$unit"
+fi
 "$work/sub3api" -version 2>&1 | grep -F "Sub3API $prior ("
 curl -fsS --retry 10 --retry-connrefused "$health"
 update "$health"

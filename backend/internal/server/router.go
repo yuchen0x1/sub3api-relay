@@ -63,6 +63,10 @@ func SetupRouter(
 	r.Use(middleware2.SessionBindingContext(cfg))
 	r.Use(middleware2.Logger())
 	r.Use(middleware2.CORS(cfg.CORS))
+	// Explicit browser-cookie sessions require an exact configured Origin and
+	// double-submit CSRF token. Legacy bearer/CLI requests do not send the mode
+	// header and therefore bypass this middleware.
+	r.Use(middleware2.BrowserSessionCSRF(cfg.JWT.Secret, cfg.CORS.AllowedOrigins))
 	r.Use(middleware2.SecurityHeaders(cfg.Security.CSP, func() []string {
 		if p := cachedFrameOrigins.Load(); p != nil {
 			return *p

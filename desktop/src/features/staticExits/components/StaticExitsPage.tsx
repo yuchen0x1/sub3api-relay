@@ -114,13 +114,16 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
       listAccountOptions(controller.signal),
       listProxyOptions(controller.signal),
     ]).then(([exitsSnapshot, capacitySummary, accountOptions, proxyOptions]) => {
+      if (controller.signal.aborted) return
       setSnapshot(exitsSnapshot)
       setSummary(capacitySummary)
       setAccounts(accountOptions)
       setProxies(proxyOptions)
     }).catch((requestError: unknown) => {
-      if (!(requestError instanceof DOMException && requestError.name === "AbortError")) setError(requestError)
-    }).finally(() => setLoading(false))
+      if (!controller.signal.aborted && !(requestError instanceof DOMException && requestError.name === "AbortError")) setError(requestError)
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false)
+    })
     return () => controller.abort()
   }, [enabled, reloadToken])
 
@@ -241,7 +244,7 @@ export function StaticExitsPage({ enabled }: { enabled: boolean }) {
                 <ExitRow
                   exit={exit}
                   key={exitRowKey(exit)}
-                  busy={pendingId === exit.id || creating}
+                  busy={pendingId !== null || creating}
                   confirmDelete={confirmDeleteId === exit.id}
                   onToggle={handleToggle}
                   onRequestDelete={handleRequestDelete}

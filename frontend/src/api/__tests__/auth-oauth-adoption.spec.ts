@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearAccessToken, markBrowserSession, peekPendingRefreshToken, setAccessToken } from '@/api/browserSession'
 
 const post = vi.fn()
 
@@ -13,6 +14,7 @@ describe('oauth adoption auth api', () => {
     post.mockReset()
     post.mockResolvedValue({ data: {} })
     localStorage.clear()
+    clearAccessToken()
     document.cookie = 'oauth_bind_access_token=; Max-Age=0; path=/'
   })
 
@@ -220,5 +222,21 @@ describe('oauth adoption auth api', () => {
     await prepareOAuthBindAccessTokenCookie()
 
     expect(post).toHaveBeenCalledWith('/auth/oauth/bind-token')
+  })
+
+  it('consumes a pending OAuth refresh token even when migration passes it explicitly', async () => {
+    const { establishBrowserSession, persistOAuthTokenContext } = await import('@/api/auth')
+    persistOAuthTokenContext({ refresh_token: 'pending-refresh' })
+    markBrowserSession()
+    setAccessToken('initial-access')
+    post.mockResolvedValue({ data: { access_token: 'rotated-access', expires_in: 3600 } })
+
+    await establishBrowserSession('pending-refresh')
+
+    expect(peekPendingRefreshToken()).toBeNull()
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(post).toHaveBeenCalledTimes(1)
+    await establishBrowserSession()
+    expect(post).toHaveBeenCalledTimes(1)
   })
 })

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	"github.com/yuchen0x1/sub3api-relay/internal/config"
 	"github.com/yuchen0x1/sub3api-relay/internal/service"
@@ -184,12 +185,15 @@ func TestCredentialCipherWrongKeyKeepsCiphertext(t *testing.T) {
 
 // NewAccountCredentialCipher 闸门：密钥未显式配置时禁用加密。
 func TestNewAccountCredentialCipherGate(t *testing.T) {
-	if c := NewAccountCredentialCipher(nil); c.encryptor != nil {
-		t.Fatal("nil config must yield passthrough cipher")
-	}
+	missing := NewAccountCredentialCipher(nil)
+	require.Nil(t, missing.encryptor)
+	require.Error(t, missing.initErr, "missing configuration must block credential writes")
+	_, _, _, err := prepareCredentialsStorage(missing, map[string]any{"api_key": "fixture-key"})
+	require.Error(t, err)
 	cfg := &config.Config{}
 	cfg.Totp.EncryptionKey = testEncryptionKeyHex
 	cfg.Totp.EncryptionKeyConfigured = false
+	cfg.JWT.Secret = "stable-jwt-secret-at-least-32-bytes!!"
 	if c := NewAccountCredentialCipher(cfg); c.encryptor != nil {
 		t.Fatal("unconfigured key must yield passthrough cipher")
 	}
@@ -197,6 +201,73 @@ func TestNewAccountCredentialCipherGate(t *testing.T) {
 	if c := NewAccountCredentialCipher(cfg); c.encryptor == nil {
 		t.Fatal("configured key must enable encryption")
 	}
+}
+
+func TestCredentialDigestKeyUsesStableJWTSecretWithoutTOTPEncryption(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.JWT.Secret = "persisted-jwt-secret-from-security-secrets"
+	first := NewAccountCredentialCipher(cfg)
+	require.Nil(t, first.encryptor, "credential encryption remains opt-in")
+	require.NotEmpty(t, first.hmacKey, "digest protection must not depend on TOTP encryption being enabled")
+
+	credentials := map[string]any{"api_key": "sk-low-entropy"}
+	_, firstDigest, _, err := prepareCredentialsStorage(first, credentials)
+	require.NoError(t, err)
+	_, legacyDigest, _, err := canonicalCredentialsPayload(credentials)
+	require.NoError(t, err)
+	require.NotEqual(t, legacyDigest, *firstDigest)
+
+	restarted := NewAccountCredentialCipher(cfg)
+	_, restartedDigest, _, err := prepareCredentialsStorage(restarted, credentials)
+	require.NoError(t, err)
+	require.Equal(t, *firstDigest, *restartedDigest, "the database-persisted JWT master yields stable digests across restarts")
+
+	rotated := &config.Config{}
+	rotated.JWT.Secret = "different-jwt-secret-after-coordinated-migration"
+	other := NewAccountCredentialCipher(rotated)
+	require.NotEqual(t, first.hmacKey, other.hmacKey, "JWT secret rotation changes the digest key and therefore requires a coordinated migration")
+}
+
+func TestAccountCredentialWritesFailClosedWithoutDigestKey(t *testing.T) {
+	cipher := NewAccountCredentialCipher(&config.Config{})
+
+	require.Error(t, cipher.initErr)
+	_, _, _, err := prepareCredentialsStorage(cipher, map[string]any{"api_key": "low-entropy"})
+	require.Error(t, err)
+}
+
+func TestPublicAccountRepositoriesRejectMissingCredentialCipher(t *testing.T) {
+	repositories := map[string]*accountRepository{
+		"account": NewAccountRepository(nil, nil, nil, nil).(*accountRepository),
+		"admin":   NewAdminAccountRepository(nil, nil, nil, nil).(*accountRepository),
+	}
+	for name, repo := range repositories {
+		t.Run(name, func(t *testing.T) {
+			credentials := map[string]any{"api_key": "fixture-key"}
+			require.NotNil(t, repo.credCipher)
+			require.Error(t, repo.credCipher.initErr)
+			require.Error(t, repo.Create(context.Background(), &service.Account{Credentials: credentials}))
+			require.Error(t, repo.UpdateCredentials(context.Background(), 1, credentials))
+			count, err := repo.BulkUpdate(context.Background(), []int64{1}, service.AccountBulkUpdate{Credentials: credentials})
+			require.Error(t, err)
+			require.Zero(t, count)
+		})
+	}
+}
+
+func TestCredentialDigestKeyUsesExternalEncryptionKeyWhenEnabled(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.JWT.Secret = "database-persisted-secret-not-independent-of-db-leak"
+	cfg.Totp.EncryptionKeyConfigured = true
+	cfg.Totp.EncryptionKey = testEncryptionKeyHex
+	first := NewAccountCredentialCipher(cfg)
+	require.NoError(t, first.initErr)
+	require.NotEqual(t, deriveCredentialDigestKey(cfg.JWT.Secret), first.hmacKey)
+
+	cfg.JWT.Secret = "a-different-database-persisted-secret"
+	require.Equal(t, first.hmacKey, NewAccountCredentialCipher(cfg).hmacKey)
+	cfg.Totp.EncryptionKey = strings.Repeat("ab", 32)
+	require.NotEqual(t, first.hmacKey, NewAccountCredentialCipher(cfg).hmacKey)
 }
 
 // 摘要：确定性、与键序无关、api_key 摘要按存在性返回。
@@ -270,6 +341,181 @@ func TestDigestStableUnderEncryption(t *testing.T) {
 	}
 	if plainStoredDigest == nil || *plainStoredDigest != plainDigest {
 		t.Fatal("passthrough mode must still persist the plaintext digest")
+	}
+}
+
+func TestCredentialDigestCandidatesAreKeyedVersionedAndLegacyCompatible(t *testing.T) {
+	credentials := map[string]any{"api_key": "sk-low-entropy", "access_token": "token"}
+	key := []byte("stable-encryption-key-for-tests-32b")
+	payload, primary, legacy, apiPrimary, apiLegacy, err := credentialDigestCandidates(credentials, key)
+	require.NoError(t, err)
+	require.Len(t, primary, 64)
+	require.NotEqual(t, legacy, primary)
+	require.NotNil(t, apiPrimary)
+	require.NotNil(t, apiLegacy)
+	require.NotEqual(t, *apiLegacy, *apiPrimary)
+	require.Equal(t, primary, credentialHMAC(key, credentialDigestDomain, payload))
+	require.NotEqual(t, primary, credentialHMAC(key, apiKeyDigestDomain, payload), "document and API-key digests must be domain-separated")
+
+	_, repeated, _, repeatedAPIKey, _, err := credentialDigestCandidates(credentials, key)
+	require.NoError(t, err)
+	require.Equal(t, primary, repeated)
+	require.Equal(t, apiPrimary, repeatedAPIKey)
+
+	_, noKeyDigest, _, _, _, err := credentialDigestCandidates(credentials, nil)
+	require.NoError(t, err)
+	require.Equal(t, legacy, noKeyDigest, "legacy writes without a configured stable key must remain compatible")
+	require.Equal(t, credentialDigestVersionHMAC, credentialDigestVersionForKey(key))
+	require.Equal(t, credentialDigestVersionLegacy, credentialDigestVersionForKey(nil))
+}
+
+func TestCredentialDigestClausesFailClosedForUnknownVersions(t *testing.T) {
+	equal := credentialsEqualClause("a.credentials", "a.credentials_digest", "a.credentials_digest_version", "$1", "$2", "$3")
+	require.Contains(t, equal, "a.credentials_digest_version = 2 THEN a.credentials_digest = $2")
+	require.Contains(t, equal, "a.credentials_digest_version = 1 OR a.credentials_digest_version IS NULL")
+	require.Contains(t, equal, "ELSE FALSE END")
+
+	changed := credentialsChangedClause("a.credentials", "a.credentials_digest", "a.credentials_digest_version", "$1", "$2", "$3")
+	require.Contains(t, changed, "ELSE TRUE END")
+	apiKeyEqual := credentialsAPIKeyEqualClause("a.credentials", "a.credentials_api_key_digest", "a.credentials_digest_version", "$1", "$2", "$3")
+	require.Contains(t, apiKeyEqual, "a.credentials_digest_version = 2 THEN a.credentials_api_key_digest IS NOT DISTINCT FROM $2")
+	require.Contains(t, apiKeyEqual, "ELSE FALSE END")
+}
+
+func TestBackfillAccountCredentialDigestsUsesCASAndSkipsUndecryptableRows(t *testing.T) {
+	raw := []byte(`{"api_key":"sk-legacy"}`)
+	plain := map[string]any{"api_key": "sk-legacy"}
+	_, hmacDigest, legacyDigest, hmacAPIKeyDigest, legacyAPIKeyDigest, err := credentialDigestCandidates(plain, []byte("stable-test-hmac-key"))
+	require.NoError(t, err)
+
+	t.Run("legacy row is upgraded only when the observed credentials and digests match", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectQuery(`(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*WHERE id > \$1.*ORDER BY id.*LIMIT \$3`).
+			WithArgs(int64(0), credentialDigestVersionHMAC, 10).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}).
+				AddRow(int64(1), raw, nil, legacyDigest, *legacyAPIKeyDigest))
+		mock.ExpectExec(`(?s)UPDATE accounts\s+SET credentials_digest = \$1,\s+credentials_api_key_digest = \$2,\s+credentials_digest_version = \$3\s+WHERE id = \$4\s+AND credentials = \$5::jsonb\s+AND credentials_digest_version IS NOT DISTINCT FROM \$6\s+AND credentials_digest IS NOT DISTINCT FROM \$7\s+AND credentials_api_key_digest IS NOT DISTINCT FROM \$8`).
+			WithArgs(hmacDigest, *hmacAPIKeyDigest, credentialDigestVersionHMAC, int64(1), string(raw), nil, legacyDigest, *legacyAPIKeyDigest).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(`(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*WHERE id > \$1.*ORDER BY id.*LIMIT \$3`).
+			WithArgs(int64(1), credentialDigestVersionHMAC, 10).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}))
+
+		updated, skipped, err := BackfillAccountCredentialDigests(context.Background(), db, &credentialCipher{hmacKey: []byte("stable-test-hmac-key")}, 10)
+		require.NoError(t, err)
+		require.EqualValues(t, 1, updated)
+		require.Zero(t, skipped)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("undecryptable rows are left unchanged and reported as skipped", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		badCiphertext := []byte(`{"api_key":"enc:v1:unreadable"}`)
+		mock.ExpectQuery(`(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*WHERE id > \$1.*ORDER BY id.*LIMIT \$3`).
+			WithArgs(int64(0), credentialDigestVersionHMAC, 10).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}).
+				AddRow(int64(9), badCiphertext, nil, "old-digest", nil))
+		mock.ExpectQuery(`(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*WHERE id > \$1.*ORDER BY id.*LIMIT \$3`).
+			WithArgs(int64(9), credentialDigestVersionHMAC, 10).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}))
+
+		updated, skipped, err := BackfillAccountCredentialDigests(context.Background(), db, &credentialCipher{hmacKey: []byte("stable-test-hmac-key")}, 10)
+		require.NoError(t, err)
+		require.Zero(t, updated)
+		require.EqualValues(t, 1, skipped)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestCredentialCipherStrictRestoreRejectsUnreadableEnvelopes(t *testing.T) {
+	cipher := testCipher(t)
+	stored := mustPrepareCredentials(t, cipher, map[string]any{"api_key": "secret"})
+	restored, err := cipher.restoreForReadStrict(stored)
+	require.NoError(t, err)
+	require.Equal(t, "secret", restored["api_key"])
+
+	_, err = (&credentialCipher{}).restoreForReadStrict(stored)
+	require.Error(t, err, "ciphertext must not be mistaken for a plaintext credential when the key is unavailable")
+
+	wrongKey := &credentialCipher{encryptor: failingCredentialEncryptor{err: errors.New("bad key")}}
+	_, err = wrongKey.restoreForReadStrict(stored)
+	require.Error(t, err)
+}
+
+func TestBackfillAccountCredentialDigestsDecryptsBeforeHashingAndPreservesConcurrentWrites(t *testing.T) {
+	for _, affected := range []int64{0, 1} {
+		t.Run(map[int64]string{0: "concurrent update wins", 1: "unchanged row migrates"}[affected], func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = db.Close() })
+
+			cipher := testCipher(t)
+			cipher.hmacKey = []byte("stable-test-hmac-key")
+			plain := map[string]any{"api_key": "legacy-key", "refresh_token": "legacy-refresh"}
+			stored := mustPrepareCredentials(t, cipher, plain)
+			raw, err := json.Marshal(stored)
+			require.NoError(t, err)
+			_, digest, legacyDigest, apiDigest, legacyAPIDigest, err := credentialDigestCandidates(plain, cipher.hmacKey)
+			require.NoError(t, err)
+
+			query := `(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*WHERE id > \$1.*ORDER BY id.*LIMIT \$3`
+			mock.ExpectQuery(query).WithArgs(int64(0), credentialDigestVersionHMAC, 10).
+				WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}).
+					AddRow(int64(7), raw, credentialDigestVersionLegacy, legacyDigest, *legacyAPIDigest))
+			mock.ExpectExec(`(?s)UPDATE accounts.*AND credentials = \$5::jsonb.*AND credentials_digest_version IS NOT DISTINCT FROM \$6.*AND credentials_digest IS NOT DISTINCT FROM \$7.*AND credentials_api_key_digest IS NOT DISTINCT FROM \$8`).
+				WithArgs(digest, *apiDigest, credentialDigestVersionHMAC, int64(7), string(raw), credentialDigestVersionLegacy, legacyDigest, *legacyAPIDigest).
+				WillReturnResult(sqlmock.NewResult(0, affected))
+			mock.ExpectQuery(query).WithArgs(int64(7), credentialDigestVersionHMAC, 10).
+				WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}))
+
+			updated, skipped, err := BackfillAccountCredentialDigests(context.Background(), db, cipher, 10)
+			require.NoError(t, err)
+			require.Equal(t, affected, updated)
+			require.Zero(t, skipped)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestBackfillAccountCredentialDigestsRepairsChangedKeysWithoutRewritingCurrentRows(t *testing.T) {
+	for _, current := range []bool{false, true} {
+		t.Run(map[bool]string{false: "changed key", true: "current key"}[current], func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = db.Close() })
+			cipher := &credentialCipher{hmacKey: []byte("current-hmac-key")}
+			credentials := map[string]any{"refresh_token": "refresh"}
+			_, digest, _, _, _, err := credentialDigestCandidates(credentials, cipher.hmacKey)
+			require.NoError(t, err)
+			storedDigest := "previous-key-digest"
+			if current {
+				storedDigest = digest
+			}
+			query := `(?s)SELECT id, credentials, credentials_digest_version, credentials_digest, credentials_api_key_digest.*credentials_digest_version IS NULL OR credentials_digest_version IN \(1, \$2\).*ORDER BY id.*LIMIT \$3`
+			mock.ExpectQuery(query).WithArgs(int64(0), credentialDigestVersionHMAC, 10).
+				WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}).
+					AddRow(int64(1), `{"refresh_token":"refresh"}`, credentialDigestVersionHMAC, storedDigest, nil))
+			if !current {
+				mock.ExpectExec(`(?s)UPDATE accounts.*credentials_digest_version IS NOT DISTINCT FROM`).
+					WithArgs(digest, nil, credentialDigestVersionHMAC, int64(1), `{"refresh_token":"refresh"}`, credentialDigestVersionHMAC, storedDigest, nil).
+					WillReturnResult(sqlmock.NewResult(0, 1))
+			}
+			mock.ExpectQuery(query).WithArgs(int64(1), credentialDigestVersionHMAC, 10).
+				WillReturnRows(sqlmock.NewRows([]string{"id", "credentials", "credentials_digest_version", "credentials_digest", "credentials_api_key_digest"}))
+			updated, skipped, err := BackfillAccountCredentialDigests(context.Background(), db, cipher, 10)
+			require.NoError(t, err)
+			require.Zero(t, skipped)
+			if current {
+				require.Zero(t, updated)
+			} else {
+				require.EqualValues(t, 1, updated)
+			}
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
 	}
 }
 

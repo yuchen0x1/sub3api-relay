@@ -6,6 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { authAPI, isTotp2FARequired, passkeyAPI, type LoginResponse } from '@/api'
+import { clearAccessToken, getAccessToken, getSessionRefreshToken, isBrowserSession, markBrowserSession, peekPendingRefreshToken, setAccessToken, setSessionRefreshToken } from '@/api/browserSession'
 import type {
   User,
   LoginRequest,
@@ -109,12 +110,28 @@ export const useAuthStore = defineStore('auth', () => {
    * Call this on app startup to restore session
    * Also starts auto-refresh and immediately fetches latest user data
    */
-  function checkAuth(): void {
-    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
+  async function checkAuth(): Promise<void> {
+    const savedToken = getAccessToken()
     const savedUser = localStorage.getItem(AUTH_USER_KEY)
-    const savedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+    const savedRefreshToken = getSessionRefreshToken()
     const savedExpiresAt = localStorage.getItem(TOKEN_EXPIRES_AT_KEY)
     pendingAuthSession.value = getPersistedPendingAuthSession()
+
+    if (!savedToken && isBrowserSession()) {
+      try {
+        if (savedUser) {
+          user.value = JSON.parse(savedUser)
+        }
+        const tokens = await authAPI.refreshToken()
+        token.value = tokens.access_token
+        await refreshUser()
+        scheduleTokenRefresh(tokens.expires_in)
+        startAutoRefresh()
+      } catch {
+        clearAuth({ preservePendingAuthSession: true })
+      }
+      return
+    }
 
     if (savedToken && savedUser) {
       try {
@@ -133,7 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         // Start proactive token refresh if we have refresh token and expiry info
         // Note: use !== null to handle case when tokenExpiresAt.value is 0 (expired)
-        if (savedRefreshToken && tokenExpiresAt.value !== null) {
+        if ((savedRefreshToken || isBrowserSession()) && tokenExpiresAt.value !== null) {
           scheduleTokenRefreshAt(tokenExpiresAt.value)
         }
       } catch (error) {
@@ -211,7 +228,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Perform the actual token refresh
    */
   async function performTokenRefresh(): Promise<void> {
-    if (!refreshTokenValue.value) {
+    if (!refreshTokenValue.value && !isBrowserSession()) {
       return
     }
 
@@ -286,7 +303,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loginWithPasskey(proof?: ActionCaptchaRequestProof): Promise<User> {
     try {
+      markBrowserSession()
       const response = await passkeyAPI.login(proof)
+      setAccessToken(response.access_token)
+      await authAPI.establishBrowserSession(response.refresh_token)
+      response.access_token = getAccessToken() || response.access_token
       setAuthFromResponse(response)
       return user.value!
     } catch (error) {
@@ -302,11 +323,12 @@ export const useAuthStore = defineStore('auth', () => {
   function setAuthFromResponse(response: AuthResponse): void {
     // Store token and user
     token.value = response.access_token
+    setAccessToken(response.access_token)
 
     // Store refresh token if present
-    if (response.refresh_token) {
+    if (response.refresh_token && !isBrowserSession()) {
       refreshTokenValue.value = response.refresh_token
-      localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token)
+      setSessionRefreshToken(response.refresh_token)
     }
 
     // Extract run_mode if present
@@ -317,7 +339,6 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userData
 
     // Persist to localStorage
-    localStorage.setItem(AUTH_TOKEN_KEY, response.access_token)
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData))
     clearPendingAuthSession()
 
@@ -326,7 +347,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Start proactive token refresh if we have refresh token and expiry info
     // scheduleTokenRefresh will also store the expiry timestamp
-    if (response.refresh_token && response.expires_in) {
+    if ((response.refresh_token || isBrowserSession()) && response.expires_in) {
       scheduleTokenRefresh(response.expires_in)
     }
   }
@@ -354,22 +375,28 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * 直接设置 token（用于 OAuth/SSO 回调），并加载当前用户信息。
-   * 会自动读取 localStorage 中已设置的 refresh_token 和 token_expires_in
+   * 从内存或旧会话迁移刷新凭据；新令牌不会写入 localStorage。
    * @param newToken - 后端签发的 JWT access token
    */
-  async function setToken(newToken: string): Promise<User> {
+  async function setToken(newToken: string, refreshToken?: string): Promise<User> {
     // Clear any previous state first (avoid mixing sessions)
-    // Note: Don't clear localStorage here as OAuth callback may have set refresh_token
+    // Capture the OAuth/legacy refresh token before removing old persisted credentials.
     stopAutoRefresh()
     stopTokenRefresh()
     token.value = null
     user.value = null
 
     token.value = newToken
-    localStorage.setItem(AUTH_TOKEN_KEY, newToken)
+    const migrationRefreshToken =
+      refreshToken || peekPendingRefreshToken() || getSessionRefreshToken() || undefined
+    markBrowserSession()
+    setAccessToken(newToken)
+    if (!isBrowserSession() && migrationRefreshToken) {
+      setSessionRefreshToken(migrationRefreshToken)
+    }
 
-    // Read refresh token and expires_at from localStorage if set by OAuth callback
-    const savedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+    // Read the migrated in-memory refresh token and persisted expiry metadata.
+    const savedRefreshToken = getSessionRefreshToken()
     const savedExpiresAt = localStorage.getItem(TOKEN_EXPIRES_AT_KEY)
 
     if (savedRefreshToken) {
@@ -380,12 +407,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
+      await authAPI.establishBrowserSession(migrationRefreshToken)
+      token.value = getAccessToken() || newToken
       const userData = await refreshUser()
       startAutoRefresh()
 
       // Start proactive token refresh if we have refresh token and expiry info
       // Note: use !== null to handle case when tokenExpiresAt.value is 0 (expired)
-      if (savedRefreshToken && tokenExpiresAt.value !== null) {
+      if ((savedRefreshToken || isBrowserSession()) && tokenExpiresAt.value !== null) {
         scheduleTokenRefreshAt(tokenExpiresAt.value)
       }
 
@@ -475,6 +504,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshTokenValue.value = null
     tokenExpiresAt.value = null
     user.value = null
+    clearAccessToken()
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)

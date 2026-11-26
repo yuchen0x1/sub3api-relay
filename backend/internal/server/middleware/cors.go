@@ -52,7 +52,7 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 	}
 	allowHeaders := []string{
 		"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization",
-		"accept", "origin", "Cache-Control", "X-Requested-With", "X-API-Key", "X-Admin-UI-Request", "X-User-UI-Request", "X-Setup-Token",
+		"accept", "origin", "Cache-Control", "X-Requested-With", "X-API-Key", "X-Goog-Api-Key", "X-Admin-UI-Request", "X-User-UI-Request", "X-Setup-Token", "X-Sub3API-Browser-Session",
 	}
 	// OpenAI Node SDK 会发送 x-stainless-* 请求头，需在 CORS 中显式放行。
 	openAIProperties := []string{
@@ -65,6 +65,11 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 	allowHeadersValue := strings.Join(allowHeaders, ", ")
 
 	return func(c *gin.Context) {
+		if !allowAll {
+			// Rejected and same-origin responses vary too: shared caches must not
+			// reuse them for a later request from an allowed origin.
+			c.Writer.Header().Add("Vary", "Origin")
+		}
 		origin := strings.TrimSpace(c.GetHeader("Origin"))
 		originAllowed := allowAll
 		if origin != "" && !allowAll {
@@ -76,7 +81,6 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			} else if origin != "" {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-				c.Writer.Header().Add("Vary", "Origin")
 			}
 			if allowCredentials {
 				c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

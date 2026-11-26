@@ -84,6 +84,9 @@ func TestOpenAIResponseProtocolsUseSafeMediaType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, tt := range []struct{ upstream, expected string }{
 				{"text/html; charset=utf-8", "application/json"},
+				{"image/svg+xml", "application/json"},
+				{"application/xhtml+xml", "application/json"},
+				{"invalid content type", "application/json"},
 				{"application/vnd.api+json; charset=utf-8", "application/vnd.api+json; charset=utf-8"},
 			} {
 				recorder := httptest.NewRecorder()
@@ -94,7 +97,30 @@ func TestOpenAIResponseProtocolsUseSafeMediaType(t *testing.T) {
 				require.Equal(t, tt.expected, recorder.Header().Get("Content-Type"))
 				require.Equal(t, "nosniff", recorder.Header().Get("X-Content-Type-Options"))
 				require.Equal(t, body, recorder.Body.String())
+
+				recorder = httptest.NewRecorder()
+				c, _ = gin.CreateTestContext(recorder)
+				c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses/compact", nil)
+				activeBody := `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(document.cookie)"></svg>`
+				resp = &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": {tt.upstream}}, Body: io.NopCloser(strings.NewReader(activeBody))}
+				require.NoError(t, tc.write(&OpenAIGatewayService{cfg: &config.Config{}}, resp, c))
+				require.Equal(t, tt.expected, recorder.Result().Header.Get("Content-Type"))
+				require.Equal(t, "nosniff", recorder.Result().Header.Get("X-Content-Type-Options"))
+				require.Equal(t, activeBody, recorder.Body.String(), "API payloads must not be HTML-escaped or rewritten")
 			}
 		})
 	}
+}
+
+func TestGatewayDiagnosticHeadersRedactAuthentication(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "https://api.example.test/v1/messages", nil)
+	request.Header.Set("Authorization", "Bearer secret-bearer-value")
+	request.Header.Set("X-Api-Key", "secret-api-key-value")
+	request.Header.Set("User-Agent", "regression-client")
+	line := buildClaudeMimicDebugLine(request, nil, &Account{ID: 42}, "oauth", false)
+	require.NotContains(t, line, "secret-bearer-value")
+	require.NotContains(t, line, "secret-api-key-value")
+	require.Contains(t, line, `authorization="Bearer [redacted]"`)
+	require.Contains(t, line, `x-api-key="[redacted]"`)
+	require.Contains(t, line, `user-agent="regression-client"`)
 }

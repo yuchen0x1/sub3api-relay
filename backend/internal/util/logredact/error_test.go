@@ -10,6 +10,24 @@ import (
 	"testing"
 )
 
+type sensitiveFormattingError struct{}
+
+func (sensitiveFormattingError) Error() string { return "secret-error-payload" }
+
+func (sensitiveFormattingError) Format(state fmt.State, _ rune) {
+	_, _ = fmt.Fprint(state, "secret-formatter-payload")
+}
+
+func TestErrorSummary_TypeDiagnosticDoesNotInvokeCustomFormatter(t *testing.T) {
+	out := ErrorSummary(sensitiveFormattingError{})
+	if strings.Contains(out, "secret-") {
+		t.Fatalf("summary leaked a formatter or error payload: %s", out)
+	}
+	if !strings.Contains(out, "type=logredact.sensitiveFormattingError kind=upstream_error") {
+		t.Fatalf("summary lost its type diagnostic: %s", out)
+	}
+}
+
 func TestErrorSummary_DoesNotLogCredentialsOrUpstreamBody(t *testing.T) {
 	cases := []struct {
 		name string

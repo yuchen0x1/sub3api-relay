@@ -17,6 +17,7 @@ set -euo pipefail
 #   SUB3API_HEALTH_URL   Health check URL        (default: http://127.0.0.1:8080/health)
 #   SUB3API_REPO         GitHub repository       (default: yuchen0x1/sub3api-relay)
 #   SUB3API_REQUIRE_ATTESTATION  Require GitHub build provenance via gh (v0.5.0+)
+#   SUB3API_DATABASE_BACKUP_CONFIRMED  Set to 1 after a pre-v0.5.7 database/config backup
 #   SUB3API_FORCE        Set to 1 to reinstall the currently running version
 # =============================================================================
 
@@ -31,6 +32,11 @@ SUB3API_BACKUP_DIR="${SUB3API_BACKUP_DIR:-$(dirname "$SUB3API_BIN")/backups}"
 print_info() { printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 print_ok()   { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
 print_err()  { printf '\033[1;31m[ERROR]\033[0m %s\n' "$*" >&2; }
+
+uses_legacy_credential_digests() {
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s\n' "$1" | awk -F. '{ exit !(($1 + 0) == 0 && (($2 + 0) < 5 || (($2 + 0) == 5 && ($3 + 0) < 7))) }'
+}
 
 if [ "$(id -u)" -ne 0 ] && [ "${SUB3API_ALLOW_NON_ROOT:-}" != "1" ]; then
     print_err "Run as root (or set SUB3API_ALLOW_NON_ROOT=1 for custom layouts)."
@@ -157,6 +163,19 @@ restore_binary() {
     fi
 }
 
+recover_after_start_failure() {
+    local reason="$1"
+    systemctl stop "$SUB3API_SERVICE" || true
+    if [[ "$ROLLBACK_REQUIRES_DATABASE_RESTORE" == 1 ]]; then
+        print_err "$reason; automatic binary rollback is disabled across the v0.5.7 database migration."
+        print_err "Service remains stopped. Restore the pre-upgrade database and configuration together with binary backup: $BACKUP_FILE"
+        return
+    fi
+    print_err "$reason; restoring previous binary"
+    restore_binary "$BACKUP_FILE"
+    systemctl start "$SUB3API_SERVICE" || true
+}
+
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -195,6 +214,20 @@ exec 9>"${SUB3API_BIN}.update.lock"
 flock -n 9 || { print_err "Another update is running"; exit 1; }
 CURRENT_VERSION="$(get_current_version)"
 if [[ "$CURRENT_VERSION" == "$VERSION" && "${SUB3API_FORCE:-}" != 1 ]]; then exit 0; fi
+ROLLBACK_REQUIRES_DATABASE_RESTORE=0
+if uses_legacy_credential_digests "$VERSION"; then
+    if ! uses_legacy_credential_digests "$CURRENT_VERSION"; then
+        print_err "Downgrading before v0.5.7 requires restoring the pre-upgrade database and configuration manually."
+        exit 1
+    fi
+elif ! [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || uses_legacy_credential_digests "$CURRENT_VERSION"; then
+    ROLLBACK_REQUIRES_DATABASE_RESTORE=1
+    if [[ "${SUB3API_DATABASE_BACKUP_CONFIRMED:-0}" != 1 ]]; then
+        print_err "Upgrading across v0.5.7 changes credential digests. Stop other instances and back up the database and configuration first."
+        print_err "Then rerun with SUB3API_DATABASE_BACKUP_CONFIRMED=1. Failed startup will leave the service stopped for a complete restore."
+        exit 1
+    fi
+fi
 download_release "$VERSION" "$GOARCH"
 mkdir -p "$SUB3API_BACKUP_DIR"
 BACKUP_FILE="${SUB3API_BACKUP_DIR}/sub3api-${CURRENT_VERSION}-to-${VERSION}-$(date +%Y%m%d-%H%M%S)"
@@ -218,17 +251,12 @@ fi
 
 print_info "Starting ${SUB3API_SERVICE} ..."
 if ! systemctl start "$SUB3API_SERVICE"; then
-    print_err "Service failed to start; restoring previous binary"
-    restore_binary "$BACKUP_FILE"
-    systemctl start "$SUB3API_SERVICE" || true
+    recover_after_start_failure "Service failed to start"
     exit 1
 fi
 
 if ! wait_health; then
-    print_err "Health check failed at ${SUB3API_HEALTH_URL}; restoring previous binary"
-    systemctl stop "$SUB3API_SERVICE" || true
-    restore_binary "$BACKUP_FILE"
-    systemctl start "$SUB3API_SERVICE" || true
+    recover_after_start_failure "Health check failed at ${SUB3API_HEALTH_URL}"
     exit 1
 fi
 

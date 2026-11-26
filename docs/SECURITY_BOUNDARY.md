@@ -59,12 +59,17 @@ Git 仓库、前端 JS、Docker 镜像、发布二进制、日志、测试文件
   `cookie`、`private_key` 等，见 `SensitiveCredentialKeys`）以
   `enc:v1:` 信封做 **AES-256-GCM** 加密；JSON 键结构保留，
   因此 `credentials ? 'refresh_token'`、`base_url` 匹配等 SQL 查询不受影响。
-- 加密会破坏 JSONB 相等比较（CAS/去重/组身份判定），配套引入两个确定性
-  摘要列（迁移 `206_account_credentials_digest.sql`）：
-  - `credentials_digest`：规范化明文文档的 SHA-256；
-  - `credentials_api_key_digest`：`api_key` 值的 SHA-256。
-  守卫逻辑：摘要列为 NULL（加密启用前的明文旧行）→ 自动退回明文直比；
-  非空 → 摘要比较。旧行在下次全量凭据写入时自愈为加密存储。
+- 加密会破坏 JSONB 相等比较（CAS/去重/组身份判定），因此使用文档摘要
+  `credentials_digest` 和 API Key 摘要 `credentials_api_key_digest`。
+  v0.5.7 的迁移 `207_account_credentials_digest_hmac.sql` 增加
+  `credentials_digest_version`：新写入使用版本 2、带域分离的 HMAC-SHA-256；
+  版本 1/NULL 的旧 SHA-256 摘要与无摘要明文行仍可读取和 CAS 比较。
+  启动后按 ID 分批严格解密回填，CAS 确认原凭据及摘要未变才写入；
+  无法解密的行保留原值并告警，不用密文生成新摘要。未知版本比较失败关闭。
+- HMAC 密钥优先由显式配置的 `TOTP_ENCRYPTION_KEY` 独立域派生；
+  未启用字段加密时由启动阶段持久化的 JWT secret 派生。后者与凭据明文
+  同在数据库中，不能声称可以抵御完整数据库泄漏。需要静态数据保护的部署
+  必须配置并保管数据库之外的 `TOTP_ENCRYPTION_KEY`。
 - **启用条件**：显式设置 `TOTP_ENCRYPTION_KEY`（64 位 hex，32 字节）。
   未配置时凭据保持明文（启动时告警）——随机临时密钥跨进程不可解密，
   严禁用于持久化数据。显式配置的密钥无效、敏感值序列化失败或加密失败时，
@@ -76,6 +81,10 @@ Git 仓库、前端 JS、Docker 镜像、发布二进制、日志、测试文件
 > 备份提示：数据库备份包含密文。跨实例恢复备份时必须使用与加密时相同的
 > `TOTP_ENCRYPTION_KEY`，否则凭据需逐账号重新录入。磁盘级加密（LUKS/云盘
 > 加密）仍建议叠加使用。
+
+> v0.5.7 升级须先备份数据库及原密钥，并停止所有旧实例后统一升级。
+> 旧版不识别版本 2 摘要，不支持新旧服务端混跑；降级到 v0.5.6 或更早版本
+> 需要恢复升级前的数据库及配置，不能仅替换旧二进制。回填不会轮换加密密钥。
 
 ## 4. 认证与授权链路
 
@@ -99,6 +108,11 @@ Git 仓库、前端 JS、Docker 镜像、发布二进制、日志、测试文件
   `token_version` 立即吊销存量 token。
 - Refresh Token：仅存 SHA-256 哈希，一次性轮换，重放旧 token 撤销整个
   token family。
+- v0.5.7 同源 Web 会话使用 `HttpOnly`、`SameSite=Lax` 的刷新 Cookie，
+  HTTPS 下同时设置 `Secure`；短期 Access Token 仅驻留页面内存。
+  写入请求校验精确 Origin，刷新和登出还校验与会话绑定的签名双提交 CSRF。
+  OAuth/Passkey 返回的兼容 Token 对通过认证交换迁移到 Cookie。
+  旧版 Bearer/CLI/实验桌面客户端不发送会话模式头，继续使用原协议。
 - 管理台导出明文凭据的唯一点 `GET /admin/accounts/data` 受 2FA step-up
   与审计日志双重约束。
 - 登录/刷新/2FA 端点均有 fail-close 限流；登录有滥用计数封禁。
@@ -147,19 +161,21 @@ Fork 本仓库 → 自建实例（Community Edition）
 2. **集中式 License 服务**：本项目为自托管形态，无"官方授权服务器"。
    若要商业化 SaaS 分发，需独立部署 License 签发服务（非对称签名私钥仅存
    服务端，客户端/自建版只持公钥）——本仓库不包含、也不伪装包含它。
-3. **前端 token 存储**：管理台 token 存于 `localStorage`（XSS 可窃）。
-   已有 CSP 与会话绑定缓解；迁移到 HttpOnly Cookie 在路线图中。
+3. **前端会话兼容边界**：v0.5.7 同源 Web 使用 Cookie/内存模式；独立跨源
+   Web 的新令牌仅放页面内存，重载需重新登录。旧 localStorage 会话只读迁移，
+   不再续写；未升级的旧版客户端仍有原存储边界。跨源部署应使用同源反向
+   代理以启用持久 Cookie 会话。HttpOnly 降低令牌直接被脚本读取的风险，
+   不能阻止已注入脚本借用户权限发请求；仍需 CSP、输出编码及最小权限。
 4. **第三方登录凭据**（`auth_identities` 表）尚未纳入字段级加密，与 §3
    同机制迁移即可。
-5. **凭据相等比较摘要**：§3 的 `credentials_digest` 与
-   `credentials_api_key_digest` 是无盐 SHA-256，不是口令验证器。对供应商签发的
-   高熵令牌适合做指纹；若管理员配置低熵口令或短 API Key，泄露的数据库摘要
-   仍可被离线字典猜测。改为带密钥且带版本的 HMAC，需要同时迁移旧行、CAS、
-   部分更新和 API Key 组去重；不能直接替换算法导致旧凭据身份比较失效。
+5. **遗留摘要迁移**：新写入为 HMAC；因密钥缺失或历史密文损坏而无法回填的
+   行仍保留旧摘要，需运维恢复原密钥或重新录入凭据后完成迁移。HMAC 不是
+   口令哈希算法，不应代替用户密码的专用校验器。
 
 2026-11-19 的 CodeQL 全量复核、逐条证据及修复验证见
-[告警处置报告](security-codeql-triage-2026-11-19.md)。其中待迁移项继续保留开放，
-不以误报或修改扫描规则消除。
+[告警处置报告](security-codeql-triage-2026-11-19.md)。会话与摘要迁移在 v0.5.7
+实现；Issue 和告警只有在合并后的兼容验证及扫描确认后才关闭，不修改扫描规则
+来隐藏未解决问题。
 
 ## 9. 上线安全清单（运维）
 

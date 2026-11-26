@@ -5,7 +5,7 @@
 # This script prepares deployment files for Sub3API:
 #   - Downloads a version-pinned deployment bundle from GitHub Releases
 #   - Verifies the deployment bundle with SHA-256 before writing files
-#   - The CI workflow only builds assets; a maintainer must attach the bundle to GitHub
+#   - Tag-triggered CI publishes the verified bundle to GitHub Releases
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD,
 #     SETUP_REMOTE_TOKEN)
 #   - Defers administrator creation to the first-run owner setup page
@@ -64,15 +64,33 @@ set_env_value() {
     local value="$2"
     local encoded_value
     local tmp_file
+    local found=0
+    local assignment="^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*="
     encoded_value=$(dotenv_quote "$value")
     tmp_file=$(mktemp .env.XXXXXX)
     while IFS= read -r line || [ -n "$line" ]; do
-        case "$line" in
-            "${key}="*) printf '%s=%s\n' "$key" "$encoded_value" >> "$tmp_file" ;;
-            *) printf '%s\n' "$line" >> "$tmp_file" ;;
-        esac
+        if [[ "$line" =~ $assignment ]]; then
+            printf '%s=%s\n' "$key" "$encoded_value" >> "$tmp_file"
+            found=1
+        else
+            printf '%s\n' "$line" >> "$tmp_file"
+        fi
     done < .env
+    if [ "$found" -eq 0 ]; then
+        printf '%s=%s\n' "$key" "$encoded_value" >> "$tmp_file"
+    fi
     mv "$tmp_file" .env
+}
+
+env_value_is_set() {
+    awk -v key="$1" '
+        $0 ~ "^[[:space:]]*(export[[:space:]]+)?" key "[[:space:]]*=" {
+            value = $0
+            sub(/^[^=]*=[[:space:]]*/, "", value)
+            sub(/[[:space:]]+$/, "", value)
+        }
+        END { exit !(value != "" && value != "\"\"" && value != "\047\047" && value !~ /^#/) }
+    ' .env
 }
 
 # Check if command exists
@@ -134,6 +152,23 @@ verify_deployment_asset() {
     fi
 }
 
+verify_release_archive() {
+    local directory="$1"
+    local filename="$2"
+    local expected
+    local actual
+    expected=$(awk -v filename="$filename" '$2 == filename || $2 == "*" filename { print $1; exit }' "$directory/checksums.txt")
+    if ! printf '%s' "$expected" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+        print_error "Missing release SHA-256 checksum for $filename."
+        exit 1
+    fi
+    actual=$(sha256sum "$directory/$filename" | awk '{print $1}')
+    if [ "$expected" != "$actual" ]; then
+        print_error "Release SHA-256 verification failed for $filename."
+        exit 1
+    fi
+}
+
 # Main installation function
 main() {
     echo ""
@@ -163,13 +198,24 @@ main() {
     local release_tag
     local release_base
     local download_dir
+    local existing_env
+    local deploy_archive
     release_tag=$(resolve_release_tag)
     release_base="${GITHUB_RELEASE_URL}/${release_tag}"
     download_dir=$(mktemp -d)
     trap "rm -rf -- '$download_dir'" EXIT
+    existing_env=""
+    if [ -f .env ]; then
+        existing_env="$download_dir/existing.env"
+        cp .env "$existing_env"
+    fi
 
     print_info "Downloading verified deployment bundle for ${release_tag}..."
-    download_file "${release_base}/sub3api_${release_tag#v}_deploy.tar.gz" "$download_dir/deploy.tar.gz"
+    deploy_archive="sub3api_${release_tag#v}_deploy.tar.gz"
+    download_file "${release_base}/${deploy_archive}" "$download_dir/${deploy_archive}"
+    download_file "${release_base}/checksums.txt" "$download_dir/checksums.txt"
+    verify_release_archive "$download_dir" "$deploy_archive"
+    mv "$download_dir/${deploy_archive}" "$download_dir/deploy.tar.gz"
     tar -xzf "$download_dir/deploy.tar.gz" -C "$download_dir"
     verify_deployment_asset "$download_dir" docker-compose.local.yml
     verify_deployment_asset "$download_dir" sub3api.env.example
@@ -177,25 +223,28 @@ main() {
     mv "$download_dir/sub3api.env.example" .env.example
     print_success "Downloaded and verified deployment bundle for ${release_tag}"
 
-    # Generate .env file with auto-generated secrets
+    # Generate .env file with auto-generated secrets. Preserve existing
+    # infrastructure credentials on upgrades so the database remains usable.
     print_info "Generating secure secrets..."
     echo ""
 
-    # Generate secrets
-    JWT_SECRET=$(generate_secret)
-    TOTP_ENCRYPTION_KEY=$(generate_secret)
-    POSTGRES_PASSWORD=$(generate_secret)
-    SETUP_REMOTE_TOKEN=$(generate_secret)
     # Create .env from .env.example
-    cp .env.example .env
+    if [ -n "$existing_env" ]; then
+        cp "$existing_env" .env
+    else
+        cp .env.example .env
+    fi
 
-    # Update .env with generated secrets.
-    set_env_value JWT_SECRET "$JWT_SECRET"
-    set_env_value TOTP_ENCRYPTION_KEY "$TOTP_ENCRYPTION_KEY"
-    set_env_value POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
-    set_env_value AUTO_SETUP_OWNER_SETUP "true"
-    set_env_value SETUP_ALLOW_REMOTE "true"
-    set_env_value SETUP_REMOTE_TOKEN "$SETUP_REMOTE_TOKEN"
+    # Fresh installs must replace template placeholders as well as empty values.
+    # Existing deployments retain credentials that their persisted data uses.
+    if [ -z "$existing_env" ] || ! env_value_is_set JWT_SECRET; then set_env_value JWT_SECRET "$(generate_secret)"; fi
+    if [ -z "$existing_env" ] || ! env_value_is_set TOTP_ENCRYPTION_KEY; then set_env_value TOTP_ENCRYPTION_KEY "$(generate_secret)"; fi
+    if [ -z "$existing_env" ] || ! env_value_is_set POSTGRES_PASSWORD; then set_env_value POSTGRES_PASSWORD "$(generate_secret)"; fi
+    if [ -z "$existing_env" ] || ! env_value_is_set SETUP_REMOTE_TOKEN; then set_env_value SETUP_REMOTE_TOKEN "$(generate_secret)"; fi
+    if [ -z "$existing_env" ]; then
+        set_env_value AUTO_SETUP_OWNER_SETUP "true"
+        set_env_value SETUP_ALLOW_REMOTE "true"
+    fi
     set_env_value SUB3API_IMAGE "ghcr.io/yuchen0x1/sub3api-relay:${release_tag#v}"
 
     # Create data directories

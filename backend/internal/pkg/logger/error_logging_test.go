@@ -33,7 +33,7 @@ func TestLegacyPrintf_SummarizesSensitiveErrors(t *testing.T) {
 			} else {
 				global.Store(nil)
 			}
-			LegacyPrintf("test", "refresh failed account_id=%d error=%v", 42, failure)
+			LegacyPrintf("test", "refresh failed account_id=%d api_key_id=%d api_key_enabled=%t error=%v", 42, int64(7), true, failure)
 			got := output.String()
 			if initialized {
 				entries := observed.All()
@@ -47,7 +47,7 @@ func TestLegacyPrintf_SummarizesSensitiveErrors(t *testing.T) {
 					t.Fatalf("log leaked %q: %s", secret, got)
 				}
 			}
-			for _, want := range []string{"account_id=42", "http_status=400", "code=invalid_grant"} {
+			for _, want := range []string{"account_id=42", "api_key_id=7", "api_key_enabled=true", "http_status=400", "code=invalid_grant"} {
 				if !strings.Contains(got, want) {
 					t.Fatalf("log lacks %q: %s", want, got)
 				}

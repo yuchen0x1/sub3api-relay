@@ -35,9 +35,11 @@ type Account struct {
 	Type string `json:"type,omitempty"`
 	// Credentials holds the value of the "credentials" field.
 	Credentials map[string]interface{} `json:"credentials,omitempty"`
-	// SHA-256 hex of canonical plaintext credentials; enables CAS equality under field-level encryption
+	// Version of account credential comparison digests; NULL is legacy SHA-256
+	CredentialsDigestVersion *int16 `json:"credentials_digest_version,omitempty"`
+	// HMAC-SHA-256 hex of canonical plaintext credentials when version=2; legacy rows use SHA-256
 	CredentialsDigest *string `json:"credentials_digest,omitempty"`
-	// SHA-256 hex of canonical credentials.api_key value
+	// HMAC-SHA-256 hex of canonical credentials.api_key when version=2; legacy rows use SHA-256
 	CredentialsAPIKeyDigest *string `json:"credentials_api_key_digest,omitempty"`
 	// Extra holds the value of the "extra" field.
 	Extra map[string]interface{} `json:"extra,omitempty"`
@@ -181,7 +183,7 @@ func (*Account) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case account.FieldRateMultiplier:
 			values[i] = new(sql.NullFloat64)
-		case account.FieldID, account.FieldProxyID, account.FieldProxyFallbackOriginID, account.FieldConcurrency, account.FieldLoadFactor, account.FieldPriority, account.FieldWeight, account.FieldParentAccountID:
+		case account.FieldID, account.FieldCredentialsDigestVersion, account.FieldProxyID, account.FieldProxyFallbackOriginID, account.FieldConcurrency, account.FieldLoadFactor, account.FieldPriority, account.FieldWeight, account.FieldParentAccountID:
 			values[i] = new(sql.NullInt64)
 		case account.FieldName, account.FieldNotes, account.FieldPlatform, account.FieldType, account.FieldCredentialsDigest, account.FieldCredentialsAPIKeyDigest, account.FieldStatus, account.FieldErrorMessage, account.FieldTempUnschedulableReason, account.FieldSessionWindowStatus, account.FieldQuotaDimension:
 			values[i] = new(sql.NullString)
@@ -259,6 +261,13 @@ func (_m *Account) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Credentials); err != nil {
 					return fmt.Errorf("unmarshal field credentials: %w", err)
 				}
+			}
+		case account.FieldCredentialsDigestVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field credentials_digest_version", values[i])
+			} else if value.Valid {
+				_m.CredentialsDigestVersion = new(int16)
+				*_m.CredentialsDigestVersion = int16(value.Int64)
 			}
 		case account.FieldCredentialsDigest:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -528,6 +537,11 @@ func (_m *Account) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("credentials=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Credentials))
+	builder.WriteString(", ")
+	if v := _m.CredentialsDigestVersion; v != nil {
+		builder.WriteString("credentials_digest_version=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.CredentialsDigest; v != nil {
 		builder.WriteString("credentials_digest=")

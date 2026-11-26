@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import AccountTestModal from '../AccountTestModal.vue'
+import { clearAccessToken, markBrowserSession, setAccessToken } from '@/api/browserSession'
 
 const { getAvailableModelsMock } = vi.hoisted(() => ({
   getAvailableModelsMock: vi.fn()
@@ -114,11 +115,14 @@ describe('AccountTestModal', () => {
   })
 
   afterEach(() => {
+    clearAccessToken()
     global.fetch = originalFetch
     localStorage.clear()
   })
 
   it('posts compact mode for OpenAI compact probe', async () => {
+    markBrowserSession()
+    setAccessToken('cookie-access')
     const wrapper = mount(AccountTestModal, {
       props: {
         show: true,
@@ -142,6 +146,7 @@ describe('AccountTestModal', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1)
     const [, options] = (global.fetch as any).mock.calls[0]
+    expect(options.headers.Authorization).toBe('Bearer cookie-access')
     expect(JSON.parse(options.body)).toMatchObject({
       model_id: 'gpt-5.4',
       mode: 'compact'

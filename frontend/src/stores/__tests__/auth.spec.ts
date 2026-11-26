@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
+import { clearAccessToken, getAccessToken, markBrowserSession } from '@/api/browserSession'
 
 // OAuth 响应字段（access_token/refresh_token）是契约键，经 helper 生成。
 const oauthTokenPair = (access: string, refresh: string) => ({
@@ -15,6 +16,7 @@ const mockLogout = vi.fn()
 const mockGetCurrentUser = vi.fn()
 const mockRegister = vi.fn()
 const mockRefreshToken = vi.fn()
+const mockEstablishBrowserSession = vi.fn()
 
 vi.mock('@/api', () => ({
   authAPI: {
@@ -24,6 +26,7 @@ vi.mock('@/api', () => ({
     getCurrentUser: (...args: any[]) => mockGetCurrentUser(...args),
     register: (...args: any[]) => mockRegister(...args),
     refreshToken: (...args: any[]) => mockRefreshToken(...args),
+    establishBrowserSession: (...args: any[]) => mockEstablishBrowserSession(...args),
   },
   isTotp2FARequired: (response: any) => response?.requires_2fa === true,
 }))
@@ -60,6 +63,7 @@ describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    clearAccessToken()
     vi.useFakeTimers()
     vi.clearAllMocks()
   })
@@ -80,7 +84,9 @@ describe('useAuthStore', () => {
       expect(store.token).toBe('test-access')
       expect(store.user).toEqual(fakeUser)
       expect(store.isAuthenticated).toBe(true)
-      expect(localStorage.getItem('auth_token')).toBe('test-access')
+      expect(getAccessToken()).toBe('test-access')
+      expect(localStorage.getItem('auth_token')).toBeNull()
+      expect(localStorage.getItem('refresh_token')).toBeNull()
       expect(localStorage.getItem('auth_user')).toBe(JSON.stringify(fakeUser))
     })
 
@@ -166,6 +172,19 @@ describe('useAuthStore', () => {
   // --- checkAuth ---
 
   describe('checkAuth', () => {
+    it('restores a cookie session before authenticated navigation', async () => {
+      document.cookie = 'sub3api_browser_csrf=signed-token; Path=/'
+      document.cookie = 'sub3api_browser_session=1; Path=/'
+      localStorage.setItem('auth_user', JSON.stringify(fakeUser))
+      mockRefreshToken.mockResolvedValue({ access_token: 'cookie-access', expires_in: 3600 })
+      mockGetCurrentUser.mockResolvedValue({ data: fakeUser })
+      const store = useAuthStore()
+      await store.checkAuth()
+      expect(store.isAuthenticated).toBe(true)
+      expect(store.token).toBe('cookie-access')
+      expect(localStorage.getItem('auth_token')).toBeNull()
+      expect(localStorage.getItem('refresh_token')).toBeNull()
+    })
     it('从 localStorage 恢复持久化状态', () => {
       localStorage.setItem('auth_token', 'saved-token')
       localStorage.setItem('auth_user', JSON.stringify(fakeUser))
@@ -239,6 +258,16 @@ describe('useAuthStore', () => {
         redirect: '/profile',
       })
     })
+  })
+
+  it('does not re-persist a cookie login token in the auth store', async () => {
+    markBrowserSession()
+    mockLogin.mockResolvedValue({ ...fakeAuthResponse, refresh_token: undefined })
+    const store = useAuthStore()
+    await store.login({ email: 'test@example.com', password: '123456' })
+    expect(getAccessToken()).toBe('test-access')
+    expect(localStorage.getItem('auth_token')).toBeNull()
+    expect(localStorage.getItem('refresh_token')).toBeNull()
   })
 
   describe('pending auth session', () => {

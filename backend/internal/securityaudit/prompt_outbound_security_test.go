@@ -26,7 +26,7 @@ func TestNormalizeBaseURLAllowsAdministratorConfiguredDestinations(t *testing.T)
 	}
 	blocked := []string{
 		"ftp://guard.example.com", "https://user:pass@guard.example.com",
-		"https://guard.example.com?q=secret", "https://guard.example.com/#fragment",
+		"https://guard.example.com?q=secret", "https://guard.example.com?", "https://guard.example.com/#fragment",
 	}
 	for _, raw := range blocked {
 		_, err := NormalizeBaseURL(raw)
@@ -35,6 +35,40 @@ func TestNormalizeBaseURLAllowsAdministratorConfiguredDestinations(t *testing.T)
 	url, err := ChatCompletionsURL("https://guard.example.com/v1")
 	require.NoError(t, err)
 	require.Equal(t, "https://guard.example.com/v1/chat/completions", url)
+}
+
+func TestNormalizeBaseURLPreservesEscapedPathPrefixes(t *testing.T) {
+	for _, prefix := range []string{"team%20one", "team%2Fone", "team%252Fone", "%E5%AE%A1%E8%AE%A1"} {
+		t.Run(prefix, func(t *testing.T) {
+			base := "https://guard.example.com/" + prefix
+			normalized, err := NormalizeBaseURL(base + "/")
+			require.NoError(t, err)
+			require.Equal(t, base, normalized)
+			renormalized, err := NormalizeBaseURL(normalized)
+			require.NoError(t, err)
+			require.Equal(t, normalized, renormalized)
+			chatURL, err := ChatCompletionsURL(normalized)
+			require.NoError(t, err)
+			require.Equal(t, base+"/v1/chat/completions", chatURL)
+			modelsURL, err := ModelsURL(normalized)
+			require.NoError(t, err)
+			require.Equal(t, base+"/v1/models", modelsURL)
+		})
+	}
+}
+
+func TestOpenAICompatibleScannerPreservesEscapedPathPrefix(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/team%2Fone/v1/chat/completions", r.URL.EscapedPath())
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"Safety: Safe\nCategories: None"}}]}`))
+	}))
+	defer server.Close()
+	result, err := NewOpenAICompatibleScanner().Scan(context.Background(), ActiveEndpoint{
+		ID: "escaped", BaseURL: server.URL + "/team%2Fone", Model: DefaultGuardModel, TimeoutMS: 1000,
+	}, "hello", AllScannerIDs)
+	require.NoError(t, err)
+	require.Equal(t, EventPass, result.Decision)
 }
 
 func TestHTTPClientUsesDirectStandardDialer(t *testing.T) {

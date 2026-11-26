@@ -106,6 +106,8 @@ func TestCORS_AllowedOrigin_HasAllowHeaders(t *testing.T) {
 			assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "X-Admin-UI-Request")
 			assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "X-User-UI-Request")
 			assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "X-Setup-Token")
+			assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "X-Goog-Api-Key")
+			assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "X-Sub3API-Browser-Session")
 			assert.NotEmpty(t, w.Header().Get("Access-Control-Allow-Methods"),
 				"允许的 origin 应收到 Allow-Methods")
 			assert.Contains(t, w.Header().Get("Access-Control-Expose-Headers"), "Server-Timing")
@@ -114,6 +116,28 @@ func TestCORS_AllowedOrigin_HasAllowHeaders(t *testing.T) {
 			assert.Equal(t, "https://allowed.example.com", w.Header().Get("Access-Control-Allow-Origin"),
 				"允许的 origin 应收到 Allow-Origin")
 		})
+	}
+}
+
+func TestCORS_ExplicitOriginsAlwaysVaryByOrigin(t *testing.T) {
+	middleware := CORS(config.CORSConfig{AllowedOrigins: []string{"https://allowed.example.com"}})
+	for _, method := range []string{http.MethodGet, http.MethodOptions} {
+		for _, origin := range []string{"https://allowed.example.com", "https://other.example.com", ""} {
+			t.Run(method+"/"+origin, func(t *testing.T) {
+				w := httptest.NewRecorder()
+				w.Header().Set("Vary", "Accept-Encoding")
+				c, _ := gin.CreateTestContext(w)
+				c.Request = httptest.NewRequest(method, "/", nil)
+				if origin != "" {
+					c.Request.Header.Set("Origin", origin)
+				}
+
+				middleware(c)
+
+				assert.Contains(t, w.Header().Values("Vary"), "Origin")
+				assert.Contains(t, w.Header().Values("Vary"), "Accept-Encoding")
+			})
+		}
 	}
 }
 
