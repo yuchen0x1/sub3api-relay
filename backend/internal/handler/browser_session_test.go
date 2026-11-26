@@ -56,7 +56,7 @@ func TestEstablishBrowserSessionRequiresMatchingTokenPair(t *testing.T) {
 			auth := service.NewAuthService(nil, &userHandlerRepoStub{user: user}, nil, cache, cfg, nil, nil, nil, nil, nil, nil, nil, nil)
 			pair, err := auth.GenerateTokenPair(context.Background(), user, "")
 			require.NoError(t, err)
-			h := &AuthHandler{cfg: cfg, authService: auth}
+			h := &AuthHandler{cfg: cfg, authService: auth, settingSvc: service.NewSettingService(&oauthCaptchaSettingRepo{values: map[string]string{}}, cfg)}
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/browser-session", strings.NewReader(`{"refresh_token":"`+pair.RefreshToken+`"}`))
@@ -111,7 +111,7 @@ func TestBrowserRefreshLegacyMigrationAndCSRFGate(t *testing.T) {
 			auth := service.NewAuthService(nil, &userHandlerRepoStub{user: user}, nil, cache, cfg, nil, nil, nil, nil, nil, nil, nil, nil)
 			pair, err := auth.GenerateTokenPair(context.Background(), user, "")
 			require.NoError(t, err)
-			h := &AuthHandler{cfg: cfg, authService: auth}
+			h := &AuthHandler{cfg: cfg, authService: auth, settingSvc: service.NewSettingService(&oauthCaptchaSettingRepo{values: map[string]string{}}, cfg)}
 			router := gin.New()
 			router.Use(servermiddleware.BrowserSessionCSRF(cfg.JWT.Secret, nil))
 			router.POST("/api/v1/auth/refresh", h.RefreshToken)
@@ -148,6 +148,42 @@ func TestBrowserRefreshLegacyMigrationAndCSRFGate(t *testing.T) {
 			} else {
 				require.Empty(t, w.Result().Cookies())
 			}
+		})
+	}
+}
+
+func TestBrowserAccessOnlyFallbackClearsPreviousSession(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := &config.Config{JWT: config.JWTConfig{Secret: "browser-fallback-test-secret", ExpireHour: 1}}
+	user := &service.User{ID: 7, Email: "browser@example.com", Role: service.RoleUser, Status: service.StatusActive}
+	// No refresh cache reproduces the access-only compatibility fallback.
+	auth := service.NewAuthService(nil, &userHandlerRepoStub{user: user}, nil, nil, cfg, nil, nil, nil, nil, nil, nil, nil, nil)
+	h := &AuthHandler{cfg: cfg, authService: auth}
+	for _, tt := range []struct {
+		name    string
+		respond func(*gin.Context)
+	}{
+		{name: "password", respond: func(c *gin.Context) { h.respondWithTokenPair(c, user) }},
+		{name: "passkey", respond: func(c *gin.Context) { respondWithTokenPair(c, auth, user) }},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+			c.Request.Header.Set(browserauth.SessionModeHeader, browserauth.SessionModeCookie)
+			c.Request.AddCookie(&http.Cookie{Name: browserauth.RefreshCookieName, Value: "previous-user-refresh"})
+			tt.respond(c)
+			require.Equal(t, http.StatusOK, w.Code)
+			require.Len(t, w.Result().Cookies(), 3)
+			for _, cookie := range w.Result().Cookies() {
+				require.Equal(t, -1, cookie.MaxAge)
+			}
+			var payload struct {
+				Data AuthResponse `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
+			require.NotEmpty(t, payload.Data.AccessToken)
+			require.Empty(t, payload.Data.RefreshToken)
 		})
 	}
 }

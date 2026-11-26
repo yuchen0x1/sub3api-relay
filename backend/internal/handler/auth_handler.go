@@ -145,6 +145,9 @@ func respondWithTokenPair(c *gin.Context, authService *service.AuthService, user
 			response.InternalError(c, "Failed to generate token")
 			return
 		}
+		if BrowserSessionRequested(c) {
+			ClearBrowserSessionCookies(c)
+		}
 		response.Success(c, AuthResponse{
 			AccessToken: token,
 			TokenType:   "Bearer",
