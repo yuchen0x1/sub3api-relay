@@ -97,6 +97,7 @@ func (k *openAICompactSSEKeepalive) beat() bool {
 	if !k.started {
 		header := k.writer.Header()
 		header.Set("Content-Type", "text/event-stream")
+		header.Set("X-Content-Type-Options", "nosniff")
 		header.Set("Cache-Control", "no-cache")
 		header.Set("Connection", "keep-alive")
 		header.Set("X-Accel-Buffering", "no")

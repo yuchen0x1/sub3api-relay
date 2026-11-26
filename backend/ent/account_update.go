@@ -125,6 +125,33 @@ func (_u *AccountUpdate) SetCredentials(v map[string]interface{}) *AccountUpdate
 	return _u
 }
 
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (_u *AccountUpdate) SetCredentialsDigestVersion(v int16) *AccountUpdate {
+	_u.mutation.ResetCredentialsDigestVersion()
+	_u.mutation.SetCredentialsDigestVersion(v)
+	return _u
+}
+
+// SetNillableCredentialsDigestVersion sets the "credentials_digest_version" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableCredentialsDigestVersion(v *int16) *AccountUpdate {
+	if v != nil {
+		_u.SetCredentialsDigestVersion(*v)
+	}
+	return _u
+}
+
+// AddCredentialsDigestVersion adds value to the "credentials_digest_version" field.
+func (_u *AccountUpdate) AddCredentialsDigestVersion(v int16) *AccountUpdate {
+	_u.mutation.AddCredentialsDigestVersion(v)
+	return _u
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (_u *AccountUpdate) ClearCredentialsDigestVersion() *AccountUpdate {
+	_u.mutation.ClearCredentialsDigestVersion()
+	return _u
+}
+
 // SetCredentialsDigest sets the "credentials_digest" field.
 func (_u *AccountUpdate) SetCredentialsDigest(v string) *AccountUpdate {
 	_u.mutation.SetCredentialsDigest(v)
@@ -900,6 +927,15 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Credentials(); ok {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.CredentialsDigestVersion(); ok {
+		_spec.SetField(account.FieldCredentialsDigestVersion, field.TypeInt16, value)
+	}
+	if value, ok := _u.mutation.AddedCredentialsDigestVersion(); ok {
+		_spec.AddField(account.FieldCredentialsDigestVersion, field.TypeInt16, value)
+	}
+	if _u.mutation.CredentialsDigestVersionCleared() {
+		_spec.ClearField(account.FieldCredentialsDigestVersion, field.TypeInt16)
+	}
 	if value, ok := _u.mutation.CredentialsDigest(); ok {
 		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)
 	}
@@ -1351,6 +1387,33 @@ func (_u *AccountUpdateOne) SetNillableType(v *string) *AccountUpdateOne {
 // SetCredentials sets the "credentials" field.
 func (_u *AccountUpdateOne) SetCredentials(v map[string]interface{}) *AccountUpdateOne {
 	_u.mutation.SetCredentials(v)
+	return _u
+}
+
+// SetCredentialsDigestVersion sets the "credentials_digest_version" field.
+func (_u *AccountUpdateOne) SetCredentialsDigestVersion(v int16) *AccountUpdateOne {
+	_u.mutation.ResetCredentialsDigestVersion()
+	_u.mutation.SetCredentialsDigestVersion(v)
+	return _u
+}
+
+// SetNillableCredentialsDigestVersion sets the "credentials_digest_version" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableCredentialsDigestVersion(v *int16) *AccountUpdateOne {
+	if v != nil {
+		_u.SetCredentialsDigestVersion(*v)
+	}
+	return _u
+}
+
+// AddCredentialsDigestVersion adds value to the "credentials_digest_version" field.
+func (_u *AccountUpdateOne) AddCredentialsDigestVersion(v int16) *AccountUpdateOne {
+	_u.mutation.AddCredentialsDigestVersion(v)
+	return _u
+}
+
+// ClearCredentialsDigestVersion clears the value of the "credentials_digest_version" field.
+func (_u *AccountUpdateOne) ClearCredentialsDigestVersion() *AccountUpdateOne {
+	_u.mutation.ClearCredentialsDigestVersion()
 	return _u
 }
 
@@ -2158,6 +2221,15 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if value, ok := _u.mutation.Credentials(); ok {
 		_spec.SetField(account.FieldCredentials, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.CredentialsDigestVersion(); ok {
+		_spec.SetField(account.FieldCredentialsDigestVersion, field.TypeInt16, value)
+	}
+	if value, ok := _u.mutation.AddedCredentialsDigestVersion(); ok {
+		_spec.AddField(account.FieldCredentialsDigestVersion, field.TypeInt16, value)
+	}
+	if _u.mutation.CredentialsDigestVersionCleared() {
+		_spec.ClearField(account.FieldCredentialsDigestVersion, field.TypeInt16)
 	}
 	if value, ok := _u.mutation.CredentialsDigest(); ok {
 		_spec.SetField(account.FieldCredentialsDigest, field.TypeString, value)

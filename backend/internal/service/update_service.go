@@ -24,9 +24,11 @@ import (
 )
 
 var (
-	ErrNoUpdateAvailable         = infraerrors.Conflict("ALREADY_UP_TO_DATE", "no update available; current version is latest")
-	ErrRollbackVersionNotAllowed = infraerrors.BadRequest("ROLLBACK_VERSION_NOT_ALLOWED", "version is not in the allowed rollback list")
-	ErrInPlaceUpdateUnsupported  = infraerrors.Conflict("IN_PLACE_UPDATE_UNSUPPORTED", "in-place update is only available for release binary deployments")
+	ErrNoUpdateAvailable               = infraerrors.Conflict("ALREADY_UP_TO_DATE", "no update available; current version is latest")
+	ErrRollbackVersionNotAllowed       = infraerrors.BadRequest("ROLLBACK_VERSION_NOT_ALLOWED", "version is not in the allowed rollback list")
+	ErrInPlaceUpdateUnsupported        = infraerrors.Conflict("IN_PLACE_UPDATE_UNSUPPORTED", "in-place update is only available for release binary deployments")
+	ErrWindowsInPlaceUpdateUnsupported = infraerrors.Conflict("WINDOWS_IN_PLACE_UPDATE_UNSUPPORTED", "in-place update is not supported on Windows; stop the service and replace its executable manually")
+	ErrRollbackRequiresDatabaseRestore = infraerrors.Conflict("ROLLBACK_DATABASE_RESTORE_REQUIRED", "rollback before v0.5.7 requires restoring the pre-upgrade database and configuration; use a compatible explicit version or perform a manual restore")
 )
 
 const (
@@ -37,8 +39,9 @@ const (
 
 	// Security: allowed download domains for updates
 	// GitHub release assets are served from github.com / objects.githubusercontent.com.
-	allowedDownloadHost = "github.com"
-	allowedAssetHost    = "objects.githubusercontent.com"
+	allowedDownloadHost     = "github.com"
+	allowedAssetHost        = "objects.githubusercontent.com"
+	allowedReleaseAssetHost = "release-assets.githubusercontent.com"
 
 	// Security: max download size (500MB)
 	maxDownloadSize = 500 * 1024 * 1024
@@ -47,6 +50,9 @@ const (
 	maxRollbackVersions = 3
 	// Fetch a few extra releases so filtering (current/newer/prerelease) still leaves enough candidates
 	rollbackFetchPageSize = 15
+	// Migration 207 replaces stored credential digests. Earlier binaries cannot
+	// safely share that database, including after a binary-only downgrade.
+	credentialDigestMigrationVersion = "0.5.7"
 )
 
 // UpdateCache defines cache operations for update service
@@ -79,6 +85,16 @@ func NewUpdateService(cache UpdateCache, githubClient GitHubReleaseClient, versi
 		currentVersion: version,
 		buildType:      buildType,
 	}
+}
+
+func ensureInPlaceUpdateSupported(buildType, goos string) error {
+	if buildType != "release" {
+		return ErrInPlaceUpdateUnsupported
+	}
+	if goos == "windows" {
+		return ErrWindowsInPlaceUpdateUnsupported
+	}
+	return nil
 }
 
 // UpdateInfo contains update information
@@ -179,6 +195,14 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 	if !info.HasUpdate {
 		return ErrNoUpdateAvailable
 	}
+	if err := ensureInPlaceUpdateSupported(s.buildType, runtime.GOOS); err != nil {
+		return err
+	}
+	// A cache entry may outlive the release metadata it was created with. Do
+	// not dereference missing metadata during an admin-triggered update.
+	if info.ReleaseInfo == nil || len(info.ReleaseInfo.Assets) == 0 {
+		return fmt.Errorf("latest release has no downloadable assets")
+	}
 
 	return s.applyReleaseAssets(ctx, info.ReleaseInfo.Assets)
 }
@@ -190,11 +214,15 @@ func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []
 	// Find matching archive and checksum for current platform
 	archiveName := s.getArchiveName()
 	var downloadURL string
+	var downloadName string
 	var checksumURL string
 
 	for _, asset := range releaseAssets {
-		if strings.Contains(asset.Name, archiveName) && !strings.HasSuffix(asset.Name, ".txt") {
+		// Match an actual release archive only. A broad Contains check can pick
+		// a signature or checksum sidecar when asset order changes.
+		if isReleaseArchiveAsset(asset.Name, archiveName) {
 			downloadURL = asset.DownloadURL
+			downloadName = asset.Name
 		}
 		if asset.Name == "checksums.txt" {
 			checksumURL = asset.DownloadURL
@@ -209,10 +237,11 @@ func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []
 	if err := validateDownloadURL(downloadURL); err != nil {
 		return fmt.Errorf("invalid download URL: %w", err)
 	}
-	if checksumURL != "" {
-		if err := validateDownloadURL(checksumURL); err != nil {
-			return fmt.Errorf("invalid checksum URL: %w", err)
-		}
+	if checksumURL == "" {
+		return fmt.Errorf("release is missing checksums.txt")
+	}
+	if err := validateDownloadURL(checksumURL); err != nil {
+		return fmt.Errorf("invalid checksum URL: %w", err)
 	}
 
 	// Get current executable path
@@ -236,7 +265,7 @@ func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Download archive
-	archivePath := filepath.Join(tempDir, filepath.Base(downloadURL))
+	archivePath := filepath.Join(tempDir, downloadName)
 	if err := s.downloadFile(ctx, downloadURL, archivePath); err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
@@ -289,8 +318,13 @@ func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []
 
 // Rollback restores the previous version
 func (s *UpdateService) Rollback() error {
-	if s.buildType != "release" {
-		return ErrInPlaceUpdateUnsupported
+	if err := ensureInPlaceUpdateSupported(s.buildType, runtime.GOOS); err != nil {
+		return err
+	}
+	// Legacy backups do not record their version. Refuse an unverified
+	// binary-only restore once the database compatibility boundary is crossed.
+	if compareVersions(s.currentVersion, credentialDigestMigrationVersion) >= 0 {
+		return ErrRollbackRequiresDatabaseRestore
 	}
 
 	exePath, err := os.Executable()
@@ -347,6 +381,9 @@ func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) e
 	if !isStrictReleaseVersion(target) {
 		return ErrRollbackVersionNotAllowed
 	}
+	if rollbackRequiresDatabaseRestore(s.currentVersion, target) {
+		return ErrRollbackRequiresDatabaseRestore
+	}
 
 	releases, err := s.fetchRollbackCandidates(ctx)
 	if err != nil {
@@ -362,6 +399,9 @@ func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) e
 	}
 	if match == nil {
 		return ErrRollbackVersionNotAllowed
+	}
+	if err := ensureInPlaceUpdateSupported(s.buildType, runtime.GOOS); err != nil {
+		return err
 	}
 
 	assets := make([]Asset, len(match.Assets))
@@ -394,6 +434,9 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 		if !isStrictReleaseVersion(v) || seen[v] {
 			continue
 		}
+		if rollbackRequiresDatabaseRestore(s.currentVersion, v) {
+			continue
+		}
 		// Only versions strictly older than current (also excludes current itself)
 		if compareVersions(v, s.currentVersion) >= 0 {
 			continue
@@ -415,10 +458,18 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 	return candidates, nil
 }
 
+func rollbackRequiresDatabaseRestore(current, target string) bool {
+	return compareVersions(current, credentialDigestMigrationVersion) >= 0 &&
+		compareVersions(target, credentialDigestMigrationVersion) < 0
+}
+
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {
 	release, err := s.githubClient.FetchLatestRelease(ctx, updateRepo)
 	if err != nil {
 		return nil, err
+	}
+	if release == nil {
+		return nil, fmt.Errorf("GitHub returned an empty latest release")
 	}
 
 	latestVersion := strings.TrimPrefix(release.TagName, "v")
@@ -474,17 +525,40 @@ func validateDownloadURL(rawURL string) error {
 		return fmt.Errorf("only HTTPS URLs are allowed")
 	}
 
-	// Check against allowed hosts
-	host := parsedURL.Host
-	// GitHub release URLs can be from github.com or objects.githubusercontent.com.
-	if host != allowedDownloadHost &&
-		!strings.HasSuffix(host, "."+allowedDownloadHost) &&
-		host != allowedAssetHost &&
-		!strings.HasSuffix(host, "."+allowedAssetHost) {
-		return fmt.Errorf("download from untrusted host: %s", host)
+	// Restrict to the exact hosts used by GitHub release downloads. Hostname()
+	// intentionally excludes a port; ports and userinfo are rejected so an
+	// attacker cannot smuggle credentials or redirect the updater to a local
+	// service through a look-alike host.
+	if parsedURL.User != nil {
+		return fmt.Errorf("download URL must not contain userinfo")
+	}
+	host := strings.ToLower(parsedURL.Hostname())
+	if parsedURL.Port() != "" || !strings.EqualFold(parsedURL.Host, host) || (host != allowedDownloadHost && host != allowedAssetHost && host != allowedReleaseAssetHost) {
+		return fmt.Errorf("download from untrusted host: %s", parsedURL.Host)
 	}
 
 	return nil
+}
+
+func isReleaseArchiveAsset(name, archiveName string) bool {
+	if archiveName == "" || strings.TrimSpace(name) == "" {
+		return false
+	}
+	base := filepath.Base(name)
+	if base != name || strings.ContainsAny(name, "\\/\x00") {
+		return false
+	}
+	const extension = ".tar.gz"
+	if !strings.HasSuffix(base, extension) {
+		return false
+	}
+	stem := strings.TrimSuffix(base, extension)
+	prefix := "sub3api_"
+	if !strings.HasPrefix(stem, prefix) {
+		return false
+	}
+	version := strings.TrimSuffix(strings.TrimPrefix(stem, prefix), "_"+archiveName)
+	return isStrictReleaseVersion(version) && stem == prefix+version+"_"+archiveName
 }
 
 func (s *UpdateService) verifyChecksum(ctx context.Context, filePath, checksumURL string) error {
@@ -756,6 +830,9 @@ func isStrictReleaseVersion(version string) bool {
 			if char < '0' || char > '9' {
 				return false
 			}
+		}
+		if _, err := strconv.Atoi(part); err != nil {
+			return false
 		}
 	}
 	return true

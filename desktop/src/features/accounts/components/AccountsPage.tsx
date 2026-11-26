@@ -67,7 +67,13 @@ export function AccountsPage({ enabled }: { enabled: boolean }) {
     if (!enabled) { setSnapshot(null); setError(null); setLoading(false); return }
     const controller = new AbortController()
     setLoading(true); setError(null)
-    listAccounts({ signal: controller.signal }).then(setSnapshot).catch((requestError: unknown) => { if (!(requestError instanceof DOMException && requestError.name === "AbortError")) setError(requestError) }).finally(() => setLoading(false))
+    listAccounts({ signal: controller.signal }).then((nextSnapshot) => {
+      if (!controller.signal.aborted) setSnapshot(nextSnapshot)
+    }).catch((requestError: unknown) => {
+      if (!controller.signal.aborted && !(requestError instanceof DOMException && requestError.name === "AbortError")) setError(requestError)
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false)
+    })
     return () => controller.abort()
   }, [enabled, reloadToken])
 

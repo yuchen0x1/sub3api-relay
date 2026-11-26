@@ -32,6 +32,7 @@ func TestOpenAIImagesJSONKeepalive_PreservesValidJSONResponse(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "application/json; charset=utf-8", rec.Header().Get("Content-Type"))
+	require.Equal(t, "nosniff", rec.Result().Header.Get("X-Content-Type-Options"))
 	require.Equal(t, "no", rec.Header().Get("X-Accel-Buffering"))
 	require.True(t, rec.Flushed)
 	require.True(t, json.Valid(rec.Body.Bytes()), rec.Body.String())

@@ -8,6 +8,7 @@ import { routerKey } from 'vue-router'
 import rawHtml from '@/assets/sub3api-home.html?raw'
 import { getLocale, i18n, setLocale } from '@/i18n'
 import { buildGatewayUrl } from '@/api/client'
+import { getAccessToken } from '@/api/browserSession'
 import { query as queryUserUsage, getDashboardStats as getUserDashboardStats } from '@/api/usage'
 import {
   getDashboardOverview,
@@ -229,7 +230,7 @@ type LandingActivity = {
 }
 
 function getPersistedViewer() {
-  const token = localStorage.getItem('auth_token')
+  const token = getAccessToken()
   if (!token) return { authenticated: false, admin: false }
 
   try {

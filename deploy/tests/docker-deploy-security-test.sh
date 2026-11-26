@@ -20,18 +20,44 @@ grep -Fq 'Defers administrator creation to the first-run owner setup page' "$scr
 grep -Fq 'Infrastructure secrets and a one-time setup token were written' "$script"
 grep -Fq 'deploy-checksums.txt' "$script"
 grep -Fq 'verify_deployment_asset' "$script"
+grep -Fq 'verify_release_archive' "$script"
+grep -Fq 'checksums.txt' "$script"
+grep -Fq 'existing_env' "$script"
+grep -Fq '! env_value_is_set JWT_SECRET' "$script"
+grep -Fq '! env_value_is_set POSTGRES_PASSWORD' "$script"
+grep -Fq 'if [ -z "$existing_env" ]; then' "$script"
 if grep -Fq 'raw.githubusercontent.com/yuchen0x1/sub3api-relay/main' "$script"; then
   echo "docker deploy script downloads mutable main-branch deployment files" >&2
   exit 1
 fi
+
+checksum_dir=$(mktemp -d)
+trap 'rm -rf -- "$checksum_dir"' EXIT
+printf 'verified deployment\n' > "$checksum_dir/deploy.tar.gz"
+(cd "$checksum_dir" && sha256sum deploy.tar.gz > checksums.txt)
+source <(sed '/^# Main installation function$/,$d' "$script")
+verify_release_archive "$checksum_dir" deploy.tar.gz
+printf 'tampered deployment\n' > "$checksum_dir/deploy.tar.gz"
+if (verify_release_archive "$checksum_dir" deploy.tar.gz) 2>/dev/null; then
+  echo "docker deploy script accepted a tampered release archive" >&2
+  exit 1
+fi
+printf 'verified deployment\n' > "$checksum_dir/deploy.tar.gz"
+: > "$checksum_dir/checksums.txt"
+if (verify_release_archive "$checksum_dir" deploy.tar.gz) 2>/dev/null; then
+  echo "docker deploy script accepted a release archive without a checksum" >&2
+  exit 1
+fi
+rm -rf -- "$checksum_dir"
+bash "$repo_root/deploy/tests/docker-deploy-upgrade-test.sh"
 
 compose_config() {
   if docker compose version >/dev/null 2>&1; then
     docker compose "$@"
     return
   fi
-  if command -v cmd.exe >/dev/null 2>&1; then
-    cmd.exe /c docker compose "$@"
+  if command -v cmd.exe >/dev/null 2>&1 && MSYS_NO_PATHCONV=1 cmd.exe /d /c docker compose version >/dev/null 2>&1; then
+    MSYS_NO_PATHCONV=1 cmd.exe /d /c docker compose "$@"
     return
   fi
   echo "Docker Compose is required for setup-token round-trip checks" >&2

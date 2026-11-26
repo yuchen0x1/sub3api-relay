@@ -23,7 +23,7 @@ func NormalizeBaseURL(raw string) (string, error) {
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return "", infraerrors.BadRequest("prompt_audit_invalid_base_url_scheme", "审计节点仅支持 HTTP(S)")
 	}
-	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
 		return "", infraerrors.BadRequest("prompt_audit_unsafe_base_url", "审计节点地址不能包含凭据、查询参数或片段")
 	}
 	host := strings.TrimSpace(parsed.Hostname())
@@ -34,8 +34,12 @@ func NormalizeBaseURL(raw string) (string, error) {
 	if strings.EqualFold(path, "/v1") {
 		path = ""
 	}
-	parsed.Path = path
-	parsed.RawPath = ""
+	decodedPath, err := url.PathUnescape(path)
+	if err != nil {
+		return "", infraerrors.BadRequest("prompt_audit_invalid_base_url", "审计节点地址无效")
+	}
+	parsed.Path = decodedPath
+	parsed.RawPath = path
 	return strings.TrimRight(parsed.String(), "/"), nil
 }
 

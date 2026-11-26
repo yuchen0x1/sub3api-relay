@@ -90,6 +90,11 @@ func Type(v string) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldType, v))
 }
 
+// CredentialsDigestVersion applies equality check predicate on the "credentials_digest_version" field. It's identical to CredentialsDigestVersionEQ.
+func CredentialsDigestVersion(v int16) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldCredentialsDigestVersion, v))
+}
+
 // CredentialsDigest applies equality check predicate on the "credentials_digest" field. It's identical to CredentialsDigestEQ.
 func CredentialsDigest(v string) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldCredentialsDigest, v))
@@ -608,6 +613,56 @@ func TypeEqualFold(v string) predicate.Account {
 // TypeContainsFold applies the ContainsFold predicate on the "type" field.
 func TypeContainsFold(v string) predicate.Account {
 	return predicate.Account(sql.FieldContainsFold(FieldType, v))
+}
+
+// CredentialsDigestVersionEQ applies the EQ predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionEQ(v int16) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionNEQ applies the NEQ predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionNEQ(v int16) predicate.Account {
+	return predicate.Account(sql.FieldNEQ(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionIn applies the In predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionIn(vs ...int16) predicate.Account {
+	return predicate.Account(sql.FieldIn(FieldCredentialsDigestVersion, vs...))
+}
+
+// CredentialsDigestVersionNotIn applies the NotIn predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionNotIn(vs ...int16) predicate.Account {
+	return predicate.Account(sql.FieldNotIn(FieldCredentialsDigestVersion, vs...))
+}
+
+// CredentialsDigestVersionGT applies the GT predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionGT(v int16) predicate.Account {
+	return predicate.Account(sql.FieldGT(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionGTE applies the GTE predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionGTE(v int16) predicate.Account {
+	return predicate.Account(sql.FieldGTE(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionLT applies the LT predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionLT(v int16) predicate.Account {
+	return predicate.Account(sql.FieldLT(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionLTE applies the LTE predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionLTE(v int16) predicate.Account {
+	return predicate.Account(sql.FieldLTE(FieldCredentialsDigestVersion, v))
+}
+
+// CredentialsDigestVersionIsNil applies the IsNil predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionIsNil() predicate.Account {
+	return predicate.Account(sql.FieldIsNull(FieldCredentialsDigestVersion))
+}
+
+// CredentialsDigestVersionNotNil applies the NotNil predicate on the "credentials_digest_version" field.
+func CredentialsDigestVersionNotNil() predicate.Account {
+	return predicate.Account(sql.FieldNotNull(FieldCredentialsDigestVersion))
 }
 
 // CredentialsDigestEQ applies the EQ predicate on the "credentials_digest" field.

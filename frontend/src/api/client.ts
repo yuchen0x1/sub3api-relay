@@ -14,6 +14,15 @@ import {
 } from './adminUIRequest'
 import { refreshAuthTokens } from './tokenRefresh'
 import { getAPIBaseURL } from './url'
+import {
+  browserSessionHeader,
+  getAccessToken,
+  getCsrfToken,
+  isBrowserSession,
+  getSessionRefreshToken,
+  getSessionRevision,
+  clearAccessToken,
+} from './browserSession'
 export { buildApiUrl, buildGatewayUrl } from './url'
 
 // ==================== Axios Instance Configuration ====================
@@ -40,10 +49,19 @@ const getUserTimezone = (): string => {
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Attach token from localStorage
-    const token = localStorage.getItem('auth_token')
+    // New browser sessions use an HttpOnly refresh cookie and keep the access
+    // token in memory. Legacy localStorage sessions remain readable for old
+    // clients during the migration window.
+    const token = getAccessToken()
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    if (config.headers) {
+      Object.assign(config.headers, browserSessionHeader())
+      if (isBrowserSession() && config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+        const csrf = getCsrfToken()
+        if (csrf) config.headers['X-CSRF-Token'] = csrf
+      }
     }
 
     // Attach locale for backend translations
@@ -166,13 +184,14 @@ apiClient.interceptors.response.use(
       // 401: Try to refresh the token if we have a refresh token
       // This handles TOKEN_EXPIRED, INVALID_TOKEN, TOKEN_REVOKED, etc.
       if (status === 401 && !originalRequest._retry) {
-        const refreshToken = localStorage.getItem('refresh_token')
+        const refreshToken = getSessionRefreshToken()
         const isAuthEndpoint =
           url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh')
 
         // If we have a refresh token and this is not an auth endpoint, try to refresh
-        if (refreshToken && !isAuthEndpoint) {
+        if ((refreshToken || isBrowserSession()) && !isAuthEndpoint) {
           const refreshSessionUser = localStorage.getItem('auth_user')
+          const refreshSessionRevision = getSessionRevision()
           originalRequest._retry = true
 
           try {
@@ -193,7 +212,7 @@ apiClient.interceptors.response.use(
             // A stale request must never destroy a session that was logged out or replaced while
             // its refresh was in flight (for example, when another tab signs in as another user).
             const sessionChanged =
-              localStorage.getItem('refresh_token') !== refreshToken ||
+              getSessionRevision() !== refreshSessionRevision ||
               localStorage.getItem('auth_user') !== refreshSessionUser
             if (sessionChanged) {
               return Promise.reject({
@@ -208,6 +227,7 @@ apiClient.interceptors.response.use(
             localStorage.removeItem('refresh_token')
             localStorage.removeItem('auth_user')
             localStorage.removeItem('token_expires_at')
+            clearAccessToken()
             sessionStorage.setItem('auth_expired', '1')
 
             if (!originalRequest.suppressAuthRedirect && !window.location.pathname.includes('/login')) {
@@ -223,7 +243,7 @@ apiClient.interceptors.response.use(
         }
 
         // No refresh token or is auth endpoint - clear auth and redirect
-        const hasToken = !!localStorage.getItem('auth_token')
+        const hasToken = !!getAccessToken()
         const headers = error.config?.headers as Record<string, unknown> | undefined
         const authHeader = headers?.Authorization ?? headers?.authorization
         const sentAuth =
@@ -237,6 +257,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('auth_user')
         localStorage.removeItem('token_expires_at')
+        clearAccessToken()
         if ((hasToken || sentAuth) && !isAuthEndpoint) {
           sessionStorage.setItem('auth_expired', '1')
         }

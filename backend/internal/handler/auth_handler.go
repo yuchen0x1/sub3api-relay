@@ -100,7 +100,34 @@ func ensureLoginUserActive(user *service.User) error {
 // respondWithTokenPair 生成 Token 对并返回认证响应
 // 如果 Token 对生成失败，回退到只返回 Access Token（向后兼容）
 func (h *AuthHandler) respondWithTokenPair(c *gin.Context, user *service.User) {
-	respondWithTokenPair(c, h.authService, user)
+	if err := ensureLoginUserActive(user); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	tokenPair, err := h.authService.GenerateTokenPair(c.Request.Context(), user, "")
+	if err != nil {
+		slog.Error("failed to generate token pair", "error", err, "user_id", user.ID)
+		token, tokenErr := h.authService.GenerateToken(c.Request.Context(), user)
+		if tokenErr != nil {
+			response.InternalError(c, "Failed to generate token")
+			return
+		}
+		if BrowserSessionRequested(c) {
+			ClearBrowserSessionCookies(c)
+		}
+		response.Success(c, AuthResponse{AccessToken: token, TokenType: "Bearer", User: dto.UserFromService(user)})
+		return
+	}
+	if BrowserSessionRequested(c) {
+		if err := SetBrowserSessionCookies(c, tokenPair.RefreshToken, h.cfg.JWT.Secret, h.cfg.JWT.RefreshTokenExpireDays*24*60*60); err != nil {
+			response.InternalError(c, "Failed to establish browser session")
+			return
+		}
+		// The refresh token is intentionally omitted from browser-mode JSON.
+		response.Success(c, AuthResponse{AccessToken: tokenPair.AccessToken, ExpiresIn: tokenPair.ExpiresIn, TokenType: "Bearer", User: dto.UserFromService(user)})
+		return
+	}
+	response.Success(c, AuthResponse{AccessToken: tokenPair.AccessToken, RefreshToken: tokenPair.RefreshToken, ExpiresIn: tokenPair.ExpiresIn, TokenType: "Bearer", User: dto.UserFromService(user)})
 }
 
 func respondWithTokenPair(c *gin.Context, authService *service.AuthService, user *service.User) {
@@ -681,9 +708,25 @@ type RefreshTokenResponse struct {
 // POST /api/v1/auth/refresh
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil && !BrowserSessionRequested(c) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
+	}
+	if BrowserSessionRequested(c) {
+		cookieRefreshToken := BrowserRefreshToken(c)
+		if cookieRefreshToken != "" {
+			req.RefreshToken = cookieRefreshToken
+			if !VerifyBrowserCSRF(c, req.RefreshToken, h.cfg.JWT.Secret) {
+				response.Forbidden(c, "CSRF validation failed")
+				return
+			}
+		} else if req.RefreshToken == "" {
+			response.Forbidden(c, "CSRF validation failed")
+			return
+		}
+		// Without a cookie, an explicit browser-mode JSON refresh migrates a
+		// legacy stored token. The global browser middleware still validates
+		// Origin, and the supplied refresh token must pass normal rotation.
 	}
 
 	result, err := h.authService.RefreshTokenPair(c.Request.Context(), req.RefreshToken)
@@ -698,9 +741,19 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	if BrowserSessionRequested(c) {
+		if err := SetBrowserSessionCookies(c, result.RefreshToken, h.cfg.JWT.Secret, h.cfg.JWT.RefreshTokenExpireDays*24*60*60); err != nil {
+			response.InternalError(c, "Failed to rotate browser session")
+			return
+		}
+	}
+	refreshToken := result.RefreshToken
+	if BrowserSessionRequested(c) {
+		refreshToken = ""
+	}
 	response.Success(c, RefreshTokenResponse{
 		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
+		RefreshToken: refreshToken,
 		ExpiresIn:    result.ExpiresIn,
 		TokenType:    "Bearer",
 	})
@@ -722,6 +775,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	var req LogoutRequest
 	// 允许空请求体（向后兼容）
 	_ = c.ShouldBindJSON(&req)
+	if BrowserSessionRequested(c) {
+		req.RefreshToken = BrowserRefreshToken(c)
+		if req.RefreshToken != "" && !VerifyBrowserCSRF(c, req.RefreshToken, h.cfg.JWT.Secret) {
+			response.Forbidden(c, "CSRF validation failed")
+			return
+		}
+	}
 
 	// 如果提供了Refresh Token，撤销它
 	if req.RefreshToken != "" {
@@ -732,6 +792,9 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 	h.consumePendingOAuthSessionOnLogout(c)
 	clearOAuthLogoutCookies(c)
+	if BrowserSessionRequested(c) {
+		ClearBrowserSessionCookies(c)
+	}
 
 	response.Success(c, LogoutResponse{
 		Message: "Logged out successfully",

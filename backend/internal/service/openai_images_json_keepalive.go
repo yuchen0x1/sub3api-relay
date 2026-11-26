@@ -84,6 +84,7 @@ func (k *openAIImagesJSONKeepalive) beat() bool {
 	if !k.started {
 		header := k.writer.Header()
 		header.Set("Content-Type", "application/json; charset=utf-8")
+		header.Set("X-Content-Type-Options", "nosniff")
 		header.Set("Cache-Control", "no-cache")
 		header.Set("X-Accel-Buffering", "no")
 		k.writer.WriteHeader(http.StatusOK)

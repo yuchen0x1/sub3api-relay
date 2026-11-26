@@ -416,8 +416,10 @@ describe('API Client', () => {
       await expect(apiClient.get('/test')).resolves.toMatchObject({ data: { ok: true } })
 
       expect(adapter).toHaveBeenCalledTimes(2)
-      expect(localStorage.getItem('auth_token')).toBe('new-token')
-      expect(localStorage.getItem('refresh_token')).toBe('new-refresh-token')
+      const { getAccessToken } = await import('@/api/browserSession')
+      expect(getAccessToken()).toBe('new-token')
+      expect(localStorage.getItem('auth_token')).toBeNull()
+      expect(localStorage.getItem('refresh_token')).toBeNull()
       expect(adapter.mock.calls[1][0].headers.get('Authorization')).toBe('Bearer new-token')
     })
 

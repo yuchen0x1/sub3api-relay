@@ -1,15 +1,24 @@
 import axios from 'axios'
 import type { ApiResponse } from '@/types'
 import { getAPIBaseURL } from './url'
+import {
+  browserSessionHeader,
+  getAccessToken,
+  getCsrfToken,
+  getSessionRefreshToken,
+  getSessionRevision,
+  hasBrowserSessionCookie,
+  isBrowserSession,
+  markBrowserSession,
+  setAccessToken,
+  setSessionRefreshToken,
+} from './browserSession'
 
-const AUTH_TOKEN_KEY = 'auth_token'
 const AUTH_USER_KEY = 'auth_user'
-const REFRESH_TOKEN_KEY = 'refresh_token'
 const TOKEN_EXPIRES_AT_KEY = 'token_expires_at'
 const TOKEN_REFRESH_LOCK_NAME = 'sub3api-auth-token-refresh'
+const BROWSER_REFRESH_LEASE_KEY = 'sub3api_browser_refresh_lease'
 const TOKEN_REFRESH_TIMEOUT_MS = 30_000
-const TOKEN_REFRESH_BUFFER_MS = 120_000
-const PEER_REFRESH_WAIT_MS = 1_000
 const PEER_REFRESH_GRACE_MS = 1_000
 const PEER_REFRESH_POLL_MS = 25
 
@@ -30,6 +39,7 @@ interface AuthSnapshot {
   refreshToken: string
   expiresAt: number
   userID: number | null
+  sessionRevision: number
 }
 
 let inFlightRefresh: Promise<RefreshTokenResponse> | null = null
@@ -49,178 +59,119 @@ function getStoredUserID(): number | null {
 }
 
 function readAuthSnapshot(): AuthSnapshot {
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-  if (!refreshToken) {
+  const refreshToken = getSessionRefreshToken()
+  if (!refreshToken && !isBrowserSession()) {
     throw new Error('No refresh token available')
   }
 
   return {
-    accessToken: localStorage.getItem(AUTH_TOKEN_KEY),
-    refreshToken,
+    accessToken: getAccessToken(),
+    refreshToken: refreshToken || '',
     expiresAt: Number(localStorage.getItem(TOKEN_EXPIRES_AT_KEY)),
-    userID: getStoredUserID()
+    userID: getStoredUserID(),
+    sessionRevision: getSessionRevision()
   }
-}
-
-function readStoredTokenPair(snapshot: AuthSnapshot): RefreshTokenResponse | null {
-  const accessToken = localStorage.getItem(AUTH_TOKEN_KEY)
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-  const expiresAt = Number(localStorage.getItem(TOKEN_EXPIRES_AT_KEY))
-
-  if (
-    !accessToken ||
-    !refreshToken ||
-    !Number.isFinite(expiresAt) ||
-    expiresAt <= Date.now() ||
-    getStoredUserID() !== snapshot.userID
-  ) {
-    return null
-  }
-
-  return {
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    expires_in: Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000)),
-    token_type: 'Bearer'
-  }
-}
-
-function readPeerRefreshResult(
-  snapshot: AuthSnapshot,
-  failedAccessToken?: string | null
-): RefreshTokenResponse | null {
-  const storedPair = readStoredTokenPair(snapshot)
-  if (!storedPair) {
-    return null
-  }
-
-  if (storedPair.refresh_token !== snapshot.refreshToken) {
-    return storedPair
-  }
-
-  if (
-    failedAccessToken &&
-    snapshot.accessToken !== failedAccessToken &&
-    storedPair.access_token === snapshot.accessToken
-  ) {
-    return storedPair
-  }
-
-  if (!failedAccessToken) {
-    const expiresAt = Number(localStorage.getItem(TOKEN_EXPIRES_AT_KEY))
-    if (
-      expiresAt === snapshot.expiresAt &&
-      storedPair.access_token === snapshot.accessToken &&
-      expiresAt > Date.now() + TOKEN_REFRESH_BUFFER_MS
-    ) {
-      return storedPair
-    }
-  }
-
-  return null
-}
-
-async function waitForPeerRefresh(
-  snapshot: AuthSnapshot,
-  failedAccessToken?: string | null,
-  deadline = Date.now() + PEER_REFRESH_WAIT_MS
-): Promise<RefreshTokenResponse | null> {
-  while (Date.now() < deadline) {
-    const peerResult = readPeerRefreshResult(snapshot, failedAccessToken)
-    if (peerResult) {
-      return peerResult
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, PEER_REFRESH_POLL_MS))
-  }
-
-  return readPeerRefreshResult(snapshot, failedAccessToken)
 }
 
 function persistTokenPair(tokens: RefreshTokenResponse): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, tokens.access_token)
+  setAccessToken(tokens.access_token)
+  setSessionRefreshToken(tokens.refresh_token)
   localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(Date.now() + tokens.expires_in * 1000))
-  // The rotating refresh token is written last so other tabs can treat its change as a commit marker.
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token)
 }
 
 async function requestTokenPair(
   snapshot: AuthSnapshot,
-  failedAccessToken?: string | null,
-  mayHaveUncoordinatedPeer = false
+  browser = false
 ): Promise<RefreshTokenResponse> {
-  // If this request loses a one-time-token race, the winning peer can legitimately take as long
-  // as our own HTTP timeout to publish its replacement token. Keep the recovery window tied to
-  // that timeout instead of an arbitrary short delay.
-  const peerRefreshDeadline = Date.now() + TOKEN_REFRESH_TIMEOUT_MS + PEER_REFRESH_GRACE_MS
-
-  try {
-    const response = await axios.post<ApiResponse<RefreshTokenResponse>>(
-      `${getAPIBaseURL()}/auth/refresh`,
-      { refresh_token: snapshot.refreshToken },
-      { headers: { 'Content-Type': 'application/json' }, timeout: TOKEN_REFRESH_TIMEOUT_MS }
-    )
-    const payload = response.data
-    if (payload.code !== 0 || !payload.data) {
-      throw new Error(payload.message || 'Token refresh failed')
+  // A peer may have completed legacy migration while this tab waited for the
+  // lock. Read the current cookie marker and CSRF token inside the lock.
+  const refreshToken = browser && hasBrowserSessionCookie() ? '' : snapshot.refreshToken
+  const response = await axios.post<ApiResponse<RefreshTokenResponse>>(
+    `${getAPIBaseURL()}/auth/refresh`,
+    refreshToken ? { refresh_token: refreshToken } : {},
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(browser ? browserSessionHeader() : {}),
+        ...(browser && getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {})
+      },
+      timeout: TOKEN_REFRESH_TIMEOUT_MS,
+      withCredentials: true
     }
-
-    if (
-      localStorage.getItem(REFRESH_TOKEN_KEY) !== snapshot.refreshToken ||
-      getStoredUserID() !== snapshot.userID
-    ) {
-      const peerResult = readPeerRefreshResult(snapshot, failedAccessToken)
-      if (peerResult) {
-        return peerResult
-      }
-      throw new Error('Session changed during token refresh')
-    }
-
-    persistTokenPair(payload.data)
-    return payload.data
-  } catch (error) {
-    // A peer tab may have rotated the one-time refresh token while this request was in flight.
-    // A 4xx response can arrive quickly while the winning peer's response is still in flight, so
-    // wait through the shared request deadline before treating the session as expired. Transient
-    // non-4xx failures retain the short reconciliation window.
-    const responseStatus = (error as { response?: { status?: unknown } }).response?.status
-    const isTokenRejection =
-      typeof responseStatus === 'number' && responseStatus >= 400 && responseStatus < 500
-    const peerResult = await waitForPeerRefresh(
-      snapshot,
-      failedAccessToken,
-      isTokenRejection && mayHaveUncoordinatedPeer
-        ? peerRefreshDeadline
-        : Date.now() + PEER_REFRESH_WAIT_MS
-    )
-    if (peerResult) {
-      return peerResult
-    }
-    throw error
+  )
+  const payload = response.data
+  if (payload.code !== 0 || !payload.data) {
+    throw new Error(payload.message || 'Token refresh failed')
   }
+
+  if (
+    getSessionRevision() !== snapshot.sessionRevision ||
+    getStoredUserID() !== snapshot.userID
+  ) {
+    throw new Error('Session changed during token refresh')
+  }
+
+  persistTokenPair(payload.data)
+  return payload.data
+}
+
+async function withBrowserRefreshLease<T>(refresh: () => Promise<T>): Promise<T> {
+  // randomUUID and Web Locks require a secure context; HTTP self-hosted
+  // installations still need a unique (non-secret) coordination identifier.
+  const owner = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+  const deadline = Date.now() + TOKEN_REFRESH_TIMEOUT_MS * 2
+  while (Date.now() < deadline) {
+    let lease: { owner?: string; expiresAt?: number } | null = null
+    try {
+      lease = JSON.parse(localStorage.getItem(BROWSER_REFRESH_LEASE_KEY) || 'null')
+    } catch {
+      // Ignore a stale or corrupt coordination record. It contains no tokens.
+    }
+    if (!lease || !lease.expiresAt || lease.expiresAt <= Date.now()) {
+      const value = JSON.stringify({ owner, expiresAt: Date.now() + TOKEN_REFRESH_TIMEOUT_MS + PEER_REFRESH_GRACE_MS })
+      localStorage.setItem(BROWSER_REFRESH_LEASE_KEY, value)
+      await new Promise((resolve) => window.setTimeout(resolve, PEER_REFRESH_POLL_MS))
+      if (localStorage.getItem(BROWSER_REFRESH_LEASE_KEY) === value) {
+        try {
+          return await refresh()
+        } finally {
+          if (localStorage.getItem(BROWSER_REFRESH_LEASE_KEY) === value) {
+            localStorage.removeItem(BROWSER_REFRESH_LEASE_KEY)
+          }
+        }
+      }
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, PEER_REFRESH_POLL_MS))
+  }
+  throw new Error('Timed out waiting for browser session refresh')
 }
 
 async function runRefresh(options: RefreshAuthTokensOptions): Promise<RefreshTokenResponse> {
   const snapshot = readAuthSnapshot()
-  const refresh = async (mayHaveUncoordinatedPeer = false): Promise<RefreshTokenResponse> => {
-    const peerResult = readPeerRefreshResult(snapshot, options.failedAccessToken)
-    if (peerResult) {
-      return peerResult
+  if (options.failedAccessToken && snapshot.accessToken && snapshot.accessToken !== options.failedAccessToken && snapshot.expiresAt > Date.now()) {
+    return {
+      access_token: snapshot.accessToken,
+      refresh_token: snapshot.refreshToken,
+      expires_in: Math.max(1, Math.ceil((snapshot.expiresAt - Date.now()) / 1000)),
+      token_type: 'Bearer'
     }
-    return requestTokenPair(snapshot, options.failedAccessToken, mayHaveUncoordinatedPeer)
   }
+  markBrowserSession()
+  const browser = isBrowserSession()
+  const refresh = () => requestTokenPair(snapshot, browser)
 
   if (typeof navigator !== 'undefined' && navigator.locks) {
-    return navigator.locks.request(TOKEN_REFRESH_LOCK_NAME, () => refresh(false))
+    return navigator.locks.request(TOKEN_REFRESH_LOCK_NAME, refresh)
   }
 
-  return refresh(true)
+  return browser ? withBrowserRefreshLease(refresh) : refresh()
 }
 
 /**
  * Refresh and persist the browser session.
  *
- * Calls in the same document share one promise. Web Locks serialize refreshes across tabs, while
- * the token snapshot check adopts a peer's newly rotated token instead of logging the user out.
+ * Calls in the same document share one promise. Cookie refreshes are serialized
+ * across tabs; every response is checked against logout/account changes.
  */
 export function refreshAuthTokens(
   options: RefreshAuthTokensOptions = {}

@@ -5,6 +5,7 @@
 
 import { apiClient } from './client'
 import { refreshAuthTokens, type RefreshTokenResponse } from './tokenRefresh'
+import { markBrowserSession, setAccessToken, getAccessToken, clearAccessToken, isBrowserSession, setPendingRefreshToken, takePendingRefreshToken, getSessionRefreshToken, setSessionRefreshToken } from './browserSession'
 export type { RefreshTokenResponse } from './tokenRefresh'
 import type {
   LoginRequest,
@@ -69,17 +70,18 @@ export function isTotp2FARequired(response: LoginResponse): response is TotpLogi
 }
 
 /**
- * Store authentication token in localStorage
+ * Store the access token in memory for cookie-backed browser sessions.
  */
 export function setAuthToken(token: string): void {
-  localStorage.setItem('auth_token', token)
+  setAccessToken(token)
 }
 
 /**
- * Store refresh token in localStorage
+ * Keep a bearer or pending browser-migration refresh token in memory.
  */
 export function setRefreshToken(token: string): void {
-  localStorage.setItem('refresh_token', token)
+  if (isBrowserSession()) setPendingRefreshToken(token)
+  else setSessionRefreshToken(token)
 }
 
 /**
@@ -92,17 +94,17 @@ export function setTokenExpiresAt(expiresIn: number): void {
 }
 
 /**
- * Get authentication token from localStorage
+ * Get the in-memory access token, with read-only legacy migration support.
  */
 export function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token')
+  return getAccessToken()
 }
 
 /**
- * Get refresh token from localStorage
+ * Get the in-memory bearer refresh token or a legacy token awaiting migration.
  */
 export function getRefreshToken(): string | null {
-  return localStorage.getItem('refresh_token')
+  return getSessionRefreshToken()
 }
 
 /**
@@ -114,9 +116,10 @@ export function getTokenExpiresAt(): number | null {
 }
 
 /**
- * Clear authentication token from localStorage
+ * Clear memory credentials and remove legacy persisted authentication state.
  */
 export function clearAuthToken(): void {
+  clearAccessToken()
   localStorage.removeItem('auth_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('auth_user')
@@ -129,14 +132,14 @@ export function clearAuthToken(): void {
  * @returns Authentication response with token and user data, or 2FA required response
  */
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
+  markBrowserSession()
   const { data } = await apiClient.post<LoginResponse>('/auth/login', credentials)
 
   // Only store token if 2FA is not required
   if (!isTotp2FARequired(data)) {
+    markBrowserSession()
     setAuthToken(data.access_token)
-    if (data.refresh_token) {
-      setRefreshToken(data.refresh_token)
-    }
+    if (data.refresh_token) setRefreshToken(data.refresh_token)
     if (data.expires_in) {
       setTokenExpiresAt(data.expires_in)
     }
@@ -152,13 +155,13 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
  * @returns Authentication response with token and user data
  */
 export async function login2FA(request: TotpLogin2FARequest): Promise<AuthResponse> {
+  markBrowserSession()
   const { data } = await apiClient.post<AuthResponse>('/auth/login/2fa', request)
 
   // Store token and user data
+  markBrowserSession()
   setAuthToken(data.access_token)
-  if (data.refresh_token) {
-    setRefreshToken(data.refresh_token)
-  }
+  if (data.refresh_token) setRefreshToken(data.refresh_token)
   if (data.expires_in) {
     setTokenExpiresAt(data.expires_in)
   }
@@ -173,13 +176,13 @@ export async function login2FA(request: TotpLogin2FARequest): Promise<AuthRespon
  * @returns Authentication response with token and user data
  */
 export async function register(userData: RegisterRequest): Promise<AuthResponse> {
+  markBrowserSession()
   const { data } = await apiClient.post<AuthResponse>('/auth/register', userData)
 
   // Store token and user data
+  markBrowserSession()
   setAuthToken(data.access_token)
-  if (data.refresh_token) {
-    setRefreshToken(data.refresh_token)
-  }
+  if (data.refresh_token) setRefreshToken(data.refresh_token)
   if (data.expires_in) {
     setTokenExpiresAt(data.expires_in)
   }
@@ -205,9 +208,9 @@ export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken()
 
   // Try to revoke the refresh token on the server
-  if (refreshToken) {
+  if (refreshToken || getAuthToken() || isBrowserSession()) {
     try {
-      await apiClient.post('/auth/logout', { refresh_token: refreshToken })
+      await apiClient.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : {})
     } catch {
       // Ignore errors - we still want to clear local state
     }
@@ -305,13 +308,27 @@ export function hasPendingOAuthSuggestedProfile(
   return Boolean(completion.suggested_display_name || completion.suggested_avatar_url)
 }
 
-export function persistOAuthTokenContext(tokens: Partial<OAuthTokenResponse>): void {
+export function persistOAuthTokenContext(tokens: Partial<OAuthTokenResponse>): string | undefined {
   if (tokens.refresh_token) {
-    setRefreshToken(tokens.refresh_token)
+    setPendingRefreshToken(tokens.refresh_token)
   }
   if (tokens.expires_in) {
     setTokenExpiresAt(tokens.expires_in)
   }
+  return tokens.refresh_token
+}
+
+/** Exchange a newly issued access token for the browser's HttpOnly refresh cookie. */
+export async function establishBrowserSession(refreshToken?: string): Promise<void> {
+  const token = getAuthToken()
+  if (!token) return
+  markBrowserSession()
+  const pendingRefresh = takePendingRefreshToken()
+  const refresh = refreshToken || pendingRefresh
+  if (!isBrowserSession() || !refresh) return
+  const { data } = await apiClient.post<RefreshTokenResponse>('/auth/browser-session', { refresh_token: refresh })
+  setAuthToken(data.access_token)
+  setTokenExpiresAt(data.expires_in)
 }
 
 export async function prepareOAuthBindAccessTokenCookie(): Promise<void> {
@@ -706,6 +723,7 @@ export const authAPI = {
   isPendingOAuthCreateAccountRequired,
   hasPendingOAuthSuggestedProfile,
   completePendingOAuthBindLogin,
+  establishBrowserSession,
   createPendingLinuxDoOAuthAccount,
   createPendingOIDCOAuthAccount,
   createPendingWeChatOAuthAccount,

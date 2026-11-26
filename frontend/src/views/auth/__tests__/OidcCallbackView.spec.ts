@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { clearAccessToken, peekPendingRefreshToken } from '@/api/browserSession'
 
 import OidcCallbackView from '../OidcCallbackView.vue'
 
@@ -103,6 +104,7 @@ describe('OidcCallbackView', () => {
     })
     window.location.hash = ''
     localStorage.clear()
+    clearAccessToken()
     sessionStorage.clear()
   })
 
@@ -126,7 +128,8 @@ describe('OidcCallbackView', () => {
 
     expect(exchangePendingOAuthCompletion).not.toHaveBeenCalled()
     expect(setToken).toHaveBeenCalledWith('legacy-alpha')
-    expect(localStorage.getItem('refresh_token')).toBe('legacy-beta')
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(peekPendingRefreshToken()).toBe('legacy-beta')
     expect(localStorage.getItem('token_expires_at')).not.toBeNull()
     expect(showSuccess).toHaveBeenCalledWith('auth.loginSuccess')
     expect(replace).toHaveBeenCalledWith('/legacy-dashboard')

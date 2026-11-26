@@ -1,21 +1,15 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { DownloadEvent, Update } from "@tauri-apps/plugin-updater"
 import { checkForDesktopUpdate, installDesktopUpdate, isTauriRuntime } from "../api"
+import { getUpdateStorage, readUpdateInterval, saveUpdateInterval } from "../preferences"
 
 type CheckState = "idle" | "checking" | "available" | "current" | "downloading" | "error"
 
-const UPDATE_INTERVAL_KEY = "sub3api.desktop.update-check-hours"
 const UPDATE_INTERVALS = [
   { value: 0, label: "Startup only" },
   { value: 6, label: "Every 6 hours" },
   { value: 24, label: "Every 24 hours" },
 ] as const
-
-function readUpdateInterval(): number {
-  if (typeof window === "undefined") return 6
-  const value = Number(window.localStorage.getItem(UPDATE_INTERVAL_KEY))
-  return UPDATE_INTERVALS.some((option) => option.value === value) ? value : 6
-}
 
 function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return ""
@@ -35,17 +29,33 @@ export function UpdatePanel() {
   const [downloaded, setDownloaded] = useState(0)
   const [contentLength, setContentLength] = useState<number | undefined>()
   const [error, setError] = useState<string | null>(null)
-  const [intervalHours, setIntervalHours] = useState(readUpdateInterval)
+  const [intervalHours, setIntervalHours] = useState(() => readUpdateInterval(getUpdateStorage()))
+  const stateRef = useRef<CheckState>("idle")
+  const activeRef = useRef(true)
+
+  useEffect(() => {
+    activeRef.current = true
+    return () => { activeRef.current = false }
+  }, [])
 
   const checkUpdate = useCallback(async () => {
     if (!isTauriRuntime()) return
+    if (stateRef.current === "checking" || stateRef.current === "downloading") return
+    stateRef.current = "checking"
     setState("checking")
     setError(null)
     try {
       const next = await checkForDesktopUpdate()
+      if (!activeRef.current) {
+        if (next) await next.close().catch(() => undefined)
+        return
+      }
       setUpdate(next)
+      stateRef.current = next ? "available" : "current"
       setState(next ? "available" : "current")
     } catch (cause) {
+      if (!activeRef.current) return
+      stateRef.current = "error"
       setState("error")
       setError(cause instanceof Error ? cause.message : "Unable to check for updates.")
     }
@@ -70,9 +80,11 @@ export function UpdatePanel() {
   }, [update])
 
   async function install() {
-    if (!update || state === "downloading") return
+    if (!update || stateRef.current === "checking" || stateRef.current === "downloading") return
+    stateRef.current = "downloading"
     setState("downloading")
     setDownloaded(0)
+    setContentLength(undefined)
     setError(null)
     try {
       await installDesktopUpdate(update, (event) => {
@@ -83,6 +95,7 @@ export function UpdatePanel() {
         }
       })
     } catch (cause) {
+      stateRef.current = "error"
       setState("error")
       setError(cause instanceof Error ? cause.message : "Unable to install the update.")
     }
@@ -91,6 +104,7 @@ export function UpdatePanel() {
   function deferUpdate() {
     setUpdate(null)
     setError(null)
+    stateRef.current = "idle"
     setState("idle")
   }
 
@@ -109,7 +123,7 @@ export function UpdatePanel() {
             <select value={intervalHours} onChange={(event) => {
               const next = Number(event.target.value)
               setIntervalHours(next)
-              window.localStorage.setItem(UPDATE_INTERVAL_KEY, String(next))
+              saveUpdateInterval(getUpdateStorage(), next)
             }}>
               {UPDATE_INTERVALS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>

@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/yuchen0x1/sub3api-relay/ent"
@@ -87,6 +88,22 @@ func InitEnt(cfg *config.Config) (*ent.Client, *sql.DB, error) {
 	if err := cfg.Validate(); err != nil {
 		_ = client.Close()
 		return nil, nil, fmt.Errorf("validate config after secret bootstrap: %w", err)
+	}
+
+	backfillCtx, backfillCancel := context.WithTimeout(migrationCtx, 5*time.Minute)
+	updatedDigests, skippedDigests, backfillErr := BackfillAccountCredentialDigests(
+		backfillCtx,
+		drv.DB(),
+		NewAccountCredentialCipher(cfg),
+		defaultCredentialDigestBackfillBatchSize,
+	)
+	backfillCancel()
+	if backfillErr != nil {
+		// Legacy digest rows remain readable through the SHA-256 compatibility
+		// branch; retry the bounded CAS backfill on the next startup.
+		slog.Error("account credential digest backfill did not finish", "err", backfillErr, "updated", updatedDigests, "skipped", skippedDigests)
+	} else if updatedDigests > 0 || skippedDigests > 0 {
+		slog.Info("account credential digest backfill finished", "updated", updatedDigests, "skipped", skippedDigests)
 	}
 
 	// SIMPLE 模式：启动时补齐各平台默认分组。

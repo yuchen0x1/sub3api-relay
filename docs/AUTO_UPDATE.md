@@ -30,9 +30,17 @@ The current release workflow uses the built-in `GITHUB_TOKEN` with `contents: wr
 
 ## Failure handling
 
-- Binary updates verify SHA-256 before replacing the service binary and restore the previous binary when startup or health checks fail.
+- Binary updates verify SHA-256 before replacing the service binary. Automatic binary rollback is allowed only within the same supported database-compatibility boundary; crossing the v0.5.7 migration requires a database backup and manual recovery after a failed startup or health check.
 - Docker deployments keep the previous image available until the upgraded container passes health checks.
 - Missing releases, unavailable networks, or incomplete assets are reported as update failures and do not disable the current service.
+
+## v0.5.7 Migration
+
+- The stable release discovery URL, `vX.Y.Z` tags, archive names and `checksums.txt` contract are unchanged. Existing supported server clients keep their update-notification path; Windows standalone deployments must stop the process and replace the executable manually.
+- Back up the database, configuration and encryption keys before upgrading. Stop all pre-v0.5.7 instances before starting the new version. Use the current deployment script or perform a stopped-service upgrade; older updaters cannot enforce the new migration safeguards. Migration 207 adds a digest-version column and the application backfills versioned HMAC credential fingerprints in bounded CAS-protected batches.
+- Do not run older and newer server versions against the same database. A rollback to v0.5.6 or earlier requires restoring the pre-upgrade database and configuration as well as the binary. A binary-only health-check rollback does not reverse this data migration.
+- The current `deploy/update-binary.sh` requires `SUB3API_DATABASE_BACKUP_CONFIRMED=1` for an upgrade from before v0.5.7 across this boundary. Set it only after verifying the backup and stopping every old instance. If the candidate fails, keep the service stopped and restore the database, configuration and binary together before restarting. The admin updater rejects downgrades below the compatible boundary and cannot safely infer the version of an unlabelled backup.
+- Same-origin Web login moves refresh tokens to an HttpOnly Cookie and access tokens to memory. Reload the updated Web application after the server upgrade. Separately hosted frontends retain the bearer API contract but keep new tokens only in page memory, so reloading requires another login. Serve the UI and API under one origin to enable persistent Cookie mode. Legacy localStorage tokens are read only to migrate existing sessions and are no longer renewed there.
 
 ## Known limitations
 

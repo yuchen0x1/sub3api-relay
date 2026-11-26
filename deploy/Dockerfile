@@ -20,7 +20,8 @@ FROM ${NODE_IMAGE} AS frontend-builder
 WORKDIR /app/frontend
 RUN corepack enable && corepack prepare pnpm@11.20.0 --activate && \
     pnpm config set store-dir /pnpm/store
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml frontend/.npmrc ./
+COPY frontend/patches/ ./patches/
 RUN --mount=type=cache,id=sub3api-pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 COPY frontend/ ./

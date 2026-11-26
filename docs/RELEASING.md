@@ -10,6 +10,8 @@ The canonical source and update/download channel is GitHub:
 3. Update `docs/releases/release-notes.md`, the per-version release note, and README highlights/links. Ensure installation, cloning and download links use `yuchen0x1/sub3api-relay`.
 4. Run relevant backend/frontend tests and inspect all existing worktree edits. Preserve unrelated changes.
 5. Validate `.github/workflows/release.yml`. The pinned Go toolchain and reachable-vulnerability gate must pass before publishing. Tag-triggered runs upload server archives, Web and deployment bundles, and checksums to the GitHub Release and retain them as workflow-run artifacts; manual runs only retain workflow artifacts. The optional Tauri shell is not part of the supported release channel.
+6. Scan the worktree, staged diff and full Git history for API keys, tokens and private keys before pushing. Use redacted scanner output and never include live deployment configuration, local caches, authentication state or scanner reports in release assets.
+7. For v0.5.7, document migration 207 and the database-restore requirement for downgrades. Do not describe binary-only rollback or mixed-version operation as supported after the credential digest backfill.
 
 ## README synchronization through protected branches
 
@@ -33,6 +35,6 @@ The workflow builds Linux AMD64 and ARM64 runtime images on matching runners and
 gh attestation verify "$archive" --repo yuchen0x1/sub3api-relay --signer-workflow yuchen0x1/sub3api-relay/.github/workflows/release.yml --source-ref "refs/tags/$tag"
 ```
 
-Run `sha256sum --check checksums.txt` with all archives present. A disposable Linux systemd job starts the previous published binary, exercises a failed health check and rollback, installs the candidate, checks its version and health, and repeats discovery. Production data recovery requires a separate test with the operator’s backups.
+Run `sha256sum --check checksums.txt` with all archives present. A disposable Linux systemd job starts the previous published binary, exercises failure recovery within the supported database boundary, installs the candidate, checks its version and health, and repeats discovery. The v0.5.7 boundary additionally requires that failed cross-migration updates stay stopped until database recovery, rather than restarting an incompatible old binary. Production data recovery requires a separate test with the operator’s backups.
 
 The optional Tauri scaffolding has no signed release channel. See [maintenance coverage](maintenance/README.md).

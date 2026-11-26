@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AccountTestModal from '../AccountTestModal.vue'
+import { clearAccessToken, markBrowserSession, setAccessToken } from '@/api/browserSession'
 
 const { getAvailableModels, copyToClipboard } = vi.hoisted(() => ({
   getAvailableModels: vi.fn(),
@@ -113,10 +114,13 @@ describe('AccountTestModal', () => {
   })
 
   afterEach(() => {
+    clearAccessToken()
     vi.restoreAllMocks()
   })
 
   it('gemini 图片模型测试会携带提示词并渲染图片预览', async () => {
+    markBrowserSession()
+    setAccessToken('cookie-access')
     const wrapper = mountModal()
     await wrapper.setProps({ show: true })
     await flushPromises()
@@ -135,6 +139,7 @@ describe('AccountTestModal', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1)
     const [, request] = (global.fetch as any).mock.calls[0]
+    expect(request.headers.Authorization).toBe('Bearer cookie-access')
     expect(JSON.parse(request.body)).toEqual({
       model_id: 'gemini-3.1-flash-image',
       prompt: 'draw a tiny orange cat astronaut'

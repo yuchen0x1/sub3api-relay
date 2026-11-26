@@ -384,6 +384,63 @@ func accountIDs(accounts []service.Account) []int64 {
 	return ids
 }
 
+func TestEncryptedOllamaCloudUsageIdentityAndBulkCredentialMerge(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	cipher := testCipher(t)
+	cipher.hmacKey = []byte("stable-test-hmac-key")
+	repo := newAccountRepositoryWithSQL(tx.Client(), tx, nil)
+	repo.credCipher = cipher
+	accounts := make([]*service.Account, 0, 2)
+	for _, name := range []string{"encrypted-ollama-first", "encrypted-ollama-second"} {
+		account := &service.Account{
+			Name: name, Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey,
+			Status: service.StatusActive, Schedulable: true, Concurrency: 1, Priority: 1,
+			Credentials: map[string]any{"api_key": "same-key", "base_url": "https://ollama.com"},
+		}
+		require.NoError(t, createAccountRecord(ctx, tx.Client(), account, cipher))
+		accounts = append(accounts, account)
+	}
+	firstStored, err := tx.Client().Account.Get(ctx, accounts[0].ID)
+	require.NoError(t, err)
+	secondStored, err := tx.Client().Account.Get(ctx, accounts[1].ID)
+	require.NoError(t, err)
+	require.NotEqual(t, firstStored.Credentials["api_key"], secondStored.Credentials["api_key"], "AES-GCM must use independent nonces")
+
+	siblings, err := repo.ListOllamaCloudUsageGroupAccounts(ctx, accounts[:1])
+	require.NoError(t, err)
+	require.Len(t, siblings, 2, "group matching must use plaintext-key digests, not random envelopes")
+	require.NoError(t, repo.SaveOllamaCloudUsageSession(ctx, accounts[0], "cipher:wos-session=fixture", true))
+	due, err := repo.ListDueOllamaCloudUsageAccounts(ctx, time.Now(), time.Minute, time.Hour, 10)
+	require.NoError(t, err)
+	require.Len(t, due, 1, "encrypted siblings must share a single due group")
+
+	affected, err := repo.BulkUpdate(ctx, []int64{accounts[0].ID}, service.AccountBulkUpdate{
+		Credentials: map[string]any{"refresh_token": "new-refresh"},
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, affected)
+	merged, err := repo.GetByID(ctx, accounts[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, "same-key", merged.Credentials["api_key"])
+	require.Equal(t, "new-refresh", merged.Credentials["refresh_token"])
+	require.Equal(t, "cipher:wos-session=fixture", merged.Extra[service.OllamaCloudUsageSessionExtraKey])
+	stored, err := tx.Client().Account.Get(ctx, accounts[0].ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored.CredentialsDigestVersion)
+	require.Equal(t, credentialDigestVersionHMAC, *stored.CredentialsDigestVersion)
+	_, digest, _, apiDigest, _, err := credentialDigestCandidates(merged.Credentials, cipher.hmacKey)
+	require.NoError(t, err)
+	require.Equal(t, &digest, stored.CredentialsDigest)
+	require.Equal(t, apiDigest, stored.CredentialsAPIKeyDigest)
+
+	delete(merged.Credentials, "api_key")
+	require.NoError(t, repo.Update(ctx, merged))
+	stored, err = tx.Client().Account.Get(ctx, accounts[0].ID)
+	require.NoError(t, err)
+	require.Nil(t, stored.CredentialsAPIKeyDigest, "removing api_key must clear its old digest")
+}
+
 func TestOllamaCloudUsageCredentialAndBulkUpdatesPreserveManagedStateOnlyWhenSafe(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { clearAccessToken, peekPendingRefreshToken } from '@/api/browserSession'
 
 import LinuxDoCallbackView from '../LinuxDoCallbackView.vue'
 
@@ -99,6 +100,7 @@ describe('LinuxDoCallbackView', () => {
     })
     window.location.hash = ''
     localStorage.clear()
+    clearAccessToken()
     sessionStorage.clear()
   })
 
@@ -122,7 +124,8 @@ describe('LinuxDoCallbackView', () => {
 
     expect(exchangePendingOAuthCompletion).not.toHaveBeenCalled()
     expect(setToken).toHaveBeenCalledWith('legacy-access-token')
-    expect(localStorage.getItem('refresh_token')).toBe('legacy-refresh-token')
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(peekPendingRefreshToken()).toBe('legacy-refresh-token')
     expect(localStorage.getItem('token_expires_at')).not.toBeNull()
     expect(showSuccess).toHaveBeenCalledWith('auth.loginSuccess')
     expect(replace).toHaveBeenCalledWith('/legacy-dashboard')

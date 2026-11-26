@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"errors"
+	"runtime"
 	"testing"
 	"time"
 
@@ -76,6 +77,29 @@ func TestResolveUpdateChannelUsesGitHub(t *testing.T) {
 	require.Equal(t, "yuchen0x1/sub3api-relay", GitHubUpdateRepo)
 }
 
+func TestUpdateServiceOlderVersionsStillReceiveUpdateNotifications(t *testing.T) {
+	for _, version := range []string{"0.4.4", "0.5.0", "0.5.6"} {
+		for _, buildType := range []string{"release", "source", "docker"} {
+			t.Run(version+"/"+buildType, func(t *testing.T) {
+				svc := NewUpdateService(
+					&updateServiceCacheStub{},
+					&updateServiceGitHubClientStub{release: &GitHubRelease{TagName: "v0.5.7"}},
+					version,
+					buildType,
+				)
+
+				info, err := svc.CheckUpdate(context.Background(), false)
+
+				require.NoError(t, err)
+				require.True(t, info.HasUpdate)
+				require.Equal(t, version, info.CurrentVersion)
+				require.Equal(t, "0.5.7", info.LatestVersion)
+				require.Equal(t, buildType, info.BuildType)
+			})
+		}
+	}
+}
+
 func TestUpdateServiceRejectsInPlaceUpdateOutsideStandaloneRelease(t *testing.T) {
 	for _, buildType := range []string{"source", "docker"} {
 		t.Run(buildType, func(t *testing.T) {
@@ -89,6 +113,29 @@ func TestUpdateServiceRejectsInPlaceUpdateOutsideStandaloneRelease(t *testing.T)
 			require.ErrorIs(t, svc.PerformUpdate(context.Background()), ErrInPlaceUpdateUnsupported)
 			require.ErrorIs(t, svc.Rollback(), ErrInPlaceUpdateUnsupported)
 			require.ErrorIs(t, svc.RollbackToVersion(context.Background(), "0.1.179"), ErrInPlaceUpdateUnsupported)
+		})
+	}
+}
+
+func TestUpdateServiceInPlaceUpdatePlatformSupport(t *testing.T) {
+	tests := []struct {
+		name      string
+		buildType string
+		goos      string
+		wantErr   error
+	}{
+		{name: "release linux", buildType: "release", goos: "linux"},
+		{name: "release windows", buildType: "release", goos: "windows", wantErr: ErrWindowsInPlaceUpdateUnsupported},
+		{name: "docker windows", buildType: "docker", goos: "windows", wantErr: ErrInPlaceUpdateUnsupported},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ensureInPlaceUpdateSupported(tt.buildType, tt.goos)
+			if tt.wantErr == nil {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -126,6 +173,36 @@ func TestUpdateServiceListRollbackVersionsFiltersAndCaps(t *testing.T) {
 	require.Equal(t, "0.1.143", versions[2].Version)
 }
 
+func TestUpdateServiceRollbackCannotCrossCredentialDigestMigration(t *testing.T) {
+	releases := []*GitHubRelease{
+		{TagName: "v0.5.8"},
+		{TagName: "v0.5.7"},
+		{TagName: "v0.5.6"},
+		{TagName: "v0.5.5"},
+	}
+	svc := newRollbackTestService("0.5.9", releases)
+
+	versions, err := svc.ListRollbackVersions(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, []RollbackVersion{{Version: "0.5.8"}, {Version: "0.5.7"}}, versions)
+	require.ErrorIs(t, svc.RollbackToVersion(context.Background(), "v0.5.6"), ErrRollbackRequiresDatabaseRestore)
+	if runtime.GOOS != "windows" {
+		require.ErrorIs(t, svc.Rollback(), ErrRollbackRequiresDatabaseRestore)
+	}
+
+	for _, test := range []struct {
+		current, target string
+		blocked         bool
+	}{
+		{"0.5.6", "0.5.5", false},
+		{"0.5.7", "0.5.6", true},
+		{"0.5.8", "0.5.7", false},
+		{"0.6.0", "0.4.4", true},
+	} {
+		require.Equal(t, test.blocked, rollbackRequiresDatabaseRestore(test.current, test.target))
+	}
+}
+
 func TestUpdateServiceRejectsInvalidLatestReleaseVersion(t *testing.T) {
 	svc := NewUpdateService(
 		&updateServiceCacheStub{},
@@ -142,13 +219,96 @@ func TestUpdateServiceRejectsInvalidLatestReleaseVersion(t *testing.T) {
 	require.Contains(t, info.Warning, "invalid release version")
 }
 
+func TestUpdateServiceRejectsNilLatestRelease(t *testing.T) {
+	svc := NewUpdateService(
+		&updateServiceCacheStub{},
+		&updateServiceGitHubClientStub{},
+		"0.1.181",
+		"release",
+	)
+
+	info, err := svc.CheckUpdate(context.Background(), true)
+
+	require.NoError(t, err)
+	require.False(t, info.HasUpdate)
+	require.Equal(t, "0.1.181", info.LatestVersion)
+	require.Contains(t, info.Warning, "empty latest release")
+}
+
+func TestUpdateServiceArchiveAssetMatchingRejectsSidecars(t *testing.T) {
+	require.True(t, isReleaseArchiveAsset("sub3api_0.5.6_windows_amd64.tar.gz", "windows_amd64"))
+	for _, name := range []string{
+		"sub3api_0.5.6_windows_amd64.tar.gz.sig",
+		"sub3api_0.5.6_windows_amd64.tar.gz.sha256",
+		"nested/sub3api_0.5.6_windows_amd64.tar.gz",
+		"sub3api_0.5.6_windows_amd64.txt",
+	} {
+		require.False(t, isReleaseArchiveAsset(name, "windows_amd64"), name)
+	}
+}
+
+func TestUpdateServicePerformUpdateRejectsReleaseWithoutAssets(t *testing.T) {
+	svc := NewUpdateService(
+		&updateServiceCacheStub{},
+		&updateServiceGitHubClientStub{release: &GitHubRelease{TagName: "v0.5.7"}},
+		"0.5.6",
+		"release",
+	)
+
+	err := svc.PerformUpdate(context.Background())
+	if runtime.GOOS == "windows" {
+		require.ErrorIs(t, err, ErrWindowsInPlaceUpdateUnsupported)
+		return
+	}
+	require.ErrorContains(t, err, "latest release has no downloadable assets")
+}
+
+func TestUpdateServiceRequiresChecksumAsset(t *testing.T) {
+	svc := NewUpdateService(nil, nil, "0.5.6", "release")
+	assetName := "sub3api_0.5.7_" + svc.getArchiveName() + ".tar.gz"
+	err := svc.applyReleaseAssets(context.Background(), []Asset{{
+		Name:        assetName,
+		DownloadURL: "https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.5.7/" + assetName,
+	}})
+	require.ErrorContains(t, err, "release is missing checksums.txt")
+}
+
+func TestValidateDownloadURLRejectsLookalikeHostsAndPorts(t *testing.T) {
+	require.NoError(t, validateDownloadURL("https://github.com/yuchen0x1/sub3api-relay/releases/download/v0.5.6/checksums.txt"))
+	require.NoError(t, validateDownloadURL("https://objects.githubusercontent.com/github-production-release-asset/checksums.txt"))
+	for _, rawURL := range []string{
+		"https://github.com.evil.example/release.tar.gz",
+		"https://objects.githubusercontent.com.evil.example/release.tar.gz",
+		"https://github.com:8443/release.tar.gz",
+		"https://user@github.com/release.tar.gz",
+	} {
+		require.Error(t, validateDownloadURL(rawURL), rawURL)
+	}
+}
+
 func TestStrictReleaseVersion(t *testing.T) {
 	for _, version := range []string{"0.1.182", "10.20.30"} {
 		require.True(t, isStrictReleaseVersion(version), version)
 	}
-	for _, version := range []string{"", "v0.1.182", "0.1", "0.1.182-rc1", "0.1.182'$(id)'", "０.１.１８２"} {
+	for _, version := range []string{"", "v0.1.182", "0.1", "0.1.182-rc1", "0.1.182'$(id)'", "０.１.１８２", "0.1.99999999999999999999999999"} {
 		require.False(t, isStrictReleaseVersion(version), version)
 	}
+}
+
+func TestUpdateServiceRejectsOverflowingLatestReleaseVersion(t *testing.T) {
+	svc := NewUpdateService(
+		&updateServiceCacheStub{},
+		&updateServiceGitHubClientStub{release: &GitHubRelease{TagName: "v0.1.99999999999999999999999999"}},
+		"0.1.181",
+		"release",
+	)
+
+	info, err := svc.CheckUpdate(context.Background(), true)
+
+	require.NoError(t, err)
+	require.False(t, info.HasUpdate)
+	require.Equal(t, "0.1.181", info.LatestVersion)
+	require.Contains(t, info.Warning, "invalid release version")
 }
 
 func TestUpdateServiceListRollbackVersionsSortsUnorderedInput(t *testing.T) {
@@ -230,6 +390,10 @@ func TestUpdateServiceRollbackToVersionAcceptsVPrefix(t *testing.T) {
 	svc := newRollbackTestService("0.1.147", releases)
 
 	err := svc.RollbackToVersion(context.Background(), "v0.1.146")
+	if runtime.GOOS == "windows" {
+		require.ErrorIs(t, err, ErrWindowsInPlaceUpdateUnsupported)
+		return
+	}
 
 	require.Error(t, err)
 	require.NotErrorIs(t, err, ErrRollbackVersionNotAllowed)

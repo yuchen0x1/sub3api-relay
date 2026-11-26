@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearAccessToken, peekPendingRefreshToken } from '@/api/browserSession'
 import WechatCallbackView from '@/views/auth/WechatCallbackView.vue'
 
 const testPassword = ['alpha', 'pass'].join('-')
@@ -180,6 +181,7 @@ describe('WechatCallbackView', () => {
     appStoreState.cachedPublicSettings = null
     appStoreState.publicSettingsLoaded = false
     localStorage.clear()
+    clearAccessToken()
     sessionStorage.clear()
     locationState.current = {
       href: 'http://localhost/auth/wechat/callback',
@@ -313,7 +315,8 @@ describe('WechatCallbackView', () => {
 
     expect(exchangePendingOAuthCompletionMock).not.toHaveBeenCalled()
     expect(setTokenMock).toHaveBeenCalledWith('legacy-alpha')
-    expect(localStorage.getItem('refresh_token')).toBe('legacy-beta')
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(peekPendingRefreshToken()).toBe('legacy-beta')
     expect(localStorage.getItem('token_expires_at')).not.toBeNull()
     expect(showSuccessMock).toHaveBeenCalledWith('Login success')
     expect(replaceMock).toHaveBeenCalledWith('/legacy-dashboard')
@@ -441,7 +444,8 @@ describe('WechatCallbackView', () => {
     })
     expect(setTokenMock).toHaveBeenCalledWith('sample-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/dashboard')
-    expect(localStorage.getItem('refresh_token')).toBe('sample-beta')
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(peekPendingRefreshToken()).toBe('sample-beta')
   })
 
   it('supports bind completion after adoption confirmation', async () => {
@@ -1031,7 +1035,8 @@ describe('WechatCallbackView', () => {
     })
     expect(setTokenMock).toHaveBeenCalledWith('twofa-alpha')
     expect(replaceMock).toHaveBeenCalledWith('/profile')
-    expect(localStorage.getItem('refresh_token')).toBe('twofa-beta')
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+    expect(peekPendingRefreshToken()).toBe('twofa-beta')
   })
 
   it('restarts the current-user bind flow after returning from login', async () => {

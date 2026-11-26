@@ -2,6 +2,22 @@
 
 范围：Issue #27，以及默认分支 `779b4351f2fcc34b25f772d6abebfa5d402c3cc1` 的全部 **162 条开放 CodeQL 告警**。使用分页 API 完整取数；不是首次分页的 100 条，也不是旧评论中的 41 条日志告警。扫描配置、规则与排除路径均未为本轮修复作改动。
 
+## v0.5.7 补充复核（2026-11-27）
+
+下文计数和“开放迁移项”表保留首次复核的历史基线。本次在默认分支 `2be3bec9a93486d286e7bc403fe6e2da95d23528` 的 Go 分析 `2256804145` 中重新检查仍开放的路径，未缩减扫描规则或扩大排除：
+
+| 告警 | 本次复核证据 |
+| --- | --- |
+| #43、#44 | Gateway 转发失败的错误在日志构造前经过 `logredact.ErrorSummary`；输出限于 Go 类型、固定分类、三位 HTTP 状态与允许列表 provider code。代理字段为 ID、名称、host、port，未输出用户名、密码或完整 URL。 |
+| #45、#46、#47 | OpenAI 普通及 WebSocket 转发错误同样使用 `ErrorSummary`。CodeQL 将 `fmt.Sprintf("type=%T kind=%s", err, kind)` 中的类型格式化误判为输出错误正文；`%T` 不调用 `Error()` 或自定义 Formatter。 |
+| #48、#49 | Images 转发失败的 Warn/Error 分支同样只记录上述固定摘要。 |
+| #50、#51、#52、#53、#54 | `LegacyPrintf` 在格式化前替换所有 `error` 参数；扫描路径把该参数传播至类型断言失败的另一分支。其他来源是数字 `APIKeyID`、布尔 `APIKeyEnabled` 和已经脱敏的认证头，并非原始 API Key。bootstrap 与结构化 sink 均经回归验证。 |
+| #156、#158 | 保活 writer 透明转发 JSON/SSE，生产响应限定 JSON/`+json` 或 `text/event-stream`，并带 `nosniff`。SARIF 将构建上游 multipart 请求的 `multipart.Writer.CreatePart().Write(model)` 与下游 HTTP writer 合流，实际不是同一 receiver；WS bridge 则发送 SSE 帧，不渲染 HTML。新增已提交心跳的 `nosniff` 防御。 |
+
+上述 14 条属于已存在安全边界未被分析器识别的误报，处置须在 GitHub 告警中保留对应理由，不能概括为“全部上游输入可信”。已执行日志脱敏、恶意 HTML/SVG/XHTML 媒体类型、API 字节透明性与心跳响应头定向测试，均通过。
+
+#5、#163、#164 的真实迁移在 v0.5.7 实现：新 Web 会话不再持久写入令牌，同源刷新使用 HttpOnly Cookie；持久凭据新写入使用带版本和域分离的 HMAC，配套旧行双读、严格解密及 CAS 分批回填。跨源 Web 的新令牌仅驻留页面内存，重载需重新登录；未升级客户端与不能解密的旧数据仍有明确边界，见 [安全边界](SECURITY_BOUNDARY.md)。Issue #27 仍须在合并后的扫描及兼容检查确认后再关闭。
+
 ## 处置口径
 
 “已修复/加固”包含真实漏洞修复与阻止上游错误回显秘密的预防性加固，不表示 70 条原始数据流全部已证实可利用。该列描述代码工作；默认分支告警是否自动关闭须以合并后的 CodeQL 重扫为准。误报与保留项在 GitHub 上逐条附证据处理，真实风险不冒充误报。

@@ -1,21 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
 
-vi.mock('axios', () => ({
-  default: {
-    post: vi.fn()
-  }
-}))
+const settings = vi.hoisted(() => ({ baseURL: '/api/v1' }))
+
+vi.mock('@/api/url', () => ({ getAPIBaseURL: () => settings.baseURL }))
+vi.mock('axios', () => ({ default: { post: vi.fn() } }))
 
 const mockedPost = vi.mocked(axios.post)
-
 const testToken = (...parts: string[]) => parts.join('-')
 
-function seedSession(overrides: Partial<Record<string, string>> = {}): void {
-  localStorage.setItem('auth_token', overrides.auth_token || testToken('old', 'access'))
-  localStorage.setItem('refresh_token', overrides.refresh_token || testToken('old', 'refresh'))
-  localStorage.setItem('token_expires_at', overrides.token_expires_at || String(Date.now() - 1))
-  localStorage.setItem('auth_user', JSON.stringify({ id: 7, email: 'admin@example.com' }))
+function seedLegacySession(): void {
+  localStorage.setItem('auth_token', testToken('old', 'access'))
+  localStorage.setItem('refresh_token', testToken('old', 'refresh'))
+  localStorage.setItem('token_expires_at', String(Date.now() - 1))
+  localStorage.setItem('auth_user', JSON.stringify({ id: 7 }))
+}
+
+function seedCookieSession(): void {
+  document.cookie = 'sub3api_browser_csrf=signed-token; Path=/'
+  document.cookie = 'sub3api_browser_session=1; Path=/'
+  localStorage.setItem('auth_user', JSON.stringify({ id: 7 }))
 }
 
 function refreshedResponse() {
@@ -36,147 +40,179 @@ function refreshedResponse() {
 describe('refreshAuthTokens', () => {
   beforeEach(() => {
     localStorage.clear()
+    document.cookie = 'sub3api_browser_csrf=; Max-Age=0; Path=/'
+    document.cookie = 'sub3api_browser_session=; Max-Age=0; Path=/'
     mockedPost.mockReset()
     vi.resetModules()
+    settings.baseURL = '/api/v1'
     Object.defineProperty(navigator, 'locks', {
       configurable: true,
-      value: undefined
+      value: { request: vi.fn((_name, callback) => callback()) }
     })
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('refreshes a reloaded cookie session without persisting either token', async () => {
+    seedCookieSession()
+    mockedPost.mockResolvedValueOnce(refreshedResponse())
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+    const { getAccessToken, getSessionRefreshToken } = await import('@/api/browserSession')
+
+    await refreshAuthTokens()
+
+    expect(mockedPost).toHaveBeenCalledWith('/api/v1/auth/refresh', {}, expect.objectContaining({
+      headers: expect.objectContaining({
+        'X-Sub3API-Browser-Session': 'cookie',
+        'X-CSRF-Token': 'signed-token'
+      }),
+      withCredentials: true
+    }))
+    expect(getAccessToken()).toBe(testToken('new', 'access'))
+    expect(getSessionRefreshToken()).toBeNull()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+    expect(localStorage.getItem('refresh_token')).toBeNull()
+  })
+
+  it('migrates a legacy stored refresh token to cookie mode on its first refresh', async () => {
+    seedLegacySession()
+    mockedPost.mockResolvedValueOnce(refreshedResponse())
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+
+    await refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
+
+    expect(mockedPost).toHaveBeenCalledWith('/api/v1/auth/refresh', {
+      refresh_token: testToken('old', 'refresh')
+    }, expect.objectContaining({
+      headers: expect.objectContaining({ 'X-Sub3API-Browser-Session': 'cookie' })
+    }))
+    expect(localStorage.getItem('auth_token')).toBeNull()
+    expect(localStorage.getItem('refresh_token')).toBeNull()
   })
 
   it('shares one refresh request between concurrent callers in the same document', async () => {
-    seedSession()
+    seedCookieSession()
     let resolveRequest!: (value: ReturnType<typeof refreshedResponse>) => void
-    mockedPost.mockImplementationOnce(
-      () => new Promise((resolve) => {
-        resolveRequest = resolve
-      })
-    )
+    mockedPost.mockImplementationOnce(() => new Promise((resolve) => { resolveRequest = resolve }))
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
-    const first = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-    const second = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
+    const first = refreshAuthTokens()
+    const second = refreshAuthTokens()
 
     expect(mockedPost).toHaveBeenCalledTimes(1)
     resolveRequest(refreshedResponse())
-
     await expect(first).resolves.toMatchObject({ access_token: testToken('new', 'access') })
-    await expect(second).resolves.toMatchObject({ refresh_token: testToken('new', 'refresh') })
-    expect(localStorage.getItem('refresh_token')).toBe(testToken('new', 'refresh'))
+    await expect(second).resolves.toMatchObject({ access_token: testToken('new', 'access') })
+    expect(localStorage.getItem('refresh_token')).toBeNull()
   })
 
-  it('adopts tokens refreshed by another tab after acquiring the Web Lock', async () => {
-    seedSession()
-    const request = vi.fn(async (_name: string, callback: () => Promise<unknown>) => {
-      localStorage.setItem('auth_token', testToken('peer', 'access'))
-      localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', testToken('peer', 'refresh'))
-      return callback()
-    })
+  it('uses a peer-migrated cookie instead of replaying the legacy body after acquiring the lock', async () => {
+    seedLegacySession()
     Object.defineProperty(navigator, 'locks', {
       configurable: true,
-      value: { request }
+      value: { request: vi.fn((_name, callback) => {
+        document.cookie = 'sub3api_browser_session=1; Path=/'
+        document.cookie = 'sub3api_browser_csrf=peer-csrf; Path=/'
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('refresh_token')
+        return callback()
+      }) }
     })
+    mockedPost.mockResolvedValueOnce(refreshedResponse())
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
 
-    const result = await refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
+    await refreshAuthTokens()
 
-    expect(request).toHaveBeenCalledTimes(1)
-    expect(mockedPost).not.toHaveBeenCalled()
-    expect(result).toMatchObject({
-      access_token: testToken('peer', 'access'),
-      refresh_token: testToken('peer', 'refresh')
-    })
+    expect(mockedPost).toHaveBeenCalledWith('/api/v1/auth/refresh', {}, expect.objectContaining({
+      headers: expect.objectContaining({ 'X-CSRF-Token': 'peer-csrf' })
+    }))
   })
 
-  it('recovers when a peer publishes the rotated token just after this request fails', async () => {
-    seedSession()
-    mockedPost.mockRejectedValueOnce(new Error('refresh token already used'))
+  it('keeps cross-origin bearer token rotation entirely in memory', async () => {
+    settings.baseURL = 'https://api.example/api/v1'
+    seedLegacySession()
+    mockedPost.mockResolvedValue(refreshedResponse())
     const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+    const { getAccessToken, getSessionRefreshToken } = await import('@/api/browserSession')
 
-    window.setTimeout(() => {
-      localStorage.setItem('auth_token', testToken('peer', 'access'))
-      localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', testToken('peer', 'refresh'))
-    }, 10)
-
-    await expect(
-      refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-    ).resolves.toMatchObject({
-      access_token: testToken('peer', 'access'),
-      refresh_token: testToken('peer', 'refresh')
-    })
-  })
-
-  it('waits for a slow peer after losing a refresh-token race without Web Locks', async () => {
-    vi.useFakeTimers()
-    seedSession()
-    let resolveWinningRequest!: (value: ReturnType<typeof refreshedResponse>) => void
-    mockedPost.mockImplementationOnce(
-      () => new Promise((resolve) => {
-        resolveWinningRequest = resolve
-      })
-    )
-    const firstTab = await import('@/api/tokenRefresh')
-    vi.resetModules()
-    const secondTab = await import('@/api/tokenRefresh')
-
-    const winner = firstTab.refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-    mockedPost.mockRejectedValueOnce({ response: { status: 401 } })
-    const loser = secondTab.refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-
-    window.setTimeout(() => resolveWinningRequest(refreshedResponse()), 1_500)
-    await vi.advanceTimersByTimeAsync(1_600)
-
-    await expect(winner).resolves.toMatchObject({ access_token: testToken('new', 'access') })
-    await expect(loser).resolves.toMatchObject({ refresh_token: testToken('new', 'refresh') })
-    expect(mockedPost).toHaveBeenCalledTimes(2)
-    expect(localStorage.getItem('refresh_token')).toBe(testToken('new', 'refresh'))
-  })
-
-  it('does not adopt a token from a different signed-in user', async () => {
-    vi.useFakeTimers()
-    seedSession()
-    mockedPost.mockRejectedValueOnce(new Error('refresh token already used'))
-    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
-
-    window.setTimeout(() => {
-      localStorage.setItem('auth_user', JSON.stringify({ id: 8, email: 'other@example.com' }))
-      localStorage.setItem('auth_token', testToken('other', 'access'))
-      localStorage.setItem('token_expires_at', String(Date.now() + 3600_000))
-      localStorage.setItem('refresh_token', testToken('other', 'refresh'))
-    }, 10)
-
-    const rejection = expect(
-      refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-    ).rejects.toThrow('refresh token already used')
-    await vi.advanceTimersByTimeAsync(1_100)
-    await rejection
-  })
-
-  it('does not restore a session that was logged out while refresh was in flight', async () => {
-    vi.useFakeTimers()
-    seedSession()
-    let resolveRequest!: (value: ReturnType<typeof refreshedResponse>) => void
-    mockedPost.mockImplementationOnce(
-      () => new Promise((resolve) => {
-        resolveRequest = resolve
-      })
-    )
-    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
-
-    const pending = refreshAuthTokens({ failedAccessToken: testToken('old', 'access') })
-    localStorage.clear()
-    resolveRequest(refreshedResponse())
-
-    const rejection = expect(pending).rejects.toThrow('Session changed during token refresh')
-    await vi.advanceTimersByTimeAsync(1_100)
-    await rejection
+    await refreshAuthTokens()
+    expect(getAccessToken()).toBe(testToken('new', 'access'))
+    expect(getSessionRefreshToken()).toBe(testToken('new', 'refresh'))
     expect(localStorage.getItem('auth_token')).toBeNull()
     expect(localStorage.getItem('refresh_token')).toBeNull()
+    await refreshAuthTokens()
+    expect(mockedPost).toHaveBeenLastCalledWith('https://api.example/api/v1/auth/refresh', {
+      refresh_token: testToken('new', 'refresh')
+    }, expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }))
+
+    vi.resetModules()
+    const reloaded = await import('@/api/browserSession')
+    expect(reloaded.getAccessToken()).toBeNull()
+    expect(reloaded.getSessionRefreshToken()).toBeNull()
+  })
+
+  it('refreshes HTTP cookie sessions without secure-context randomUUID or Web Locks', async () => {
+    vi.stubGlobal('crypto', { randomUUID: undefined })
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined })
+    seedCookieSession()
+    mockedPost.mockResolvedValueOnce(refreshedResponse())
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+
+    await expect(refreshAuthTokens()).resolves.toMatchObject({ access_token: testToken('new', 'access') })
+    expect(localStorage.getItem('sub3api_browser_refresh_lease')).toBeNull()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+  })
+
+  it('waits for a peer cookie refresh lease instead of racing a one-time token', async () => {
+    vi.useFakeTimers()
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined })
+    seedCookieSession()
+    localStorage.setItem('sub3api_browser_refresh_lease', JSON.stringify({ owner: 'peer', expiresAt: Date.now() + 2000 }))
+    mockedPost.mockResolvedValueOnce(refreshedResponse())
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+
+    const pending = refreshAuthTokens()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mockedPost).not.toHaveBeenCalled()
+    localStorage.removeItem('sub3api_browser_refresh_lease')
+    await vi.advanceTimersByTimeAsync(100)
+    await expect(pending).resolves.toMatchObject({ access_token: testToken('new', 'access') })
+    expect(mockedPost).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not restore a session logged out while refresh was in flight', async () => {
+    seedCookieSession()
+    let resolveRequest!: (value: ReturnType<typeof refreshedResponse>) => void
+    mockedPost.mockImplementationOnce(() => new Promise((resolve) => { resolveRequest = resolve }))
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+    const { clearAccessToken, getAccessToken } = await import('@/api/browserSession')
+
+    const pending = refreshAuthTokens()
+    clearAccessToken()
+    resolveRequest(refreshedResponse())
+
+    await expect(pending).rejects.toThrow('Session changed during token refresh')
+    expect(getAccessToken()).toBeNull()
+    expect(localStorage.getItem('auth_token')).toBeNull()
+  })
+
+  it('rejects a stale refresh after another account signs in', async () => {
+    seedCookieSession()
+    let resolveRequest!: (value: ReturnType<typeof refreshedResponse>) => void
+    mockedPost.mockImplementationOnce(() => new Promise((resolve) => { resolveRequest = resolve }))
+    const { refreshAuthTokens } = await import('@/api/tokenRefresh')
+    const { getAccessToken, setAccessToken } = await import('@/api/browserSession')
+
+    const pending = refreshAuthTokens()
+    localStorage.setItem('auth_user', JSON.stringify({ id: 8 }))
+    setAccessToken('other-access')
+    resolveRequest(refreshedResponse())
+
+    await expect(pending).rejects.toThrow('Session changed during token refresh')
+    expect(getAccessToken()).toBe('other-access')
   })
 })

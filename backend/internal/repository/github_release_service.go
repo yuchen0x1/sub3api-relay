@@ -67,6 +67,7 @@ func NewGitHubReleaseClient(proxyURL string, allowDirectOnProxyError bool) servi
 		downloadClient = &http.Client{Timeout: 10 * time.Minute}
 	}
 	downloadClient = cloneHTTPClient(downloadClient)
+	downloadClient.CheckRedirect = githubReleaseDownloadCheckRedirect(downloadClient.CheckRedirect)
 
 	return &githubReleaseClient{
 		httpClient:         apiClient,
@@ -85,10 +86,45 @@ func isGitHubAPIURL(url *url.URL) bool {
 		strings.EqualFold(url.Host, "api.github.com")
 }
 
+func isTrustedGitHubReleaseURL(u *url.URL) bool {
+	if u == nil || !strings.EqualFold(u.Scheme, "https") || u.User != nil || u.Port() != "" || !strings.EqualFold(u.Host, u.Hostname()) {
+		return false
+	}
+	switch strings.ToLower(u.Hostname()) {
+	case "api.github.com", "github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com":
+		return true
+	default:
+		return false
+	}
+}
+
 func githubAPICheckRedirect(previous func(*http.Request, []*http.Request) error) func(*http.Request, []*http.Request) error {
 	return func(req *http.Request, via []*http.Request) error {
+		// Wrapping CheckRedirect disables net/http's default ten-hop limit. Keep
+		// that protection when the configured client has no custom callback.
+		if previous == nil && len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
 		if !isGitHubAPIURL(req.URL) {
 			req.Header.Del("Authorization")
+		}
+		if !isTrustedGitHubReleaseURL(req.URL) {
+			return fmt.Errorf("refusing redirect to untrusted GitHub release host")
+		}
+		if previous != nil {
+			return previous(req, via)
+		}
+		return nil
+	}
+}
+
+func githubReleaseDownloadCheckRedirect(previous func(*http.Request, []*http.Request) error) func(*http.Request, []*http.Request) error {
+	return func(req *http.Request, via []*http.Request) error {
+		if previous == nil && len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if !isTrustedGitHubReleaseURL(req.URL) || strings.EqualFold(req.URL.Hostname(), "api.github.com") {
+			return fmt.Errorf("refusing redirect to untrusted GitHub release host")
 		}
 		if previous != nil {
 			return previous(req, via)
@@ -383,5 +419,16 @@ func (c *githubReleaseClient) FetchChecksumFile(ctx context.Context, url string)
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	return io.ReadAll(resp.Body)
+	// checksums.txt is a small metadata file. Bound the response even when the
+	// server omits Content-Length so a compromised endpoint cannot consume
+	// unbounded memory during an update check.
+	const maxChecksumSize = 1 << 20
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxChecksumSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > maxChecksumSize {
+		return nil, fmt.Errorf("checksum file exceeds maximum size of %d bytes", maxChecksumSize)
+	}
+	return body, nil
 }
