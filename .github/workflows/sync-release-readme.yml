@@ -108,43 +108,38 @@ jobs:
             }
 
             const base = (await github.rest.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` })).data.object.sha
-            const current = await readReadme(base)
-            if (render(current) === current) {
+            const before = await readReadme(base)
+            const after = render(before)
+            if (after === before) {
               core.info('README already matches the latest stable release; no commit or PR is needed.')
               return
             }
 
-            for (let attempt = 1; attempt <= 5; attempt++) {
-              let head
-              try {
-                head = (await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })).data.object.sha
-              } catch (error) {
-                if (error.status !== 404) throw error
-              }
-              const parent = head || base
-              const before = await readReadme(parent)
-              const after = render(before)
-              if (after === before) break
-              const commit = (await github.rest.git.getCommit({ owner, repo, commit_sha: parent })).data
-              const blob = (await github.rest.git.createBlob({ owner, repo, content: after, encoding: 'utf-8' })).data
-              const tree = (await github.rest.git.createTree({
-                owner, repo, base_tree: commit.tree.sha,
-                tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: blob.sha }]
-              })).data
-              const next = (await github.rest.git.createCommit({
-                owner, repo, message: 'docs: sync README with GitHub Releases', tree: tree.sha, parents: [parent]
-              })).data
-              try {
-                if (head) {
-                  await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: next.sha, force: false })
-                } else {
-                  await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: next.sha })
-                }
-                break
-              } catch (error) {
-                if (![409, 422].includes(error.status) || attempt === 5) throw error
-                core.info(`Maintenance branch changed concurrently; retrying without replacing its commits (${attempt}/5).`)
-              }
+            // This maintenance branch only owns the README release marker block.
+            // Rebuild it from the current default branch on every run: stacking
+            // commits on the previous branch head leaves the open PR permanently
+            // conflicted once main advances. Force-updating is safe here because
+            // manual edits on this automation branch are not part of the contract.
+            const baseCommit = (await github.rest.git.getCommit({ owner, repo, commit_sha: base })).data
+            const blob = (await github.rest.git.createBlob({ owner, repo, content: after, encoding: 'utf-8' })).data
+            const tree = (await github.rest.git.createTree({
+              owner, repo, base_tree: baseCommit.tree.sha,
+              tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: blob.sha }]
+            })).data
+            const next = (await github.rest.git.createCommit({
+              owner, repo, message: 'docs: sync README with GitHub Releases', tree: tree.sha, parents: [base]
+            })).data
+
+            let head
+            try {
+              head = (await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })).data.object.sha
+            } catch (error) {
+              if (error.status !== 404) throw error
+            }
+            if (head) {
+              await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: next.sha, force: true })
+            } else {
+              await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: next.sha })
             }
 
             const open = (await github.rest.pulls.list({ owner, repo, state: 'open', base: defaultBranch, head: `${owner}:${branch}` })).data[0]

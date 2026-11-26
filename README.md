@@ -19,15 +19,15 @@
 
 <!-- github-release:start -->
 
-**v0.5.5 · 待发布**
+**v0.5.6 · 待发布**
 
-管理员生成用户密码改用浏览器原生安全随机数源，保持现有长度、字符集和复制流程。升级无需数据库迁移。
+升级 WebSocket 依赖并修复全历史密钥扫描配置，恢复每周安全扫描的有效信号；同步发行文档与前端依赖锁定。升级无需数据库迁移。
 
 [全部发行记录](https://github.com/yuchen0x1/sub3api-relay/releases)
 
 <!-- github-release:end -->
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.5.5 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.5.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.6 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.6.md) · [平台与维护状态](docs/maintenance/README.md) · [更新方式](docs/AUTO_UPDATE.md)
 
 ## Project Overview
 

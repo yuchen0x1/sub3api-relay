@@ -11,22 +11,19 @@
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
-[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.4.4 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.4.md)
+[English](README.md) | [中文](README_CN.md) | 日本語 | [v0.5.6 更新内容](docs/release-notes/RELEASE_NOTES_v0.5.6.md)
 
 </div>
 
 ## 最新の更新
 
-### v0.4.4 · 2026-11-13
+### v0.5.6 · 公開準備中
 
-- Go 1.26.11 に統一し、HTTP サーバーの競合によるクラッシュを修正。公開前に到達可能な脆弱性を検査します。
+- WebSocket 依存関係を更新し、公開済みの弱い乱数に関するセキュリティ勧告を修正しました。
+- 全履歴のシークレットスキャン設定の不具合を修正し、毎週のセキュリティスキャンを有効化しました。
+- フロントエンドの依存関係オーバーライドとロックファイルを統一し、リリースノートを同期しました。
 
-- バックアップの無期限保存設定を保持し、保存件数の上限は定期バックアップだけに適用します。
-- バックアップ・復元・削除の競合を防ぎ、管理画面にエラーの詳細を表示します。
-- S3 設定変更時も既存の秘密鍵を暗号化して保存します。大容量バックアップには一時ディスク領域が必要です。
-- SQL 復元エラー時は処理を中断してロールバックし、すべての配布アーカイブに SHA-256 チェックサムを提供します。
-
-[更新履歴](docs/releases/release-notes.md) · [v0.4.4 更新内容](docs/release-notes/RELEASE_NOTES_v0.4.4.md) · [リリース手順](docs/RELEASING.md)
+[更新履歴](docs/releases/release-notes.md) · [v0.5.6 更新内容](docs/release-notes/RELEASE_NOTES_v0.5.6.md) · [リリース手順](docs/RELEASING.md)
 
 ## ⚠️ 重要なお知らせ
 
