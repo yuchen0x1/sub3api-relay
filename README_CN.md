@@ -17,13 +17,13 @@
 
 ## 最新更新
 
-### v0.5.6 · 待发布
+### v0.5.6 · 2026-11-26
 
 - 升级 WebSocket 依赖，修复已公开的弱随机数安全公告。
 - 修复全历史密钥扫描配置失效，恢复每周安全扫描的有效信号。
 - 统一前端依赖覆盖与锁文件，同步中英日文发行说明。
 
-[完整更新历史](docs/releases/release-notes.md) · [v0.5.6 待发布说明](docs/release-notes/RELEASE_NOTES_v0.5.6.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
+[完整更新历史](docs/releases/release-notes.md) · [v0.5.6 发行说明](docs/release-notes/RELEASE_NOTES_v0.5.6.md) · [发布流程](docs/RELEASING.md) · [部署说明](deploy/README.md)
 
 ## ⚠️ 重要提醒
 
